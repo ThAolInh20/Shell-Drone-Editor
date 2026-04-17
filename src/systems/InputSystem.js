@@ -11,14 +11,29 @@ export class InputSystem {
       left: false,
       right: false
     };
+    this.status = {
+      moving: false,
+      direction: 'idle',
+      looking: false
+    };
     
     // Click to lock cursor
     domElement.addEventListener('click', () => {
-      if(!this.controls.isLocked) {
+      if (!this.controls.isLocked) {
         this.controls.lock();
       }
     });
 
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === domElement) {
+        this.instructions.style.display = 'none';
+        this.updateStatusOverlay();
+      } else {
+        this.instructions.style.display = '';
+      }
+    });
+
+    document.addEventListener('mousemove', (event) => this.onMouseMove(event));
     document.addEventListener('keydown', (event) => this.onKeyDown(event));
     document.addEventListener('keyup', (event) => this.onKeyUp(event));
     
@@ -54,13 +69,52 @@ export class InputSystem {
     this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
-    
+
+    this.statusOverlay = document.createElement('div');
+    this.statusOverlay.style.position = 'absolute';
+    this.statusOverlay.style.top = '12px';
+    this.statusOverlay.style.left = '12px';
+    this.statusOverlay.style.padding = '8px 12px';
+    this.statusOverlay.style.background = 'rgba(0, 0, 0, 0.55)';
+    this.statusOverlay.style.color = '#fff';
+    this.statusOverlay.style.fontFamily = 'monospace';
+    this.statusOverlay.style.fontSize = '12px';
+    this.statusOverlay.style.lineHeight = '1.4';
+    this.statusOverlay.style.borderRadius = '8px';
+    this.statusOverlay.style.zIndex = '100';
+    this.statusOverlay.style.pointerEvents = 'none';
+    document.body.appendChild(this.statusOverlay);
+    this.updateStatusOverlay();
+
     this.controls.addEventListener('lock', () => {
       this.instructions.style.display = 'none';
+      this.status.looking = false;
+      this.updateStatusOverlay();
     });
     this.controls.addEventListener('unlock', () => {
       this.instructions.style.display = '';
+      this.status.moving = false;
+      this.status.direction = 'idle';
+      this.updateStatusOverlay();
     });
+  }
+
+  updateStatusOverlay() {
+    if (!this.statusOverlay) return;
+    const locked = this.controls.isLocked ? 'Yes' : 'No';
+    const moving = this.status.moving ? 'Yes' : 'No';
+    this.statusOverlay.innerHTML = `Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}`;
+  }
+
+  onMouseMove(event) {
+    if (!this.controls.isLocked) return;
+    this.status.looking = true;
+    this.updateStatusOverlay();
+    clearTimeout(this.lookTimer);
+    this.lookTimer = setTimeout(() => {
+      this.status.looking = false;
+      this.updateStatusOverlay();
+    }, 150);
   }
 
   onKeyDown(event) {
@@ -104,5 +158,12 @@ export class InputSystem {
         this.keys.right = false;
         break;
     }
+  }
+
+  setMovementStatus(direction) {
+    const moving = direction !== '' && direction !== 'idle';
+    this.status.moving = moving;
+    this.status.direction = moving ? direction : 'idle';
+    this.updateStatusOverlay();
   }
 }
