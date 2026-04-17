@@ -22,17 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
 .agent
-.augment
-.claude
-.codex
-.cursor
-.gemini
+_bmad
 .github
-.kilo
-.opencode
-.trae
-.windsurf
-
 

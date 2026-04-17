@@ -31,6 +31,13 @@ export class MovementSystem {
       this.velocity.x -= this.direction.x * this.speed * deltaTime;
     }
 
+    const directions = [];
+    if (this.input.keys.forward) directions.push('forward');
+    if (this.input.keys.backward) directions.push('backward');
+    if (this.input.keys.left) directions.push('left');
+    if (this.input.keys.right) directions.push('right');
+    this.input.setMovementStatus(directions.join(' + '));
+
     // PointerLockControls uses moveRight and moveForward which applies math relative to the current viewing angle
     this.input.controls.moveRight(-this.velocity.x * deltaTime);
     this.input.controls.moveForward(-this.velocity.z * deltaTime);
