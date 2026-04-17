@@ -66,7 +66,7 @@ export class InputSystem {
     this.instructions.style.fontFamily = 'monospace';
     this.instructions.style.fontSize = '18px';
     this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move';
+    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch a firework';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
 
