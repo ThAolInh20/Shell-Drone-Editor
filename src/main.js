@@ -17,7 +17,7 @@ const performanceMonitor = new PerformanceMonitor();
 const fireworkSystem = new FireworkSystem(sceneManager.instance);
 
 // Initialize Systems
-const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement);
+const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 renderer.instance.domElement.addEventListener('click', () => {
