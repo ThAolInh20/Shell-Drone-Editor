@@ -4,6 +4,7 @@ import { SceneManager } from './core/SceneManager.js';
 import { Renderer } from './core/Renderer.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
+import { FireworkSystem } from './systems/FireworkSystem.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import './style.css';
 
@@ -13,10 +14,17 @@ const renderer = new Renderer();
 const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
+const fireworkSystem = new FireworkSystem(sceneManager.instance);
 
 // Initialize Systems
-const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement);
+const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
+
+renderer.instance.domElement.addEventListener('click', () => {
+  if (inputSystem.controls.isLocked) {
+    fireworkSystem.launchRandom();
+  }
+});
 
 function animate() {
   requestAnimationFrame(animate);
@@ -26,6 +34,7 @@ function animate() {
   
   // Systems update
   movementSystem.update(clock.deltaTime);
+  fireworkSystem.update(clock.deltaTime);
 
   // Render loop
   renderer.render(sceneManager.instance, cameraManager.instance);

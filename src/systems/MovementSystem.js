@@ -8,7 +8,7 @@ export class MovementSystem {
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
     
-    this.speed = 100.0; // Movement acceleration
+    this.speed = 500.0; // Movement acceleration
     this.friction = 10.0;  // Decrease velocity naturally
   }
 
