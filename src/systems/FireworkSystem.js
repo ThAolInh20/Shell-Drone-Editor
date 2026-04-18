@@ -14,6 +14,13 @@ const FIREWORK_COLORS = [
   0x8a2be2  // tím (blue violet)
 ];
 
+const SHELL_CORE_SIZE = 0.6;
+const SHELL_HALO_COUNT = 10;
+const SHELL_HALO_RADIUS = 3.8;
+const SHELL_HALO_SIZE = 0.95;
+
+const BURST_FADE_EXPONENT = 2.5;
+
 const DEFAULT_TRAIL_COLOR = new THREE.Color( 0xffd700);
 
 export class FireworkSystem {
@@ -40,7 +47,7 @@ export class FireworkSystem {
     this.scene.add(this.trailPoints);
   }
 
-  launchRandom(shape = 'sphere') {
+  launchRandom(shape = null) {
     const offsetX = (Math.random() - 0.5) * 40;
     const offsetZ = (Math.random() - 0.5) * 40;
     const position = this.launchPosition.clone().add(new THREE.Vector3(offsetX, 0, offsetZ));
@@ -52,10 +59,76 @@ export class FireworkSystem {
     this.activeFireworks.push(shell);
   }
 
-  createShell(position, velocity, burstHeight, color, shape = 'sphere') {
-    const geometry = new THREE.SphereGeometry(2.5, 12, 12);
-    const material = new THREE.MeshBasicMaterial({ color, emissive: color, emissiveIntensity: 0.7 });
-    const mesh = new THREE.Mesh(geometry, material);
+  pickFireworkShape() {
+    const roll = Math.random();
+
+    if (roll < 0.7) return 'sphere';
+    if (roll < 0.92) return 'willow';
+    if (roll < 0.98) return 'star';
+    return 'lightning';
+  }
+
+  createShell(position, velocity, burstHeight, color, shape = null) {
+    const shellShape = shape ?? this.pickFireworkShape();
+    const mesh = new THREE.Group();
+
+    const coreGeometry = new THREE.SphereGeometry(SHELL_CORE_SIZE, 8, 8);
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+    mesh.add(coreMesh);
+
+    const haloPositions = new Float32Array(SHELL_HALO_COUNT * 3);
+    const haloColors = new Float32Array(SHELL_HALO_COUNT * 3);
+
+    for (let i = 0; i < SHELL_HALO_COUNT; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const elevation = (Math.random() - 0.5) * Math.PI;
+      const radius = SHELL_HALO_RADIUS * (0.35 + Math.random() * 0.65);
+      const offset = new THREE.Vector3(
+        Math.cos(angle) * Math.cos(elevation) * radius,
+        Math.sin(elevation) * radius * 0.75,
+        Math.sin(angle) * Math.cos(elevation) * radius
+      );
+
+      haloPositions[i * 3] = offset.x;
+      haloPositions[i * 3 + 1] = offset.y;
+      haloPositions[i * 3 + 2] = offset.z;
+
+      const haloColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.14
+      );
+
+      haloColors[i * 3] = haloColor.r;
+      haloColors[i * 3 + 1] = haloColor.g;
+      haloColors[i * 3 + 2] = haloColor.b;
+    }
+
+    const haloGeometry = new THREE.BufferGeometry();
+    haloGeometry.setAttribute('position', new THREE.BufferAttribute(haloPositions, 3));
+    haloGeometry.setAttribute('color', new THREE.BufferAttribute(haloColors, 3));
+
+    const haloMaterial = new THREE.PointsMaterial({
+      size: SHELL_HALO_SIZE,
+      color: 0xffffff,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false
+    });
+    const haloPoints = new THREE.Points(haloGeometry, haloMaterial);
+    mesh.add(haloPoints);
+
     mesh.position.copy(position);
     return {
       type: 'shell',
@@ -63,7 +136,7 @@ export class FireworkSystem {
       velocity,
       burstHeight,
       color,
-      shape,
+      shape: shellShape,
       age: 0
     };
   }
@@ -96,13 +169,29 @@ export class FireworkSystem {
 
     for (let i = 0; i < BURST_PARTICLES; i++) {
       let direction;
+      const angle = (i / BURST_PARTICLES) * Math.PI * 2;
+
       if (shape === 'star') {
-        // Star shape: points along star arms
-        const angle = (i / BURST_PARTICLES) * Math.PI * 2;
-        const radius = Math.sin(angle * 5) * 0.5 + 0.5; // Star pattern
-        direction = new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, Math.random() * 0.5 - 0.25).normalize();
+        const radius = Math.sin(angle * 5) * 0.45 + 0.75;
+        direction = new THREE.Vector3(
+          Math.cos(angle) * radius,
+          Math.sin(angle) * radius,
+          Math.random() * 0.45 - 0.225
+        ).normalize();
+      } else if (shape === 'willow') {
+        direction = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.85,
+          0.25 + Math.random() * 0.55,
+          (Math.random() - 0.5) * 0.85
+        ).normalize();
+      } else if (shape === 'lightning') {
+        const fork = Math.sin(angle * 6) * 0.55;
+        direction = new THREE.Vector3(
+          fork + (Math.random() - 0.5) * 0.25,
+          0.55 + Math.random() * 0.45,
+          (Math.random() - 0.5) * 0.3
+        ).normalize();
       } else {
-        // Sphere
         direction = new THREE.Vector3(
           Math.random() * 2 - 1,
           Math.random() * 2 - 1,
@@ -148,7 +237,7 @@ export class FireworkSystem {
     if (this.autoLaunchEnabled) {
       this.autoLaunchTimer += deltaTime;
       if (this.autoLaunchTimer >= this.autoLaunchInterval) {
-        this.launchRandom(Math.random() > 0.5 ? 'sphere' : 'star');
+        this.launchRandom();
         this.autoLaunchTimer = 0;
       }
     }
@@ -160,9 +249,18 @@ export class FireworkSystem {
         item.velocity.y += GRAVITY * deltaTime;
         item.mesh.position.addScaledVector(item.velocity, deltaTime);
         item.age += deltaTime;
+        item.mesh.scale.setScalar(1 + Math.sin(item.age * 12) * 0.05);
+
+        if (item.mesh.children[0] && item.mesh.children[0].material) {
+          item.mesh.children[0].material.opacity = 0.9 + Math.sin(item.age * 18) * 0.08;
+        }
+
+        if (item.mesh.children[1] && item.mesh.children[1].material) {
+          item.mesh.children[1].material.opacity = 0.55 + Math.sin(item.age * 9) * 0.12;
+        }
 
         // Spawn trail particles
-        if (Math.random() < 0.3) { // 30% chance per frame
+        if (Math.random() < 0.4) { // slight chance per frame
           this.spawnTrailParticle(item.mesh.position.clone(), item.color);
         }
 
@@ -177,9 +275,7 @@ export class FireworkSystem {
         item.age += deltaTime;
         const positions = item.points.geometry.attributes.position.array;
         const lifeArray = item.points.userData.life;
-        let alpha = 1 - item.age / item.maxLife;
-        alpha = Math.max(alpha, 0);
-        item.points.material.opacity = alpha;
+        item.points.material.opacity = Math.pow(Math.max(1 - item.age / item.maxLife, 0), BURST_FADE_EXPONENT);
 
         for (let i = 0; i < BURST_PARTICLES; i++) {
           const velocity = item.points.userData.velocities[i];
