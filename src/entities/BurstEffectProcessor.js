@@ -15,6 +15,35 @@ export class BurstEffectProcessor {
     return this.SUPPORTED_EFFECTS.has(effectType) ? effectType : 'standard';
   }
 
+  static clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  static lerp(start, end, t) {
+    return start + (end - start) * t;
+  }
+
+  static createHeightProfile(height, config = {}) {
+    const minHeight = config.minBurstY ?? 40;
+    const maxHeight = config.maxBurstY ?? 300;
+    const sizeMin = config.sizeMin ?? 0.85;
+    const sizeMax = config.sizeMax ?? 1.55;
+    const brightnessMin = config.brightnessMin ?? 0.9;
+    const brightnessMax = config.brightnessMax ?? 1.9;
+    const sizeCurve = config.sizeCurve ?? 0.9;
+    const brightnessCurve = config.brightnessCurve ?? 1.15;
+
+    const normalized = this.clamp((height - minHeight) / Math.max(maxHeight - minHeight, 1), 0, 1);
+    const sizeT = Math.pow(normalized, sizeCurve);
+    const brightnessT = Math.pow(normalized, brightnessCurve);
+
+    return {
+      normalized,
+      sizeMultiplier: this.lerp(sizeMin, sizeMax, sizeT),
+      brightnessMultiplier: this.lerp(brightnessMin, brightnessMax, brightnessT)
+    };
+  }
+
   static initialize(effectType, count) {
     const normalizedEffect = this.normalizeEffectType(effectType);
     const spin = new Float32Array(count);

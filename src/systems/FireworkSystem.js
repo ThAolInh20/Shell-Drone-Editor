@@ -19,8 +19,11 @@ const FIREWORK_COLORS = [
 ];
 
 const BURST_FADE_EXPONENT = 2.5;
+const CRACKLE_CLOUD_SPEED = 24;
+const BASE_BURST_POINT_SIZE = 4;
 
 const DEFAULT_TRAIL_COLOR = new THREE.Color( 0xffd700);
+const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
 
 export class FireworkSystem {
   constructor(scene) {
@@ -40,6 +43,17 @@ export class FireworkSystem {
       effectFallbacks: 0,
       warnings: 0,
       lastWarning: 'none'
+    };
+    this.heightScalingConfig = {
+      enabled: true,
+      minBurstY: 40,
+      maxBurstY: 300,
+      sizeMin: 0.85,
+      sizeMax: 1.55,
+      brightnessMin: 0.9,
+      brightnessMax: 1.9,
+      sizeCurve: 0.9,
+      brightnessCurve: 1.15
     };
 
     // Trail particles geometry
@@ -158,6 +172,29 @@ export class FireworkSystem {
     this.trailParticles.push(spark);
   }
 
+  spawnCrackleCloud(position) {
+    const crackleCount = BURST_PARTICLES >= 80 ? 32 : 16;
+
+    for (let i = 0; i < crackleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spread = 0.45 + Math.random() * 0.55;
+      const direction = new THREE.Vector3(
+        Math.cos(angle) * spread,
+        (Math.random() - 0.5) * 0.5,
+        Math.sin(angle) * spread
+      ).normalize();
+
+      const speed = Math.pow(Math.random(), 0.45) * CRACKLE_CLOUD_SPEED;
+      this.trailParticles.push({
+        position: position.clone(),
+        velocity: direction.multiplyScalar(speed),
+        color: CRACKLE_SPARK_COLOR.clone(),
+        life: 0.3 + Math.random() * 0.2,
+        age: 0
+      });
+    }
+  }
+
   createBurst(position, color, shape = 'sphere', preset = null) {
     const requestedShape = shape ?? 'sphere';
     const resolvedShape = BurstShapeGenerator.resolveShape(requestedShape);
@@ -166,7 +203,8 @@ export class FireworkSystem {
       this.registerWarning(`[Burst] Shape fallback from "${requestedShape}" to "${resolvedShape}".`);
     }
 
-    const requestedEffect = preset?.effectType ?? resolvedShape;
+    const crackleEnabled = Boolean(preset?.crackle);
+    const requestedEffect = crackleEnabled ? 'crackle' : (preset?.effectType ?? resolvedShape);
     const normalizedEffect = BurstEffectProcessor.normalizeEffectType(requestedEffect);
     if (normalizedEffect !== requestedEffect) {
       this.diagnostics.effectFallbacks += 1;
@@ -177,20 +215,31 @@ export class FireworkSystem {
     const colors = new Float32Array(BURST_PARTICLES * 3);
     const velocities = [];
     const life = new Float32Array(BURST_PARTICLES);
+    const burstRotation = this.createRandomBurstRotation();
+    const heightProfile = this.heightScalingConfig.enabled
+      ? BurstEffectProcessor.createHeightProfile(position.y, this.heightScalingConfig)
+      : { normalized: 0, sizeMultiplier: 1, brightnessMultiplier: 1 };
+    const brightnessBlend = Math.min(Math.max((heightProfile.brightnessMultiplier - 1) / 1.2, 0), 0.75);
+    const brightnessIntensity = Math.min(heightProfile.brightnessMultiplier, 1.35);
+    const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
 
     for (let i = 0; i < BURST_PARTICLES; i++) {
       const angle = (i / BURST_PARTICLES) * Math.PI * 2;
-      const direction = BurstShapeGenerator.direction(resolvedShape, angle, i, BURST_PARTICLES, preset);
-      const speed = BURST_SPEED * (0.5 + Math.random() * 0.8);
+      const direction = BurstShapeGenerator.direction(resolvedShape, angle, i, BURST_PARTICLES, preset)
+        .applyQuaternion(burstRotation)
+        .normalize();
+      const sphereSpeedBand = 0.9 + Math.random() * 0.2;
+      const defaultSpeedBand = 0.5 + Math.random() * 0.8;
+      const speed = BURST_SPEED * (resolvedShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand);
       velocities.push(direction.multiplyScalar(speed));
 
       positions[i * 3] = position.x;
       positions[i * 3 + 1] = position.y;
       positions[i * 3 + 2] = position.z;
 
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+      colors[i * 3] = burstColor.r * brightnessIntensity;
+      colors[i * 3 + 1] = burstColor.g * brightnessIntensity;
+      colors[i * 3 + 2] = burstColor.b * brightnessIntensity;
       life[i] = 0;
     }
 
@@ -198,7 +247,7 @@ export class FireworkSystem {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const material = new THREE.PointsMaterial({
-      size: 4,
+      size: BASE_BURST_POINT_SIZE * heightProfile.sizeMultiplier,
       vertexColors: true,
       transparent: true,
       opacity: 1,
@@ -209,6 +258,9 @@ export class FireworkSystem {
       velocities,
       life,
       effectType: normalizedEffect,
+      crackle: crackleEnabled || normalizedEffect === 'crackle',
+      crackleCloudTriggered: false,
+      heightProfile,
       preset,
       effectState: BurstEffectProcessor.initialize(normalizedEffect, BURST_PARTICLES)
     };
@@ -219,6 +271,16 @@ export class FireworkSystem {
       age: 0,
       maxLife: BURST_LIFE
     };
+  }
+
+  createRandomBurstRotation() {
+    const axis = new THREE.Vector3(
+      Math.random() * 2 - 1,
+      Math.random() * 2 - 1,
+      Math.random() * 2 - 1
+    ).normalize();
+    const angle = Math.random() * Math.PI * 2;
+    return new THREE.Quaternion().setFromAxisAngle(axis, angle);
   }
 
   handleShellUpdate(item, deltaTime, finished) {
@@ -254,7 +316,16 @@ export class FireworkSystem {
     const positions = item.points.geometry.attributes.position.array;
     const lifeArray = item.points.userData.life;
     const effectType = item.points.userData.effectType;
-    const baseOpacity = Math.pow(Math.max(1 - item.age / item.maxLife, 0), BURST_FADE_EXPONENT);
+    const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
+
+    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.3) {
+      const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
+      this.spawnCrackleCloud(cloudOrigin);
+      item.points.userData.crackleCloudTriggered = true;
+    }
+
+    const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
+    const baseOpacity = Math.pow(Math.max(1 - item.age / item.maxLife, 0), BURST_FADE_EXPONENT) * brightnessOpacityScale;
     item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
 
     for (let i = 0; i < BURST_PARTICLES; i++) {
@@ -275,7 +346,7 @@ export class FireworkSystem {
       );
 
       if (emitSpark) {
-        this.spawnEffectSpark(particlePosition, new THREE.Color(0xffd77a));
+        this.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
       }
 
       positions[i * 3] += velocity.x * deltaTime;

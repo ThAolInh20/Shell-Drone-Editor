@@ -19,22 +19,74 @@ export class ShellPresetFactory {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
     this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval']);
+    this.presetMenuEntries = [
+      { key: 'random', label: 'Random' },
+      { key: 'crysanthemum', label: 'Chrysanthemum' },
+      { key: 'crackle', label: 'Crackle' },
+      { key: 'rumble', label: 'Rumble' },
+      { key: 'flower', label: 'Flower' },
+      { key: 'cat', label: 'Cat' },
+      { key: 'ring', label: 'Ring' },
+      { key: 'oval', label: 'Oval' },
+      { key: 'snow', label: 'Snow' },
+      { key: 'fish', label: 'Fish' },
+      { key: 'smiley', label: 'Smiley' },
+      { key: 'wave', label: 'Wave' },
+      { key: 'heart', label: 'Heart' }
+    ];
   }
 
   randomPreset() {
     const roll = Math.random();
 
-    if (roll < 0.18) return this.crysanthemumShell();
-    if (roll < 0.30) return this.rumbleShell();
-    if (roll < 0.42) return this.flowerShell();
-    if (roll < 0.50) return this.catShell();
-    if (roll < 0.64) return this.ringShellV2();
+    if (roll < 0.16) return this.crysanthemumShell();
+    if (roll < 0.26) return this.crackleShell();
+    if (roll < 0.36) return this.rumbleShell();
+    if (roll < 0.46) return this.flowerShell();
+    if (roll < 0.54) return this.catShell();
+    if (roll < 0.66) return this.ringShellV2();
     if (roll < 0.76) return this.ovalShell();
     if (roll < 0.84) return this.snowShell();
     if (roll < 0.92) return this.fishShell();
     if (roll < 0.97) return this.smileyShell();
     if (roll < 0.985) return this.waveShell();
     return this.hearthShell();
+  }
+
+  getPresetMenuEntries() {
+    return this.presetMenuEntries.map(entry => ({ ...entry }));
+  }
+
+  createPresetByKey(key) {
+    switch (key) {
+      case 'crysanthemum':
+        return this.validatePreset(this.crysanthemumShell());
+      case 'crackle':
+        return this.validatePreset(this.crackleShell());
+      case 'rumble':
+        return this.validatePreset(this.rumbleShell());
+      case 'flower':
+        return this.validatePreset(this.flowerShell());
+      case 'cat':
+        return this.validatePreset(this.catShell());
+      case 'ring':
+        return this.validatePreset(this.ringShellV2());
+      case 'oval':
+        return this.validatePreset(this.ovalShell());
+      case 'snow':
+        return this.validatePreset(this.snowShell());
+      case 'fish':
+        return this.validatePreset(this.fishShell());
+      case 'smiley':
+        return this.validatePreset(this.smileyShell());
+      case 'wave':
+        return this.validatePreset(this.waveShell());
+      case 'heart':
+        return this.validatePreset(this.hearthShell());
+      case 'random':
+      default:
+        return null;
+    }
   }
 
   basePreset(size = 1) {
@@ -66,6 +118,7 @@ export class ShellPresetFactory {
       shellType: 'generic',
       shapeType: 'sphere',
       effectType: 'standard',
+      crackle: false,
       launchTrail: true
     };
   }
@@ -91,7 +144,20 @@ export class ShellPresetFactory {
       shellType: 'rumble',
       shapeType: 'sphere',
       effectType: 'crackle',
+      crackle: true,
       half: true
+    };
+  }
+
+  crackleShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crackle',
+      shapeType: 'sphere',
+      effectType: 'crackle',
+      crackle: true,
+      pistil: false,
+      streamers: false
     };
   }
 
@@ -214,6 +280,7 @@ export class ShellPresetFactory {
       ...preset,
       shapeType: shapeFallback ? 'sphere' : shapeType,
       effectType: effectFallback ? 'standard' : effectType,
+      crackle: Boolean(preset?.crackle),
       __contract: {
         shapeFallback,
         effectFallback,

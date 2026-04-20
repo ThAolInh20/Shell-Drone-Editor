@@ -22,6 +22,22 @@ export class BurstShapeGenerator {
   }
 
   static direction(shape, angle, index, count, preset = null) {
+    if (shape === 'sphere') {
+      const safeCount = Math.max(count, 1);
+      const t = (index + 0.5) / safeCount;
+      const y = 1 - t * 2;
+      const ringRadius = Math.sqrt(Math.max(0, 1 - y * y));
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const theta = goldenAngle * index;
+      const jitter = 0.045;
+
+      return new THREE.Vector3(
+        Math.cos(theta) * ringRadius + (Math.random() - 0.5) * jitter,
+        y + (Math.random() - 0.5) * jitter * 0.7,
+        Math.sin(theta) * ringRadius + (Math.random() - 0.5) * jitter
+      ).normalize();
+    }
+
     if (shape === 'heart') {
       const t = angle;
       const x = 16 * Math.pow(Math.sin(t), 3);
@@ -130,8 +146,6 @@ export class BurstShapeGenerator {
         (Math.random() - 0.5) * 0.12
       ).normalize();
     }
-
-    
 
     return new THREE.Vector3(
       Math.random() * 2 - 1,
