@@ -15,7 +15,17 @@ export class InputSystem {
     this.status = {
       moving: false,
       direction: 'idle',
-      looking: false
+      looking: false,
+      firework: 'none',
+      effect: 'none',
+      diagnostics: {
+        launched: 0,
+        bursted: 0,
+        shapeFallbacks: 0,
+        effectFallbacks: 0,
+        warnings: 0,
+        lastWarning: 'none'
+      }
     };
     
     // Click to lock cursor
@@ -37,6 +47,23 @@ export class InputSystem {
     document.addEventListener('mousemove', (event) => this.onMouseMove(event));
     document.addEventListener('keydown', (event) => this.onKeyDown(event));
     document.addEventListener('keyup', (event) => this.onKeyUp(event));
+
+    window.addEventListener('firework:launch', (event) => {
+      this.status.firework = event.detail.shellType;
+      this.status.effect = event.detail.effectType;
+      this.updateStatusOverlay();
+    });
+
+    window.addEventListener('firework:burst', (event) => {
+      this.status.firework = event.detail.shellType;
+      this.status.effect = event.detail.effectType;
+      this.updateStatusOverlay();
+    });
+
+    window.addEventListener('firework:diagnostics', (event) => {
+      this.status.diagnostics = event.detail;
+      this.updateStatusOverlay();
+    });
     
     // Instruction overlay
     this.setupInstructions();
@@ -104,7 +131,9 @@ export class InputSystem {
     if (!this.statusOverlay) return;
     const locked = this.controls.isLocked ? 'Yes' : 'No';
     const moving = this.status.moving ? 'Yes' : 'No';
-    this.statusOverlay.innerHTML = `Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}`;
+    const d = this.status.diagnostics;
+    const warningText = d.lastWarning === 'none' ? 'none' : d.lastWarning;
+    this.statusOverlay.innerHTML = `Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}<br>Shell: ${this.status.firework}<br>Effect: ${this.status.effect}<br>Launch/Burst: ${d.launched}/${d.bursted}<br>Fallback S/E: ${d.shapeFallbacks}/${d.effectFallbacks}<br>Warnings: ${d.warnings}<br>Last Warn: ${warningText}`;
   }
 
   onMouseMove(event) {
