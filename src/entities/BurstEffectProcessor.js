@@ -2,10 +2,14 @@ export class BurstEffectProcessor {
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
+    'crossette',
+    'crossette-v2',
     'flow',
     'snow',
     'wave',
     'flower',
+    'floral',
+    'falling-leaves',
     'strobe',
     'heart',
     'oval'
@@ -67,7 +71,7 @@ export class BurstEffectProcessor {
   static materialOpacity(effectType, age, maxLife, baseOpacity) {
     const normalizedEffect = this.normalizeEffectType(effectType);
 
-    if (normalizedEffect === 'wave' || normalizedEffect === 'strobe') {
+    if (normalizedEffect === 'wave' || normalizedEffect === 'strobe' || normalizedEffect === 'crossette' || normalizedEffect === 'crossette-v2') {
       const blink = Math.sin(age * 38) > 0 ? 1 : 0.2;
       return Math.max(0, Math.min(1, baseOpacity * blink));
     }
@@ -119,6 +123,25 @@ export class BurstEffectProcessor {
     } else if (effectType === 'wave') {
       gravityScale = 0.22;
       velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
+    } else if (effectType === 'crossette') {
+      gravityScale = 0.16;
+      const spinAmount = (effectState.spin[index] || 0) * deltaTime * 0.7;
+      const cos = Math.cos(spinAmount);
+      const sin = Math.sin(spinAmount);
+      const oldX = velocity.x;
+      const oldZ = velocity.z;
+      velocity.x = oldX * cos - oldZ * sin;
+      velocity.z = oldX * sin + oldZ * cos;
+      velocity.multiplyScalar(0.996);
+      emitSpark = Math.random() < 0.008;
+    } else if (effectType === 'crossette-v2') {
+      gravityScale = 0.12;
+      const phase = effectState.phase[index] || 0;
+      velocity.x += Math.sin(age * 6 + phase) * 0.012;
+      velocity.z += Math.cos(age * 6 + phase) * 0.012;
+      velocity.y += Math.sin(age * 4 + phase) * 0.01;
+      velocity.multiplyScalar(0.997);
+      emitSpark = Math.random() < 0.01;
     } else if (effectType === 'strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);
@@ -138,9 +161,15 @@ export class BurstEffectProcessor {
       velocity.x = oldX * cos - oldZ * sin;
       velocity.z = oldX * sin + oldZ * cos;
       velocity.multiplyScalar(0.997);
-    } else if (effectType === 'flower') {
+    } else if (effectType === 'flower' || effectType === 'floral') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.997);
+    } else if (effectType === 'falling-leaves') {
+      gravityScale = 0.06;
+      const drift = Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.06;
+      velocity.x += drift * deltaTime;
+      velocity.z += drift * deltaTime * 0.8;
+      velocity.multiplyScalar(0.995);
     }
 
     return { gravityScale, emitSpark };
