@@ -136,8 +136,26 @@ export class BurstShapeGenerator {
     if (shape === 'ring') {
       const isDoubleRing = Boolean(preset?.doubleRing);
       const isOutline = preset?.shapeRenderMode === 'outline';
+      const isJupiter = preset?.shapeRenderMode === 'jupiter';
       const ringBand = isDoubleRing && index % 2 === 0 ? 0.52 : 0.78;
       const contourThickness = Math.max(0.01, preset?.outlineThickness ?? (isOutline ? 0.03 : 0.06));
+
+      if (isJupiter) {
+        const coreRatio = Math.min(0.9, Math.max(0.1, preset?.ringCoreRatio ?? 0.42));
+        const coreJitter = Math.max(0.01, preset?.ringCoreJitter ?? 0.08);
+        const useCore = index % Math.max(2, Math.round(1 / coreRatio)) === 0;
+
+        if (useCore) {
+          const coreRadius = 0.2 + Math.random() * 0.22;
+          const coreAngle = angle + (Math.random() - 0.5) * 0.08;
+          return new THREE.Vector3(
+            Math.cos(coreAngle) * coreRadius + (Math.random() - 0.5) * coreJitter,
+            (Math.random() - 0.5) * coreJitter * 0.7,
+            Math.sin(coreAngle) * coreRadius + (Math.random() - 0.5) * coreJitter
+          ).normalize();
+        }
+      }
+
       const radius = ringBand + (Math.random() - 0.5) * contourThickness;
       return new THREE.Vector3(
         Math.cos(angle) * radius,

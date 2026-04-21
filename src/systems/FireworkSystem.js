@@ -230,7 +230,7 @@ export class FireworkSystem {
     };
 
     const presetMultiplier = Math.max(0.7, Math.min(2.2, preset?.particleCountMultiplier ?? 1));
-    const renderModeMultiplier = preset?.shapeRenderMode === 'outline' ? 1.12 : 1;
+    const renderModeMultiplier = (preset?.shapeRenderMode === 'outline' || preset?.shapeRenderMode === 'jupiter') ? 1.12 : 1;
     const activeBurstCount = this.activeFireworks.reduce((count, item) => count + (item.type === 'burst' ? 1 : 0), 0);
 
     let performanceScale = 1;
@@ -275,27 +275,52 @@ export class FireworkSystem {
     const brightnessBlend = Math.min(Math.max((heightProfile.brightnessMultiplier - 1) / 1.2, 0), 0.75);
     const brightnessIntensity = Math.min(heightProfile.brightnessMultiplier, 1.35);
     const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
+    const whiteColor = new THREE.Color(0xffffff);
+
+    const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
+    const coreRatio = Math.min(0.85, Math.max(0.15, preset?.ringCoreRatio ?? 0.42));
+    const coreCount = isJupiterComposite ? Math.max(8, Math.floor(burstParticleCount * coreRatio)) : 0;
+    const ringCount = Math.max(1, burstParticleCount - coreCount);
+    const ringPreset = isJupiterComposite ? { ...preset, shapeRenderMode: 'outline' } : preset;
 
     for (let i = 0; i < burstParticleCount; i++) {
-      const angle = (i / burstParticleCount) * Math.PI * 2;
-      const direction = BurstShapeGenerator.direction(resolvedShape, angle, i, burstParticleCount, preset)
-        .applyQuaternion(burstRotation);
-      const useContourMagnitude = preset?.shapeRenderMode === 'outline' && (resolvedShape === 'ring' || resolvedShape === 'heart');
+      const isCoreParticle = isJupiterComposite && i < coreCount;
+      const particleShape = isCoreParticle ? 'sphere' : resolvedShape;
+      const particleIndex = isCoreParticle ? i : (i - coreCount);
+      const particleCount = isCoreParticle ? coreCount : ringCount;
+      const angle = (particleIndex / particleCount) * Math.PI * 2;
+      const direction = BurstShapeGenerator.direction(
+        particleShape,
+        angle,
+        particleIndex,
+        particleCount,
+        isCoreParticle ? preset : ringPreset
+      ).applyQuaternion(burstRotation);
+
+      const useContourMagnitude = !isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart');
       if (!useContourMagnitude) {
         direction.normalize();
       }
+
       const sphereSpeedBand = 0.9 + Math.random() * 0.2;
       const defaultSpeedBand = 0.5 + Math.random() * 0.8;
-      const speed = BURST_SPEED * (resolvedShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand) * (useContourMagnitude ? 1.15 : 1);
+      const coreSpeedBand = 0.34 + Math.random() * 0.18;
+      const baseSpeed = isCoreParticle
+        ? BURST_SPEED * coreSpeedBand
+        : BURST_SPEED * (particleShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand);
+      const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1);
       velocities.push(direction.multiplyScalar(speed));
 
       positions[i * 3] = position.x;
       positions[i * 3 + 1] = position.y;
       positions[i * 3 + 2] = position.z;
 
-      colors[i * 3] = burstColor.r * brightnessIntensity;
-      colors[i * 3 + 1] = burstColor.g * brightnessIntensity;
-      colors[i * 3 + 2] = burstColor.b * brightnessIntensity;
+      const particleColor = isCoreParticle
+        ? new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0]).lerp(whiteColor, 0.08 + Math.random() * 0.12)
+        : burstColor;
+      colors[i * 3] = particleColor.r * brightnessIntensity;
+      colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
+      colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
       life[i] = 0;
     }
 

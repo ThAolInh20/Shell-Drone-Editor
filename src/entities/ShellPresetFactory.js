@@ -229,9 +229,11 @@ export class ShellPresetFactory {
       shellType: 'ring',
       shapeType: 'ring',
       effectType: 'standard',
-      shapeRenderMode: 'outline',
-      particleCountMultiplier: 1.25,
-      outlineThickness: 0.04,
+      shapeRenderMode: 'jupiter',
+      particleCountMultiplier: 1.35,
+      outlineThickness: 0.035,
+      ringCoreRatio: 0.42,
+      ringCoreJitter: 0.08,
       doubleRing: false,
       streamers: Math.random() < 0.3
     };
