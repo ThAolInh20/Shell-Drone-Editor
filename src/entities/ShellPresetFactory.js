@@ -17,16 +17,21 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval']);
+    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'crossette']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'crossette', 'crossette-v2', 'floral', 'falling-leaves']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
+      { key: 'crossette', label: 'Crossette' },
+      { key: 'crossetteV2', label: 'CrossetteV2' },
+      { key: 'fallingLeaves', label: 'Falling Leaves' },
+      { key: 'floral', label: 'Floral' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
       { key: 'cat', label: 'Cat' },
       { key: 'ring', label: 'Ring' },
+      { key: 'ringV2', label: 'RingV2' },
       { key: 'oval', label: 'Oval' },
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
@@ -39,17 +44,22 @@ export class ShellPresetFactory {
   randomPreset() {
     const roll = Math.random();
 
-    if (roll < 0.16) return this.crysanthemumShell();
-    if (roll < 0.26) return this.crackleShell();
-    if (roll < 0.36) return this.rumbleShell();
-    if (roll < 0.46) return this.flowerShell();
-    if (roll < 0.54) return this.catShell();
-    if (roll < 0.66) return this.ringShellV2();
-    if (roll < 0.76) return this.ovalShell();
-    if (roll < 0.84) return this.snowShell();
-    if (roll < 0.92) return this.fishShell();
-    if (roll < 0.97) return this.smileyShell();
-    if (roll < 0.985) return this.waveShell();
+    if (roll < 0.14) return this.crysanthemumShell();
+    if (roll < 0.22) return this.crackleShell();
+    if (roll < 0.29) return this.crossetteShell();
+    if (roll < 0.35) return this.crossetteShellV2();
+    if (roll < 0.41) return this.fallingLeavesShell();
+    if (roll < 0.47) return this.floralShell();
+    if (roll < 0.55) return this.rumbleShell();
+    if (roll < 0.61) return this.flowerShell();
+    if (roll < 0.67) return this.catShell();
+    if (roll < 0.74) return this.ringShell();
+    if (roll < 0.8) return this.ringShellV2();
+    if (roll < 0.87) return this.ovalShell();
+    if (roll < 0.92) return this.snowShell();
+    if (roll < 0.96) return this.fishShell();
+    if (roll < 0.985) return this.smileyShell();
+    if (roll < 0.995) return this.waveShell();
     return this.hearthShell();
   }
 
@@ -63,6 +73,14 @@ export class ShellPresetFactory {
         return this.validatePreset(this.crysanthemumShell());
       case 'crackle':
         return this.validatePreset(this.crackleShell());
+      case 'crossette':
+        return this.validatePreset(this.crossetteShell());
+      case 'crossetteV2':
+        return this.validatePreset(this.crossetteShellV2());
+      case 'fallingLeaves':
+        return this.validatePreset(this.fallingLeavesShell());
+      case 'floral':
+        return this.validatePreset(this.floralShell());
       case 'rumble':
         return this.validatePreset(this.rumbleShell());
       case 'flower':
@@ -70,6 +88,8 @@ export class ShellPresetFactory {
       case 'cat':
         return this.validatePreset(this.catShell());
       case 'ring':
+        return this.validatePreset(this.ringShell());
+      case 'ringV2':
         return this.validatePreset(this.ringShellV2());
       case 'oval':
         return this.validatePreset(this.ovalShell());
@@ -118,6 +138,8 @@ export class ShellPresetFactory {
       shellType: 'generic',
       shapeType: 'sphere',
       effectType: 'standard',
+      shapeRenderMode: 'filled',
+      particleCountMultiplier: 1,
       crackle: false,
       launchTrail: true
     };
@@ -155,6 +177,7 @@ export class ShellPresetFactory {
       shellType: 'crackle',
       shapeType: 'sphere',
       effectType: 'crackle',
+      particleCountMultiplier: 1.2,
       crackle: true,
       pistil: false,
       streamers: false
@@ -186,14 +209,93 @@ export class ShellPresetFactory {
   ringShellV2(size = 1) {
     return {
       ...this.basePreset(size),
-      shellType: 'ring',
+      shellType: 'ringV2',
       shapeType: 'ring',
       effectType: 'strobe',
+      shapeRenderMode: 'outline',
+      particleCountMultiplier: 1.2,
+      outlineThickness: 0.04,
       ringColorMode: 'sequential',
       ringPalette: this.palette,
       ringColorSpeed: 1,
       ringLoop: false,
       doubleRing: true
+    };
+  }
+
+  ringShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'ring',
+      shapeType: 'ring',
+      effectType: 'standard',
+      shapeRenderMode: 'outline',
+      particleCountMultiplier: 1.25,
+      outlineThickness: 0.04,
+      doubleRing: false,
+      streamers: Math.random() < 0.3
+    };
+  }
+
+  crossetteShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crossette',
+      shapeType: 'crossette',
+      effectType: 'crossette',
+      particleCountMultiplier: 1.45,
+      crossette: true,
+      starLife: 750 + size * 160,
+      starDensity: 0.85,
+      pistil: Math.random() < 0.5
+    };
+  }
+
+  crossetteShellV2(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crossetteV2',
+      shapeType: 'crossette',
+      effectType: 'crossette-v2',
+      particleCountMultiplier: 1.55,
+      crossetteV2: true,
+      starLife: 780 + size * 170,
+      starDensity: 0.8,
+      pistil: Math.random() < 0.5
+    };
+  }
+
+  floralShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'floral',
+      shapeType: 'flower',
+      effectType: 'floral',
+      particleCountMultiplier: 1.25,
+      floral: true,
+      starDensity: 0.12,
+      starLife: 500 + size * 50,
+      starLifeVariation: 0.5,
+      pistil: false,
+      streamers: false
+    };
+  }
+
+  fallingLeavesShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'fallingLeaves',
+      shapeType: 'sphere',
+      effectType: 'falling-leaves',
+      particleCountMultiplier: 1.05,
+      fallingLeaves: true,
+      starDensity: 0.12,
+      starLife: 1200 + size * 120,
+      starLifeVariation: 0.5,
+      glitter: 'medium',
+      glitterColor: COLOR.Gold,
+      pistil: false,
+      streamers: false
     };
   }
 
@@ -256,6 +358,12 @@ export class ShellPresetFactory {
       shellType: 'heart',
       shapeType: 'heart',
       effectType: 'heart',
+      shapeRenderMode: 'outline',
+      particleCountMultiplier: 1.7,
+      outlineThickness: 0.03,
+      heartEdgeBias: 1,
+      heartSegmentCount: 96,
+      heartEdgeSharpness: 1.06,
       streamers: false,
       hearth: true
     };

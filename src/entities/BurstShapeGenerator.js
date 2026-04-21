@@ -1,6 +1,44 @@
 import * as THREE from 'three';
 
 export class BurstShapeGenerator {
+  static heartPoint(t) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y =
+      13 * Math.cos(t) -
+      5 * Math.cos(2 * t) -
+      2 * Math.cos(3 * t) -
+      Math.cos(4 * t);
+
+    return { x, y };
+  }
+
+  static rotate3D(x, y, z, rotX, rotY, rotZ) {
+    let rx = x;
+    let ry = y;
+    let rz = z;
+
+    const cosX = Math.cos(rotX);
+    const sinX = Math.sin(rotX);
+    const y1 = ry * cosX - rz * sinX;
+    const z1 = ry * sinX + rz * cosX;
+    ry = y1;
+    rz = z1;
+
+    const cosY = Math.cos(rotY);
+    const sinY = Math.sin(rotY);
+    const x2 = rx * cosY + rz * sinY;
+    const z2 = -rx * sinY + rz * cosY;
+    rx = x2;
+    rz = z2;
+
+    const cosZ = Math.cos(rotZ);
+    const sinZ = Math.sin(rotZ);
+    const x3 = rx * cosZ - ry * sinZ;
+    const y3 = rx * sinZ + ry * cosZ;
+
+    return { x: x3, y: y3, z: rz };
+  }
+
   static resolveShape(shellType) {
     switch (shellType) {
       case 'ring':
@@ -13,6 +51,7 @@ export class BurstShapeGenerator {
       case 'cat':
       case 'fish':
       case 'smiley':
+      case 'crossette':
         return shellType;
       case 'hearth':
         return 'heart';
@@ -39,21 +78,72 @@ export class BurstShapeGenerator {
     }
 
     if (shape === 'heart') {
-      const t = angle;
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-      return new THREE.Vector3(x * 0.055, y * 0.065, (Math.random() - 0.5) * 0.18).normalize();
+      let heartRotation = preset?.heartRotation;
+
+      if (!heartRotation) {
+        heartRotation = {
+          x: (Math.random() - 0.5) * 0.3,
+          y: (Math.random() - 0.5) * 0.3,
+          z: Math.random() * Math.PI * 2
+        };
+        if (preset) preset.heartRotation = heartRotation;
+      }
+
+      const isOutline = preset?.shapeRenderMode === 'outline';
+
+      let t;
+      if (isOutline) {
+        const segmentCount = 120;
+        const segmentIndex = index % segmentCount;
+        t = (segmentIndex / segmentCount) * Math.PI * 2;
+      } else {
+        t = Math.random() * Math.PI * 2;
+      }
+
+      // ❤️ HEART
+      let x = 16 * Math.pow(Math.sin(t), 3);
+      let y =
+        13 * Math.cos(t)
+        - 5 * Math.cos(2 * t)
+        - 2 * Math.cos(3 * t)
+        - Math.cos(4 * t);
+
+      let z = 0;
+
+      const rotated = this.rotate3D(
+        x,
+        y,
+        z,
+        heartRotation.x,
+        heartRotation.y,
+        heartRotation.z
+      );
+
+      // 🔥 QUAN TRỌNG: tách direction + magnitude
+      const dir = new THREE.Vector3(
+        rotated.x,
+        rotated.y,
+        rotated.z
+      );
+
+      const length = dir.length();
+
+      if (length === 0) return new THREE.Vector3(0, 1, 0);
+
+      return dir.normalize().multiplyScalar(length / 20);
     }
 
     if (shape === 'ring') {
       const isDoubleRing = Boolean(preset?.doubleRing);
+      const isOutline = preset?.shapeRenderMode === 'outline';
       const ringBand = isDoubleRing && index % 2 === 0 ? 0.52 : 0.78;
-      const radius = ringBand + (Math.random() - 0.5) * 0.06;
+      const contourThickness = Math.max(0.01, preset?.outlineThickness ?? (isOutline ? 0.03 : 0.06));
+      const radius = ringBand + (Math.random() - 0.5) * contourThickness;
       return new THREE.Vector3(
         Math.cos(angle) * radius,
-        (Math.random() - 0.5) * 0.12,
+        (Math.random() - 0.5) * (isOutline ? 0.05 : 0.12),
         Math.sin(angle) * radius
-      ).normalize();
+      );
     }
 
     if (shape === 'star') {
@@ -97,6 +187,23 @@ export class BurstShapeGenerator {
         Math.sin(angle) * petalRadius,
         (Math.random() - 0.5) * 0.2
       ).normalize();
+    }
+
+    if (shape === 'crossette') {
+      const armIndex = index % 4;
+      const radial = 0.7 + Math.random() * 0.35;
+      const jitter = (Math.random() - 0.5) * 0.12;
+
+      if (armIndex === 0) {
+        return new THREE.Vector3(radial, jitter, jitter * 0.5).normalize();
+      }
+      if (armIndex === 1) {
+        return new THREE.Vector3(-radial, jitter, jitter * 0.5).normalize();
+      }
+      if (armIndex === 2) {
+        return new THREE.Vector3(jitter * 0.5, radial, jitter).normalize();
+      }
+      return new THREE.Vector3(jitter * 0.5, -radial, jitter).normalize();
     }
 
     if (shape === 'cat') {

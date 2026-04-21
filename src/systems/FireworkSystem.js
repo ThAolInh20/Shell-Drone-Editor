@@ -5,7 +5,9 @@ import { BurstShapeGenerator } from '../entities/BurstShapeGenerator.js';
 import { BurstEffectProcessor } from '../entities/BurstEffectProcessor.js';
 
 const GRAVITY = -30;
-const BURST_PARTICLES = 80;
+const BASE_BURST_PARTICLES = 110;
+const MIN_BURST_PARTICLES = 60;
+const MAX_BURST_PARTICLES = 220;
 const BURST_SPEED = 50;
 const BURST_LIFE = 1.6;
 
@@ -172,8 +174,8 @@ export class FireworkSystem {
     this.trailParticles.push(spark);
   }
 
-  spawnCrackleCloud(position) {
-    const crackleCount = BURST_PARTICLES >= 80 ? 32 : 16;
+  spawnCrackleCloud(position, particleCount = BASE_BURST_PARTICLES) {
+    const crackleCount = particleCount >= 120 ? 36 : (particleCount >= 80 ? 24 : 16);
 
     for (let i = 0; i < crackleCount; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -195,6 +197,56 @@ export class FireworkSystem {
     }
   }
 
+  resolveBurstParticleCount(shape, effectType, preset) {
+    const shapeMultiplier = {
+      sphere: 1,
+      ring: 1.08,
+      heart: 1.4,
+      flower: 1.22,
+      crossette: 1.45,
+      cat: 1.2,
+      fish: 1.14,
+      smiley: 1.2,
+      oval: 1.12,
+      willow: 1.18,
+      lightning: 1.16,
+      star: 1.14
+    };
+
+    const effectMultiplier = {
+      standard: 1,
+      crackle: 1.15,
+      crossette: 1.1,
+      'crossette-v2': 1.2,
+      floral: 1.18,
+      'falling-leaves': 1.04,
+      heart: 1.22,
+      strobe: 1.08,
+      wave: 1.1,
+      flow: 1.08,
+      snow: 1.08,
+      oval: 1.08,
+      flower: 1.12
+    };
+
+    const presetMultiplier = Math.max(0.7, Math.min(2.2, preset?.particleCountMultiplier ?? 1));
+    const renderModeMultiplier = preset?.shapeRenderMode === 'outline' ? 1.12 : 1;
+    const activeBurstCount = this.activeFireworks.reduce((count, item) => count + (item.type === 'burst' ? 1 : 0), 0);
+
+    let performanceScale = 1;
+    if (activeBurstCount > 12) {
+      performanceScale = 0.72;
+    } else if (activeBurstCount > 8) {
+      performanceScale = 0.86;
+    }
+
+    const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
+    const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale;
+
+    return Math.max(MIN_BURST_PARTICLES, Math.min(MAX_BURST_PARTICLES, Math.round(rawCount)));
+  }
+
   createBurst(position, color, shape = 'sphere', preset = null) {
     const requestedShape = shape ?? 'sphere';
     const resolvedShape = BurstShapeGenerator.resolveShape(requestedShape);
@@ -211,10 +263,11 @@ export class FireworkSystem {
       this.registerWarning(`[Burst] Effect fallback from "${requestedEffect}" to "${normalizedEffect}".`);
     }
 
-    const positions = new Float32Array(BURST_PARTICLES * 3);
-    const colors = new Float32Array(BURST_PARTICLES * 3);
+    const burstParticleCount = this.resolveBurstParticleCount(resolvedShape, normalizedEffect, preset);
+    const positions = new Float32Array(burstParticleCount * 3);
+    const colors = new Float32Array(burstParticleCount * 3);
     const velocities = [];
-    const life = new Float32Array(BURST_PARTICLES);
+    const life = new Float32Array(burstParticleCount);
     const burstRotation = this.createRandomBurstRotation();
     const heightProfile = this.heightScalingConfig.enabled
       ? BurstEffectProcessor.createHeightProfile(position.y, this.heightScalingConfig)
@@ -223,14 +276,17 @@ export class FireworkSystem {
     const brightnessIntensity = Math.min(heightProfile.brightnessMultiplier, 1.35);
     const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
 
-    for (let i = 0; i < BURST_PARTICLES; i++) {
-      const angle = (i / BURST_PARTICLES) * Math.PI * 2;
-      const direction = BurstShapeGenerator.direction(resolvedShape, angle, i, BURST_PARTICLES, preset)
-        .applyQuaternion(burstRotation)
-        .normalize();
+    for (let i = 0; i < burstParticleCount; i++) {
+      const angle = (i / burstParticleCount) * Math.PI * 2;
+      const direction = BurstShapeGenerator.direction(resolvedShape, angle, i, burstParticleCount, preset)
+        .applyQuaternion(burstRotation);
+      const useContourMagnitude = preset?.shapeRenderMode === 'outline' && (resolvedShape === 'ring' || resolvedShape === 'heart');
+      if (!useContourMagnitude) {
+        direction.normalize();
+      }
       const sphereSpeedBand = 0.9 + Math.random() * 0.2;
       const defaultSpeedBand = 0.5 + Math.random() * 0.8;
-      const speed = BURST_SPEED * (resolvedShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand);
+      const speed = BURST_SPEED * (resolvedShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand) * (useContourMagnitude ? 1.15 : 1);
       velocities.push(direction.multiplyScalar(speed));
 
       positions[i * 3] = position.x;
@@ -260,9 +316,10 @@ export class FireworkSystem {
       effectType: normalizedEffect,
       crackle: crackleEnabled || normalizedEffect === 'crackle',
       crackleCloudTriggered: false,
+      particleCount: burstParticleCount,
       heightProfile,
       preset,
-      effectState: BurstEffectProcessor.initialize(normalizedEffect, BURST_PARTICLES)
+      effectState: BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount)
     };
 
     return {
@@ -320,7 +377,7 @@ export class FireworkSystem {
 
     if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.3) {
       const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
-      this.spawnCrackleCloud(cloudOrigin);
+      this.spawnCrackleCloud(cloudOrigin, item.points.userData.particleCount);
       item.points.userData.crackleCloudTriggered = true;
     }
 
@@ -328,7 +385,9 @@ export class FireworkSystem {
     const baseOpacity = Math.pow(Math.max(1 - item.age / item.maxLife, 0), BURST_FADE_EXPONENT) * brightnessOpacityScale;
     item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
 
-    for (let i = 0; i < BURST_PARTICLES; i++) {
+    const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+
+    for (let i = 0; i < particleCount; i++) {
       const velocity = item.points.userData.velocities[i];
       const particlePosition = new THREE.Vector3(
         positions[i * 3],
