@@ -54,6 +54,128 @@ body {
   margin: 0;
 }
 
+.firework-pause-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 5, 15, 0.72);
+  backdrop-filter: blur(10px);
+  z-index: 200;
+}
+
+.firework-pause-panel {
+  width: min(92vw, 420px);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(18, 21, 35, 0.96), rgba(7, 9, 16, 0.98));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+  color: #f5f7ff;
+  font-family: var(--sans);
+  color-scheme: dark;
+}
+
+.firework-pause-title {
+  font-family: var(--heading);
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+
+.firework-pause-description {
+  color: rgba(245, 247, 255, 0.72);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.firework-pause-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 219, 112, 0.2);
+  background: linear-gradient(180deg, rgba(255, 219, 112, 0.14), rgba(255, 188, 63, 0.08));
+  color: #fff7d0;
+}
+
+.firework-pause-selected-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 208, 0.7);
+}
+
+.firework-pause-selected-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff8dc;
+}
+
+.firework-pause-label {
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 247, 255, 0.7);
+}
+
+.firework-pause-select {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: #111827;
+  color: #f9fafb;
+  padding: 12px 14px;
+  font-size: 15px;
+  outline: none;
+}
+
+.firework-pause-select option {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.firework-pause-select:focus {
+  border-color: rgba(255, 219, 112, 0.7);
+  box-shadow: 0 0 0 3px rgba(255, 219, 112, 0.15);
+}
+
+.firework-pause-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.firework-pause-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #10131b;
+  background: linear-gradient(180deg, #ffd86b, #ffb93f);
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(255, 188, 63, 0.22);
+}
+
+.firework-pause-button:hover {
+  filter: brightness(1.05);
+}
+
+.firework-pause-button:focus-visible {
+  outline: 2px solid rgba(255, 219, 112, 0.8);
+  outline-offset: 3px;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

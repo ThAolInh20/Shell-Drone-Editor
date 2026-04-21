@@ -21,8 +21,8 @@ const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.do
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 renderer.instance.domElement.addEventListener('click', () => {
-  if (inputSystem.controls.isLocked) {
-    fireworkSystem.launchRandom();
+  if (inputSystem.controls.isLocked && !inputSystem.isPaused()) {
+    fireworkSystem.launchRandom(inputSystem.getSelectedPreset());
   }
 });
 
@@ -33,8 +33,10 @@ function animate() {
   performanceMonitor.update(clock.deltaTime);
   
   // Systems update
-  movementSystem.update(clock.deltaTime);
-  fireworkSystem.update(clock.deltaTime);
+  if (!inputSystem.isPaused()) {
+    movementSystem.update(clock.deltaTime);
+    fireworkSystem.update(clock.deltaTime);
+  }
 
   // Render loop
   renderer.render(sceneManager.instance, cameraManager.instance);
