@@ -357,6 +357,7 @@ export class ShellPresetFactory {
     return {
       ...this.basePreset(size),
       pistil: true,
+      starLife: 850 + size * 150,
       shellType: 'heart',
       shapeType: 'heart',
       effectType: 'heart',

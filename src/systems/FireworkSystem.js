@@ -9,7 +9,8 @@ const BASE_BURST_PARTICLES = 110;
 const MIN_BURST_PARTICLES = 60;
 const MAX_BURST_PARTICLES = 220;
 const BURST_SPEED = 50;
-const BURST_LIFE = 2.6;
+const BURST_LIFE = 3.5;
+const BURST_DISSOLVE_START = 0.62;
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -20,9 +21,9 @@ const FIREWORK_COLORS = [
   0x8a2be2  // tím (blue violet)
 ];
 
-const BURST_FADE_EXPONENT = 2.5;
+const BURST_FADE_EXPONENT = 2.15;
 const CRACKLE_CLOUD_SPEED = 24;
-const BASE_BURST_POINT_SIZE = 14;
+const BASE_BURST_POINT_SIZE = 26;
 
 const DEFAULT_TRAIL_COLOR = new THREE.Color( 0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
@@ -62,10 +63,10 @@ export class FireworkSystem {
       enabled: true,
       minBurstY: this.launchZone.minBurstY,
       maxBurstY: this.launchZone.maxBurstY,
-      sizeMin: 0.85,
-      sizeMax: 1.55,
+      sizeMin: 1.05,
+      sizeMax: 1.95,
       brightnessMin: 0.9,
-      brightnessMax: 1.9,
+      brightnessMax: 1.45,
       sizeCurve: 0.9,
       brightnessCurve: 1.15
     };
@@ -73,11 +74,11 @@ export class FireworkSystem {
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
     this.trailMaterial = new THREE.PointsMaterial({
-      size: 8,
+      size: 12,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.84,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
@@ -93,8 +94,8 @@ export class FireworkSystem {
         if (dist > 1.0) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 stop1 = vec4(diffuseColor.rgb, 0.2);
-        vec4 stop2 = vec4(diffuseColor.rgb, 0.11);
+        vec4 stop1 = vec4(diffuseColor.rgb, 0.3);
+        vec4 stop2 = vec4(diffuseColor.rgb, 0.13);
         vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
         
         vec4 gradientColor;
@@ -370,7 +371,7 @@ export class FireworkSystem {
       ? BurstEffectProcessor.createHeightProfile(position.y, this.heightScalingConfig)
       : { normalized: 0, sizeMultiplier: 1, brightnessMultiplier: 1 };
     const brightnessBlend = Math.min(Math.max((heightProfile.brightnessMultiplier - 1) / 1.2, 0), 0.75);
-    const brightnessIntensity = Math.min(heightProfile.brightnessMultiplier, 1.35);
+    const brightnessIntensity = Math.min(Math.max(heightProfile.brightnessMultiplier, 1), 1.3);
     const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
     const whiteColor = new THREE.Color(0xffffff);
 
@@ -428,7 +429,8 @@ export class FireworkSystem {
       size: BASE_BURST_POINT_SIZE * heightProfile.sizeMultiplier,
       vertexColors: true,
       transparent: true,
-      opacity: 1,
+      opacity: 0.92,
+      depthTest: false,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
@@ -444,8 +446,8 @@ export class FireworkSystem {
         if (dist > 1.0) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 stop1 = vec4(diffuseColor.rgb, 0.2);
-        vec4 stop2 = vec4(diffuseColor.rgb, 0.11);
+        vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
+        vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
         vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
         
         vec4 gradientColor;
@@ -532,7 +534,7 @@ export class FireworkSystem {
         z: burstPosition.z
       },
       intensity: normalizedEnergy,
-      duration: 0.95 + normalizedEnergy * 0.9
+      duration: 1.25 + normalizedEnergy * 1.1
     });
   }
 
@@ -543,14 +545,24 @@ export class FireworkSystem {
     const effectType = item.points.userData.effectType;
     const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
 
-    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.3) {
+    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.42) {
       const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
       this.spawnCrackleCloud(cloudOrigin, item.points.userData.particleCount);
       item.points.userData.crackleCloudTriggered = true;
     }
 
     const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
-    const baseOpacity = Math.pow(Math.max(1 - item.age / item.maxLife, 0), BURST_FADE_EXPONENT) * brightnessOpacityScale;
+    const lifeRatio = item.maxLife > 0 ? item.age / item.maxLife : 1;
+    let baseOpacity = brightnessOpacityScale;
+
+    if (lifeRatio > BURST_DISSOLVE_START) {
+      const dissolveT = THREE.MathUtils.clamp((lifeRatio - BURST_DISSOLVE_START) / (1 - BURST_DISSOLVE_START), 0, 1);
+      baseOpacity = Math.max(
+        Math.pow(1 - dissolveT, BURST_FADE_EXPONENT) * brightnessOpacityScale,
+        (1 - dissolveT) * 0.08
+      );
+    }
+
     item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
 
     const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
