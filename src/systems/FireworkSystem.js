@@ -9,7 +9,7 @@ const BASE_BURST_PARTICLES = 110;
 const MIN_BURST_PARTICLES = 60;
 const MAX_BURST_PARTICLES = 220;
 const BURST_SPEED = 50;
-const BURST_LIFE = 1.6;
+const BURST_LIFE = 2.6;
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -22,7 +22,7 @@ const FIREWORK_COLORS = [
 
 const BURST_FADE_EXPONENT = 2.5;
 const CRACKLE_CLOUD_SPEED = 24;
-const BASE_BURST_POINT_SIZE = 4;
+const BASE_BURST_POINT_SIZE = 14;
 
 const DEFAULT_TRAIL_COLOR = new THREE.Color( 0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
@@ -61,13 +61,48 @@ export class FireworkSystem {
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
     this.trailMaterial = new THREE.PointsMaterial({
-      size: 2,
+      size: 8,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
       opacity: 0.8,
-      depthWrite: false
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
     });
+
+    this.trailMaterial.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `
+        #include <color_fragment>
+        
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord) * 2.0;
+        if (dist > 1.0) discard;
+        
+        vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 stop1 = vec4(diffuseColor.rgb, 0.2);
+        vec4 stop2 = vec4(diffuseColor.rgb, 0.11);
+        vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
+        
+        vec4 gradientColor;
+        if (dist < 0.024) {
+            gradientColor = stop0;
+        } else if (dist < 0.125) {
+            float t = (dist - 0.024) / (0.125 - 0.024);
+            gradientColor = mix(stop0, stop1, t);
+        } else if (dist < 0.32) {
+            float t = (dist - 0.125) / (0.32 - 0.125);
+            gradientColor = mix(stop1, stop2, t);
+        } else {
+            float t = (dist - 0.32) / (1.0 - 0.32);
+            gradientColor = mix(stop2, stop3, t);
+        }
+        
+        diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a);
+        `
+      );
+    };
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
     this.scene.add(this.trailPoints);
   }
@@ -332,8 +367,43 @@ export class FireworkSystem {
       vertexColors: true,
       transparent: true,
       opacity: 1,
-      depthWrite: false
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
     });
+
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `
+        #include <color_fragment>
+        
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord) * 2.0;
+        if (dist > 1.0) discard;
+        
+        vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 stop1 = vec4(diffuseColor.rgb, 0.2);
+        vec4 stop2 = vec4(diffuseColor.rgb, 0.11);
+        vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
+        
+        vec4 gradientColor;
+        if (dist < 0.024) {
+            gradientColor = stop0;
+        } else if (dist < 0.125) {
+            float t = (dist - 0.024) / (0.125 - 0.024);
+            gradientColor = mix(stop0, stop1, t);
+        } else if (dist < 0.32) {
+            float t = (dist - 0.125) / (0.32 - 0.125);
+            gradientColor = mix(stop1, stop2, t);
+        } else {
+            float t = (dist - 0.32) / (1.0 - 0.32);
+            gradientColor = mix(stop2, stop3, t);
+        }
+        
+        diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a);
+        `
+      );
+    };
     const points = new THREE.Points(geometry, material);
     points.userData = {
       velocities,
