@@ -71,7 +71,7 @@ export class SceneManager {
     this.addCheckerboardFloor();
 
     // Add launch pad for fireworks
-    this.addLaunchPad();
+    // this.addLaunchPad();
   }
 
   addLaunchPad() {
