@@ -6,6 +6,8 @@ import { PostProcessingPipeline } from './core/PostProcessingPipeline.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { FireworkSystem } from './systems/FireworkSystem.js';
+import { SkyLightReactionSystem } from './systems/SkyLightReactionSystem.js';
+import { SmokeSystem } from './systems/SmokeSystem.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
@@ -17,6 +19,8 @@ const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
 const fireworkSystem = new FireworkSystem(sceneManager.instance);
+const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
+const smokeSystem = new SmokeSystem(sceneManager);
 const postProcessing = renderingConfig.post.enabled
   ? new PostProcessingPipeline(renderer.instance, sceneManager.instance, cameraManager.instance, renderingConfig)
   : null;
@@ -47,6 +51,11 @@ function animate() {
   if (!inputSystem.isPaused()) {
     movementSystem.update(clock.deltaTime);
     fireworkSystem.update(clock.deltaTime);
+    skyLightReactionSystem.update(clock.deltaTime);
+    smokeSystem.update(clock.deltaTime);
+  } else {
+    skyLightReactionSystem.update(clock.deltaTime);
+    smokeSystem.update(clock.deltaTime);
   }
 
   // Render loop
