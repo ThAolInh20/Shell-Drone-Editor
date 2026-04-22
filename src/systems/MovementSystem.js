@@ -41,5 +41,34 @@ export class MovementSystem {
     // PointerLockControls uses moveRight and moveForward which applies math relative to the current viewing angle
     this.input.controls.moveRight(-this.velocity.x * deltaTime);
     this.input.controls.moveForward(-this.velocity.z * deltaTime);
+
+    this.constrainToLaunchViewZone();
+  }
+
+  constrainToLaunchViewZone() {
+    const launchZone = this.input.fireworkSystem?.getLaunchZone?.();
+    if (!launchZone) {
+      return;
+    }
+
+    const { center, noEntryHalfWidth, noEntryHalfDepth, boundaryPadding } = launchZone;
+    const cameraPosition = this.camera.position;
+    const deltaX = cameraPosition.x - center.x;
+    const deltaZ = cameraPosition.z - center.z;
+
+    if (Math.abs(deltaX) >= noEntryHalfWidth || Math.abs(deltaZ) >= noEntryHalfDepth) {
+      return;
+    }
+
+    const xPenetration = noEntryHalfWidth - Math.abs(deltaX);
+    const zPenetration = noEntryHalfDepth - Math.abs(deltaZ);
+
+    if (xPenetration < zPenetration) {
+      cameraPosition.x = center.x + Math.sign(deltaX || 1) * (noEntryHalfWidth + boundaryPadding);
+      this.velocity.x = 0;
+    } else {
+      cameraPosition.z = center.z + Math.sign(deltaZ || 1) * (noEntryHalfDepth + boundaryPadding);
+      this.velocity.z = 0;
+    }
   }
 }

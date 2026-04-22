@@ -5,6 +5,8 @@ import { Renderer } from './core/Renderer.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { FireworkSystem } from './systems/FireworkSystem.js';
+import { SkyLightReactionSystem } from './systems/SkyLightReactionSystem.js';
+import { SmokeSystem } from './systems/SmokeSystem.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import './style.css';
 
@@ -15,6 +17,8 @@ const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
 const fireworkSystem = new FireworkSystem(sceneManager.instance);
+const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
+const smokeSystem = new SmokeSystem(sceneManager);
 
 // Initialize Systems
 const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
@@ -36,6 +40,11 @@ function animate() {
   if (!inputSystem.isPaused()) {
     movementSystem.update(clock.deltaTime);
     fireworkSystem.update(clock.deltaTime);
+    skyLightReactionSystem.update(clock.deltaTime);
+    smokeSystem.update(clock.deltaTime);
+  } else {
+    skyLightReactionSystem.update(clock.deltaTime);
+    smokeSystem.update(clock.deltaTime);
   }
 
   // Render loop

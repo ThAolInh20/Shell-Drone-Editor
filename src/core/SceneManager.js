@@ -3,10 +3,14 @@ import * as THREE from 'three';
 export class SceneManager {
   constructor() {
     this.instance = new THREE.Scene();
+    this.baseSkyColor = new THREE.Color(0x050510);
+    this.baseFogDensity = 0.002;
+    this.baseAmbientIntensity = 0.1;
+    this.baseHemisphereIntensity = 0.08;
     
     // Set a very dark blue/black color for night sky void
-    this.instance.background = new THREE.Color(0x050510);
-    this.instance.fog = new THREE.FogExp2(0x050510, 0.002);
+    this.instance.background = this.baseSkyColor.clone();
+    this.instance.fog = new THREE.FogExp2(this.baseSkyColor.clone(), this.baseFogDensity);
     
     // Create subtle background stars to give the void some reference points
     const starGeo = new THREE.BufferGeometry();
@@ -57,8 +61,11 @@ export class SceneManager {
     this.instance.add(moonGlow);
 
     // Optional: subtle ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
-    this.instance.add(ambientLight);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, this.baseAmbientIntensity);
+    this.instance.add(this.ambientLight);
+
+    this.hemisphereLight = new THREE.HemisphereLight(0x5d6ea8, 0x080c18, this.baseHemisphereIntensity);
+    this.instance.add(this.hemisphereLight);
 
     // Add checkerboard floor
     this.addCheckerboardFloor();
@@ -69,55 +76,13 @@ export class SceneManager {
 
   addLaunchPad() {
     const padSize = 120;
-    const padGeometry = new THREE.PlaneGeometry(padSize, padSize);
-    const padTexture = new THREE.CanvasTexture(this.createLaunchPadCanvas(512, 512));
-    padTexture.wrapS = THREE.RepeatWrapping;
-    padTexture.wrapT = THREE.RepeatWrapping;
-    padTexture.repeat.set(1, 1);
-
-    const padMaterial = new THREE.MeshBasicMaterial({ map: padTexture, side: THREE.DoubleSide });
-    const pad = new THREE.Mesh(padGeometry, padMaterial);
-    pad.rotation.x = -Math.PI / 2;
-    pad.position.y = -49.5;
-    pad.position.z = 0;
-    this.instance.add(pad);
-
     const padBorder = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.PlaneGeometry(padSize, padSize)),
       new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2, opacity: 0.9, transparent: true })
     );
     padBorder.rotation.x = -Math.PI / 2;
-    padBorder.position.copy(pad.position);
+    padBorder.position.set(0, -49.5, 0);
     this.instance.add(padBorder);
-  }
-
-  createLaunchPadCanvas(width, height) {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#222238';
-    ctx.fillRect(0, 0, width, height);
-
-    const tileSize = width / 8;
-    for (let x = 0; x < width; x += tileSize) {
-      for (let y = 0; y < height; y += tileSize) {
-        ctx.fillStyle = ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0) ? '#f5f5f5' : '#1a1a2e';
-        ctx.fillRect(x, y, tileSize, tileSize);
-      }
-    }
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(8, 8, width - 16, height - 16);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 48px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('LAUNCH', width / 2, height / 2 + 16);
-
-    return canvas;
   }
 
   addCheckerboardFloor() {
@@ -128,19 +93,36 @@ export class SceneManager {
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
-    
-    const tilePixels = canvas.width / (floorSize / tileSize);
-    for (let x = 0; x < canvas.width; x += tilePixels) {
-      for (let y = 0; y < canvas.height; y += tilePixels) {
-        const isEven = (Math.floor(x / tilePixels) + Math.floor(y / tilePixels)) % 2 === 0;
-        ctx.fillStyle = isEven ? '#1a1a2e' : '#0f0f1e';
-        ctx.fillRect(x, y, tilePixels, tilePixels);
-        
-        // Subtle grid lines
-        ctx.strokeStyle = 'rgba(100, 100, 150, 0.2)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, tilePixels, tilePixels);
-      }
+
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.5;
+    const radial = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, canvas.width * 0.75);
+    radial.addColorStop(0, '#11142a');
+    radial.addColorStop(0.5, '#0b0f1f');
+    radial.addColorStop(1, '#060910');
+    ctx.fillStyle = radial;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add tiny luminance noise so the floor feels alive without stealing focus.
+    const noiseDots = 1400;
+    for (let i = 0; i < noiseDots; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const alpha = 0.015 + Math.random() * 0.025;
+      const size = Math.random() < 0.85 ? 1 : 2;
+      ctx.fillStyle = `rgba(180, 200, 255, ${alpha})`;
+      ctx.fillRect(x, y, size, size);
+    }
+
+    // Soft concentric rings keep spatial readability for movement without hard checker lines.
+    ctx.strokeStyle = 'rgba(140, 165, 220, 0.06)';
+    ctx.lineWidth = 1.2;
+    const rings = 6;
+    for (let i = 1; i <= rings; i++) {
+      const radius = (canvas.width * 0.12) * i;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.stroke();
     }
     
     const texture = new THREE.CanvasTexture(canvas);

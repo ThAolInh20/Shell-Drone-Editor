@@ -33,7 +33,19 @@ export class FireworkSystem {
     this.activeFireworks = [];
     this.trailParticles = [];
     this.shellPresetFactory = new ShellPresetFactory();
-    this.launchPosition = new THREE.Vector3(0, -50, 0);
+    this.launchZone = {
+      center: new THREE.Vector3(0, -50, 0),
+      launchRadiusX: 22,
+      launchRadiusZ: 120,
+      noEntryHalfWidth: 72,
+      noEntryHalfDepth: 140,
+      minBurstY: 160,
+      maxBurstY: 320,
+      minLaunchSpeedY: 88,
+      maxLaunchSpeedY: 124,
+      boundaryPadding: 12
+    };
+    this.launchPosition = this.launchZone.center.clone();
     this.autoLaunchEnabled = false;
     this.autoLaunchTimer = 0;
     this.autoLaunchInterval = 3; // seconds between auto launches
@@ -48,8 +60,8 @@ export class FireworkSystem {
     };
     this.heightScalingConfig = {
       enabled: true,
-      minBurstY: 40,
-      maxBurstY: 300,
+      minBurstY: this.launchZone.minBurstY,
+      maxBurstY: this.launchZone.maxBurstY,
       sizeMin: 0.85,
       sizeMax: 1.55,
       brightnessMin: 0.9,
@@ -92,11 +104,9 @@ export class FireworkSystem {
   launchRandom(preset = null) {
     const shellPreset = this.shellPresetFactory.validatePreset(preset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
-    const offsetX = (Math.random() - 0.5) * 40;
-    const offsetZ = (Math.random() - 0.5) * 40;
-    const position = this.launchPosition.clone().add(new THREE.Vector3(offsetX, 0, offsetZ));
-    const targetHeight = 180 + Math.random() * 100;
-    const velocity = new THREE.Vector3((Math.random() - 0.5) * 10, 90 + Math.random() * 30, (Math.random() - 0.5) * 10);
+    const position = this.resolveLaunchPosition();
+    const targetHeight = this.resolveBurstHeight(shellPreset);
+    const velocity = this.resolveLaunchVelocity(targetHeight);
     const color = new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const shell = this.createShell(position, velocity, targetHeight, color, shellPreset, shellId);
     this.scene.add(shell.mesh);
@@ -113,8 +123,60 @@ export class FireworkSystem {
       shellId,
       shellType: shell.shellType,
       shapeType: shell.shapeType,
-      effectType: shellPreset.effectType ?? 'standard'
+      effectType: shellPreset.effectType ?? 'standard',
+      colorHex: color.getHex(),
+      position: {
+        x: position.x,
+        y: position.y,
+        z: position.z
+      },
+      intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
     });
+  }
+
+  getLaunchZone() {
+    return {
+      center: this.launchZone.center.clone(),
+      launchRadiusX: this.launchZone.launchRadiusX,
+      launchRadiusZ: this.launchZone.launchRadiusZ,
+      noEntryHalfWidth: this.launchZone.noEntryHalfWidth,
+      noEntryHalfDepth: this.launchZone.noEntryHalfDepth,
+      boundaryPadding: this.launchZone.boundaryPadding,
+      minBurstY: this.launchZone.minBurstY,
+      maxBurstY: this.launchZone.maxBurstY
+    };
+  }
+
+  resolveLaunchPosition() {
+    const offsetX = (Math.random() - 0.5) * this.launchZone.launchRadiusX * 2;
+    const offsetZ = (Math.random() - 0.5) * this.launchZone.launchRadiusZ * 2;
+
+    return this.launchZone.center.clone().add(new THREE.Vector3(offsetX, 0, offsetZ));
+  }
+
+  resolveBurstHeight(preset = null) {
+    const presetSize = Math.max(1, Math.min(6, preset?.shellSize ?? 1));
+    const sizeT = (presetSize - 1) / 5;
+    const baseHeight = THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, 0.42 + sizeT * 0.32);
+    const jitter = THREE.MathUtils.lerp(16, 28, sizeT);
+
+    return THREE.MathUtils.clamp(baseHeight + (Math.random() - 0.5) * jitter, this.launchZone.minBurstY, this.launchZone.maxBurstY);
+  }
+
+  resolveLaunchVelocity(burstHeight) {
+    const normalizedHeight = THREE.MathUtils.clamp(
+      (burstHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
+      0,
+      1
+    );
+    const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
+    const lateralSpread = THREE.MathUtils.lerp(5, 9, 1 - normalizedHeight);
+
+    return new THREE.Vector3(
+      (Math.random() - 0.5) * lateralSpread,
+      launchSpeedY,
+      (Math.random() - 0.5) * lateralSpread
+    );
   }
 
   pickFireworkShape() {
@@ -377,6 +439,9 @@ export class FireworkSystem {
     }
 
     const burst = this.createBurst(item.mesh.position.clone(), item.color, item.shapeType ?? item.shape, item.preset);
+    const burstPosition = item.mesh.position.clone();
+    const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+    const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
     this.scene.add(burst.points);
     this.scene.remove(item.mesh);
     item.markBursted?.();
@@ -389,7 +454,15 @@ export class FireworkSystem {
       shellId: item.shellId,
       shellType: item.shellType ?? item.shape,
       shapeType: item.shapeType ?? item.shape,
-      effectType: item.preset?.effectType ?? item.shape
+      effectType: item.preset?.effectType ?? item.shape,
+      colorHex: item.color.getHex(),
+      position: {
+        x: burstPosition.x,
+        y: burstPosition.y,
+        z: burstPosition.z
+      },
+      intensity: normalizedEnergy,
+      duration: 0.95 + normalizedEnergy * 0.9
     });
   }
 
