@@ -123,7 +123,14 @@ export class FireworkSystem {
       shellId,
       shellType: shell.shellType,
       shapeType: shell.shapeType,
-      effectType: shellPreset.effectType ?? 'standard'
+      effectType: shellPreset.effectType ?? 'standard',
+      colorHex: color.getHex(),
+      position: {
+        x: position.x,
+        y: position.y,
+        z: position.z
+      },
+      intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
     });
   }
 
@@ -432,6 +439,9 @@ export class FireworkSystem {
     }
 
     const burst = this.createBurst(item.mesh.position.clone(), item.color, item.shapeType ?? item.shape, item.preset);
+    const burstPosition = item.mesh.position.clone();
+    const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+    const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
     this.scene.add(burst.points);
     this.scene.remove(item.mesh);
     item.markBursted?.();
@@ -444,7 +454,15 @@ export class FireworkSystem {
       shellId: item.shellId,
       shellType: item.shellType ?? item.shape,
       shapeType: item.shapeType ?? item.shape,
-      effectType: item.preset?.effectType ?? item.shape
+      effectType: item.preset?.effectType ?? item.shape,
+      colorHex: item.color.getHex(),
+      position: {
+        x: burstPosition.x,
+        y: burstPosition.y,
+        z: burstPosition.z
+      },
+      intensity: normalizedEnergy,
+      duration: 0.95 + normalizedEnergy * 0.9
     });
   }
 

@@ -3,10 +3,14 @@ import * as THREE from 'three';
 export class SceneManager {
   constructor() {
     this.instance = new THREE.Scene();
+    this.baseSkyColor = new THREE.Color(0x050510);
+    this.baseFogDensity = 0.002;
+    this.baseAmbientIntensity = 0.1;
+    this.baseHemisphereIntensity = 0.08;
     
     // Set a very dark blue/black color for night sky void
-    this.instance.background = new THREE.Color(0x050510);
-    this.instance.fog = new THREE.FogExp2(0x050510, 0.002);
+    this.instance.background = this.baseSkyColor.clone();
+    this.instance.fog = new THREE.FogExp2(this.baseSkyColor.clone(), this.baseFogDensity);
     
     // Create subtle background stars to give the void some reference points
     const starGeo = new THREE.BufferGeometry();
@@ -57,8 +61,11 @@ export class SceneManager {
     this.instance.add(moonGlow);
 
     // Optional: subtle ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
-    this.instance.add(ambientLight);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, this.baseAmbientIntensity);
+    this.instance.add(this.ambientLight);
+
+    this.hemisphereLight = new THREE.HemisphereLight(0x5d6ea8, 0x080c18, this.baseHemisphereIntensity);
+    this.instance.add(this.hemisphereLight);
 
     // Add checkerboard floor
     this.addCheckerboardFloor();
