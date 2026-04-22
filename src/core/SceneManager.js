@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 
 export class SceneManager {
   constructor() {
@@ -7,11 +8,11 @@ export class SceneManager {
     this.baseFogDensity = 0.002;
     this.baseAmbientIntensity = 0.1;
     this.baseHemisphereIntensity = 0.08;
-    
+
     // Set a very dark blue/black color for night sky void
     this.instance.background = this.baseSkyColor.clone();
     this.instance.fog = new THREE.FogExp2(this.baseSkyColor.clone(), this.baseFogDensity);
-    
+
     // Create subtle background stars to give the void some reference points
     const starGeo = new THREE.BufferGeometry();
     const starCounts = 1500;
@@ -50,13 +51,17 @@ export class SceneManager {
     this.instance.add(stars);
 
     // Moon reference point in the sky
-    const moonGeometry = new THREE.SphereGeometry(24, 32, 32);
-    const moonMaterial = new THREE.MeshBasicMaterial({ color: 0xececec, emissive: 0xf8f4ff });
+    const moonGeometry = new THREE.SphereGeometry(32, 32, 32);
+    const moonMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 2.5
+    });
     const moon = new THREE.Mesh(moonGeometry, moonMaterial);
     moon.position.set(0, 300, -700);
     this.instance.add(moon);
 
-    const moonGlow = new THREE.PointLight(0xececec, 0.35, 1200, 2);
+    const moonGlow = new THREE.PointLight(0xffffff, 2.0, 1500, 1.5);
     moonGlow.position.copy(moon.position);
     this.instance.add(moonGlow);
 
@@ -71,24 +76,24 @@ export class SceneManager {
     this.addCheckerboardFloor();
 
     // Add launch pad for fireworks
-    // this.addLaunchPad();
+    this.addLaunchPad();
   }
 
   addLaunchPad() {
-    const padSize = 120;
     const padBorder = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.PlaneGeometry(padSize, padSize)),
-      new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2, opacity: 0.9, transparent: true })
+      new THREE.EdgesGeometry(new THREE.PlaneGeometry(LAUNCH_ZONE_CONFIG.width, LAUNCH_ZONE_CONFIG.depth)),
+      new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2, opacity: 0.9, transparent: true })
     );
     padBorder.rotation.x = -Math.PI / 2;
-    padBorder.position.set(0, -49.5, 0);
+    // Set position slightly above the floor (-50) to prevent z-fighting
+    padBorder.position.set(LAUNCH_ZONE_CONFIG.center.x, LAUNCH_ZONE_CONFIG.center.y + 0.5, LAUNCH_ZONE_CONFIG.center.z);
     this.instance.add(padBorder);
   }
 
   addCheckerboardFloor() {
     const floorSize = 2000;
     const tileSize = 50;
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
@@ -124,20 +129,20 @@ export class SceneManager {
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
     }
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.repeat.set(floorSize / tileSize, floorSize / tileSize);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.magFilter = THREE.NearestFilter;
-    
+
     const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize);
     const floorMaterial = new THREE.MeshStandardMaterial({
       map: texture,
       roughness: 0.8,
       metalness: 0.1
     });
-    
+
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -50;

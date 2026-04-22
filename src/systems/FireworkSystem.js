@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { ShellEntity } from '../entities/ShellEntity.js';
 import { ShellPresetFactory } from '../entities/ShellPresetFactory.js';
 import { BurstShapeGenerator } from '../entities/BurstShapeGenerator.js';
@@ -34,18 +35,7 @@ export class FireworkSystem {
     this.activeFireworks = [];
     this.trailParticles = [];
     this.shellPresetFactory = new ShellPresetFactory();
-    this.launchZone = {
-      center: new THREE.Vector3(0, -50, 0),
-      launchRadiusX: 22,
-      launchRadiusZ: 120,
-      noEntryHalfWidth: 72,
-      noEntryHalfDepth: 140,
-      minBurstY: 200,
-      maxBurstY: 480,
-      minLaunchSpeedY: 136,
-      maxLaunchSpeedY: 178,
-      boundaryPadding: 12
-    };
+    this.launchZone = LAUNCH_ZONE_CONFIG;
     this.launchPosition = this.launchZone.center.clone();
     this.autoLaunchEnabled = false;
     this.autoLaunchTimer = 0;
