@@ -553,6 +553,7 @@ export class FireworkSystem {
       const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
       this.spawnCrackleCloud(cloudOrigin, item.points.userData.particleCount);
       item.points.userData.crackleCloudTriggered = true;
+      this.emitFireworkEvent('firework:crackle', { position: { x: cloudOrigin.x, y: cloudOrigin.y, z: cloudOrigin.z } });
     }
 
     const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);

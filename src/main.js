@@ -8,6 +8,7 @@ import { MovementSystem } from './systems/MovementSystem.js';
 import { FireworkSystem } from './systems/FireworkSystem.js';
 import { SkyLightReactionSystem } from './systems/SkyLightReactionSystem.js';
 import { SmokeSystem } from './systems/SmokeSystem.js';
+import { AudioSystem } from './systems/AudioSystem.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
@@ -21,6 +22,8 @@ const performanceMonitor = new PerformanceMonitor();
 const fireworkSystem = new FireworkSystem(sceneManager.instance);
 const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
 const smokeSystem = new SmokeSystem(sceneManager);
+const audioSystem = new AudioSystem(cameraManager);
+audioSystem.preload();
 const postProcessing = renderingConfig.post.enabled
   ? new PostProcessingPipeline(renderer.instance, sceneManager.instance, cameraManager.instance, renderingConfig)
   : null;
@@ -37,6 +40,7 @@ const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.do
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 renderer.instance.domElement.addEventListener('click', () => {
+  audioSystem.resume();
   if (inputSystem.controls.isLocked && !inputSystem.isPaused()) {
     fireworkSystem.launchRandom(inputSystem.getSelectedPreset());
   }
