@@ -31,6 +31,7 @@ if (postProcessing) {
   });
 }
 
+
 // Initialize Systems
 const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);

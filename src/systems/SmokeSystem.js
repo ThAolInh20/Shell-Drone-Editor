@@ -45,10 +45,12 @@ export class SmokeSystem {
     const spriteMaterial = new THREE.SpriteMaterial({
       map: this.smokeTexture,
       transparent: true,
+
       opacity: options.opacity ?? 0.24,
       color: options.color ?? new THREE.Color(0x8892a3),
       depthWrite: false,
       depthTest: false,
+
       blending: THREE.NormalBlending
     });
 
@@ -64,8 +66,10 @@ export class SmokeSystem {
       age: 0,
       life: options.life ?? 2.2,
       growth: options.growth ?? 4.4,
+
       baseScale,
       baseOpacity: options.opacity ?? 0.24
+
     });
   }
 
@@ -77,6 +81,7 @@ export class SmokeSystem {
     );
 
     const count = 8;
+
     for (let i = 0; i < count; i++) {
       const drift = new THREE.Vector3(
         (Math.random() - 0.5) * 1.4,
@@ -90,9 +95,11 @@ export class SmokeSystem {
       );
       this.spawnPuff(launchPos.clone().add(offset), drift, {
         life: 1.1 + Math.random() * 0.85,
+
         scale: 7.2 + Math.random() * 3.4,
         growth: 5.1,
         opacity: 0.24 + Math.random() * 0.12,
+
         color: new THREE.Color(0x666f7f)
       });
     }
@@ -110,6 +117,7 @@ export class SmokeSystem {
     const intensity = THREE.MathUtils.clamp(detail.intensity ?? 0.45, 0.1, 1);
     const count = Math.round(22 + intensity * 30);
 
+
     for (let i = 0; i < count; i++) {
       const azimuth = Math.random() * Math.PI * 2;
       const radius = 1.8 + Math.random() * 7;
@@ -125,10 +133,12 @@ export class SmokeSystem {
       );
 
       this.spawnPuff(burstPos.clone().add(offset), velocity, {
+
         life: 3 + Math.random() * 3.2,
         scale: 9 + Math.random() * 7.2,
         growth: 5.4 + Math.random() * 3.8,
         opacity: 0.28 + Math.random() * 0.2,
+
         color: smokeColor
       });
     }
@@ -152,7 +162,9 @@ export class SmokeSystem {
       puff.sprite.position.addScaledVector(puff.velocity, deltaTime);
 
       const growthScale = 1 + puff.growth * t;
+
       puff.sprite.scale.setScalar(puff.baseScale * growthScale);
+
 
       const fade = 1 - t;
       puff.sprite.material.opacity = fade * fade * puff.baseOpacity;

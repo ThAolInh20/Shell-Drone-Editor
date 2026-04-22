@@ -63,8 +63,10 @@ export class FireworkSystem {
       enabled: true,
       minBurstY: this.launchZone.minBurstY,
       maxBurstY: this.launchZone.maxBurstY,
+
       sizeMin: 1.05,
       sizeMax: 1.95,
+
       brightnessMin: 0.9,
       brightnessMax: 1.45,
       sizeCurve: 0.9,
@@ -534,7 +536,9 @@ export class FireworkSystem {
         z: burstPosition.z
       },
       intensity: normalizedEnergy,
+
       duration: 1.25 + normalizedEnergy * 1.1
+
     });
   }
 

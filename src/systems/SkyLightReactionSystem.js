@@ -22,6 +22,7 @@ export class SkyLightReactionSystem {
     const rawIntensity = THREE.MathUtils.clamp(detail.intensity ?? 0.6, 0.1, 1);
     const intensity = Math.pow(rawIntensity, 1.35);
     const duration = THREE.MathUtils.clamp(detail.duration ?? 1.2, 0.35, 1.6);
+
     const position = new THREE.Vector3(
       detail.position?.x ?? 0,
       detail.position?.y ?? 120,
@@ -59,11 +60,11 @@ export class SkyLightReactionSystem {
       if (t >= 1) {
         continue;
       }
-
       // Strong immediate flash with softer trailing afterglow.
       const flash = Math.exp(-4.6 * t) * reaction.intensity;
       const tail = Math.exp(-1.55 * t) * reaction.intensity * 0.42;
       const weight = flash + tail;
+
       totalWeight += weight;
       skyEnergy += weight;
       colorAccumulator.add(reaction.color.clone().multiplyScalar(weight));
@@ -84,11 +85,11 @@ export class SkyLightReactionSystem {
     const blendedColor = totalWeight > 0
       ? colorAccumulator.multiplyScalar(1 / totalWeight)
       : this.baseSkyColor.clone();
-
     const skyMix = THREE.MathUtils.clamp(skyEnergy * 0.34, 0, 0.42);
     const fogMix = THREE.MathUtils.clamp(skyEnergy * 0.38, 0, 0.48);
     const ambientBoost = THREE.MathUtils.clamp(skyEnergy * 0.16, 0, 0.18);
     const hemiBoost = THREE.MathUtils.clamp(skyEnergy * 0.14, 0, 0.15);
+
 
     const skyTarget = this.baseSkyColor.clone().lerp(blendedColor, skyMix);
     const fogTarget = this.baseSkyColor.clone().lerp(blendedColor, fogMix);
@@ -103,6 +104,7 @@ export class SkyLightReactionSystem {
       this.reusableBurstLight.color.copy(strongest.color);
       this.reusableBurstLight.position.copy(strongest.position);
       this.reusableBurstLight.intensity = THREE.MathUtils.clamp(strongest.weight * 2.4, 0, 1.15);
+
     } else {
       this.reusableBurstLight.intensity = 0;
     }
