@@ -25,7 +25,7 @@ const BURST_FADE_EXPONENT = 2.15;
 const CRACKLE_CLOUD_SPEED = 24;
 const BASE_BURST_POINT_SIZE = 26;
 
-const DEFAULT_TRAIL_COLOR = new THREE.Color( 0xffd700);
+const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
 
 export class FireworkSystem {
@@ -40,10 +40,10 @@ export class FireworkSystem {
       launchRadiusZ: 120,
       noEntryHalfWidth: 72,
       noEntryHalfDepth: 140,
-      minBurstY: 160,
-      maxBurstY: 320,
-      minLaunchSpeedY: 88,
-      maxLaunchSpeedY: 124,
+      minBurstY: 200,
+      maxBurstY: 480,
+      minLaunchSpeedY: 136,
+      maxLaunchSpeedY: 178,
       boundaryPadding: 12
     };
     this.launchPosition = this.launchZone.center.clone();

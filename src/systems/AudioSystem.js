@@ -3,11 +3,12 @@ import * as THREE from 'three';
 export class AudioSystem {
   constructor(cameraManager) {
     this.cameraManager = cameraManager;
-    this.baseURL = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/';
-    
+    this.baseURLLegacy = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/';
+    this.baseURLNew = 'https://shellsound.s3.ap-southeast-2.amazonaws.com/effect/';
+
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     this.ctx = new AudioContext();
-    
+
     this.speedOfSound = 343; // units/second, assuming 1 unit = 1 meter
 
     this.sources = {
@@ -21,7 +22,7 @@ export class AudioSystem {
         volume: 0.9,
         playbackRateMin: 0.8,
         playbackRateMax: 0.9,
-        fileNames: ['burst1.mp3', 'burst2.mp3']
+        fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
       },
       burstSmall: {
         volume: 0.4,
@@ -45,7 +46,7 @@ export class AudioSystem {
 
     this._lastSmallBurstTime = 0;
     this._lastCrackleTime = 0;
-    
+
     this.bindEvents();
   }
 
@@ -69,7 +70,9 @@ export class AudioSystem {
     for (const type of types) {
       const source = this.sources[type];
       const filePromises = source.fileNames.map(fileName => {
-        const fileURL = this.baseURL + fileName;
+        const numMatch = fileName.match(/\d+/);
+        const num = numMatch ? parseInt(numMatch[0], 10) : 1;
+        const fileURL = (num >= 4) ? (this.baseURLNew + fileName) : (this.baseURLLegacy + fileName);
         const promise = fetch(fileURL)
           .then(checkStatus)
           .then(response => response.arrayBuffer())
@@ -78,9 +81,9 @@ export class AudioSystem {
           }));
         return promise;
       });
-      
+
       allFilePromises.push(...filePromises);
-      
+
       Promise.all(filePromises).then(buffers => {
         source.buffers = buffers;
       });
@@ -132,7 +135,7 @@ export class AudioSystem {
     if (volumeScale > 0 && scaledVolume < 0.01) return;
 
     const buffer = this.randomChoice(source.buffers);
-    
+
     const playLogic = () => {
       const gainNode = this.ctx.createGain();
       gainNode.gain.value = scaledVolume;
@@ -140,7 +143,7 @@ export class AudioSystem {
       const bufferSource = this.ctx.createBufferSource();
       bufferSource.playbackRate.value = scaledPlaybackRate;
       bufferSource.buffer = buffer;
-      
+
       bufferSource.connect(gainNode);
       gainNode.connect(this.ctx.destination);
       bufferSource.start(0);
@@ -150,17 +153,17 @@ export class AudioSystem {
       // Use AudioContext timing for better precision than setTimeout if possible,
       // but for delayed execution where we just want it to trigger in the future,
       // setTimeout is fine. Using context.currentTime is better for sync.
-      
+
       const gainNode = this.ctx.createGain();
       gainNode.gain.value = scaledVolume;
 
       const bufferSource = this.ctx.createBufferSource();
       bufferSource.playbackRate.value = scaledPlaybackRate;
       bufferSource.buffer = buffer;
-      
+
       bufferSource.connect(gainNode);
       gainNode.connect(this.ctx.destination);
-      
+
       // Start scheduling
       bufferSource.start(this.ctx.currentTime + delay);
     } else {
@@ -179,12 +182,12 @@ export class AudioSystem {
   handleBurst(detail) {
     const { position, intensity, effectType } = detail;
     const { delay, scale } = this.calculatePositionalAudioParams(position, intensity * 2);
-    
+
     // Scale down volume for smaller intensity, but speed up playback
     // (A scale of 0.5 means faster playback rate)
     // 2 - scale to increase playback rate when volume is lower (farther or smaller)
     const playbackRateScale = this.clamp(2 - scale, 1, 1.5);
-    
+
     this.playSoundBase('burst', scale, playbackRateScale, delay);
 
     // If it's a crackle effect, also queue a small crackle at the burst
@@ -195,7 +198,7 @@ export class AudioSystem {
 
   handleCrackle(detail) {
     const { position } = detail;
-    
+
     const now = Date.now();
     // Throttle crackles: only allow 1 per 50ms globally to avoid destroying eardrums
     if (now - this._lastCrackleTime < 50) {
