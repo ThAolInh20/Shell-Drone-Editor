@@ -9,8 +9,8 @@ const GRAVITY = -30;
 const BASE_BURST_PARTICLES = 110;
 const MIN_BURST_PARTICLES = 60;
 const MAX_BURST_PARTICLES = 220;
-const BURST_SPEED = 50;
-const BURST_LIFE = 3.5;
+const BURST_SPEED = 65;
+const BURST_LIFE = 2.3;
 const BURST_DISSOLVE_START = 0.62;
 
 const FIREWORK_COLORS = [
@@ -307,7 +307,6 @@ export class FireworkSystem {
       standard: 1,
       crackle: 1.15,
       crossette: 1.1,
-      'crossette-v2': 1.2,
       floral: 1.18,
       'falling-leaves': 1.04,
       heart: 1.22,
