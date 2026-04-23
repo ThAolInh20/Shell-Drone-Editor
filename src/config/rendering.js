@@ -1,6 +1,6 @@
 export const renderingConfig = {
   renderer: {
-    antialias: false,
+    antialias: true,
     exposure: 1.0,
     maxPixelRatio: 2
   },
@@ -8,12 +8,12 @@ export const renderingConfig = {
     enabled: true,
     bloom: {
       enabled: true,
-      strength: 0.35,
+      strength: 0.45,
       radius: 0.2,
       threshold: 0.78
     },
     aa: {
-      enabled: true,
+      enabled: false,
       mode: 'fxaa'
     }
   }
