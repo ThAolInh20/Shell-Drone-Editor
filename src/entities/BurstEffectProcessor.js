@@ -2,8 +2,6 @@ export class BurstEffectProcessor {
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
-    'crossette',
-    'crossette-v2',
     'flow',
     'snow',
     'wave',
@@ -54,9 +52,18 @@ export class BurstEffectProcessor {
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
 
+    let currentStrobePhase = 0;
     for (let i = 0; i < count; i++) {
       spin[i] = (Math.random() - 0.5) * 3.2;
-      phase[i] = Math.random() * Math.PI * 2;
+
+
+      if (normalizedEffect === 'strobe') {
+        if (i % 12 === 0) currentStrobePhase = Math.random() * Math.PI * 2;
+        phase[i] = currentStrobePhase;
+      } else {
+        phase[i] = Math.random() * Math.PI * 2;
+      }
+
       turbulence[i] = 0.25 + Math.random() * 0.95;
     }
 
@@ -71,8 +78,9 @@ export class BurstEffectProcessor {
   static materialOpacity(effectType, age, maxLife, baseOpacity) {
     const normalizedEffect = this.normalizeEffectType(effectType);
 
-    if (normalizedEffect === 'wave' || normalizedEffect === 'strobe' || normalizedEffect === 'crossette' || normalizedEffect === 'crossette-v2') {
-      const blink = Math.sin(age * 38) > 0 ? 1 : 0.2;
+    if (normalizedEffect === 'wave') {
+      const blinkSpeed = 38;
+      const blink = Math.sin(age * blinkSpeed) > 0 ? 1 : 0.2;
       return Math.max(0, Math.min(1, baseOpacity * blink));
     }
 
@@ -123,25 +131,6 @@ export class BurstEffectProcessor {
     } else if (effectType === 'wave') {
       gravityScale = 0.22;
       velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
-    } else if (effectType === 'crossette') {
-      gravityScale = 0.16;
-      const spinAmount = (effectState.spin[index] || 0) * deltaTime * 0.7;
-      const cos = Math.cos(spinAmount);
-      const sin = Math.sin(spinAmount);
-      const oldX = velocity.x;
-      const oldZ = velocity.z;
-      velocity.x = oldX * cos - oldZ * sin;
-      velocity.z = oldX * sin + oldZ * cos;
-      velocity.multiplyScalar(0.996);
-      emitSpark = Math.random() < 0.008;
-    } else if (effectType === 'crossette-v2') {
-      gravityScale = 0.12;
-      const phase = effectState.phase[index] || 0;
-      velocity.x += Math.sin(age * 6 + phase) * 0.012;
-      velocity.z += Math.cos(age * 6 + phase) * 0.012;
-      velocity.y += Math.sin(age * 4 + phase) * 0.01;
-      velocity.multiplyScalar(0.997);
-      emitSpark = Math.random() < 0.01;
     } else if (effectType === 'strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);

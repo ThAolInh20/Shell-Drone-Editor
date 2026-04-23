@@ -51,7 +51,6 @@ export class BurstShapeGenerator {
       case 'cat':
       case 'fish':
       case 'smiley':
-      case 'crossette':
         return shellType;
       case 'hearth':
         return 'heart';
@@ -205,23 +204,6 @@ export class BurstShapeGenerator {
         Math.sin(angle) * petalRadius,
         (Math.random() - 0.5) * 0.2
       ).normalize();
-    }
-
-    if (shape === 'crossette') {
-      const armIndex = index % 4;
-      const radial = 0.7 + Math.random() * 0.35;
-      const jitter = (Math.random() - 0.5) * 0.12;
-
-      if (armIndex === 0) {
-        return new THREE.Vector3(radial, jitter, jitter * 0.5).normalize();
-      }
-      if (armIndex === 1) {
-        return new THREE.Vector3(-radial, jitter, jitter * 0.5).normalize();
-      }
-      if (armIndex === 2) {
-        return new THREE.Vector3(jitter * 0.5, radial, jitter).normalize();
-      }
-      return new THREE.Vector3(jitter * 0.5, -radial, jitter).normalize();
     }
 
     if (shape === 'cat') {

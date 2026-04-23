@@ -9,8 +9,8 @@ const GRAVITY = -30;
 const BASE_BURST_PARTICLES = 110;
 const MIN_BURST_PARTICLES = 60;
 const MAX_BURST_PARTICLES = 220;
-const BURST_SPEED = 50;
-const BURST_LIFE = 3.5;
+const BURST_SPEED = 65;
+const BURST_LIFE = 2.3;
 const BURST_DISSOLVE_START = 0.62;
 
 const FIREWORK_COLORS = [
@@ -109,6 +109,7 @@ export class FireworkSystem {
       );
     };
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
+    this.trailPoints.frustumCulled = false; // Ngăn chặn việc Three.js ẩn trail khi nhìn lên quá cao (Frustum Culling)
     this.scene.add(this.trailPoints);
   }
 
@@ -129,11 +130,12 @@ export class FireworkSystem {
     this.emitDiagnostics();
   }
 
-  launchRandom(preset = null) {
+  launchRandom(preset = null, options = {}) {
+    const { ratioX, ratioY, ratioZ, sectorId } = options;
     const shellPreset = this.shellPresetFactory.validatePreset(preset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
-    const position = this.resolveLaunchPosition();
-    const targetHeight = this.resolveBurstHeight(shellPreset);
+    const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
+    const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);
     const velocity = this.resolveLaunchVelocity(targetHeight);
     const color = new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const shell = this.createShell(position, velocity, targetHeight, color, shellPreset, shellId);
@@ -175,14 +177,44 @@ export class FireworkSystem {
     };
   }
 
-  resolveLaunchPosition() {
-    const offsetX = (Math.random() - 0.5) * this.launchZone.launchRadiusX * 2;
-    const offsetZ = (Math.random() - 0.5) * this.launchZone.launchRadiusZ * 2;
+  resolveLaunchPosition(ratioX, ratioZ, sectorId) {
+    const rx = ratioX ?? Math.random();
+    const rz = ratioZ ?? Math.random();
 
-    return this.launchZone.center.clone().add(new THREE.Vector3(offsetX, 0, offsetZ));
+    let sector;
+    if (sectorId && this.launchZone.sectors) {
+      sector = this.launchZone.sectors.find(s => s.id === sectorId);
+    }
+    if (!sector && this.launchZone.sectors) {
+      sector = this.launchZone.sectors[Math.floor(Math.random() * this.launchZone.sectors.length)];
+    }
+
+    const minAngle = sector ? sector.minAngle : Math.PI / 4;
+    const maxAngle = sector ? sector.maxAngle : 3 * Math.PI / 4;
+
+    // Left (maxAngle) to Right (minAngle) mapping: rx = 0 means left, rx = 1 means right
+    const baseAngle = maxAngle - rx * (maxAngle - minAngle);
+    this._lastLaunchAngle = baseAngle;
+
+    // The starting position (launchZone.center) IS the center of the arc.
+    const arcRadius = this.launchZone.arcRadius || 360;
+
+    // Thickness of the arc (spread in depth)
+    const thicknessOffset = (rz - 0.5) * this.launchZone.launchRadiusZ * 2;
+    const finalRadius = arcRadius + thicknessOffset;
+
+    // Position on the arc relative to the center
+    const x = finalRadius * Math.cos(baseAngle);
+    const z = -finalRadius * Math.sin(baseAngle); // negative Z because it curves into the screen
+
+    return this.launchZone.center.clone().add(new THREE.Vector3(x, 0, z));
   }
 
-  resolveBurstHeight(preset = null) {
+  resolveBurstHeight(preset = null, ratioY) {
+    if (ratioY !== undefined) {
+      return THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, ratioY);
+    }
+
     const presetSize = Math.max(1, Math.min(6, preset?.shellSize ?? 1));
     const sizeT = (presetSize - 1) / 5;
     const baseHeight = THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, 0.42 + sizeT * 0.32);
@@ -200,10 +232,15 @@ export class FireworkSystem {
     const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
     const lateralSpread = THREE.MathUtils.lerp(5, 9, 1 - normalizedHeight);
 
+    // Fan out effect based on the arc position (shoot outwards from center)
+    const angle = this._lastLaunchAngle || (Math.PI / 2);
+    const fanSpeedX = Math.cos(angle) * 20;
+    const fanSpeedZ = -Math.sin(angle) * 20;
+
     return new THREE.Vector3(
-      (Math.random() - 0.5) * lateralSpread,
+      fanSpeedX + (Math.random() - 0.5) * lateralSpread,
       launchSpeedY,
-      (Math.random() - 0.5) * lateralSpread
+      fanSpeedZ + (Math.random() - 0.5) * lateralSpread
     );
   }
 
@@ -264,24 +301,31 @@ export class FireworkSystem {
     this.trailParticles.push(spark);
   }
 
-  spawnCrackleCloud(position, particleCount = BASE_BURST_PARTICLES) {
-    const crackleCount = particleCount >= 120 ? 36 : (particleCount >= 80 ? 24 : 16);
+  spawnMicroCrackle(position, baseColor) {
+    const crackleCount = 6 + Math.floor(Math.random() * 4); // 6 to 9 particles
 
     for (let i = 0; i < crackleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spread = 0.45 + Math.random() * 0.55;
-      const direction = new THREE.Vector3(
-        Math.cos(angle) * spread,
-        (Math.random() - 0.5) * 0.5,
-        Math.sin(angle) * spread
-      ).normalize();
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
 
-      const speed = Math.pow(Math.random(), 0.45) * CRACKLE_CLOUD_SPEED;
+      const direction = new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta),
+        Math.sin(phi) * Math.sin(theta),
+        Math.cos(phi)
+      );
+
+      const speed = (0.6 + Math.random() * 0.4) * 18;
+
+      // Always use gold/yellow color for crackle
+      const sparkColor = CRACKLE_SPARK_COLOR.clone();
+
       this.trailParticles.push({
         position: position.clone(),
         velocity: direction.multiplyScalar(speed),
-        color: CRACKLE_SPARK_COLOR.clone(),
-        life: 0.3 + Math.random() * 0.2,
+        color: sparkColor,
+        life: 1.0 + Math.random() * 0.5,
         age: 0
       });
     }
@@ -293,7 +337,6 @@ export class FireworkSystem {
       ring: 1.08,
       heart: 1.4,
       flower: 1.22,
-      crossette: 1.45,
       cat: 1.2,
       fish: 1.14,
       smiley: 1.2,
@@ -306,8 +349,6 @@ export class FireworkSystem {
     const effectMultiplier = {
       standard: 1,
       crackle: 1.15,
-      crossette: 1.1,
-      'crossette-v2': 1.2,
       floral: 1.18,
       'falling-leaves': 1.04,
       heart: 1.22,
@@ -356,6 +397,7 @@ export class FireworkSystem {
     const burstParticleCount = this.resolveBurstParticleCount(resolvedShape, normalizedEffect, preset);
     const positions = new Float32Array(burstParticleCount * 3);
     const colors = new Float32Array(burstParticleCount * 3);
+    const baseColors = new Float32Array(burstParticleCount * 3);
     const velocities = [];
     const life = new Float32Array(burstParticleCount);
     const burstRotation = this.createRandomBurstRotation();
@@ -411,6 +453,11 @@ export class FireworkSystem {
       colors[i * 3] = particleColor.r * brightnessIntensity;
       colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
       colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
+
+      baseColors[i * 3] = colors[i * 3];
+      baseColors[i * 3 + 1] = colors[i * 3 + 1];
+      baseColors[i * 3 + 2] = colors[i * 3 + 2];
+
       life[i] = 0;
     }
 
@@ -464,6 +511,7 @@ export class FireworkSystem {
     points.userData = {
       velocities,
       life,
+      baseColors,
       effectType: normalizedEffect,
       crackle: crackleEnabled || normalizedEffect === 'crackle',
       crackleCloudTriggered: false,
@@ -535,15 +583,28 @@ export class FireworkSystem {
   handleBurstUpdate(item, deltaTime, finished) {
     item.age += deltaTime;
     const positions = item.points.geometry.attributes.position.array;
+    const colors = item.points.geometry.attributes.color.array;
+    const baseColors = item.points.userData.baseColors;
     const lifeArray = item.points.userData.life;
     const effectType = item.points.userData.effectType;
     const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
 
-    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.42) {
-      const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
-      this.spawnCrackleCloud(cloudOrigin, item.points.userData.particleCount);
+    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.85) {
+      const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+
+      for (let i = 0; i < particleCount; i++) {
+        if (Math.random() < 0.65) { // Burst 65% of particles to save FPS
+          const origin = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+          const baseColor = baseColors ? new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]) : null;
+          this.spawnMicroCrackle(origin, baseColor);
+        }
+      }
+
       item.points.userData.crackleCloudTriggered = true;
-      this.emitFireworkEvent('firework:crackle', { position: { x: cloudOrigin.x, y: cloudOrigin.y, z: cloudOrigin.z } });
+      item.age = item.maxLife; // Force main burst to vanish
+
+      const centerOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
+      this.emitFireworkEvent('firework:crackle', { position: { x: centerOrigin.x, y: centerOrigin.y, z: centerOrigin.z } });
     }
 
     const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
@@ -561,6 +622,7 @@ export class FireworkSystem {
     item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
 
     const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+    let needsColorUpdate = false;
 
     for (let i = 0; i < particleCount; i++) {
       const velocity = item.points.userData.velocities[i];
@@ -583,6 +645,15 @@ export class FireworkSystem {
         this.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
       }
 
+      if (effectType === 'strobe' && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        const blink = Math.sin(item.age * 28 + phase) > 0 ? 1 : 0.1;
+        colors[i * 3] = baseColors[i * 3] * blink;
+        colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
+        colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+        needsColorUpdate = true;
+      }
+
       positions[i * 3] += velocity.x * deltaTime;
       positions[i * 3 + 1] += velocity.y * deltaTime;
       positions[i * 3 + 2] += velocity.z * deltaTime;
@@ -592,6 +663,9 @@ export class FireworkSystem {
     }
 
     item.points.geometry.attributes.position.needsUpdate = true;
+    if (needsColorUpdate) {
+      item.points.geometry.attributes.color.needsUpdate = true;
+    }
 
     if (item.age >= item.maxLife) {
       this.scene.remove(item.points);

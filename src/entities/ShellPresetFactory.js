@@ -17,14 +17,13 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'crossette']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'crossette', 'crossette-v2', 'floral', 'falling-leaves']);
+    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'floral', 'falling-leaves']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
-      { key: 'crossette', label: 'Crossette' },
-      { key: 'crossetteV2', label: 'CrossetteV2' },
+      { key: 'strobe', label: 'Strobe' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'rumble', label: 'Rumble' },
@@ -46,8 +45,7 @@ export class ShellPresetFactory {
 
     if (roll < 0.14) return this.crysanthemumShell();
     if (roll < 0.22) return this.crackleShell();
-    if (roll < 0.29) return this.crossetteShell();
-    if (roll < 0.35) return this.crossetteShellV2();
+    if (roll < 0.29) return this.strobeShell();
     if (roll < 0.41) return this.fallingLeavesShell();
     if (roll < 0.47) return this.floralShell();
     if (roll < 0.55) return this.rumbleShell();
@@ -73,10 +71,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.crysanthemumShell());
       case 'crackle':
         return this.validatePreset(this.crackleShell());
-      case 'crossette':
-        return this.validatePreset(this.crossetteShell());
-      case 'crossetteV2':
-        return this.validatePreset(this.crossetteShellV2());
+      case 'strobe':
+        return this.validatePreset(this.strobeShell());
       case 'fallingLeaves':
         return this.validatePreset(this.fallingLeavesShell());
       case 'floral':
@@ -239,31 +235,16 @@ export class ShellPresetFactory {
     };
   }
 
-  crossetteShell(size = 1) {
+  strobeShell(size = 1) {
     return {
       ...this.basePreset(size),
-      shellType: 'crossette',
-      shapeType: 'crossette',
-      effectType: 'crossette',
-      particleCountMultiplier: 1.45,
-      crossette: true,
-      starLife: 750 + size * 160,
-      starDensity: 0.85,
-      pistil: Math.random() < 0.5
-    };
-  }
-
-  crossetteShellV2(size = 1) {
-    return {
-      ...this.basePreset(size),
-      shellType: 'crossetteV2',
-      shapeType: 'crossette',
-      effectType: 'crossette-v2',
-      particleCountMultiplier: 1.55,
-      crossetteV2: true,
-      starLife: 780 + size * 170,
-      starDensity: 0.8,
-      pistil: Math.random() < 0.5
+      shellType: 'strobe',
+      shapeType: 'sphere',
+      effectType: 'strobe',
+      strobe: true,
+      starLife: 1000 + size * 150,
+      particleCountMultiplier: 1.25,
+      pistil: Math.random() < 0.4
     };
   }
 

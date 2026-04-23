@@ -139,9 +139,9 @@ const ringShellV2 = (size = 1) => {
 		color: randomColor({ limitWhite: true }),
 
 		// ✨ BẬT đổi màu theo vòng
-		ringColorMode: 'sequential', // 'sequential' | 'gradient'
+		ringColorMode: 'gradient', // 'sequential' | 'gradient'
 		ringPalette: palette,        // mảng màu
-		ringColorSpeed: 1,           // tốc độ đổi (1 = mỗi điểm 1 màu)
+		ringColorSpeed: 10,           // tốc độ đổi (1 = mỗi điểm 1 màu)
 		ringLoop: false,             // có quay vòng không
 
 		glitter: glitter ? 'light' : '',

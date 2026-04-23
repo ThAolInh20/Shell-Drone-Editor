@@ -55,13 +55,13 @@ export class SceneManager {
     const moonMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xffffff,
-      emissiveIntensity: 2.5
+      emissiveIntensity: 1.5
     });
     const moon = new THREE.Mesh(moonGeometry, moonMaterial);
     moon.position.set(0, 300, -700);
     this.instance.add(moon);
 
-    const moonGlow = new THREE.PointLight(0xffffff, 2.0, 1500, 1.5);
+    const moonGlow = new THREE.PointLight(0xffffff, 1.0, 1500, 1.5);
     moonGlow.position.copy(moon.position);
     this.instance.add(moonGlow);
 
@@ -80,14 +80,36 @@ export class SceneManager {
   }
 
   addLaunchPad() {
-    const padBorder = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.PlaneGeometry(LAUNCH_ZONE_CONFIG.width, LAUNCH_ZONE_CONFIG.depth)),
-      new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2, opacity: 0.9, transparent: true })
-    );
-    padBorder.rotation.x = -Math.PI / 2;
-    // Set position slightly above the floor (-50) to prevent z-fighting
-    padBorder.position.set(LAUNCH_ZONE_CONFIG.center.x, LAUNCH_ZONE_CONFIG.center.y + 0.5, LAUNCH_ZONE_CONFIG.center.z);
-    this.instance.add(padBorder);
+    const material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2, opacity: 0.9, transparent: true });
+
+    const arcRadius = LAUNCH_ZONE_CONFIG.arcRadius || 360;
+    const thickness = LAUNCH_ZONE_CONFIG.depth;
+    const innerRadius = arcRadius - thickness / 2;
+    const outerRadius = arcRadius + thickness / 2;
+
+    const createRing = (thetaStart, thetaLength) => {
+      const ringGeo = new THREE.RingGeometry(innerRadius, outerRadius, 64, 1, thetaStart, thetaLength);
+      const geometry = new THREE.EdgesGeometry(ringGeo);
+
+      const padBorder = new THREE.LineSegments(geometry, material);
+      // Rotate so local Y becomes world -Z
+      padBorder.rotation.x = -Math.PI / 2;
+
+      padBorder.position.set(
+        LAUNCH_ZONE_CONFIG.center.x,
+        LAUNCH_ZONE_CONFIG.center.y + 0.5,
+        LAUNCH_ZONE_CONFIG.center.z
+      );
+      this.instance.add(padBorder);
+    };
+
+    if (LAUNCH_ZONE_CONFIG.sectors) {
+      LAUNCH_ZONE_CONFIG.sectors.forEach(sector => {
+        createRing(sector.minAngle, sector.maxAngle - sector.minAngle);
+      });
+    } else {
+      createRing(Math.PI / 4, Math.PI / 2);
+    }
   }
 
   addCheckerboardFloor() {

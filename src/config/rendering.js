@@ -8,9 +8,9 @@ export const renderingConfig = {
     enabled: true,
     bloom: {
       enabled: true,
-      strength: 0.45,
+      strength: 0.15,
       radius: 0.2,
-      threshold: 0.78
+      threshold: 0.85
     },
     aa: {
       enabled: false,

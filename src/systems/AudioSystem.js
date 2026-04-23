@@ -22,7 +22,8 @@ export class AudioSystem {
         volume: 0.9,
         playbackRateMin: 0.8,
         playbackRateMax: 0.9,
-        fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
+        // fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
+        fileNames: ['burst1.mp3', 'burst2.mp3']
       },
       burstSmall: {
         volume: 0.4,
@@ -190,10 +191,7 @@ export class AudioSystem {
 
     this.playSoundBase('burst', scale, playbackRateScale, delay);
 
-    // If it's a crackle effect, also queue a small crackle at the burst
-    if (effectType === 'crackle') {
-      this.playSoundBase('crackleSmall', scale * 0.8, 1, delay + 0.1);
-    }
+    // If it's a crackle effect, crackle sound will only play when crackle cloud actually triggers.
   }
 
   handleCrackle(detail) {
