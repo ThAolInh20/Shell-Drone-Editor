@@ -355,6 +355,7 @@ export class FireworkSystem {
     const burstParticleCount = this.resolveBurstParticleCount(resolvedShape, normalizedEffect, preset);
     const positions = new Float32Array(burstParticleCount * 3);
     const colors = new Float32Array(burstParticleCount * 3);
+    const baseColors = new Float32Array(burstParticleCount * 3);
     const velocities = [];
     const life = new Float32Array(burstParticleCount);
     const burstRotation = this.createRandomBurstRotation();
@@ -410,6 +411,11 @@ export class FireworkSystem {
       colors[i * 3] = particleColor.r * brightnessIntensity;
       colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
       colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
+      
+      baseColors[i * 3] = colors[i * 3];
+      baseColors[i * 3 + 1] = colors[i * 3 + 1];
+      baseColors[i * 3 + 2] = colors[i * 3 + 2];
+      
       life[i] = 0;
     }
 
@@ -463,6 +469,7 @@ export class FireworkSystem {
     points.userData = {
       velocities,
       life,
+      baseColors,
       effectType: normalizedEffect,
       crackle: crackleEnabled || normalizedEffect === 'crackle',
       crackleCloudTriggered: false,
@@ -534,6 +541,8 @@ export class FireworkSystem {
   handleBurstUpdate(item, deltaTime, finished) {
     item.age += deltaTime;
     const positions = item.points.geometry.attributes.position.array;
+    const colors = item.points.geometry.attributes.color.array;
+    const baseColors = item.points.userData.baseColors;
     const lifeArray = item.points.userData.life;
     const effectType = item.points.userData.effectType;
     const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
@@ -560,6 +569,7 @@ export class FireworkSystem {
     item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
 
     const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+    let needsColorUpdate = false;
 
     for (let i = 0; i < particleCount; i++) {
       const velocity = item.points.userData.velocities[i];
@@ -582,6 +592,15 @@ export class FireworkSystem {
         this.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
       }
 
+      if (effectType === 'strobe' && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        const blink = Math.sin(item.age * 28 + phase) > 0 ? 1 : 0.1;
+        colors[i * 3] = baseColors[i * 3] * blink;
+        colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
+        colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+        needsColorUpdate = true;
+      }
+
       positions[i * 3] += velocity.x * deltaTime;
       positions[i * 3 + 1] += velocity.y * deltaTime;
       positions[i * 3 + 2] += velocity.z * deltaTime;
@@ -591,6 +610,9 @@ export class FireworkSystem {
     }
 
     item.points.geometry.attributes.position.needsUpdate = true;
+    if (needsColorUpdate) {
+      item.points.geometry.attributes.color.needsUpdate = true;
+    }
 
     if (item.age >= item.maxLife) {
       this.scene.remove(item.points);

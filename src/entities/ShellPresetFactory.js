@@ -23,6 +23,7 @@ export class ShellPresetFactory {
       { key: 'random', label: 'Random' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
+      { key: 'strobe', label: 'Strobe' },
       { key: 'crossette', label: 'Crossette' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
@@ -45,7 +46,8 @@ export class ShellPresetFactory {
 
     if (roll < 0.14) return this.crysanthemumShell();
     if (roll < 0.22) return this.crackleShell();
-    if (roll < 0.29) return this.crossetteShell();
+    if (roll < 0.29) return this.strobeShell();
+    if (roll < 0.35) return this.crossetteShell();
     if (roll < 0.41) return this.fallingLeavesShell();
     if (roll < 0.47) return this.floralShell();
     if (roll < 0.55) return this.rumbleShell();
@@ -71,6 +73,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.crysanthemumShell());
       case 'crackle':
         return this.validatePreset(this.crackleShell());
+      case 'strobe':
+        return this.validatePreset(this.strobeShell());
       case 'crossette':
         return this.validatePreset(this.crossetteShell());
       case 'fallingLeaves':
@@ -232,6 +236,19 @@ export class ShellPresetFactory {
       ringCoreJitter: 0.08,
       doubleRing: false,
       streamers: Math.random() < 0.3
+    };
+  }
+
+  strobeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'strobe',
+      shapeType: 'sphere',
+      effectType: 'strobe',
+      strobe: true,
+      starLife: 1000 + size * 150,
+      particleCountMultiplier: 1.25,
+      pistil: Math.random() < 0.4
     };
   }
 

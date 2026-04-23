@@ -53,9 +53,18 @@ export class BurstEffectProcessor {
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
 
+    let currentStrobePhase = 0;
     for (let i = 0; i < count; i++) {
       spin[i] = (Math.random() - 0.5) * 3.2;
-      phase[i] = Math.random() * Math.PI * 2;
+
+
+      if (normalizedEffect === 'strobe') {
+        if (i % 12 === 0) currentStrobePhase = Math.random() * Math.PI * 2;
+        phase[i] = currentStrobePhase;
+      } else {
+        phase[i] = Math.random() * Math.PI * 2;
+      }
+
       turbulence[i] = 0.25 + Math.random() * 0.95;
     }
 
@@ -70,7 +79,7 @@ export class BurstEffectProcessor {
   static materialOpacity(effectType, age, maxLife, baseOpacity) {
     const normalizedEffect = this.normalizeEffectType(effectType);
 
-    if (normalizedEffect === 'wave' || normalizedEffect === 'strobe' || normalizedEffect === 'crossette') {
+    if (normalizedEffect === 'wave' || normalizedEffect === 'crossette') {
       const blinkSpeed = (normalizedEffect === 'crossette') ? 15 : 38;
       const blink = Math.sin(age * blinkSpeed) > 0 ? 1 : 0.2;
       return Math.max(0, Math.min(1, baseOpacity * blink));
