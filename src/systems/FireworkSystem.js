@@ -176,10 +176,24 @@ export class FireworkSystem {
   }
 
   resolveLaunchPosition() {
-    const offsetX = (Math.random() - 0.5) * this.launchZone.launchRadiusX * 2;
-    const offsetZ = (Math.random() - 0.5) * this.launchZone.launchRadiusZ * 2;
-
-    return this.launchZone.center.clone().add(new THREE.Vector3(offsetX, 0, offsetZ));
+    // Continuous random angle between 45 and 135 degrees (Math.PI/4 and 3*Math.PI/4)
+    const minAngle = Math.PI / 4;
+    const maxAngle = 3 * Math.PI / 4;
+    const baseAngle = minAngle + Math.random() * (maxAngle - minAngle);
+    this._lastLaunchAngle = baseAngle;
+    
+    // The starting position (launchZone.center) IS the center of the arc.
+    const arcRadius = this.launchZone.arcRadius || 360;
+    
+    // Thickness of the arc (spread in depth)
+    const thicknessOffset = (Math.random() - 0.5) * this.launchZone.launchRadiusZ * 2;
+    const finalRadius = arcRadius + thicknessOffset;
+    
+    // Position on the arc relative to the center
+    const x = finalRadius * Math.cos(baseAngle);
+    const z = -finalRadius * Math.sin(baseAngle); // negative Z because it curves into the screen
+    
+    return this.launchZone.center.clone().add(new THREE.Vector3(x, 0, z));
   }
 
   resolveBurstHeight(preset = null) {
@@ -200,10 +214,15 @@ export class FireworkSystem {
     const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
     const lateralSpread = THREE.MathUtils.lerp(5, 9, 1 - normalizedHeight);
 
+    // Fan out effect based on the arc position (shoot outwards from center)
+    const angle = this._lastLaunchAngle || (Math.PI / 2);
+    const fanSpeedX = Math.cos(angle) * 20; 
+    const fanSpeedZ = -Math.sin(angle) * 20; 
+
     return new THREE.Vector3(
-      (Math.random() - 0.5) * lateralSpread,
+      fanSpeedX + (Math.random() - 0.5) * lateralSpread,
       launchSpeedY,
-      (Math.random() - 0.5) * lateralSpread
+      fanSpeedZ + (Math.random() - 0.5) * lateralSpread
     );
   }
 
