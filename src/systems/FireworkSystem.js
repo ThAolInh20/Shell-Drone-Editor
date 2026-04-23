@@ -109,6 +109,7 @@ export class FireworkSystem {
       );
     };
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
+    this.trailPoints.frustumCulled = false; // Ngăn chặn việc Three.js ẩn trail khi nhìn lên quá cao (Frustum Culling)
     this.scene.add(this.trailPoints);
   }
 
@@ -129,11 +130,12 @@ export class FireworkSystem {
     this.emitDiagnostics();
   }
 
-  launchRandom(preset = null) {
+  launchRandom(preset = null, options = {}) {
+    const { ratioX, ratioY, ratioZ, sectorId } = options;
     const shellPreset = this.shellPresetFactory.validatePreset(preset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
-    const position = this.resolveLaunchPosition();
-    const targetHeight = this.resolveBurstHeight(shellPreset);
+    const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
+    const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);
     const velocity = this.resolveLaunchVelocity(targetHeight);
     const color = new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const shell = this.createShell(position, velocity, targetHeight, color, shellPreset, shellId);
@@ -175,28 +177,44 @@ export class FireworkSystem {
     };
   }
 
-  resolveLaunchPosition() {
-    // Continuous random angle between 45 and 135 degrees (Math.PI/4 and 3*Math.PI/4)
-    const minAngle = Math.PI / 4;
-    const maxAngle = 3 * Math.PI / 4;
-    const baseAngle = minAngle + Math.random() * (maxAngle - minAngle);
+  resolveLaunchPosition(ratioX, ratioZ, sectorId) {
+    const rx = ratioX ?? Math.random();
+    const rz = ratioZ ?? Math.random();
+
+    let sector;
+    if (sectorId && this.launchZone.sectors) {
+      sector = this.launchZone.sectors.find(s => s.id === sectorId);
+    }
+    if (!sector && this.launchZone.sectors) {
+      sector = this.launchZone.sectors[Math.floor(Math.random() * this.launchZone.sectors.length)];
+    }
+
+    const minAngle = sector ? sector.minAngle : Math.PI / 4;
+    const maxAngle = sector ? sector.maxAngle : 3 * Math.PI / 4;
+
+    // Left (maxAngle) to Right (minAngle) mapping: rx = 0 means left, rx = 1 means right
+    const baseAngle = maxAngle - rx * (maxAngle - minAngle);
     this._lastLaunchAngle = baseAngle;
-    
+
     // The starting position (launchZone.center) IS the center of the arc.
     const arcRadius = this.launchZone.arcRadius || 360;
-    
+
     // Thickness of the arc (spread in depth)
-    const thicknessOffset = (Math.random() - 0.5) * this.launchZone.launchRadiusZ * 2;
+    const thicknessOffset = (rz - 0.5) * this.launchZone.launchRadiusZ * 2;
     const finalRadius = arcRadius + thicknessOffset;
-    
+
     // Position on the arc relative to the center
     const x = finalRadius * Math.cos(baseAngle);
     const z = -finalRadius * Math.sin(baseAngle); // negative Z because it curves into the screen
-    
+
     return this.launchZone.center.clone().add(new THREE.Vector3(x, 0, z));
   }
 
-  resolveBurstHeight(preset = null) {
+  resolveBurstHeight(preset = null, ratioY) {
+    if (ratioY !== undefined) {
+      return THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, ratioY);
+    }
+
     const presetSize = Math.max(1, Math.min(6, preset?.shellSize ?? 1));
     const sizeT = (presetSize - 1) / 5;
     const baseHeight = THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, 0.42 + sizeT * 0.32);
@@ -216,8 +234,8 @@ export class FireworkSystem {
 
     // Fan out effect based on the arc position (shoot outwards from center)
     const angle = this._lastLaunchAngle || (Math.PI / 2);
-    const fanSpeedX = Math.cos(angle) * 20; 
-    const fanSpeedZ = -Math.sin(angle) * 20; 
+    const fanSpeedX = Math.cos(angle) * 20;
+    const fanSpeedZ = -Math.sin(angle) * 20;
 
     return new THREE.Vector3(
       fanSpeedX + (Math.random() - 0.5) * lateralSpread,

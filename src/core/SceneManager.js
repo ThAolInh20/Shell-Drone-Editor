@@ -87,19 +87,29 @@ export class SceneManager {
     const innerRadius = arcRadius - thickness / 2;
     const outerRadius = arcRadius + thickness / 2;
 
-    const ringGeo = new THREE.RingGeometry(innerRadius, outerRadius, 64, 1, Math.PI / 4, Math.PI / 2);
-    const geometry = new THREE.EdgesGeometry(ringGeo);
+    const createRing = (thetaStart, thetaLength) => {
+      const ringGeo = new THREE.RingGeometry(innerRadius, outerRadius, 64, 1, thetaStart, thetaLength);
+      const geometry = new THREE.EdgesGeometry(ringGeo);
 
-    const padBorder = new THREE.LineSegments(geometry, material);
-    // Rotate so local Y becomes world -Z
-    padBorder.rotation.x = -Math.PI / 2;
+      const padBorder = new THREE.LineSegments(geometry, material);
+      // Rotate so local Y becomes world -Z
+      padBorder.rotation.x = -Math.PI / 2;
 
-    padBorder.position.set(
-      LAUNCH_ZONE_CONFIG.center.x,
-      LAUNCH_ZONE_CONFIG.center.y + 0.5,
-      LAUNCH_ZONE_CONFIG.center.z
-    );
-    this.instance.add(padBorder);
+      padBorder.position.set(
+        LAUNCH_ZONE_CONFIG.center.x,
+        LAUNCH_ZONE_CONFIG.center.y + 0.5,
+        LAUNCH_ZONE_CONFIG.center.z
+      );
+      this.instance.add(padBorder);
+    };
+
+    if (LAUNCH_ZONE_CONFIG.sectors) {
+      LAUNCH_ZONE_CONFIG.sectors.forEach(sector => {
+        createRing(sector.minAngle, sector.maxAngle - sector.minAngle);
+      });
+    } else {
+      createRing(Math.PI / 4, Math.PI / 2);
+    }
   }
 
   addCheckerboardFloor() {
