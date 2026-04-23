@@ -55,13 +55,13 @@ export class SceneManager {
     const moonMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xffffff,
-      emissiveIntensity: 2.5
+      emissiveIntensity: 1.5
     });
     const moon = new THREE.Mesh(moonGeometry, moonMaterial);
     moon.position.set(0, 300, -700);
     this.instance.add(moon);
 
-    const moonGlow = new THREE.PointLight(0xffffff, 2.0, 1500, 1.5);
+    const moonGlow = new THREE.PointLight(0xffffff, 1.0, 1500, 1.5);
     moonGlow.position.copy(moon.position);
     this.instance.add(moonGlow);
 

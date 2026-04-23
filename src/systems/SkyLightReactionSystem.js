@@ -85,10 +85,12 @@ export class SkyLightReactionSystem {
     const blendedColor = totalWeight > 0
       ? colorAccumulator.multiplyScalar(1 / totalWeight)
       : this.baseSkyColor.clone();
-    const skyMix = THREE.MathUtils.clamp(skyEnergy * 0.34, 0, 0.42);
-    const fogMix = THREE.MathUtils.clamp(skyEnergy * 0.38, 0, 0.48);
-    const ambientBoost = THREE.MathUtils.clamp(skyEnergy * 0.16, 0, 0.18);
-    const hemiBoost = THREE.MathUtils.clamp(skyEnergy * 0.14, 0, 0.15);
+      
+    // Significantly reduced global light influence to keep the sky dark
+    const skyMix = THREE.MathUtils.clamp(skyEnergy * 0.05, 0, 0.08);
+    const fogMix = THREE.MathUtils.clamp(skyEnergy * 0.05, 0, 0.08);
+    const ambientBoost = THREE.MathUtils.clamp(skyEnergy * 0.02, 0, 0.04);
+    const hemiBoost = THREE.MathUtils.clamp(skyEnergy * 0.02, 0, 0.04);
 
 
     const skyTarget = this.baseSkyColor.clone().lerp(blendedColor, skyMix);
@@ -103,7 +105,8 @@ export class SkyLightReactionSystem {
     if (strongest) {
       this.reusableBurstLight.color.copy(strongest.color);
       this.reusableBurstLight.position.copy(strongest.position);
-      this.reusableBurstLight.intensity = THREE.MathUtils.clamp(strongest.weight * 2.4, 0, 1.15);
+      // Increased the multiplier and max intensity since global lighting is reduced
+      this.reusableBurstLight.intensity = THREE.MathUtils.clamp(strongest.weight * 3.5, 0, 2.0);
 
     } else {
       this.reusableBurstLight.intensity = 0;

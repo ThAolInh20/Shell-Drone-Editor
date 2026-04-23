@@ -300,7 +300,6 @@ export class FireworkSystem {
       ring: 1.08,
       heart: 1.4,
       flower: 1.22,
-      crossette: 1.45,
       cat: 1.2,
       fish: 1.14,
       smiley: 1.2,
@@ -313,7 +312,6 @@ export class FireworkSystem {
     const effectMultiplier = {
       standard: 1,
       crackle: 1.15,
-      crossette: 1.1,
       floral: 1.18,
       'falling-leaves': 1.04,
       heart: 1.22,

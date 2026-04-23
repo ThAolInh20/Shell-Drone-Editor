@@ -2,7 +2,6 @@ export class BurstEffectProcessor {
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
-    'crossette',
     'flow',
     'snow',
     'wave',
@@ -79,8 +78,8 @@ export class BurstEffectProcessor {
   static materialOpacity(effectType, age, maxLife, baseOpacity) {
     const normalizedEffect = this.normalizeEffectType(effectType);
 
-    if (normalizedEffect === 'wave' || normalizedEffect === 'crossette') {
-      const blinkSpeed = (normalizedEffect === 'crossette') ? 15 : 38;
+    if (normalizedEffect === 'wave') {
+      const blinkSpeed = 38;
       const blink = Math.sin(age * blinkSpeed) > 0 ? 1 : 0.2;
       return Math.max(0, Math.min(1, baseOpacity * blink));
     }
@@ -132,17 +131,6 @@ export class BurstEffectProcessor {
     } else if (effectType === 'wave') {
       gravityScale = 0.22;
       velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
-    } else if (effectType === 'crossette') {
-      gravityScale = 0.16;
-      const spinAmount = (effectState.spin[index] || 0) * deltaTime * 0.7;
-      const cos = Math.cos(spinAmount);
-      const sin = Math.sin(spinAmount);
-      const oldX = velocity.x;
-      const oldZ = velocity.z;
-      velocity.x = oldX * cos - oldZ * sin;
-      velocity.z = oldX * sin + oldZ * cos;
-      velocity.multiplyScalar(0.996);
-      emitSpark = Math.random() < 0.1;
     } else if (effectType === 'strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);
