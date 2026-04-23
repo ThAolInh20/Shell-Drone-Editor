@@ -264,24 +264,31 @@ export class FireworkSystem {
     this.trailParticles.push(spark);
   }
 
-  spawnCrackleCloud(position, particleCount = BASE_BURST_PARTICLES) {
-    const crackleCount = particleCount >= 120 ? 36 : (particleCount >= 80 ? 24 : 16);
+  spawnMicroCrackle(position, baseColor) {
+    const crackleCount = 6 + Math.floor(Math.random() * 4); // 6 to 9 particles
 
     for (let i = 0; i < crackleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const spread = 0.45 + Math.random() * 0.55;
-      const direction = new THREE.Vector3(
-        Math.cos(angle) * spread,
-        (Math.random() - 0.5) * 0.5,
-        Math.sin(angle) * spread
-      ).normalize();
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
 
-      const speed = Math.pow(Math.random(), 0.45) * CRACKLE_CLOUD_SPEED;
+      const direction = new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta),
+        Math.sin(phi) * Math.sin(theta),
+        Math.cos(phi)
+      );
+
+      const speed = (0.6 + Math.random() * 0.4) * 18;
+
+      // Always use gold/yellow color for crackle
+      const sparkColor = CRACKLE_SPARK_COLOR.clone();
+
       this.trailParticles.push({
         position: position.clone(),
         velocity: direction.multiplyScalar(speed),
-        color: CRACKLE_SPARK_COLOR.clone(),
-        life: 0.3 + Math.random() * 0.2,
+        color: sparkColor,
+        life: 1.0 + Math.random() * 0.5,
         age: 0
       });
     }
@@ -411,11 +418,11 @@ export class FireworkSystem {
       colors[i * 3] = particleColor.r * brightnessIntensity;
       colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
       colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
-      
+
       baseColors[i * 3] = colors[i * 3];
       baseColors[i * 3 + 1] = colors[i * 3 + 1];
       baseColors[i * 3 + 2] = colors[i * 3 + 2];
-      
+
       life[i] = 0;
     }
 
@@ -547,11 +554,22 @@ export class FireworkSystem {
     const effectType = item.points.userData.effectType;
     const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
 
-    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.42) {
-      const cloudOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
-      this.spawnCrackleCloud(cloudOrigin, item.points.userData.particleCount);
+    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.85) {
+      const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+
+      for (let i = 0; i < particleCount; i++) {
+        if (Math.random() < 0.65) { // Burst 65% of particles to save FPS
+          const origin = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+          const baseColor = baseColors ? new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]) : null;
+          this.spawnMicroCrackle(origin, baseColor);
+        }
+      }
+
       item.points.userData.crackleCloudTriggered = true;
-      this.emitFireworkEvent('firework:crackle', { position: { x: cloudOrigin.x, y: cloudOrigin.y, z: cloudOrigin.z } });
+      item.age = item.maxLife; // Force main burst to vanish
+
+      const centerOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
+      this.emitFireworkEvent('firework:crackle', { position: { x: centerOrigin.x, y: centerOrigin.y, z: centerOrigin.z } });
     }
 
     const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
