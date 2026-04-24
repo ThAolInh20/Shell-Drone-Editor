@@ -1,4 +1,5 @@
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { sequences } from '../config/sequences/index.js';
 
 export class InputSystem {
   constructor(camera, domElement, fireworkSystem = null) {
@@ -6,6 +7,9 @@ export class InputSystem {
     this.fireworkSystem = fireworkSystem;
     this.paused = false;
     this.selectedPresetKey = 'random';
+    
+    this.sequenceOptions = sequences;
+    this.selectedSequenceKey = sequences.length > 0 ? sequences[0].key : null;
     
     // Movement state
     this.keys = {
@@ -101,7 +105,7 @@ export class InputSystem {
     this.instructions.style.fontFamily = 'monospace';
     this.instructions.style.fontSize = '18px';
     this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press SPACE for auto-launch mode';
+    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press SPACE for auto-launch mode<br/><br/>Press ENTER to play Demo Show';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
 
@@ -176,6 +180,25 @@ export class InputSystem {
     this.selectedPresetHighlight.className = 'firework-pause-selected';
     this.selectedPresetHighlight.innerHTML = '<span class="firework-pause-selected-label">Selected</span><span class="firework-pause-selected-value"></span>';
 
+    this.sequenceSelect = document.createElement('select');
+    this.sequenceSelect.className = 'firework-pause-select';
+    for (const option of this.sequenceOptions) {
+      const optionElement = document.createElement('option');
+      optionElement.value = option.key;
+      optionElement.textContent = option.label;
+      this.sequenceSelect.appendChild(optionElement);
+    }
+    this.sequenceSelect.value = this.selectedSequenceKey;
+    this.sequenceSelect.addEventListener('change', () => {
+      this.selectedSequenceKey = this.sequenceSelect.value;
+      this.updateStatusOverlay();
+    });
+
+    const seqLabel = document.createElement('label');
+    seqLabel.className = 'firework-pause-label';
+    seqLabel.textContent = 'Sequence (Press Enter to play)';
+    seqLabel.appendChild(this.sequenceSelect);
+
     const buttonRow = document.createElement('div');
     buttonRow.className = 'firework-pause-actions';
 
@@ -191,6 +214,7 @@ export class InputSystem {
     panel.appendChild(title);
     panel.appendChild(description);
     panel.appendChild(label);
+    panel.appendChild(seqLabel);
     panel.appendChild(buttonRow);
     this.pauseOverlay.appendChild(panel);
     document.body.appendChild(this.pauseOverlay);
@@ -258,6 +282,9 @@ export class InputSystem {
     }
 
     this.presetSelect.value = this.selectedPresetKey;
+    if (this.sequenceSelect) {
+      this.sequenceSelect.value = this.selectedSequenceKey;
+    }
     this.updateSelectedPresetHighlight();
     this.pauseOverlay.style.display = 'flex';
   }
@@ -287,7 +314,8 @@ export class InputSystem {
     const d = this.status.diagnostics;
     const warningText = d.lastWarning === 'none' ? 'none' : d.lastWarning;
     const pauseState = this.paused ? 'Paused' : 'Live';
-    this.statusOverlay.innerHTML = `Mode: ${pauseState}<br>Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}<br>Preset: ${this.getSelectedPresetLabel()}<br>Shell: ${this.status.firework}<br>Effect: ${this.status.effect}<br>Launch/Burst: ${d.launched}/${d.bursted}<br>Fallback S/E: ${d.shapeFallbacks}/${d.effectFallbacks}<br>Warnings: ${d.warnings}<br>Last Warn: ${warningText}`;
+    const selectedSeqLabel = this.sequenceOptions.find(o => o.key === this.selectedSequenceKey)?.label ?? 'None';
+    this.statusOverlay.innerHTML = `Mode: ${pauseState}<br>Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}<br>Preset: ${this.getSelectedPresetLabel()}<br>Sequence: ${selectedSeqLabel}<br>Shell: ${this.status.firework}<br>Effect: ${this.status.effect}<br>Launch/Burst: ${d.launched}/${d.bursted}<br>Fallback S/E: ${d.shapeFallbacks}/${d.effectFallbacks}<br>Warnings: ${d.warnings}<br>Last Warn: ${warningText}`;
   }
 
   onMouseMove(event) {
@@ -330,6 +358,23 @@ export class InputSystem {
         if (this.fireworkSystem) {
           this.fireworkSystem.autoLaunchEnabled = !this.fireworkSystem.autoLaunchEnabled;
           console.log('Auto launch:', this.fireworkSystem.autoLaunchEnabled ? 'ON' : 'OFF');
+        }
+        break;
+      case 'Enter':
+        if (this.showDirector) {
+          if (this.showDirector.isPlaying) {
+            this.showDirector.stop();
+            console.log('Show stopped.');
+          } else {
+            const selectedSeq = this.sequenceOptions.find(o => o.key === this.selectedSequenceKey);
+            if (selectedSeq && selectedSeq.script) {
+              this.showDirector.loadScript(selectedSeq.script);
+              this.showDirector.play();
+              console.log(`Started Sequence: ${selectedSeq.label}`);
+            } else {
+              console.warn('No valid sequence selected.');
+            }
+          }
         }
         break;
     }

@@ -9,6 +9,8 @@ import { FireworkSystem } from './systems/FireworkSystem.js';
 import { SkyLightReactionSystem } from './systems/SkyLightReactionSystem.js';
 import { SmokeSystem } from './systems/SmokeSystem.js';
 import { AudioSystem } from './systems/AudioSystem.js';
+import { FireworkSequencer } from './systems/FireworkSequencer.js';
+import { ShowDirector } from './systems/ShowDirector.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
@@ -39,6 +41,14 @@ if (postProcessing) {
 const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
+const fireworkSequencer = new FireworkSequencer(fireworkSystem);
+const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
+
+// The show script loading is now handled in InputSystem
+
+// Expose to input system or global for triggering
+inputSystem.showDirector = showDirector;
+
 renderer.instance.domElement.addEventListener('click', () => {
   audioSystem.resume();
   if (inputSystem.controls.isLocked && !inputSystem.isPaused()) {
@@ -55,6 +65,8 @@ function animate() {
   // Systems update
   if (!inputSystem.isPaused()) {
     movementSystem.update(clock.deltaTime);
+    showDirector.update(clock.deltaTime);
+    fireworkSequencer.update(clock.deltaTime);
     fireworkSystem.update(clock.deltaTime);
     skyLightReactionSystem.update(clock.deltaTime);
     smokeSystem.update(clock.deltaTime);
