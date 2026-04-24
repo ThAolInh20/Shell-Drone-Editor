@@ -2,84 +2,81 @@
 
 ## 1. Logical Modules
 
-### App Entry & Orchestration
-- **`src/main.js`**: Application entry point that wires core components, initializes systems, and orchestrates the render loop.
+### Core Engine
+- **`src/core/SceneManager.js`**: Setup Three.js scene, lights, environment and post-processing dependencies.
+- **`src/core/CameraManager.js`**: Setup camera and resize events.
+- **`src/core/Renderer.js`**: Setup WebGL renderer.
+- **`src/core/Clock.js`**: Manage animation delta time.
+- **`src/core/PerformanceMonitor.js`**: Manage stats and performance.
+- **`src/core/PostProcessingPipeline.js`**: Setup bloom and post-processing effects.
 
-### Core Architecture
-- **`src/core/SceneManager.js`**: Manages the THREE.js scene, base lighting, and fog configuration.
-- **`src/core/CameraManager.js`**: Wraps the THREE.js PerspectiveCamera and handles aspect ratio resizing.
-- **`src/core/Renderer.js`**: Wraps WebGLRenderer, handles canvas setup, pixel ratio, and window resizing.
-- **`src/core/Clock.js`**: Tracks delta time and elapsed time for the simulation loop.
-- **`src/core/PerformanceMonitor.js`**: Tracks FPS, memory usage, and simulation diagnostics.
-- **`src/core/PostProcessingPipeline.js`**: Applies post-processing effects like bloom and antialiasing.
-- **`src/config/rendering.js`**: Contains static configuration for renderer and post-processing.
+### Entity Models
+- **`src/entities/ShellEntity.js`**: Base shell model containing physical state (position, velocity, age, etc).
+- **`src/entities/CometEntity.js`**: Base comet model containing physical state.
 
-### Entity Models & Generators
-- **`src/entities/ShellEntity.js`**: Represents an active firework shell climbing into the sky.
-  - `update(deltaTime)`: Applies gravity and age to the shell, returning true if it should burst.
-  - `canBurst()`: Evaluates if apex height or negative velocity is reached.
-  - `markBursted()`: Transitions shell state to bursted.
-- **`src/entities/BurstShapeGenerator.js`**: Pure mathematical generator for particle spatial distribution in 3D.
-  - `resolveShape(shellType)`: Normalizes requested shapes into valid internal shapes.
-  - `direction(shape, angle, index, count, preset)`: Calculates a normalized direction vector for a given particle based on the shape.
-- **`src/entities/BurstEffectProcessor.js`**: Pure mathematical processor for particle physics and material behavior.
-  - `createHeightProfile(height, config)`: Scales particle size and brightness based on burst altitude.
-  - `updateVelocity(...)`: Mutates particle velocity according to wind/gravity/effect patterns over time.
-  - `materialOpacity(...)`: Calculates particle opacity based on age and blink/strobe effects.
-- **`src/entities/ShellPresetFactory.js`**: Manages the library of predefined firework configurations.
-  - `validatePreset(preset)`: Normalizes and defaults missing values in a preset.
-  - `randomPreset()`: Returns a random valid shell configuration.
+### Factories & Generators
+- **`src/factories/ShellPresetFactory.js`**: Returns specific preset parameters for different firework types.
+- **`src/factories/BurstShapeGenerator.js`**: Calculates directional vectors for different explosion shapes (sphere, heart, willow, ring).
+- **`src/factories/BurstEffectProcessor.js`**: Computes velocity/color transformations for effects (strobe, crackle, wave).
 
-### Simulation Systems
-- **`src/systems/FireworkSystem.js`**: Manages the lifecycle of firework shells, bursts, and particle trails.
-  - `launchRandom(preset)`: Instantiates a new ShellEntity and emits the `firework:launch` event.
-  - `update(deltaTime)`: Ticks all active shells/bursts and handles destruction.
-  - `createBurst(...)`: Converts a bursted shell into a particle explosion.
-- **`src/systems/SkyLightReactionSystem.js`**: Alters scene environment lighting and background color dynamically when fireworks burst.
-  - `onBurst(detail)`: Enqueues a light flash reaction based on burst intensity and color.
-  - `update(deltaTime)`: Blends ambient/hemisphere lighting and background color toward active reactions.
-- **`src/systems/SmokeSystem.js`**: Generates and animates persistent smoke puffs from launches and bursts.
-  - `onLaunch(detail)`: Spawns dense smoke near the launch zone.
-  - `onBurst(detail)`: Spawns expanding smoke clusters at the burst altitude.
-  - `update(deltaTime)`: Drifts and fades smoke particles.
-- **`src/systems/MovementSystem.js`**: Updates camera position based on player input.
-  - `update(deltaTime)`: Applies velocity to the camera based on active keys.
-- **`src/systems/InputSystem.js`**: Captures keyboard/mouse events and manages pointer lock state.
-  - `isPaused()`: Returns whether simulation is paused.
-  - `getSelectedPreset()`: Returns the currently selected firework preset from UI.
+### Systems (ECS)
+- **`src/systems/FireworkSystem.js`**: Core system running each frame to spawn, move, and burst shells.
+- **`src/systems/CometSystem.js`**: System running each frame to spawn, move and fade comets.
+- **`src/systems/TrailSystem.js`**: Manages particle trails behind shells and comets.
+- **`src/systems/SmokeSystem.js`**: Generates smoke at explosion locations.
+- **`src/systems/SkyLightReactionSystem.js`**: Simulates global sky lighting reacting to explosions.
+- **`src/systems/AudioSystem.js`**: Plays launch/burst spatial audio.
+- **`src/systems/MovementSystem.js`**: Manages camera/drone movement logic over time.
+
+### Orchestration & Controllers
+- **`src/controllers/InputSystem.js`**: Handles user input (keyboard, mouse) and delegates to MovementSystem/Directors.
+- **`src/directors/FireworkSequencer.js`**: Translates high-level sequence scripts into timed launch commands.
+- **`src/directors/ShowDirector.js`**: Controls the overall timeline, playing/pausing scripts.
+
+### Config
+- **`src/config/launchZone.js`**: Defines the physical bounds for launching fireworks.
+- **`src/config/rendering.js`**: Toggles graphics settings like Bloom.
+- **`src/config/sequences/`**: Contains predefined show scripts (`demoShow`, `grandFinale`).
 
 ## 2. Entry Points
-- **App Boot**: `src/main.js` initializes all classes and enters the `requestAnimationFrame` loop.
-- **User Interaction**:
-  - `InputSystem` hooks DOM events (clicks for launch, keys for movement, escape for pause).
-  - Canvas click listener in `main.js` explicitly calls `FireworkSystem.launchRandom()`.
+- **`src/main.js`**: Application entry point. Initializes engine core, systems, directors, and the main requestAnimationFrame loop.
 
 ## 3. Relationship Graph
-- `main.js` -> (Core Components, Systems Components)
-- `FireworkSystem` -> `ShellEntity`, `BurstShapeGenerator`, `BurstEffectProcessor`, `ShellPresetFactory`
-- `MovementSystem` -> `InputSystem` (direct reference via constructor)
-- `SkyLightReactionSystem` -> Listens to `firework:burst`
-- `SmokeSystem` -> Listens to `firework:launch`, `firework:burst`
-- `Renderer` -> `config/rendering.js`
+```mermaid
+graph TD
+    Main[main.js] --> Core[Core Engine Modules]
+    Main --> Systems[ECS Systems]
+    Main --> Input[controllers/InputSystem]
+    Main --> Directors[directors/ShowDirector]
+
+    Input --> Movement[systems/MovementSystem]
+    Input --> Directors
+
+    Directors --> Sequencer[directors/FireworkSequencer]
+    Sequencer --> FWSystem[systems/FireworkSystem]
+    Sequencer --> CometSystem[systems/CometSystem]
+
+    FWSystem --> Shell[entities/ShellEntity]
+    FWSystem --> ShellPreset[factories/ShellPresetFactory]
+    FWSystem --> ShapeGen[factories/BurstShapeGenerator]
+    FWSystem --> EffectProc[factories/BurstEffectProcessor]
+    FWSystem --> TrailSystem[systems/TrailSystem]
+
+    CometSystem --> Comet[entities/CometEntity]
+    CometSystem --> TrailSystem
+```
 
 ## 4. Execution Flows
-- **Simulation Loop**: `main.js animate()` -> `MovementSystem.update()` -> `FireworkSystem.update()` -> `SkyLightReactionSystem.update()` -> `SmokeSystem.update()` -> `Renderer/PostProcessing.render()`.
-- **Firework Lifecycle**: 
-  1. User Click / Auto-launch timer triggers `FireworkSystem.launchRandom()`.
-  2. `FireworkSystem` creates `ShellEntity` and fires `firework:launch`.
-  3. `SmokeSystem` catches `firework:launch` and spawns ground smoke.
-  4. `FireworkSystem.update()` ticks `ShellEntity.update()`.
-  5. Shell reaches apex -> `ShellEntity.update()` returns `true` -> `FireworkSystem` creates burst point cloud and fires `firework:burst`.
-  6. `SkyLightReactionSystem` catches `firework:burst` and flashes sky.
-  7. `SmokeSystem` catches `firework:burst` and spawns high-altitude smoke.
-  8. `FireworkSystem.update()` continues ticking burst particles until their `maxLife` is reached.
+- **Initialization**: `main.js` -> Setup Core -> Init Systems -> Init Directors -> Wait for Input.
+- **Auto/Scripted Launch**: `ShowDirector` -> Reads Script -> `FireworkSequencer` -> calls `FireworkSystem.launchRandom()` or `CometSystem.launchRandom()` at precise timestamps.
+- **Manual Launch**: `InputSystem` handles mouse click -> triggers `FireworkSystem.launchRandom()`.
+- **Game Loop**: `main.js` animate() -> calls `update(deltaTime)` on all active systems (Movement, Firework, Trail, Comet, etc.) -> calls `Renderer.render()`.
+- **Firework Lifecycle**: `FireworkSystem` updates shell position -> if apex reached -> `createBurst()` via Factories -> switch to burst state -> fade out -> finish.
 
 ## 5. Cross-Module Dependencies
-- **Global Event Bus**: The system relies on `window.dispatchEvent(new CustomEvent(...))` to communicate between loosely coupled modules (`FireworkSystem` -> `SmokeSystem`, `SkyLightReactionSystem`).
-- **THREE.js Scene Graph**: `SceneManager` instance is passed down so systems can directly add/remove meshes from the global scene.
+- **TrailSystem**: Heavily depended upon by both `FireworkSystem` and `CometSystem`.
+- **AudioSystem & CameraManager**: Shared globally but decoupled via event listeners (for audio) and direct references (for camera).
 
 ## 6. Problems & Anti-patterns
-- **God Class**: `FireworkSystem.js` is overly massive (600+ lines), handling auto-launching logic, diagnostics, shell ticking, burst math orchestration, trail particles, and rendering creation. It violates SRP.
-- **Implicit Coupling via Global Events**: `SkyLightReactionSystem` and `SmokeSystem` rely on magic string events (`firework:burst`, `firework:launch`) dispatched to the global `window` object, making the data flow opaque and hard to debug.
-- **Mixed Responsibility in `main.js`**: `main.js` mixes orchestration, simulation loop, and DOM event bindings (canvas click logic).
-- **Dead Code**: `src/systems/PhysicSystem.js` exists as an empty file, and `src/counter.js` exists but is entirely unused.
+- **Event Bus vs Direct Calls**: Some logic uses `CustomEvent` (`firework:launch`) for Audio/SkyLight, while others (`TrailSystem`) use direct method calls. A unified message bus or strict ECS approach could improve consistency.
+- **InputSystem Coupling**: Still tightly coupled to `MovementSystem` and `FireworkSystem`, which makes it a god-object for input.
