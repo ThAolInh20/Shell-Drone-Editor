@@ -35,7 +35,8 @@ export class CometSystem {
 
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
-      const targetHeight = this.resolveBurstHeight(preset, ratioY) * (0.98 + Math.random() * 0.04);
+      // Giảm độ cao xuống còn 2/3 so với ban đầu
+      const targetHeight = this.resolveBurstHeight(preset, ratioY) * 0.66 * (0.98 + Math.random() * 0.04);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
       
       // Spread the cluster more laterally
@@ -147,10 +148,8 @@ export class CometSystem {
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING || comet.state === CometEntity.STATE.DECAYING) {
         // Giảm thời gian sống của hạt trail xuống còn 35% để đuôi comet ngắn và sắc nét hơn
+        // Giảm số lượng hạt xuống còn khoảng 2/3 (chỉ sinh 1 hạt mỗi frame thay vì 1-2 hạt)
         this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
-        if (Math.random() > 0.5) {
-          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
-        }
         
         // Occasional sparks
         if (Math.random() < 0.15) {

@@ -22,7 +22,7 @@ export class FireworkSequencer {
   }
 
   playPattern(pattern, config) {
-    const { count = 10, duration = 2.0, preset = null, sectorId, color } = config;
+    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2 } = config;
 
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
@@ -54,6 +54,11 @@ export class FireworkSequencer {
           ratioX = progress;
           ratioY = Math.sin(progress * Math.PI) * 0.6 + 0.4;
           break;
+      }
+
+      // Remap ratioX to [x1, x2] range if provided
+      if (x1 !== undefined && x2 !== undefined) {
+        ratioX = x1 + ratioX * (x2 - x1);
       }
 
       // Allow config overrides

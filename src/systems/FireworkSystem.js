@@ -84,7 +84,14 @@ export class FireworkSystem {
 
   launchRandom(preset = null, options = {}) {
     const { ratioX, ratioY, ratioZ, sectorId, color } = options;
-    const shellPreset = this.shellPresetFactory.validatePreset(preset ?? this.shellPresetFactory.randomPreset());
+    
+    // Nếu preset được truyền vào là tên loại pháo (string), phân giải nó thành object preset
+    let resolvedPreset = preset;
+    if (typeof preset === 'string') {
+      resolvedPreset = this.shellPresetFactory.createPresetByKey(preset);
+    }
+    
+    const shellPreset = this.shellPresetFactory.validatePreset(resolvedPreset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
     const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);

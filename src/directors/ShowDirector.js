@@ -58,7 +58,9 @@ export class ShowDirector {
           ratioY: evt.ratioY,
           ratioZ: evt.ratioZ,
           sectorId: evt.sectorId,
-          color: evt.color
+          color: evt.color,
+          x1: evt.x1,
+          x2: evt.x2
         });
         break;
       case 'cometsequence':
