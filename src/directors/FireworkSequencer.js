@@ -74,7 +74,7 @@ export class FireworkSequencer {
   }
 
   playCometSequence(pattern, config) {
-    const { count = 10, duration = 2.0, preset = { type: 'comet' }, ratioX = 0.5, sweepCount = 2, sectorId, color } = config;
+    const { count = 10, duration = 2.0, preset = { type: 'comet' }, sweepCount = 2, sectorId, color, x1, x2, angle } = config;
 
     // Spread of the fan/sweep (from -45 deg to +45 deg)
     const maxAngleOffset = Math.PI / 4;
@@ -83,6 +83,7 @@ export class FireworkSequencer {
       let progress = count > 1 ? i / (count - 1) : 0;
       let delay = progress * duration;
       let angleOffset = 0;
+      let ratioX = config.ratioX !== undefined ? config.ratioX : 0.5;
       let ratioY = config.ratioY !== undefined ? config.ratioY : 0.5;
       let ratioZ = config.ratioZ !== undefined ? config.ratioZ : 0.5;
 
@@ -108,6 +109,21 @@ export class FireworkSequencer {
           angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           delay = 0; // All fired at same time
           break;
+        case 'sweep-right':
+          // Bắn dọc theo x1 -> x2 (trái qua phải), nghiêng cố định
+          ratioX = progress;
+          angleOffset = angle !== undefined ? angle : Math.PI / 12; // Mặc định nghiêng sang phải 15 độ
+          break;
+        case 'sweep-left':
+          // Bắn dọc theo x2 -> x1 (phải qua trái), nghiêng cố định
+          ratioX = 1.0 - progress;
+          angleOffset = angle !== undefined ? angle : -Math.PI / 12; // Mặc định nghiêng sang trái 15 độ
+          break;
+      }
+
+      // Remap ratioX to [x1, x2] range if provided
+      if (x1 !== undefined && x2 !== undefined) {
+        ratioX = x1 + ratioX * (x2 - x1);
       }
 
       this.activeTasks.push({
