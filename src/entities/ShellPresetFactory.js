@@ -21,6 +21,7 @@ export class ShellPresetFactory {
     this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'floral', 'falling-leaves']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
+      { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
@@ -99,6 +100,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.waveShell());
       case 'heart':
         return this.validatePreset(this.hearthShell());
+      case 'comet_cluster':
+        return this.validatePreset(this.cometCluster());
       case 'random':
       default:
         return null;
@@ -348,8 +351,19 @@ export class ShellPresetFactory {
       heartEdgeBias: 1,
       heartSegmentCount: 96,
       heartEdgeSharpness: 1.06,
-      streamers: false,
       hearth: true
+    };
+  }
+
+  cometCluster(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true
     };
   }
 

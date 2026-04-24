@@ -6,6 +6,8 @@ import { PostProcessingPipeline } from './core/PostProcessingPipeline.js';
 import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { FireworkSystem } from './systems/FireworkSystem.js';
+import { TrailSystem } from './systems/TrailSystem.js';
+import { CometSystem } from './systems/CometSystem.js';
 import { SkyLightReactionSystem } from './systems/SkyLightReactionSystem.js';
 import { SmokeSystem } from './systems/SmokeSystem.js';
 import { AudioSystem } from './systems/AudioSystem.js';
@@ -21,7 +23,9 @@ const renderer = new Renderer();
 const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
-const fireworkSystem = new FireworkSystem(sceneManager.instance);
+const trailSystem = new TrailSystem(sceneManager.instance);
+const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem);
+const cometSystem = new CometSystem(sceneManager.instance, trailSystem);
 const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
 const smokeSystem = new SmokeSystem(sceneManager);
 const audioSystem = new AudioSystem(cameraManager);
@@ -41,7 +45,7 @@ if (postProcessing) {
 const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
-const fireworkSequencer = new FireworkSequencer(fireworkSystem);
+const fireworkSequencer = new FireworkSequencer(fireworkSystem, cometSystem);
 const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
 
 // The show script loading is now handled in InputSystem
@@ -52,7 +56,12 @@ inputSystem.showDirector = showDirector;
 renderer.instance.domElement.addEventListener('click', () => {
   audioSystem.resume();
   if (inputSystem.controls.isLocked && !inputSystem.isPaused()) {
-    fireworkSystem.launchRandom(inputSystem.getSelectedPreset());
+    const preset = inputSystem.getSelectedPreset();
+    if (preset && preset.type === 'comet_cluster') {
+      cometSystem.launchRandom(preset);
+    } else {
+      fireworkSystem.launchRandom(preset);
+    }
   }
 });
 
@@ -68,6 +77,8 @@ function animate() {
     showDirector.update(clock.deltaTime);
     fireworkSequencer.update(clock.deltaTime);
     fireworkSystem.update(clock.deltaTime);
+    cometSystem.update(clock.deltaTime);
+    trailSystem.update(clock.deltaTime);
     skyLightReactionSystem.update(clock.deltaTime);
     smokeSystem.update(clock.deltaTime);
   } else {

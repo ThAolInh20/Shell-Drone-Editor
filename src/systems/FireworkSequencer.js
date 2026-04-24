@@ -1,6 +1,7 @@
 export class FireworkSequencer {
-  constructor(fireworkSystem) {
+  constructor(fireworkSystem, cometSystem) {
     this.fireworkSystem = fireworkSystem;
+    this.cometSystem = cometSystem;
     this.activeTasks = [];
   }
 
@@ -10,7 +11,11 @@ export class FireworkSequencer {
       task.timeToLaunch -= deltaTime;
 
       if (task.timeToLaunch <= 0) {
-        this.fireworkSystem.launchRandom(task.preset, task.options);
+        if (task.preset && task.preset.type === 'comet_cluster') {
+          this.cometSystem.launchRandom(task.preset, task.options);
+        } else {
+          this.fireworkSystem.launchRandom(task.preset, task.options);
+        }
         this.activeTasks.splice(i, 1);
       }
     }
