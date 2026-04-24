@@ -107,6 +107,11 @@ export class BurstShapeGenerator {
         - 2 * Math.cos(3 * t)
         - Math.cos(4 * t);
 
+      // Thêm méo mó hình học (geometric distortion) bằng sóng sine tần số thấp để viền trái tim lượn sóng tự nhiên
+      const distortion = 1.0 + (Math.sin(t * 3) * 0.04 + Math.cos(t * 5) * 0.03);
+      x *= distortion;
+      y *= distortion;
+
       let z = 0;
 
       const rotated = this.rotate3D(
@@ -155,11 +160,20 @@ export class BurstShapeGenerator {
         }
       }
 
-      const radius = ringBand + (Math.random() - 0.5) * contourThickness;
+      // Tính toán góc chia đều hoàn hảo để vẽ thành vòng tròn liền mạch thay vì rải ngẫu nhiên
+      const perfectAngle = (index / Math.max(1, count)) * Math.PI * 2 * (isDoubleRing ? 2 : 1);
+      
+      // Thêm méo mó hình học (geometric distortion) bằng sóng sine tần số thấp để tạo viền lượn sóng tự nhiên
+      const distortion = Math.sin(perfectAngle * 3) * 0.05 + Math.cos(perfectAngle * 5) * 0.03;
+      
+      // Thêm một chút lắc ngẫu nhiên nhẹ (jitter)
+      const noiseRadius = (Math.random() - 0.5) * 0.02; 
+      const radius = ringBand + distortion + noiseRadius;
+      
       return new THREE.Vector3(
-        Math.cos(angle) * radius,
-        (Math.random() - 0.5) * (isOutline ? 0.05 : 0.12),
-        Math.sin(angle) * radius
+        Math.cos(perfectAngle) * radius,
+        (Math.random() - 0.5) * 0.03, // Lắc nhẹ theo phương dọc (Y)
+        Math.sin(perfectAngle) * radius
       );
     }
 

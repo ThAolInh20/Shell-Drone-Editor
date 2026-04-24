@@ -22,7 +22,7 @@ export class FireworkSequencer {
   }
 
   playPattern(pattern, config) {
-    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2 } = config;
+    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2, y1, y2, effectOverrides } = config;
 
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
@@ -62,19 +62,24 @@ export class FireworkSequencer {
       }
 
       // Allow config overrides
-      if (config.ratioY !== undefined) ratioY = config.ratioY;
+      if (y1 !== undefined && y2 !== undefined) {
+        ratioY = y1 + progress * (y2 - y1);
+      } else if (config.ratioY !== undefined) {
+        ratioY = config.ratioY;
+      }
+
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
 
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
-        options: { ratioX, ratioY, ratioZ, sectorId, color }
+        options: { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides }
       });
     }
   }
 
   playCometSequence(pattern, config) {
-    const { count = 10, duration = 2.0, preset = { type: 'comet' }, sweepCount = 2, sectorId, color, x1, x2, angle } = config;
+    const { count = 10, duration = 2.0, preset = { type: 'comet' }, sweepCount = 2, sectorId, color, x1, x2, y1, y2, angle, effectOverrides } = config;
 
     // Spread of the fan/sweep (from -45 deg to +45 deg)
     const maxAngleOffset = Math.PI / 4;
@@ -126,10 +131,15 @@ export class FireworkSequencer {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
+      // Map ratioY to [y1, y2] range if provided
+      if (y1 !== undefined && y2 !== undefined) {
+        ratioY = y1 + progress * (y2 - y1);
+      }
+
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
-        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color }
+        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides }
       });
     }
   }

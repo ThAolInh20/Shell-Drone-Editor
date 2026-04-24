@@ -75,8 +75,11 @@ export class SceneManager {
     // Add checkerboard floor
     this.addCheckerboardFloor();
 
-    // Add launch pad for fireworks
-    this.addLaunchPad();
+    // // Add launch pad for fireworks
+    // this.addLaunchPad();
+
+    // // Add burst height guide lines
+    // this.addBurstHeightGuides();
   }
 
   addLaunchPad() {
@@ -109,6 +112,44 @@ export class SceneManager {
       });
     } else {
       createRing(Math.PI / 4, Math.PI / 2);
+    }
+  }
+
+  addBurstHeightGuides() {
+    const minMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 1, opacity: 0.5, transparent: true });
+    const maxMaterial = new THREE.LineBasicMaterial({ color: 0xff4444, linewidth: 1, opacity: 0.3, transparent: true });
+
+    const arcRadius = LAUNCH_ZONE_CONFIG.arcRadius || 360;
+
+    const createGuide = (thetaStart, thetaLength, yPosition, material) => {
+      const curve = new THREE.EllipseCurve(
+        0, 0,
+        arcRadius, arcRadius,
+        thetaStart, thetaStart + thetaLength,
+        false, 0
+      );
+
+      const points = curve.getPoints(50);
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, material);
+
+      line.rotation.x = -Math.PI / 2;
+      line.position.set(
+        LAUNCH_ZONE_CONFIG.center.x,
+        yPosition,
+        LAUNCH_ZONE_CONFIG.center.z
+      );
+      this.instance.add(line);
+    };
+
+    if (LAUNCH_ZONE_CONFIG.sectors) {
+      LAUNCH_ZONE_CONFIG.sectors.forEach(sector => {
+        createGuide(sector.minAngle, sector.maxAngle - sector.minAngle, LAUNCH_ZONE_CONFIG.minBurstY, minMaterial);
+        createGuide(sector.minAngle, sector.maxAngle - sector.minAngle, LAUNCH_ZONE_CONFIG.maxBurstY, maxMaterial);
+      });
+    } else {
+      createGuide(Math.PI / 4, Math.PI / 2, LAUNCH_ZONE_CONFIG.minBurstY, minMaterial);
+      createGuide(Math.PI / 4, Math.PI / 2, LAUNCH_ZONE_CONFIG.maxBurstY, maxMaterial);
     }
   }
 

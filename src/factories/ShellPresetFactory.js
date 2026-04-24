@@ -231,6 +231,7 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'ring',
       shapeType: 'ring',
+      particleCount: Math.round(120 * size) * 2, // Giảm số lượng hạt để vòng mảnh và rõ nét hơn
       effectType: 'standard',
       shapeRenderMode: 'jupiter',
       particleCountMultiplier: 1.35,

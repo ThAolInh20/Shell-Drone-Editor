@@ -83,24 +83,39 @@ export class FireworkSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId, color } = options;
-    
+    const { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides } = options;
+
     // Nếu preset được truyền vào là tên loại pháo (string), phân giải nó thành object preset
     let resolvedPreset = preset;
     if (typeof preset === 'string') {
       resolvedPreset = this.shellPresetFactory.createPresetByKey(preset);
     }
-    
+
+    // Áp dụng hiệu ứng ghi đè (overrides) trực tiếp từ file cấu hình sequence
+    if (effectOverrides && typeof effectOverrides === 'object') {
+      resolvedPreset = { ...resolvedPreset, ...effectOverrides };
+    }
+
     const shellPreset = this.shellPresetFactory.validatePreset(resolvedPreset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
     const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);
-    const velocity = this.resolveLaunchVelocity(targetHeight);
     
+    // Tự động thu nhỏ kích thước pháo nếu nổ ở độ cao thấp (càng thấp càng bé)
+    const normalizedHeight = THREE.MathUtils.clamp(
+      (targetHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
+      0, 1
+    );
+    // Độ cao tối thiểu (0.0) -> size 30%, độ cao tối đa (1.0) -> size 100%
+    const heightScale = THREE.MathUtils.lerp(0.3, 1.0, normalizedHeight);
+    shellPreset.shellSize = (shellPreset.shellSize ?? 1) * heightScale;
+
+    const velocity = this.resolveLaunchVelocity(targetHeight);
+
     // Nếu có truyền color qua options thì lấy, nếu không ưu tiên màu của preset, cuối cùng mới random
     const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
-    
+
     const shell = this.createShell(position, velocity, targetHeight, finalColor, shellPreset, shellId);
     this.scene.add(shell.mesh);
     this.activeFireworks.push(shell);
@@ -340,9 +355,20 @@ export class FireworkSystem {
       const sphereSpeedBand = 0.9 + Math.random() * 0.2;
       const defaultSpeedBand = 0.5 + Math.random() * 0.8;
       const coreSpeedBand = 0.34 + Math.random() * 0.18;
-      const baseSpeed = isCoreParticle
-        ? BURST_SPEED * coreSpeedBand
-        : BURST_SPEED * (particleShape === 'sphere' ? sphereSpeedBand : defaultSpeedBand);
+
+      let baseSpeed;
+      if (isCoreParticle) {
+        baseSpeed = BURST_SPEED * coreSpeedBand;
+      } else if (particleShape === 'ring' || particleShape === 'heart') {
+        // Ring và Heart CẦN PHẢI có vận tốc đồng đều tuyệt đối để tạo thành 1 nét (1 đường), nếu random sẽ bị nhòe thành đĩa (disc)
+        const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * 0.02;
+        baseSpeed = BURST_SPEED * outlineSpeedBand;
+      } else if (particleShape === 'sphere') {
+        baseSpeed = BURST_SPEED * sphereSpeedBand;
+      } else {
+        baseSpeed = BURST_SPEED * defaultSpeedBand;
+      }
+
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1);
       velocities.push(direction.multiplyScalar(speed));
 
@@ -547,7 +573,7 @@ export class FireworkSystem {
       if (emitSpark) {
         this.trailSystem.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
       }
-      
+
       if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
         if (Math.random() < 0.3) { // Giảm xuống 30% số frame để đuôi thanh mảnh và bớt chói hơn
           const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);

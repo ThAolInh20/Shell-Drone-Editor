@@ -25,9 +25,15 @@ export class CometSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color } = options;
+    const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color, effectOverrides } = options;
     
-    const clusterCount = 1;
+    // Áp dụng ghi đè cấu hình hiệu ứng từ sequence
+    let finalPreset = preset;
+    if (effectOverrides && typeof effectOverrides === 'object') {
+      finalPreset = { ...(preset || {}), ...effectOverrides };
+    }
+    
+    const clusterCount = finalPreset?.clusterCount ?? 1;
     const basePosition = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.

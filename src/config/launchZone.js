@@ -6,9 +6,9 @@ export const LAUNCH_ZONE_CONFIG = {
   launchRadiusZ: 22, // Bán kính phát sinh pháo theo trục Z (chiều dọc/sâu)
   noEntryHalfWidth: 100, // Nửa chiều ngang của vùng cấm xâm nhập (vùng an toàn)
   noEntryHalfDepth: 200, // Nửa chiều sâu của vùng cấm xâm nhập
-  minBurstY: 50, // Độ cao nổ tối thiểu của pháo
-  maxBurstY: 480, // Độ cao nổ tối đa của pháo
-  minLaunchSpeedY: 136, // Tốc độ phóng lên tối thiểu theo trục Y
+  minBurstY: -40, // Độ cao nổ tối thiểu (mặt sàn là -50, nổ ở -40 là sát sàn)
+  maxBurstY: 600, // Độ cao nổ tối đa (đã điều chỉnh lại cho hợp lý)
+  minLaunchSpeedY: 120, // Tốc độ phóng tối thiểu (giảm mạnh để pháo có thể bay tà tà)
   maxLaunchSpeedY: 178, // Tốc độ phóng lên tối đa theo trục Y
   boundaryPadding: 12, // Khoảng đệm an toàn cho ranh giới khu vực
   arcRadius: 360, // Bán kính vòng cung tạo bởi các điểm bắn
