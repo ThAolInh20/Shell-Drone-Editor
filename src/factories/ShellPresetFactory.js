@@ -18,7 +18,7 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'floral', 'falling-leaves']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
@@ -37,7 +37,8 @@ export class ShellPresetFactory {
       { key: 'fish', label: 'Fish' },
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
-      { key: 'heart', label: 'Heart' }
+      { key: 'heart', label: 'Heart' },
+      { key: 'falling-comets', label: 'Falling Comets' }
     ];
   }
 
@@ -57,8 +58,9 @@ export class ShellPresetFactory {
     if (roll < 0.87) return this.ovalShell();
     if (roll < 0.92) return this.snowShell();
     if (roll < 0.96) return this.fishShell();
-    if (roll < 0.985) return this.smileyShell();
-    if (roll < 0.995) return this.waveShell();
+    if (roll < 0.975) return this.smileyShell();
+    if (roll < 0.985) return this.waveShell();
+    if (roll < 0.995) return this.fallingCometsShell();
     return this.hearthShell();
   }
 
@@ -100,6 +102,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.waveShell());
       case 'heart':
         return this.validatePreset(this.hearthShell());
+      case 'falling-comets':
+        return this.validatePreset(this.fallingCometsShell());
       case 'comet_cluster':
         return this.validatePreset(this.cometCluster());
       case 'random':
@@ -364,6 +368,22 @@ export class ShellPresetFactory {
       particleCountMultiplier: 1.5,
       crackle: false,
       launchTrail: true
+    };
+  }
+
+  fallingCometsShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'fallingComets',
+      shapeType: 'sphere',
+      effectType: 'falling-comets',
+      particleCountMultiplier: 0.4, // Tăng nhẹ số hạt lên một chút để bù đắp
+      starLife: 2000 + size * 500,  // Tăng thời gian tồn tại của các hạt chính
+      color: this.whiteOrGold(),    // Sang trọng (Trắng/Vàng)
+      crackle: false,
+      launchTrail: true,
+      pistil: false,
+      streamers: false
     };
   }
 

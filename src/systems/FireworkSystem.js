@@ -535,7 +535,7 @@ export class FireworkSystem {
         positions[i * 3 + 2]
       );
 
-      const { gravityScale, emitSpark } = BurstEffectProcessor.updateVelocity(
+      const { gravityScale, emitSpark, spawnTrail } = BurstEffectProcessor.updateVelocity(
         velocity,
         i,
         deltaTime,
@@ -546,6 +546,14 @@ export class FireworkSystem {
 
       if (emitSpark) {
         this.trailSystem.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
+      }
+      
+      if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
+        if (Math.random() < 0.3) { // Giảm xuống 30% số frame để đuôi thanh mảnh và bớt chói hơn
+          const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+          trailColor.multiplyScalar(0.15); // Giảm cực mạnh cường độ màu để hết chói lóa
+          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, 0.8); // Kéo dài thời gian tồn tại của đuôi
+        }
       }
 
       if (effectType === 'strobe' && baseColors) {

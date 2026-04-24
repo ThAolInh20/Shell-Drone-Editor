@@ -10,7 +10,8 @@ export class BurstEffectProcessor {
     'falling-leaves',
     'strobe',
     'heart',
-    'oval'
+    'oval',
+    'falling-comets'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -159,6 +160,10 @@ export class BurstEffectProcessor {
       velocity.x += drift * deltaTime;
       velocity.z += drift * deltaTime * 0.8;
       velocity.multiplyScalar(0.995);
+    } else if (effectType === 'falling-comets') {
+      gravityScale = 0.25; // Trọng lực bình thường để nó bung ra thành hình cầu
+      const spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
+      return { gravityScale, emitSpark, spawnTrail };
     }
 
     return { gravityScale, emitSpark };

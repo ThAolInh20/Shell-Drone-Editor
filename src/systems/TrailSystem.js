@@ -82,9 +82,11 @@ export class TrailSystem {
   spawnEffectSpark(position, color) {
     const spark = {
       position: position.clone(),
-      velocity: new THREE.Vector3((Math.random() - 0.5) * 8, Math.random() * 8, (Math.random() - 0.5) * 8),
+      // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần)
+      velocity: new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
       color: color.clone().offsetHSL(0, 0.05, 0.18),
-      life: 0.18 + Math.random() * 0.2,
+      // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn
+      life: 1.5 + Math.random() * 1.2, 
       age: 0
     };
     this.trailParticles.push(spark);
@@ -125,22 +127,28 @@ export class TrailSystem {
     const colors = [];
 
     for (const particle of this.trailParticles) {
-      particle.velocity.y += GRAVITY * deltaTime * 0.5; // Slower gravity for trails
+      // Thêm lực cản không khí để hạt hãm phanh lại, không bị bung ra mãi tới lúc chết
+      particle.velocity.x *= (1.0 - 4.0 * deltaTime);
+      particle.velocity.z *= (1.0 - 4.0 * deltaTime);
+      // Rơi xuống từ từ
+      particle.velocity.y += GRAVITY * deltaTime * 0.5; 
       particle.position.addScaledVector(particle.velocity, deltaTime);
       particle.age += deltaTime;
 
       if (particle.age >= particle.life) {
         finishedTrails.push(particle);
       } else {
+        // Tính độ mờ đục (alpha) giảm dần theo thời gian sống của hạt
+        const alpha = Math.max(0, 1.0 - (particle.age / particle.life));
         positions.push(particle.position.x, particle.position.y, particle.position.z);
-        colors.push(particle.color.r, particle.color.g, particle.color.b);
+        colors.push(particle.color.r, particle.color.g, particle.color.b, alpha);
       }
     }
     this.trailParticles = this.trailParticles.filter(p => !finishedTrails.includes(p));
 
     // Update geometry
     this.trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    this.trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    this.trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
     this.trailGeometry.attributes.position.needsUpdate = true;
     this.trailGeometry.attributes.color.needsUpdate = true;
   }
