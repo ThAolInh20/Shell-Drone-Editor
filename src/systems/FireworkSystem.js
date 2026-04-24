@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { ShellEntity } from '../entities/ShellEntity.js';
-import { ShellPresetFactory } from '../entities/ShellPresetFactory.js';
-import { BurstShapeGenerator } from '../entities/BurstShapeGenerator.js';
-import { BurstEffectProcessor } from '../entities/BurstEffectProcessor.js';
+import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
+import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
+import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
 
 const GRAVITY = -30;
 const BASE_BURST_PARTICLES = 110;
