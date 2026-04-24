@@ -25,23 +25,22 @@ export class CometSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId } = options;
+    const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color } = options;
     
-    // A comet launch is usually a cluster (mine effect)
-    const clusterCount = preset?.particleCountMultiplier ? Math.floor(7 * preset.particleCountMultiplier) : 8;
+    const clusterCount = 1;
     const basePosition = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.
-    const clusterColor = new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
+    const clusterColor = color ? new THREE.Color(color) : new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
 
     for (let i = 0; i < clusterCount; i++) {
-      // Slightly vary the height and velocity for each comet in the cluster
-      const targetHeight = this.resolveBurstHeight(preset, ratioY) * (0.8 + Math.random() * 0.4);
-      const velocity = this.resolveLaunchVelocity(targetHeight);
+      // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
+      const targetHeight = this.resolveBurstHeight(preset, ratioY) * (0.98 + Math.random() * 0.04);
+      const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
       
       // Spread the cluster more laterally
-      velocity.x += (Math.random() - 0.5) * 25;
-      velocity.z += (Math.random() - 0.5) * 25;
+      velocity.x += (Math.random() - 0.5) * 5; // Reduced spread for single streak
+      velocity.z += (Math.random() - 0.5) * 5; // Reduced spread for single streak
       velocity.y *= (0.85 + Math.random() * 0.3);
 
       // Slightly vary color
@@ -114,7 +113,7 @@ export class CometSystem {
     return THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, (0.4 + Math.random() * 0.3) / 3);
   }
 
-  resolveLaunchVelocity(burstHeight) {
+  resolveLaunchVelocity(burstHeight, angleOffset = 0) {
     const normalizedHeight = THREE.MathUtils.clamp(
       (burstHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
       0,
@@ -122,11 +121,21 @@ export class CometSystem {
     );
     const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
     
-    const angle = this._lastLaunchAngle || (Math.PI / 2);
-    const fanSpeedX = Math.cos(angle) * 15;
-    const fanSpeedZ = -Math.sin(angle) * 15;
+    const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
+    
+    // Tilt the upward velocity left/right by angleOffset
+    // Forward vector: (cos(A), 0, -sin(A))
+    // Right vector: (sin(A), 0, cos(A))
+    const forwardSpeed = 15;
+    
+    const tiltY = launchSpeedY * Math.cos(angleOffset);
+    const tiltRight = launchSpeedY * Math.sin(angleOffset);
 
-    return new THREE.Vector3(fanSpeedX, launchSpeedY, fanSpeedZ);
+    const vx = forwardSpeed * Math.cos(baseAngle) + tiltRight * Math.sin(baseAngle);
+    const vy = tiltY;
+    const vz = -forwardSpeed * Math.sin(baseAngle) + tiltRight * Math.cos(baseAngle);
+
+    return new THREE.Vector3(vx, vy, vz);
   }
 
   update(deltaTime) {
@@ -137,10 +146,10 @@ export class CometSystem {
 
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING || comet.state === CometEntity.STATE.DECAYING) {
-        // Spawn 1-2 particles per frame per comet
-        this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color);
+        // Giảm thời gian sống của hạt trail xuống còn 35% để đuôi comet ngắn và sắc nét hơn
+        this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
         if (Math.random() > 0.5) {
-          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color);
+          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
         }
         
         // Occasional sparks

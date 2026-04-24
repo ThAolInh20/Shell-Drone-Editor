@@ -11,7 +11,7 @@ export class FireworkSequencer {
       task.timeToLaunch -= deltaTime;
 
       if (task.timeToLaunch <= 0) {
-        if (task.preset && task.preset.type === 'comet_cluster') {
+        if (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet')) {
           this.cometSystem.launchRandom(task.preset, task.options);
         } else {
           this.fireworkSystem.launchRandom(task.preset, task.options);
@@ -22,17 +22,17 @@ export class FireworkSequencer {
   }
 
   playPattern(pattern, config) {
-    const { count = 10, duration = 2.0, preset = null } = config;
-    
+    const { count = 10, duration = 2.0, preset = null, sectorId, color } = config;
+
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
       let ratioX = 0.5;
       let ratioY = 0.5;
       let ratioZ = 0.5;
-      
+
       const delay = progress * duration;
 
-      switch(pattern) {
+      switch (pattern) {
         case 'sweep-left': // Right to left
           ratioX = 1.0 - progress;
           break;
@@ -63,7 +63,52 @@ export class FireworkSequencer {
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
-        options: { ratioX, ratioY, ratioZ }
+        options: { ratioX, ratioY, ratioZ, sectorId, color }
+      });
+    }
+  }
+
+  playCometSequence(pattern, config) {
+    const { count = 10, duration = 2.0, preset = { type: 'comet' }, ratioX = 0.5, sweepCount = 2, sectorId, color } = config;
+
+    // Spread of the fan/sweep (from -45 deg to +45 deg)
+    const maxAngleOffset = Math.PI / 4;
+
+    for (let i = 0; i < count; i++) {
+      let progress = count > 1 ? i / (count - 1) : 0;
+      let delay = progress * duration;
+      let angleOffset = 0;
+      let ratioY = config.ratioY !== undefined ? config.ratioY : 0.5;
+      let ratioZ = config.ratioZ !== undefined ? config.ratioZ : 0.5;
+
+      switch (pattern) {
+        case 'continuous':
+          // Thêm độ lệch ngẫu nhiên nhỏ để trông tự nhiên hơn (khoảng +/- 5 độ)
+          angleOffset = (Math.random() - 0.5) * 0.47;
+          break;
+        case 'fan-sweep-right':
+          // Sweeps left to right
+          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+          break;
+        case 'fan-sweep-left':
+          // Sweeps right to left
+          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
+          break;
+        case 'fan-sweep-continuous':
+          // Sweeps back and forth `sweepCount` times
+          angleOffset = Math.cos(progress * Math.PI * sweepCount) * maxAngleOffset;
+          break;
+        case 'fan-burst':
+          // All at once, spread like a fan
+          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+          delay = 0; // All fired at same time
+          break;
+      }
+
+      this.activeTasks.push({
+        timeToLaunch: delay,
+        preset,
+        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color }
       });
     }
   }
@@ -74,7 +119,7 @@ export class FireworkSequencer {
       const progress = i / (totalShells - 1);
       const easeInQuad = progress * progress;
       const delay = easeInQuad * duration;
-      
+
       this.activeTasks.push({
         timeToLaunch: delay,
         preset: null, // Random preset

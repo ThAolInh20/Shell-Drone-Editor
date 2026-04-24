@@ -83,14 +83,18 @@ export class FireworkSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId } = options;
+    const { ratioX, ratioY, ratioZ, sectorId, color } = options;
     const shellPreset = this.shellPresetFactory.validatePreset(preset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
     const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);
     const velocity = this.resolveLaunchVelocity(targetHeight);
-    const color = new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
-    const shell = this.createShell(position, velocity, targetHeight, color, shellPreset, shellId);
+    
+    // Nếu có truyền color qua options thì lấy, nếu không ưu tiên màu của preset, cuối cùng mới random
+    const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
+    const finalColor = new THREE.Color(finalColorHex);
+    
+    const shell = this.createShell(position, velocity, targetHeight, finalColor, shellPreset, shellId);
     this.scene.add(shell.mesh);
     this.activeFireworks.push(shell);
     this.diagnostics.launched += 1;
@@ -106,7 +110,7 @@ export class FireworkSystem {
       shellType: shell.shellType,
       shapeType: shell.shapeType,
       effectType: shellPreset.effectType ?? 'standard',
-      colorHex: color.getHex(),
+      colorHex: finalColor.getHex(),
       position: {
         x: position.x,
         y: position.y,
