@@ -106,8 +106,8 @@ export class FireworkSystem {
       (targetHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
       0, 1
     );
-    // Độ cao tối thiểu (0.0) -> size 30%, độ cao tối đa (1.0) -> size 100%
-    const heightScale = THREE.MathUtils.lerp(0.3, 1.0, normalizedHeight);
+    // Độ cao tối thiểu (0.0) -> size 60%, độ cao tối đa (1.0) -> size 100%
+    const heightScale = THREE.MathUtils.lerp(0.6, 1.0, normalizedHeight);
     shellPreset.shellSize = (shellPreset.shellSize ?? 1) * heightScale;
 
     const velocity = this.resolveLaunchVelocity(targetHeight);
@@ -229,12 +229,18 @@ export class FireworkSystem {
   }
 
   resolveLaunchVelocity(burstHeight) {
+    const gravity = 30; // Trọng lực được định nghĩa là 30 trong update()
+    const groundY = this.launchZone.center.y;
+    const h = Math.max(burstHeight - groundY, 5);
+    
+    // Tính vận tốc v = sqrt(2gh). Nhân thêm 1.02 để pháo hoa khi đến điểm nổ vẫn còn một chút đà bay lên.
+    const launchSpeedY = Math.sqrt(2 * gravity * h) * 1.02;
+
     const normalizedHeight = THREE.MathUtils.clamp(
       (burstHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
       0,
       1
     );
-    const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
     const lateralSpread = THREE.MathUtils.lerp(5, 9, 1 - normalizedHeight);
 
     // Fan out effect based on the arc position (shoot outwards from center)
@@ -318,7 +324,8 @@ export class FireworkSystem {
 
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale;
+    const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier;
 
     return Math.max(MIN_BURST_PARTICLES, Math.min(MAX_BURST_PARTICLES, Math.round(rawCount)));
   }
@@ -399,7 +406,8 @@ export class FireworkSystem {
         baseSpeed = BURST_SPEED * defaultSpeedBand;
       }
 
-      const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1);
+      const shellSizeScale = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
+      const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
       velocities.push(direction.multiplyScalar(speed));
 
       positions[i * 3] = position.x;

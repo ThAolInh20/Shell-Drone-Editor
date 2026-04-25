@@ -22,7 +22,7 @@ export class FireworkSequencer {
   }
 
   playPattern(pattern, config) {
-    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2, y1, y2, effectOverrides } = config;
+    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2, y1, y2, effectOverrides, instantBurst, shellSize } = config;
 
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
@@ -54,6 +54,11 @@ export class FireworkSequencer {
           ratioX = progress;
           ratioY = Math.sin(progress * Math.PI) * 0.6 + 0.4;
           break;
+        case 'random':
+          ratioX = Math.random();
+          ratioY = Math.random();
+          ratioZ = Math.random();
+          break;
       }
 
       // Remap ratioX to [x1, x2] range if provided
@@ -63,17 +68,25 @@ export class FireworkSequencer {
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        ratioY = y1 + progress * (y2 - y1);
+        const t = pattern === 'random' ? ratioY : progress;
+        ratioY = y1 + t * (y2 - y1);
       } else if (config.ratioY !== undefined) {
         ratioY = config.ratioY;
       }
 
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
 
+      let overrides = effectOverrides;
+      if (instantBurst !== undefined || shellSize !== undefined) {
+        overrides = { ...(overrides || {}) };
+        if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
+        if (shellSize !== undefined) overrides.shellSize = shellSize;
+      }
+
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
-        options: { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides }
+        options: { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides: overrides }
       });
     }
   }
@@ -124,6 +137,12 @@ export class FireworkSequencer {
           ratioX = 1.0 - progress;
           angleOffset = angle !== undefined ? angle : -Math.PI / 12; // Mặc định nghiêng sang trái 15 độ
           break;
+        case 'random':
+          ratioX = Math.random();
+          ratioY = Math.random();
+          ratioZ = Math.random();
+          angleOffset = (Math.random() - 0.5) * maxAngleOffset * 2;
+          break;
       }
 
       // Remap ratioX to [x1, x2] range if provided
@@ -133,7 +152,8 @@ export class FireworkSequencer {
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        ratioY = y1 + progress * (y2 - y1);
+        const t = pattern === 'random' ? ratioY : progress;
+        ratioY = y1 + t * (y2 - y1);
       }
 
       this.activeTasks.push({

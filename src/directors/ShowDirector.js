@@ -51,30 +51,10 @@ export class ShowDirector {
         });
         break;
       case 'sequence':
-        this.sequencer.playPattern(evt.pattern, {
-          count: evt.count,
-          duration: evt.duration,
-          preset: evt.preset,
-          ratioY: evt.ratioY,
-          ratioZ: evt.ratioZ,
-          sectorId: evt.sectorId,
-          color: evt.color,
-          x1: evt.x1,
-          x2: evt.x2
-        });
+        this.sequencer.playPattern(evt.pattern, evt);
         break;
       case 'cometsequence':
-        this.sequencer.playCometSequence(evt.pattern, {
-          count: evt.count,
-          duration: evt.duration,
-          preset: evt.preset,
-          ratioX: evt.ratioX,
-          ratioY: evt.ratioY,
-          ratioZ: evt.ratioZ,
-          sweepCount: evt.sweepCount,
-          sectorId: evt.sectorId,
-          color: evt.color
-        });
+        this.sequencer.playCometSequence(evt.pattern, evt);
         break;
       case 'finale':
         this.sequencer.playFinale(evt.totalShells, evt.duration);

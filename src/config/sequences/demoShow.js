@@ -19,6 +19,7 @@ export const demoShow = [
    *      - 'diverge': Bắn từ giữa tản ra 2 bên
    *      - 'zigzag': Bắn chữ Z (thay đổi cả độ cao và chiều sâu)
    *      - 'fan': Bắn hình vòm cung (vẽ 1 đường vòng cung trên trời)
+   *      - 'random': Bắn ngẫu nhiên rải rác khắp bầu trời trong khu vực giới hạn
    * 
    *    * Chỉ dành cho 'cometsequence':
    *      - 'continuous': Bắn liên tục tại 1 điểm (hơi lệch góc xíu cho tự nhiên)
@@ -37,20 +38,29 @@ export const demoShow = [
    *    - y1, y2: Giới hạn chiều cao (0.0 đến 1.0), dùng để quét chéo lên/xuống
    *    - ratioX, ratioY, ratioZ: Cố định vị trí bắn (0.0 đến 1.0)
    *    - angle: Góc nghiêng (radian) khi bắn comet kiểu sweep
+   *    - instantBurst: true/false. Bật true để pháo nổ trực tiếp trên trời, bỏ qua bước bắn lên (chỉ áp dụng cho sequence).
+   *    - shellSize: Điều chỉnh kích thước pháo hoa (mặc định là 1.0, tăng lên 2.0, 3.0... để pháo to hơn, áp dụng cho cả comet và sequence).
    * ==============================================
    */
 
   // --- VÍ DỤ COMET SEQUENCES ---
-  // { time: 0.0, type: 'cometsequence', pattern: 'fan-sweep-continuous', count: 15, duration: 2.0, sweepCount: 2, ratioX: 0.5, sectorId: 'left', color: 0xff0000 },
-  // { time: 0.5, type: 'cometsequence', pattern: 'sweep-left', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', y1: 0, y2: 0.8 },
+  { time: 0.0, type: 'sequence', pattern: 'random', count: 15, duration: 2.0, x1: 0.0, x2: 0.5, y1: 0.5, y2: 0.8 },  // { time: 0.5, type: 'cometsequence', pattern: 'sweep-left', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', y1: 0, y2: 0.8 },
   // { time: 1.5, type: 'cometsequence', pattern: 'sweep-right', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', y1: 0, y2: 0.8 },
   // Bắn sweep comet có giới hạn vị trí (x1 tới x2) và góc nghiêng (angle):
   // { time: 2.5, type: 'cometsequence', pattern: 'sweep-right', count: 10, duration: 1.0, x1: 0.2, x2: 0.8, angle: Math.PI/8 },
 
   // --- VÍ DỤ NORMAL SEQUENCES ---
-  { time: 0.0, type: 'sequence', pattern: 'converge', count: 4, duration: 0.5, sectorId: 'center', preset: 'random', x1: 0.1, x2: 0.9, y1: 0.1, y2: 0.1, },
-  { time: 2.0, type: 'sequence', pattern: 'sweep-right', count: 12, duration: 2.0, sectorId: 'center', preset: 'random', y1: 0, y2: 1 },
-  { time: 5.5, type: 'sequence', pattern: 'fan', count: 10, duration: 3.0, preset: 'weepingWillowCometsV3' },
-  { time: 9.5, type: 'sequence', pattern: 'converge', count: 8, duration: 2.0, preset: 'random' },
-  { time: 13.0, type: 'finale', totalShells: 50, duration: 6.0 }
+  // Pháo hoa nổ ngay lập tức không cần bay lên (và tăng kích thước gấp 2 lần):
+  // { time: 0.0, type: 'sequence', pattern: 'sweep-right', count: 15, duration: 2.0, sweepCount: 2, ratioX: 0.5, sectorId: 'center', color: 0xff0000, ratioY: 0.5, instantBurst: true, shellSize: 2.0 },
+
+  // Bắn ngẫu nhiên (random) trong một khoảng thời gian:
+  // { time: 0.0, type: 'sequence', pattern: 'random', count: 20, duration: 3.0, preset: 'random' },
+  // Bắn ngẫu nhiên nhưng giới hạn vùng không gian (ví dụ từ trái sang giữa, độ cao từ 0.5 đến 0.8):
+  // { time: 0.0, type: 'sequence', pattern: 'random', count: 15, duration: 2.0, x1: 0.0, x2: 0.5, y1: 0.5, y2: 0.8 },
+
+  // { time: 0.0, type: 'sequence', pattern: 'converge', count: 4, duration: 0.5, sectorId: 'center', preset: 'random', x1: 0.1, x2: 0.9, y1: 0.1, y2: 0.1, },
+  // { time: 2.0, type: 'sequence', pattern: 'sweep-right', count: 12, duration: 2.0, sectorId: 'center', preset: 'random', y1: 0, y2: 1 },
+  // { time: 5.5, type: 'sequence', pattern: 'fan', count: 10, duration: 3.0, preset: 'weepingWillowCometsV3' },
+  // { time: 9.5, type: 'sequence', pattern: 'converge', count: 8, duration: 2.0, preset: 'random' },
+  // { time: 13.0, type: 'finale', totalShells: 50, duration: 6.0 }
 ];

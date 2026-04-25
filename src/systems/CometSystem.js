@@ -121,25 +121,24 @@ export class CometSystem {
   }
 
   resolveLaunchVelocity(burstHeight, angleOffset = 0) {
-    const normalizedHeight = THREE.MathUtils.clamp(
-      (burstHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
-      0,
-      1
-    );
-    const launchSpeedY = THREE.MathUtils.lerp(this.launchZone.minLaunchSpeedY, this.launchZone.maxLaunchSpeedY, normalizedHeight);
+    // Tính toán vận tốc trục Y cần thiết để đạt đến targetHeight bằng công thức vật lý:
+    // v_y = sqrt(2 * g * h) với g = 30, h = burstHeight - groundY
+    const gravity = 30;
+    const groundY = this.launchZone.center.y; // -50
+    const h = Math.max(burstHeight - groundY, 5); // Đảm bảo bay lên tối thiểu 5 unit
+    
+    const requiredVy = Math.sqrt(2 * gravity * h);
     
     const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
     
-    // Tilt the upward velocity left/right by angleOffset
-    // Forward vector: (cos(A), 0, -sin(A))
-    // Right vector: (sin(A), 0, cos(A))
     const forwardSpeed = 15;
     
-    const tiltY = launchSpeedY * Math.cos(angleOffset);
-    const tiltRight = launchSpeedY * Math.sin(angleOffset);
+    // vy luôn đảm bảo đạt đủ độ cao
+    const vy = requiredVy;
+    // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle)
+    const tiltRight = requiredVy * Math.tan(angleOffset);
 
     const vx = forwardSpeed * Math.cos(baseAngle) + tiltRight * Math.sin(baseAngle);
-    const vy = tiltY;
     const vz = -forwardSpeed * Math.sin(baseAngle) + tiltRight * Math.cos(baseAngle);
 
     return new THREE.Vector3(vx, vy, vz);
