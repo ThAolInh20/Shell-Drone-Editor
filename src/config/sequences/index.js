@@ -1,4 +1,4 @@
-import { demoShow } from './demoShow.js';
+import demoShow from './demoShow.json';
 import { grandFinale } from './grandFinale.js';
 
 export const sequences = [
