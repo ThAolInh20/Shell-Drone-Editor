@@ -11,7 +11,7 @@ export default defineConfig({
           if (req.url === '/api/list-sequences' && req.method === 'GET') {
             const dirPath = path.resolve(__dirname, 'src/config/sequences');
             try {
-              const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.js'));
+              const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.json'));
               res.setHeader('Content-Type', 'application/json');
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, files }));
@@ -32,8 +32,8 @@ export default defineConfig({
                   throw new Error("Missing filename or content");
                 }
                 const safeFilename = data.filename.replace(/[^a-zA-Z0-9.\-_]/g, '');
-                if (!safeFilename.endsWith('.js')) {
-                  throw new Error("Filename must end with .js");
+                if (!safeFilename.endsWith('.json')) {
+                  throw new Error("Filename must end with .json");
                 }
                 const filePath = path.resolve(__dirname, 'src/config/sequences', safeFilename);
                 

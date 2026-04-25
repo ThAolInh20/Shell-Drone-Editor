@@ -1,5 +1,5 @@
 import { PropertyInspector } from './PropertyInspector.js';
-import { demoShow } from '../config/sequences/demoShow.js';
+import demoShow from '../config/sequences/demoShow.json';
 
 export class TimelineEditor {
   constructor(showDirector) {
@@ -14,7 +14,7 @@ export class TimelineEditor {
     this.resizedEvent = null;
     this.resizeOffsetX = 0;
     this.initialDuration = 0;
-    this.filename = 'demoShow.js';
+    this.filename = 'demoShow.json';
     this.anchorTime = 0;
     
     this.initDOM();
@@ -107,13 +107,27 @@ export class TimelineEditor {
     saveBtn.style.color = 'white';
     saveBtn.addEventListener('click', () => this.saveSequence());
 
+    const importBtn = document.createElement('button');
+    importBtn.textContent = 'Import JSON';
+    importBtn.style.background = '#1976d2';
+    importBtn.style.color = 'white';
+    importBtn.addEventListener('click', () => this.fileInput.click());
+
+    this.fileInput = document.createElement('input');
+    this.fileInput.type = 'file';
+    this.fileInput.accept = '.json';
+    this.fileInput.style.display = 'none';
+    this.fileInput.addEventListener('change', (e) => this.importSequence(e));
+
     this.fileSelect = document.createElement('select');
     this.fetchFileList();
 
     toolbar.appendChild(playBtn);
     toolbar.appendChild(addBtn);
     toolbar.appendChild(this.fileSelect);
+    toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
+    toolbar.appendChild(this.fileInput);
 
     leftPanel.appendChild(toolbar);
 
@@ -281,10 +295,10 @@ export class TimelineEditor {
         });
       }
     } catch (e) {
-      console.warn("Could not fetch file list. Fallback to demoShow.js");
+      console.warn("Could not fetch file list. Fallback to demoShow.json");
       const opt = document.createElement('option');
-      opt.value = 'demoShow.js';
-      opt.textContent = 'demoShow.js';
+      opt.value = 'demoShow.json';
+      opt.textContent = 'demoShow.json';
       this.fileSelect.appendChild(opt);
     }
   }
@@ -526,8 +540,35 @@ export class TimelineEditor {
     requestAnimationFrame(this.updateLoop);
   }
 
+  importSequence(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (this.sequences.length > 0 && !confirm("Tiến hành import sẽ ghi đè lên các thay đổi chưa được lưu. Bạn có chắc chắn muốn tiếp tục?")) {
+      this.fileInput.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
+        this.sequences = data;
+        this.filename = file.name;
+        this.renderTracks();
+        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+        alert("Import thành công!");
+      } catch (err) {
+        alert("Lỗi khi đọc file JSON: " + err.message);
+      }
+      this.fileInput.value = '';
+    };
+    reader.readAsText(file);
+  }
+
   async saveSequence() {
-    this.filename = this.fileSelect.value || 'demoShow.js';
+    this.filename = this.fileSelect.value || 'demoShow.json';
     
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
@@ -535,7 +576,7 @@ export class TimelineEditor {
       return cleanObj;
     });
 
-    const content = `export const ${this.filename.replace('.js', '')} = ${JSON.stringify(cleanSeqs, null, 2)};\n`;
+    const content = JSON.stringify(cleanSeqs, null, 2);
 
     // Cách 1: Copy vào Clipboard
     try {
@@ -547,7 +588,7 @@ export class TimelineEditor {
 
     // Cách 2: Tự động tải file về máy
     try {
-      const blob = new Blob([content], { type: 'application/javascript' });
+      const blob = new Blob([content], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
