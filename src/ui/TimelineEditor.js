@@ -8,11 +8,14 @@ export class TimelineEditor {
     this.pixelsPerSecond = 50;
     this.rowHeight = 30;
     this.minBlockWidth = 20;
-    this.visible = false;
-    this.isDragging = false;
-    this.draggedEvent = null;
+    this.visible = true;
     this.dragOffsetX = 0;
+    this.isResizing = false;
+    this.resizedEvent = null;
+    this.resizeOffsetX = 0;
+    this.initialDuration = 0;
     this.filename = 'demoShow.js';
+    this.anchorTime = 0;
     
     this.initDOM();
     this.renderTracks();
@@ -32,7 +35,7 @@ export class TimelineEditor {
     this.container.style.background = 'rgba(10, 15, 20, 0.85)';
     this.container.style.backdropFilter = 'blur(10px)';
     this.container.style.borderTop = '1px solid #444';
-    this.container.style.display = 'none';
+    this.container.style.display = 'flex';
     this.container.style.flexDirection = 'row';
     this.container.style.zIndex = '1000';
     this.container.style.color = 'white';
@@ -91,7 +94,7 @@ export class TimelineEditor {
     toolbar.style.alignItems = 'center';
 
     const playBtn = document.createElement('button');
-    playBtn.textContent = 'Play/Pause (Enter)';
+    playBtn.textContent = 'Play/Pause (Space)';
     playBtn.addEventListener('click', () => this.togglePlay());
     
     const addBtn = document.createElement('button');
@@ -121,6 +124,17 @@ export class TimelineEditor {
     this.trackContainer.style.overflowX = 'auto';
     this.trackContainer.style.overflowY = 'auto';
     
+    this.anchorHead = document.createElement('div');
+    this.anchorHead.style.position = 'absolute';
+    this.anchorHead.style.top = '0';
+    this.anchorHead.style.bottom = '0';
+    this.anchorHead.style.width = '2px';
+    this.anchorHead.style.background = '#03a9f4';
+    this.anchorHead.style.zIndex = '40';
+    this.anchorHead.style.pointerEvents = 'none';
+    this.anchorHead.style.left = '0px';
+    this.trackContainer.appendChild(this.anchorHead);
+
     // Playhead
     this.playhead = document.createElement('div');
     this.playhead.style.position = 'absolute';
@@ -143,6 +157,8 @@ export class TimelineEditor {
     this.ruler.style.cursor = 'text'; // Indicate it's clickable
     this.ruler.addEventListener('mousedown', (e) => {
       const time = Math.max(0, e.offsetX / this.pixelsPerSecond);
+      this.anchorTime = time;
+      this.anchorHead.style.left = (time * this.pixelsPerSecond) + 'px';
       this.seek(time);
     });
     this.trackContainer.appendChild(this.ruler);
@@ -196,7 +212,12 @@ export class TimelineEditor {
     // Right side: Property Inspector
     const inspectorContainer = document.createElement('div');
     this.container.appendChild(inspectorContainer);
-    this.inspector = new PropertyInspector(inspectorContainer, () => this.renderTracks());
+    
+    let presetOptions = ['random'];
+    if (this.showDirector && this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.shellPresetFactory) {
+      presetOptions = this.showDirector.fireworkSystem.shellPresetFactory.getPresetMenuEntries().map(e => e.key);
+    }
+    this.inspector = new PropertyInspector(inspectorContainer, () => this.renderTracks(), presetOptions);
 
     document.body.appendChild(this.container);
 
@@ -206,8 +227,11 @@ export class TimelineEditor {
         e.preventDefault();
         this.toggle();
       }
-      if (e.key === 'Enter' && this.visible) {
-        this.togglePlay();
+      if (e.code === 'Space' && this.visible) {
+        if (e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          this.togglePlay();
+        }
       }
     });
   }
@@ -246,9 +270,11 @@ export class TimelineEditor {
   togglePlay() {
     if (this.showDirector.isPlaying) {
       this.showDirector.pause();
+      if (this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.burstAll) {
+        this.showDirector.fireworkSystem.burstAll();
+      }
     } else {
-      const time = this.showDirector.elapsedTime;
-      this.seek(time);
+      this.seek(this.anchorTime);
       this.showDirector.play();
     }
   }
@@ -281,9 +307,9 @@ export class TimelineEditor {
 
     sorted.forEach(seq => {
       const start = seq.time;
-      const duration = seq.duration || 0;
+      const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
       // visual duration needs a minimum so we don't overlap zero-duration blocks
-      const visualDuration = Math.max(duration, this.minBlockWidth / this.pixelsPerSecond);
+      const visualDuration = Math.max(visualDurationVal, this.minBlockWidth / this.pixelsPerSecond);
       const end = start + visualDuration + 0.1; // 0.1 padding
 
       let placed = false;
@@ -309,8 +335,8 @@ export class TimelineEditor {
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
       const startX = seq.time * this.pixelsPerSecond;
-      const duration = seq.duration || 0;
-      const width = Math.max(duration * this.pixelsPerSecond, this.minBlockWidth);
+      const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
+      const width = Math.max(visualDurationVal * this.pixelsPerSecond, this.minBlockWidth);
       const row = seq._trackRow || 0;
 
       block.style.position = 'absolute';
@@ -350,11 +376,53 @@ export class TimelineEditor {
         block.style.cursor = 'grabbing';
       });
 
+      const resizeHandle = document.createElement('div');
+      resizeHandle.style.position = 'absolute';
+      resizeHandle.style.right = '0';
+      resizeHandle.style.top = '0';
+      resizeHandle.style.bottom = '0';
+      resizeHandle.style.width = '8px';
+      resizeHandle.style.cursor = 'ew-resize';
+      resizeHandle.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+      resizeHandle.style.zIndex = '10';
+
+      resizeHandle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        this.inspector.show(seq);
+        this.renderTracks();
+        this.isResizing = true;
+        this.resizedEvent = seq;
+        this.resizeOffsetX = e.clientX;
+        this.initialDuration = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
+      });
+
+      resizeHandle.addEventListener('mouseenter', () => {
+        resizeHandle.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+      });
+      resizeHandle.addEventListener('mouseleave', () => {
+        resizeHandle.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+      });
+
+      block.appendChild(resizeHandle);
+
       this.tracksArea.appendChild(block);
     });
   }
 
   onDrag(e) {
+    if (this.isResizing && this.resizedEvent) {
+      const dx = e.clientX - this.resizeOffsetX;
+      const dTime = dx / this.pixelsPerSecond;
+      let newDuration = Math.max(0.1, this.initialDuration + dTime);
+      newDuration = Math.round(newDuration * 10) / 10; // Snap to 0.1s
+      
+      if (this.resizedEvent.uiDuration !== newDuration) {
+        this.resizedEvent.uiDuration = newDuration;
+        this.renderTracks();
+      }
+      return;
+    }
+
     if (!this.isDragging || !this.draggedEvent) return;
     const newX = e.clientX - this.tracksArea.getBoundingClientRect().left - this.dragOffsetX;
     let newTime = Math.max(0, newX / this.pixelsPerSecond);
@@ -374,6 +442,8 @@ export class TimelineEditor {
   onDragEnd(e) {
     this.isDragging = false;
     this.draggedEvent = null;
+    this.isResizing = false;
+    this.resizedEvent = null;
   }
 
   updatePlayhead() {

@@ -13,6 +13,7 @@ export class SmokeSystem {
 
     window.addEventListener('firework:launch', (event) => this.onLaunch(event.detail));
     window.addEventListener('firework:burst', (event) => this.onBurst(event.detail));
+    window.addEventListener('firework:clear', () => this.clear());
   }
 
   createSmokeTexture() {
@@ -145,17 +146,22 @@ export class SmokeSystem {
   }
 
   update(deltaTime) {
-    const alive = [];
-
-    for (const puff of this.puffs) {
+    const elapsed = performance.now() / 1000;
+    
+    for (let i = this.puffs.length - 1; i >= 0; i--) {
+      const puff = this.puffs[i];
       puff.age += deltaTime;
-      const t = puff.age / puff.life;
-      if (t >= 1) {
+      
+      if (puff.age >= puff.life) {
         this.group.remove(puff.sprite);
-        puff.sprite.material.dispose();
+        if (puff.sprite.material) puff.sprite.material.dispose();
+        this.puffs.splice(i, 1);
         continue;
       }
-
+      
+      const t = puff.age / puff.life;
+      const easeOut = 1 - Math.pow(1 - t, 3);
+      
       // Khói bị thổi bay bởi gió (wind) thay vì chỉ trôi bồng bềnh tại chỗ
       if (!this.wind) {
         // Gió thổi ngang sang phải (X) và hơi đẩy về sau (Z)
@@ -170,16 +176,25 @@ export class SmokeSystem {
       puff.sprite.position.addScaledVector(puff.velocity, deltaTime);
 
       const growthScale = 1 + puff.growth * t;
-
       puff.sprite.scale.setScalar(puff.baseScale * growthScale);
-
 
       const fade = 1 - t;
       puff.sprite.material.opacity = fade * fade * puff.baseOpacity;
 
-      alive.push(puff);
+      const rotSpeed = puff.rotSpeed * (1 - t * 0.5);
+      puff.sprite.material.rotation += rotSpeed * deltaTime;
     }
+  }
 
-    this.puffs = alive;
+  clear() {
+    for (const puff of this.puffs) {
+      if (puff && puff.sprite) {
+        this.group.remove(puff.sprite);
+        if (puff.sprite.material) {
+          puff.sprite.material.dispose();
+        }
+      }
+    }
+    this.puffs = [];
   }
 }

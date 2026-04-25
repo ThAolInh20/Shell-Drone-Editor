@@ -57,6 +57,8 @@ export class TrailSystem {
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
     this.trailPoints.frustumCulled = false;
     this.scene.add(this.trailPoints);
+    
+    window.addEventListener('firework:clear', () => this.clear());
   }
 
   spawnTrailParticle(position, color, lifeMultiplier = 1.0) {
@@ -146,10 +148,22 @@ export class TrailSystem {
     }
     this.trailParticles = this.trailParticles.filter(p => !finishedTrails.includes(p));
 
-    // Update geometry
-    this.trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    this.trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-    this.trailGeometry.attributes.position.needsUpdate = true;
-    this.trailGeometry.attributes.color.needsUpdate = true;
+    const activeCount = positions.length / 3;
+    if (activeCount > 0) {
+      this.trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      this.trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+      this.trailGeometry.setDrawRange(0, activeCount);
+    } else {
+      this.trailGeometry.setDrawRange(0, 0);
+    }
+  }
+
+  clear() {
+    this.trailParticles = [];
+    if (this.trailGeometry) {
+      this.trailGeometry.setDrawRange(0, 0);
+      const positionAttribute = this.trailGeometry.getAttribute('position');
+      if (positionAttribute) positionAttribute.needsUpdate = true;
+    }
   }
 }

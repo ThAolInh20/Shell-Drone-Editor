@@ -1,7 +1,8 @@
 export class PropertyInspector {
-  constructor(container, onUpdate) {
+  constructor(container, onUpdate, presetOptions = ['random']) {
     this.container = container;
     this.onUpdate = onUpdate;
+    this.presetOptions = presetOptions;
     this.selectedEvent = null;
     
     this.container.style.position = 'fixed';
@@ -41,40 +42,48 @@ export class PropertyInspector {
     }
 
     const form = document.createElement('div');
-    form.style.display = 'flex';
-    form.style.flexDirection = 'column';
-    form.style.gap = '10px';
+    form.style.display = 'grid';
+    form.style.gridTemplateColumns = '1fr 1fr';
+    form.style.gap = '6px';
+    form.style.alignItems = 'end';
 
     const fields = [
       { name: 'time', type: 'number', step: '0.1' },
       { name: 'type', type: 'select', options: ['sequence', 'cometsequence', 'finale'] },
-      { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'] },
-      { name: 'preset', type: 'text' },
+      { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+      { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
       { name: 'count', type: 'number', step: '1' },
       { name: 'duration', type: 'number', step: '0.1' },
       { name: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] },
-      { name: 'color', type: 'text' },
+      { name: 'shellSize', type: 'number', step: '0.1' },
+      { name: 'color', type: 'text', span: 2 },
       { name: 'ratioX', type: 'number', step: '0.05' },
       { name: 'ratioY', type: 'number', step: '0.05' },
       { name: 'ratioZ', type: 'number', step: '0.05' },
+      { name: 'instantBurst', type: 'checkbox' },
       { name: 'x1', type: 'number', step: '0.1' },
       { name: 'x2', type: 'number', step: '0.1' },
       { name: 'y1', type: 'number', step: '0.1' },
       { name: 'y2', type: 'number', step: '0.1' },
-      { name: 'shellSize', type: 'number', step: '0.1' },
-      { name: 'instantBurst', type: 'checkbox' },
-      { name: 'pistil', type: 'checkbox' },
+      { name: 'pistil', type: 'checkbox', span: 2 },
     ];
 
     fields.forEach(field => {
       const row = document.createElement('div');
       row.style.display = 'flex';
-      row.style.flexDirection = 'column';
+      row.style.flexDirection = field.type === 'checkbox' ? 'row' : 'column';
+      if (field.type === 'checkbox') {
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+      }
+      if (field.span === 2) {
+        row.style.gridColumn = 'span 2';
+      }
       
       const label = document.createElement('label');
       label.textContent = field.name;
-      label.style.fontSize = '12px';
-      label.style.marginBottom = '4px';
+      label.style.fontSize = '11px';
+      label.style.marginBottom = field.type === 'checkbox' ? '0' : '2px';
       label.style.color = '#aaa';
 
       let input;
@@ -91,6 +100,7 @@ export class PropertyInspector {
         input = document.createElement('input');
         input.type = 'checkbox';
         input.checked = !!this.selectedEvent[field.name];
+        input.style.margin = '0';
       } else {
         input = document.createElement('input');
         input.type = field.type;
@@ -98,10 +108,13 @@ export class PropertyInspector {
         input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
       }
 
-      input.style.padding = '4px';
+      input.style.padding = '3px';
+      input.style.fontSize = '12px';
       input.style.background = '#222';
       input.style.color = '#fff';
       input.style.border = '1px solid #555';
+      input.style.width = field.type === 'checkbox' ? 'auto' : '100%';
+      input.style.boxSizing = 'border-box';
 
       input.addEventListener('change', (e) => {
         let val = field.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -114,18 +127,24 @@ export class PropertyInspector {
         this.onUpdate(); // Trigger re-render of timeline
       });
 
-      row.appendChild(label);
-      row.appendChild(input);
+      if (field.type === 'checkbox') {
+        row.appendChild(input);
+        row.appendChild(label);
+      } else {
+        row.appendChild(label);
+        row.appendChild(input);
+      }
       form.appendChild(row);
     });
 
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete Sequence';
-    deleteBtn.style.marginTop = '15px';
+    deleteBtn.style.gridColumn = 'span 2';
+    deleteBtn.style.marginTop = '10px';
     deleteBtn.style.background = '#d32f2f';
     deleteBtn.style.color = 'white';
     deleteBtn.style.border = 'none';
-    deleteBtn.style.padding = '8px';
+    deleteBtn.style.padding = '6px';
     deleteBtn.style.cursor = 'pointer';
     deleteBtn.addEventListener('click', () => {
       this.selectedEvent._deleted = true;

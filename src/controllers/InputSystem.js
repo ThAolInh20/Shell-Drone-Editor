@@ -46,192 +46,21 @@ export class InputSystem {
     });
 
     document.addEventListener('pointerlockchange', () => {
-      if (document.pointerLockElement === domElement) {
-        this.instructions.style.display = 'none';
-        this.updateStatusOverlay();
-      } else {
-        this.instructions.style.display = '';
-      }
+      // do nothing
     });
 
     document.addEventListener('mousemove', (event) => this.onMouseMove(event));
     document.addEventListener('keydown', (event) => this.onKeyDown(event));
     document.addEventListener('keyup', (event) => this.onKeyUp(event));
 
-    window.addEventListener('firework:launch', (event) => {
-      this.status.firework = event.detail.shellType;
-      this.status.effect = event.detail.effectType;
-      this.updateStatusOverlay();
-    });
-
-    window.addEventListener('firework:burst', (event) => {
-      this.status.firework = event.detail.shellType;
-      this.status.effect = event.detail.effectType;
-      this.updateStatusOverlay();
-    });
-
     window.addEventListener('firework:diagnostics', (event) => {
       this.status.diagnostics = event.detail;
-      this.updateStatusOverlay();
     });
     
-    // Instruction overlay
-    this.setupInstructions();
-    this.setupPauseMenu();
+    // Giao diện tinh gọn cho Editor
   }
   
-  setupInstructions() {
-    // Crosshair dot
-    const crosshair = document.createElement('div');
-    crosshair.style.position = 'absolute';
-    crosshair.style.top = '50%';
-    crosshair.style.left = '50%';
-    crosshair.style.width = '4px';
-    crosshair.style.height = '4px';
-    crosshair.style.marginLeft = '-2px';
-    crosshair.style.marginTop = '-2px';
-    crosshair.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
-    crosshair.style.borderRadius = '50%';
-    crosshair.style.pointerEvents = 'none';
-    crosshair.style.zIndex = '100';
-    document.body.appendChild(crosshair);
-
-    this.instructions = document.createElement('div');
-    this.instructions.style.position = 'absolute';
-    this.instructions.style.top = '50%';
-    this.instructions.style.width = '100%';
-    this.instructions.style.textAlign = 'center';
-    this.instructions.style.color = '#fff';
-    this.instructions.style.fontFamily = 'monospace';
-    this.instructions.style.fontSize = '18px';
-    this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press SPACE for auto-launch mode<br/><br/>Press ENTER to play Demo Show';
-    this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
-    document.body.appendChild(this.instructions);
-
-    this.statusOverlay = document.createElement('div');
-    this.statusOverlay.style.position = 'absolute';
-    this.statusOverlay.style.top = '12px';
-    this.statusOverlay.style.left = '12px';
-    this.statusOverlay.style.padding = '8px 12px';
-    this.statusOverlay.style.background = 'rgba(0, 0, 0, 0.55)';
-    this.statusOverlay.style.color = '#fff';
-    this.statusOverlay.style.fontFamily = 'monospace';
-    this.statusOverlay.style.fontSize = '12px';
-    this.statusOverlay.style.lineHeight = '1.4';
-    this.statusOverlay.style.borderRadius = '8px';
-    this.statusOverlay.style.zIndex = '100';
-    this.statusOverlay.style.pointerEvents = 'none';
-    document.body.appendChild(this.statusOverlay);
-    this.updateStatusOverlay();
-
-    this.controls.addEventListener('lock', () => {
-      this.instructions.style.display = 'none';
-      this.status.looking = false;
-      this.updateStatusOverlay();
-    });
-    this.controls.addEventListener('unlock', () => {
-      this.instructions.style.display = this.paused ? 'none' : '';
-      this.status.moving = false;
-      this.status.direction = 'idle';
-      if (this.paused) {
-        this.showPauseMenu();
-      }
-      this.updateStatusOverlay();
-    });
-  }
-
-  setupPauseMenu() {
-    this.pauseOverlay = document.createElement('div');
-    this.pauseOverlay.className = 'firework-pause-overlay';
-    this.pauseOverlay.style.display = 'none';
-
-    const panel = document.createElement('div');
-    panel.className = 'firework-pause-panel';
-
-    const title = document.createElement('div');
-    title.className = 'firework-pause-title';
-    title.textContent = 'Firework Selector';
-
-    const description = document.createElement('div');
-    description.className = 'firework-pause-description';
-    description.textContent = 'Press ESC to resume, or choose a firework type before clicking to launch.';
-
-    const label = document.createElement('label');
-    label.className = 'firework-pause-label';
-    label.textContent = 'Type';
-
-    this.presetSelect = document.createElement('select');
-    this.presetSelect.className = 'firework-pause-select';
-    for (const option of this.presetOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.key;
-      optionElement.textContent = option.label;
-      this.presetSelect.appendChild(optionElement);
-    }
-    this.presetSelect.value = this.selectedPresetKey;
-    this.presetSelect.addEventListener('change', () => {
-      this.selectedPresetKey = this.presetSelect.value;
-      this.updateSelectedPresetHighlight();
-      this.updateStatusOverlay();
-    });
-
-    this.selectedPresetHighlight = document.createElement('div');
-    this.selectedPresetHighlight.className = 'firework-pause-selected';
-    this.selectedPresetHighlight.innerHTML = '<span class="firework-pause-selected-label">Selected</span><span class="firework-pause-selected-value"></span>';
-
-    this.sequenceSelect = document.createElement('select');
-    this.sequenceSelect.className = 'firework-pause-select';
-    for (const option of this.sequenceOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.key;
-      optionElement.textContent = option.label;
-      this.sequenceSelect.appendChild(optionElement);
-    }
-    this.sequenceSelect.value = this.selectedSequenceKey;
-    this.sequenceSelect.addEventListener('change', () => {
-      this.selectedSequenceKey = this.sequenceSelect.value;
-      this.updateStatusOverlay();
-    });
-
-    const seqLabel = document.createElement('label');
-    seqLabel.className = 'firework-pause-label';
-    seqLabel.textContent = 'Sequence (Press Enter to play)';
-    seqLabel.appendChild(this.sequenceSelect);
-
-    const buttonRow = document.createElement('div');
-    buttonRow.className = 'firework-pause-actions';
-
-    this.resumeButton = document.createElement('button');
-    this.resumeButton.type = 'button';
-    this.resumeButton.className = 'firework-pause-button';
-    this.resumeButton.textContent = 'Resume';
-    this.resumeButton.addEventListener('click', () => this.resume());
-
-    this.timelineButton = document.createElement('button');
-    this.timelineButton.type = 'button';
-    this.timelineButton.className = 'firework-pause-button';
-    this.timelineButton.textContent = 'Timeline Editor (Ctrl+T)';
-    this.timelineButton.style.marginLeft = '10px';
-    this.timelineButton.style.background = '#03a9f4';
-    this.timelineButton.addEventListener('click', () => {
-      this.resume();
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true }));
-    });
-
-    buttonRow.appendChild(this.resumeButton);
-    buttonRow.appendChild(this.timelineButton);
-    label.appendChild(this.presetSelect);
-    panel.appendChild(this.selectedPresetHighlight);
-    panel.appendChild(title);
-    panel.appendChild(description);
-    panel.appendChild(label);
-    panel.appendChild(seqLabel);
-    panel.appendChild(buttonRow);
-    this.pauseOverlay.appendChild(panel);
-    document.body.appendChild(this.pauseOverlay);
-    this.updateSelectedPresetHighlight();
-  }
+  // setupInstructions and setupPauseMenu have been removed
 
   getSelectedPresetKey() {
     return this.selectedPresetKey;
@@ -252,92 +81,31 @@ export class InputSystem {
   }
 
   isPaused() {
-    return this.paused;
+    return false;
   }
 
   pause() {
-    if (this.paused) {
-      return;
-    }
-
-    this.paused = true;
-    this.instructions.style.display = 'none';
-    this.showPauseMenu();
-    if (this.controls.isLocked) {
-      this.controls.unlock();
-    }
-    this.updateStatusOverlay();
+    this.controls.unlock();
   }
 
   resume() {
-    if (!this.paused) {
-      return;
-    }
-
-    this.paused = false;
-    this.hidePauseMenu();
-    this.instructions.style.display = '';
-    this.updateStatusOverlay();
+    this.controls.lock();
   }
 
   togglePause() {
-    if (this.paused) {
-      this.resume();
-    } else {
+    if (this.controls.isLocked) {
       this.pause();
+    } else {
+      this.resume();
     }
-  }
-
-  showPauseMenu() {
-    if (!this.pauseOverlay) {
-      return;
-    }
-
-    this.presetSelect.value = this.selectedPresetKey;
-    if (this.sequenceSelect) {
-      this.sequenceSelect.value = this.selectedSequenceKey;
-    }
-    this.updateSelectedPresetHighlight();
-    this.pauseOverlay.style.display = 'flex';
-  }
-
-  hidePauseMenu() {
-    if (!this.pauseOverlay) {
-      return;
-    }
-
-    this.pauseOverlay.style.display = 'none';
-  }
-
-  updateSelectedPresetHighlight() {
-    if (!this.selectedPresetHighlight) {
-      return;
-    }
-
-    const label = this.getSelectedPresetLabel();
-    this.selectedPresetHighlight.querySelector('.firework-pause-selected-value').textContent = label;
-    this.selectedPresetHighlight.dataset.preset = this.selectedPresetKey;
-  }
-
-  updateStatusOverlay() {
-    if (!this.statusOverlay) return;
-    const locked = this.controls.isLocked ? 'Yes' : 'No';
-    const moving = this.status.moving ? 'Yes' : 'No';
-    const d = this.status.diagnostics;
-    const warningText = d.lastWarning === 'none' ? 'none' : d.lastWarning;
-    const pauseState = this.paused ? 'Paused' : 'Live';
-    const selectedSeqLabel = this.sequenceOptions.find(o => o.key === this.selectedSequenceKey)?.label ?? 'None';
-    this.statusOverlay.innerHTML = `Mode: ${pauseState}<br>Locked: ${locked}<br>Moving: ${moving} (${this.status.direction})<br>Looking: ${this.status.looking ? 'Yes' : 'No'}<br>Preset: ${this.getSelectedPresetLabel()}<br>Sequence: ${selectedSeqLabel}<br>Shell: ${this.status.firework}<br>Effect: ${this.status.effect}<br>Launch/Burst: ${d.launched}/${d.bursted}<br>Fallback S/E: ${d.shapeFallbacks}/${d.effectFallbacks}<br>Warnings: ${d.warnings}<br>Last Warn: ${warningText}`;
   }
 
   onMouseMove(event) {
     if (!this.controls.isLocked) return;
     this.status.looking = true;
-    this.updateStatusOverlay();
     clearTimeout(this.lookTimer);
     this.lookTimer = setTimeout(() => {
       this.status.looking = false;
-      this.updateStatusOverlay();
     }, 150);
   }
 
@@ -366,29 +134,7 @@ export class InputSystem {
       case 'KeyD':
         this.keys.right = true;
         break;
-      case 'Space':
-        if (this.fireworkSystem) {
-          this.fireworkSystem.autoLaunchEnabled = !this.fireworkSystem.autoLaunchEnabled;
-          console.log('Auto launch:', this.fireworkSystem.autoLaunchEnabled ? 'ON' : 'OFF');
-        }
-        break;
-      case 'Enter':
-        if (this.showDirector) {
-          if (this.showDirector.isPlaying) {
-            this.showDirector.stop();
-            console.log('Show stopped.');
-          } else {
-            const selectedSeq = this.sequenceOptions.find(o => o.key === this.selectedSequenceKey);
-            if (selectedSeq && selectedSeq.script) {
-              this.showDirector.loadScript(selectedSeq.script);
-              this.showDirector.play();
-              console.log(`Started Sequence: ${selectedSeq.label}`);
-            } else {
-              console.warn('No valid sequence selected.');
-            }
-          }
-        }
-        break;
+      // Removed Space and Enter keys for Editor
     }
   }
 

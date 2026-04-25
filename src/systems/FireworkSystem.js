@@ -744,8 +744,18 @@ export class FireworkSystem {
         fw.points.geometry.dispose();
         fw.points.material.dispose();
       }
+      if (fw.mesh) {
+        this.scene.remove(fw.mesh);
+      }
     }
     this.activeFireworks = [];
+  }
+
+  burstAll() {
+    const toBurst = this.activeFireworks.filter(item => item.type === 'shell' && item.state === ShellEntity.STATE.LAUNCHING);
+    for (const shell of toBurst) {
+      shell.velocity.y = -1; // Force burst on next frame
+    }
   }
 
   update(deltaTime) {

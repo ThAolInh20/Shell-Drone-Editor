@@ -26,7 +26,8 @@ export default defineConfig({
             });
             req.on('end', () => {
               try {
-                const data = JSON.parse(body);
+                // Đề phòng trường hợp Vite đã parse sẵn
+                const data = req.body || JSON.parse(body || '{}');
                 if (!data.filename || !data.content) {
                   throw new Error("Missing filename or content");
                 }
@@ -35,10 +36,16 @@ export default defineConfig({
                   throw new Error("Filename must end with .js");
                 }
                 const filePath = path.resolve(__dirname, 'src/config/sequences', safeFilename);
-                fs.writeFileSync(filePath, data.content);
+                
+                // Trả về response trước khi ghi file để tránh việc Vite HMR ngắt kết nối
                 res.setHeader('Content-Type', 'application/json');
                 res.statusCode = 200;
                 res.end(JSON.stringify({ success: true }));
+
+                setTimeout(() => {
+                  try { fs.writeFileSync(filePath, data.content); } catch(e) { console.error('Save error:', e); }
+                }, 50);
+
               } catch (err) {
                 res.statusCode = 500;
                 res.end(JSON.stringify({ success: false, error: err.message }));
