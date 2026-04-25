@@ -9,9 +9,12 @@ export class BurstEffectProcessor {
     'floral',
     'falling-leaves',
     'strobe',
+    'white-strobe',
+    'glitter-strobe',
     'heart',
     'oval',
-    'falling-comets'
+    'falling-comets',
+    'falling-comets-glitter'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -58,7 +61,7 @@ export class BurstEffectProcessor {
       spin[i] = (Math.random() - 0.5) * 3.2;
 
 
-      if (normalizedEffect === 'strobe') {
+      if (normalizedEffect === 'strobe' || normalizedEffect === 'white-strobe' || normalizedEffect === 'glitter-strobe' || normalizedEffect === 'falling-comets-glitter') {
         if (i % 12 === 0) currentStrobePhase = Math.random() * Math.PI * 2;
         phase[i] = currentStrobePhase;
       } else {
@@ -104,6 +107,9 @@ export class BurstEffectProcessor {
 
     let gravityScale = 0.3;
     let emitSpark = false;
+    let spawnTrail = false;
+    let trailLife = 0.8;
+    let trailIntensity = 0.15;
 
     if (effectType === 'flow') {
       gravityScale = 0.08;
@@ -116,6 +122,9 @@ export class BurstEffectProcessor {
       velocity.z = oldX * sin + oldZ * cos;
       velocity.y += Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.02;
       velocity.multiplyScalar(0.998);
+      spawnTrail = true;
+      trailLife = 0.25; // vệt ngắn cho cá bơi
+      trailIntensity = 0.15; // Giữ nguyên độ sáng mờ mặc định như cũ
     } else if (effectType === 'snow') {
       gravityScale = 0.05;
       const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
@@ -132,10 +141,9 @@ export class BurstEffectProcessor {
     } else if (effectType === 'wave') {
       gravityScale = 0.22;
       velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
-    } else if (effectType === 'strobe') {
+    } else if (effectType === 'strobe' || effectType === 'white-strobe' || effectType === 'glitter-strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);
-      emitSpark = Math.random() < 0.012;
     } else if (effectType === 'heart') {
       gravityScale = 0.24;
       velocity.y += Math.sin(age * 6 + (effectState.phase[index] || 0)) * 0.018;
@@ -160,12 +168,13 @@ export class BurstEffectProcessor {
       velocity.x += drift * deltaTime;
       velocity.z += drift * deltaTime * 0.8;
       velocity.multiplyScalar(0.995);
-    } else if (effectType === 'falling-comets') {
+    } else if (effectType === 'falling-comets' || effectType === 'falling-comets-glitter') {
       gravityScale = 0.25; // Trọng lực bình thường để nó bung ra thành hình cầu
-      const spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
-      return { gravityScale, emitSpark, spawnTrail };
+      spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
+      trailLife = 0.8;
+      trailIntensity = 0.15; // Giảm sáng cực mạnh để không lóa
     }
 
-    return { gravityScale, emitSpark };
+    return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };
   }
 }

@@ -45,6 +45,7 @@ export class BurstShapeGenerator {
       case 'heart':
       case 'star':
       case 'willow':
+      case 'willow-up':
       case 'lightning':
       case 'oval':
       case 'flower':
@@ -163,11 +164,15 @@ export class BurstShapeGenerator {
       // Tính toán góc chia đều hoàn hảo để vẽ thành vòng tròn liền mạch thay vì rải ngẫu nhiên
       const perfectAngle = (index / Math.max(1, count)) * Math.PI * 2 * (isDoubleRing ? 2 : 1);
       
-      // Thêm méo mó hình học (geometric distortion) bằng sóng sine tần số thấp để tạo viền lượn sóng tự nhiên
-      const distortion = Math.sin(perfectAngle * 3) * 0.05 + Math.cos(perfectAngle * 5) * 0.03;
+      let distortion = 0;
+      let noiseRadius = 0;
       
-      // Thêm một chút lắc ngẫu nhiên nhẹ (jitter)
-      const noiseRadius = (Math.random() - 0.5) * 0.02; 
+      // Ring v1 cần hình tròn hoàn hảo, không có méo mó hình học
+      if (preset?.shellType !== 'ring') {
+        distortion = Math.sin(perfectAngle * 3) * 0.05 + Math.cos(perfectAngle * 5) * 0.03;
+        noiseRadius = (Math.random() - 0.5) * 0.02; 
+      }
+      
       const radius = ringBand + distortion + noiseRadius;
       
       return new THREE.Vector3(
@@ -191,6 +196,15 @@ export class BurstShapeGenerator {
         (Math.random() - 0.5) * 0.85,
         0.25 + Math.random() * 0.55,
         (Math.random() - 0.5) * 0.85
+      ).normalize();
+    }
+
+    if (shape === 'willow-up') {
+      // V2: Bắn văng toàn bộ lên nửa trên của bầu trời (upper hemisphere)
+      return new THREE.Vector3(
+        (Math.random() - 0.5) * 2.0, // Văng rộng sang các hướng ngang
+        Math.random() * 1.0 + 0.2,   // Toàn bộ hạt đều có gia tốc hướng lên trên (Y dương)
+        (Math.random() - 0.5) * 2.0
       ).normalize();
     }
 

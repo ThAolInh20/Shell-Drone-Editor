@@ -48,9 +48,9 @@ export const demoShow = [
   // { time: 2.5, type: 'cometsequence', pattern: 'sweep-right', count: 10, duration: 1.0, x1: 0.2, x2: 0.8, angle: Math.PI/8 },
 
   // --- VÍ DỤ NORMAL SEQUENCES ---
-  { time: 0.0, type: 'sequence', pattern: 'converge', count: 3, duration: 0.2, sectorId: 'center', preset: 'falling-comets', x1: 0.1, x2: 0.9, y1: 0.1, y2: 0.1, },
-  // { time: 1.5, type: 'sequence', pattern: 'sweep-right', count: 10, duration: 2.0, sectorId: 'center', preset: 'strobe', y1: 0, y2: 1 },
-  // { time: 9.5, type: 'sequence', pattern: 'converge', count: 14, duration: 3.0, preset: 'crackle' },
-  // { time: 13.0, type: 'sequence', pattern: 'fan', count: 15, duration: 4.0, preset: 'ring' },
-  // { time: 18.0, type: 'finale', totalShells: 40, duration: 5.0 }
+  { time: 0.0, type: 'sequence', pattern: 'converge', count: 4, duration: 0.5, sectorId: 'center', preset: 'random', x1: 0.1, x2: 0.9, y1: 0.1, y2: 0.1, },
+  { time: 2.0, type: 'sequence', pattern: 'sweep-right', count: 12, duration: 2.0, sectorId: 'center', preset: 'random', y1: 0, y2: 1 },
+  { time: 5.5, type: 'sequence', pattern: 'fan', count: 10, duration: 3.0, preset: 'weepingWillowCometsV3' },
+  { time: 9.5, type: 'sequence', pattern: 'converge', count: 8, duration: 2.0, preset: 'random' },
+  { time: 13.0, type: 'finale', totalShells: 50, duration: 6.0 }
 ];

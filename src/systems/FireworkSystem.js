@@ -100,7 +100,7 @@ export class FireworkSystem {
     const shellId = ++this.shellSequence;
     const position = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
     const targetHeight = this.resolveBurstHeight(shellPreset, ratioY);
-    
+
     // Tự động thu nhỏ kích thước pháo nếu nổ ở độ cao thấp (càng thấp càng bé)
     const normalizedHeight = THREE.MathUtils.clamp(
       (targetHeight - this.launchZone.minBurstY) / Math.max(this.launchZone.maxBurstY - this.launchZone.minBurstY, 1),
@@ -112,9 +112,36 @@ export class FireworkSystem {
 
     const velocity = this.resolveLaunchVelocity(targetHeight);
 
-    // Nếu có truyền color qua options thì lấy, nếu không ưu tiên màu của preset, cuối cùng mới random
     const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
+
+    if (shellPreset.instantBurst) {
+      const burstPos = new THREE.Vector3(position.x, targetHeight, position.z);
+      const burst = this.createBurst(burstPos, finalColor, shellPreset.shapeType ?? 'willow', shellPreset);
+      this.scene.add(burst.points);
+      this.activeFireworks.push(burst);
+      this.diagnostics.bursted += 1;
+      
+      for (const warning of shellPreset.__contract?.warnings ?? []) {
+        this.registerWarning(`[Shell ${shellId}] ${warning}`);
+      }
+
+      this.emitDiagnostics();
+
+      const normalizedEnergy = 0.35 + ((shellPreset.shellSize ?? 1 - 1) / 5) * 0.65;
+      
+      this.emitFireworkEvent('firework:burst', {
+        shellId,
+        shellType: shellPreset.shellType ?? shellPreset.shapeType,
+        shapeType: shellPreset.shapeType,
+        effectType: shellPreset.effectType,
+        colorHex: finalColor.getHex(),
+        position: { x: burstPos.x, y: burstPos.y, z: burstPos.z },
+        intensity: normalizedEnergy,
+        duration: 1.25 + normalizedEnergy * 1.1
+      });
+      return;
+    }
 
     const shell = this.createShell(position, velocity, targetHeight, finalColor, shellPreset, shellId);
     this.scene.add(shell.mesh);
@@ -360,8 +387,11 @@ export class FireworkSystem {
       if (isCoreParticle) {
         baseSpeed = BURST_SPEED * coreSpeedBand;
       } else if (particleShape === 'ring' || particleShape === 'heart') {
-        // Ring và Heart CẦN PHẢI có vận tốc đồng đều tuyệt đối để tạo thành 1 nét (1 đường), nếu random sẽ bị nhòe thành đĩa (disc)
-        const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * 0.02;
+        let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart và ring v2
+        if (preset?.shellType === 'ring') {
+          speedVariance = 0.01; // Ring v1 cần tròn xoe hoàn hảo không méo
+        }
+        const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * speedVariance;
         baseSpeed = BURST_SPEED * outlineSpeedBand;
       } else if (particleShape === 'sphere') {
         baseSpeed = BURST_SPEED * sphereSpeedBand;
@@ -561,7 +591,7 @@ export class FireworkSystem {
         positions[i * 3 + 2]
       );
 
-      const { gravityScale, emitSpark, spawnTrail } = BurstEffectProcessor.updateVelocity(
+      const { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity } = BurstEffectProcessor.updateVelocity(
         velocity,
         i,
         deltaTime,
@@ -577,17 +607,51 @@ export class FireworkSystem {
       if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
         if (Math.random() < 0.3) { // Giảm xuống 30% số frame để đuôi thanh mảnh và bớt chói hơn
           const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
-          trailColor.multiplyScalar(0.15); // Giảm cực mạnh cường độ màu để hết chói lóa
-          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, 0.8); // Kéo dài thời gian tồn tại của đuôi
+          trailColor.multiplyScalar(trailIntensity ?? 0.15); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
+          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, trailLife || 0.8); // Kéo dài thời gian tồn tại của đuôi hoặc dùng giá trị tùy chỉnh
         }
       }
 
       if (effectType === 'strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
-        const blink = Math.sin(item.age * 28 + phase) > 0 ? 1 : 0.1;
+        const timeMs = (item.age + phase) * 1000;
+        const strobeFreq = 400; // Tăng từ 220 lên 400 để chớp chậm hơn
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+        const blink = isBlinking ? 1.0 : 0.05;
+
         colors[i * 3] = baseColors[i * 3] * blink;
         colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
         colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+        needsColorUpdate = true;
+      } else if (effectType === 'white-strobe' && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        if (lifeRatio > 0.5) {
+          const timeMs = (item.age + phase) * 1000;
+          // Tần số giảm từ 450ms xuống 150ms (trước đó là 180ms xuống 50ms)
+          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600);
+          const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+          const blink = isBlinking ? 1.0 : 0.05;
+
+          colors[i * 3] = blink;
+          colors[i * 3 + 1] = blink;
+          colors[i * 3 + 2] = blink;
+        } else {
+          colors[i * 3] = baseColors[i * 3];
+          colors[i * 3 + 1] = baseColors[i * 3 + 1];
+          colors[i * 3 + 2] = baseColors[i * 3 + 2];
+        }
+        needsColorUpdate = true;
+      } else if ((effectType === 'glitter-strobe' || effectType === 'falling-comets-glitter') && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        const timeMs = (item.age + phase) * 1000;
+        const strobeFreq = 90; // Nhịp rất nhanh để lấp lánh (90ms/tick)
+        // Đen-Đen-Đen-Trắng -> 3 tick tắt, 1 tick bật -> modulo 4
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
+        const blink = isBlinking ? 1.5 : 0.0; // Trắng sáng chói rồi tắt hẳn về 0
+
+        colors[i * 3] = blink;
+        colors[i * 3 + 1] = blink;
+        colors[i * 3 + 2] = blink;
         needsColorUpdate = true;
       }
 

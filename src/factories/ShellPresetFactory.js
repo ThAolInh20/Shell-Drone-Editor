@@ -18,13 +18,18 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
+      { key: 'whiteStrobe', label: 'White Strobe' },
+      { key: 'glitterStrobe', label: 'Glitter Strobe' },
+      { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
+      { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
+      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3 (Glitter)' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'rumble', label: 'Rumble' },
@@ -47,10 +52,13 @@ export class ShellPresetFactory {
 
     if (roll < 0.14) return this.crysanthemumShell();
     if (roll < 0.22) return this.crackleShell();
-    if (roll < 0.29) return this.strobeShell();
-    if (roll < 0.41) return this.fallingLeavesShell();
-    if (roll < 0.47) return this.floralShell();
-    if (roll < 0.55) return this.rumbleShell();
+    if (roll < 0.27) return this.strobeShell();
+    if (roll < 0.32) return this.whiteStrobeShell();
+    if (roll < 0.37) return this.glitterStrobeShell();
+    if (roll < 0.42) return this.weepingWillowCometsShell();
+    if (roll < 0.47) return this.fallingLeavesShell();
+    if (roll < 0.52) return this.floralShell();
+    if (roll < 0.57) return this.rumbleShell();
     if (roll < 0.61) return this.flowerShell();
     if (roll < 0.67) return this.catShell();
     if (roll < 0.74) return this.ringShell();
@@ -76,6 +84,16 @@ export class ShellPresetFactory {
         return this.validatePreset(this.crackleShell());
       case 'strobe':
         return this.validatePreset(this.strobeShell());
+      case 'whiteStrobe':
+        return this.validatePreset(this.whiteStrobeShell());
+      case 'glitterStrobe':
+        return this.validatePreset(this.glitterStrobeShell());
+      case 'weepingWillowComets':
+        return this.validatePreset(this.weepingWillowCometsShell());
+      case 'weepingWillowCometsV2':
+        return this.validatePreset(this.weepingWillowCometsV2Shell());
+      case 'weepingWillowCometsV3':
+        return this.validatePreset(this.weepingWillowCometsV3Shell());
       case 'fallingLeaves':
         return this.validatePreset(this.fallingLeavesShell());
       case 'floral':
@@ -231,10 +249,10 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'ring',
       shapeType: 'ring',
-      particleCount: Math.round(120 * size) * 2, // Giảm số lượng hạt để vòng mảnh và rõ nét hơn
+      particleCount: Math.round(120 * size), // Đã giảm một nửa
       effectType: 'standard',
       shapeRenderMode: 'jupiter',
-      particleCountMultiplier: 1.35,
+      particleCountMultiplier: 0.67, // Giảm một nửa so với 1.35 ban đầu
       outlineThickness: 0.035,
       ringCoreRatio: 0.42,
       ringCoreJitter: 0.08,
@@ -253,6 +271,32 @@ export class ShellPresetFactory {
       starLife: 1000 + size * 150,
       particleCountMultiplier: 1.25,
       pistil: Math.random() < 0.4
+    };
+  }
+
+  whiteStrobeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'whiteStrobe',
+      shapeType: 'sphere',
+      effectType: 'white-strobe',
+      strobe: true,
+      starLife: 1200 + size * 150,
+      particleCountMultiplier: 1.3,
+      pistil: Math.random() < 0.4
+    };
+  }
+
+  glitterStrobeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'glitterStrobe',
+      shapeType: 'sphere',
+      effectType: 'glitter-strobe',
+      strobe: true,
+      starLife: 1500 + size * 200,
+      particleCountMultiplier: 1.6, // Nhiều hạt để trông giống kim tuyến
+      pistil: false
     };
   }
 
@@ -351,7 +395,7 @@ export class ShellPresetFactory {
       shapeType: 'heart',
       effectType: 'heart',
       shapeRenderMode: 'outline',
-      particleCountMultiplier: 1.7,
+      particleCountMultiplier: 0.85,
       outlineThickness: 0.03,
       heartEdgeBias: 1,
       heartSegmentCount: 96,
@@ -413,6 +457,48 @@ export class ShellPresetFactory {
         effectFallback,
         warnings
       }
+    };
+  }
+
+  weepingWillowCometsShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'weepingWillow',
+      shapeType: 'willow',
+      effectType: 'falling-comets',
+      instantBurst: true, // Nổ trực tiếp trên không trung, không cần bay lên
+      color: this.whiteOrGold(), // Vàng hoặc Trắng để tạo cảm giác rực rỡ, sang trọng
+      particleCountMultiplier: 0.7, // Giảm số lượng hạt để màn hình không bị quá đặc
+      starLife: 2000 + size * 500, // Tồn tại lâu để hạt rủ xuống thấp
+      pistil: false
+    };
+  }
+
+  weepingWillowCometsV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'weepingWillowV2',
+      shapeType: 'willow-up',
+      effectType: 'falling-comets',
+      instantBurst: true, // Nổ trực tiếp
+      color: this.whiteOrGold(),
+      particleCountMultiplier: 0.8, // Giảm một nửa số lượng hạt
+      starLife: 2500 + size * 500, // Rơi lâu hơn v1 vì phải phóng lên rồi mới rớt xuống
+      pistil: false
+    };
+  }
+
+  weepingWillowCometsV3Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'weepingWillowV3',
+      shapeType: 'willow-up', // Dùng lại hình hất vọt lên cao
+      effectType: 'falling-comets-glitter', // Kết hợp kim tuyến
+      instantBurst: true,
+      color: this.whiteOrGold(),
+      particleCountMultiplier: 0.8,
+      starLife: 2500 + size * 500,
+      pistil: false
     };
   }
 
