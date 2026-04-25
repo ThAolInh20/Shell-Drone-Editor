@@ -47,26 +47,35 @@ export class PropertyInspector {
     form.style.gap = '6px';
     form.style.alignItems = 'end';
 
-    const fields = [
-      { name: 'time', type: 'number', step: '0.1' },
-      { name: 'type', type: 'select', options: ['sequence', 'cometsequence', 'finale'] },
-      { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
-      { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
-      { name: 'count', type: 'number', step: '1' },
-      { name: 'duration', type: 'number', step: '0.1' },
-      { name: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] },
-      { name: 'shellSize', type: 'number', step: '0.1' },
-      { name: 'color', type: 'text', span: 2 },
-      { name: 'ratioX', type: 'number', step: '0.05' },
-      { name: 'ratioY', type: 'number', step: '0.05' },
-      { name: 'ratioZ', type: 'number', step: '0.05' },
-      { name: 'instantBurst', type: 'checkbox' },
-      { name: 'x1', type: 'number', step: '0.1' },
-      { name: 'x2', type: 'number', step: '0.1' },
-      { name: 'y1', type: 'number', step: '0.1' },
-      { name: 'y2', type: 'number', step: '0.1' },
-      { name: 'pistil', type: 'checkbox', span: 2 },
-    ];
+    let fields = [];
+    if (this.selectedEvent.type === 'audio') {
+      fields = [
+        { name: 'time', type: 'number', step: '0.1' },
+        { name: 'volume', type: 'number', step: '0.1' },
+        { name: 'url', type: 'text', span: 2 }
+      ];
+    } else {
+      fields = [
+        { name: 'time', type: 'number', step: '0.1' },
+        { name: 'type', type: 'select', options: ['sequence', 'cometsequence', 'finale'] },
+        { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+        { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
+        { name: 'count', type: 'number', step: '1' },
+        { name: 'duration', type: 'number', step: '0.1' },
+        { name: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] },
+        { name: 'shellSize', type: 'number', step: '0.1' },
+        { name: 'color', type: 'text', span: 2 },
+        { name: 'ratioX', type: 'number', step: '0.05' },
+        { name: 'ratioY', type: 'number', step: '0.05' },
+        { name: 'ratioZ', type: 'number', step: '0.05' },
+        { name: 'instantBurst', type: 'checkbox' },
+        { name: 'x1', type: 'number', step: '0.1' },
+        { name: 'x2', type: 'number', step: '0.1' },
+        { name: 'y1', type: 'number', step: '0.1' },
+        { name: 'y2', type: 'number', step: '0.1' },
+        { name: 'pistil', type: 'checkbox', span: 2 },
+      ];
+    }
 
     fields.forEach(field => {
       const row = document.createElement('div');

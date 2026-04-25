@@ -205,6 +205,30 @@ export class TimelineEditor {
       }
     });
 
+    // Drag & Drop for MP3 files
+    this.tracksArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      this.tracksArea.style.background = 'rgba(255, 255, 255, 0.05)';
+    });
+    this.tracksArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      this.tracksArea.style.background = '';
+    });
+    this.tracksArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      this.tracksArea.style.background = '';
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('audio/') || file.name.endsWith('.mp3')) {
+          const time = Math.max(0, e.offsetX / this.pixelsPerSecond);
+          this.addAudioSequence(time, file);
+        } else {
+          alert('Chỉ hỗ trợ file âm thanh (vd: .mp3, .wav)');
+        }
+      }
+    });
+
     this.trackContainer.appendChild(this.tracksArea);
     leftPanel.appendChild(this.trackContainer);
     this.container.appendChild(leftPanel);
@@ -306,6 +330,34 @@ export class TimelineEditor {
     this.inspector.show(newSeq);
   }
 
+  addAudioSequence(time, file) {
+    const blobUrl = URL.createObjectURL(file);
+    const audio = new Audio(blobUrl);
+    
+    audio.addEventListener('loadedmetadata', () => {
+      const duration = audio.duration;
+      const newSeq = {
+        time: Math.round(time * 10) / 10,
+        type: 'audio',
+        name: file.name,
+        duration: duration,
+        uiDuration: duration, // start visual duration exactly same as true duration
+        url: file.name,
+        _blobUrl: blobUrl,
+        volume: 1.0
+      };
+      this.sequences.push(newSeq);
+      this.renderTracks();
+      this.inspector.show(newSeq);
+      // Let showDirector know we loaded a new audio file so it can prep playback if needed
+      this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    });
+    
+    audio.addEventListener('error', () => {
+      alert("Lỗi khi đọc thông tin file âm thanh.");
+    });
+  }
+
   assignTracks() {
     // Sort events by time
     const sorted = [...this.sequences].filter(s => !s._deleted).sort((a, b) => a.time - b.time);
@@ -366,11 +418,17 @@ export class TimelineEditor {
         block.style.background = 'linear-gradient(90deg, #d84315, #ff9800)';
       } else if (seq.type === 'finale') {
         block.style.background = 'linear-gradient(90deg, #c2185b, #e91e63)';
+      } else if (seq.type === 'audio') {
+        block.style.background = 'linear-gradient(90deg, #673ab7, #9c27b0)';
       } else {
         block.style.background = 'linear-gradient(90deg, #1565c0, #03a9f4)';
       }
 
-      block.textContent = `${seq.preset || seq.pattern} (${seq.count || 1})`;
+      if (seq.type === 'audio') {
+        block.textContent = `🎵 ${seq.name || seq.url || 'Audio'}`;
+      } else {
+        block.textContent = `${seq.preset || seq.pattern} (${seq.count || 1})`;
+      }
 
       block.addEventListener('mousedown', (e) => {
         e.stopPropagation();
