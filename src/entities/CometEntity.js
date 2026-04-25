@@ -22,19 +22,72 @@ export class CometEntity {
 
     this.mesh = new THREE.Group();
 
-    // Use a slightly vertically elongated core for motion blur feel
-    const coreGeometry = new THREE.SphereGeometry(COMET_CORE_SIZE, 8, 8);
-    const coreMaterial = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 1,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      toneMapped: false
-    });
-    this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
-    this.coreMesh.scale.set(0.6, 1.8, 0.6); // Elongated in Y
-    this.mesh.add(this.coreMesh);
+    if (this.preset?.shellType === 'comet_cluster_notrail') {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array([color.r, color.g, color.b]), 3));
+      
+      const material = new THREE.PointsMaterial({
+        size: 32, // BASE_BURST_POINT_SIZE is 26, slightly larger for standalone comet visibility
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.92,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      material.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `
+          #include <color_fragment>
+          
+          vec2 coord = gl_PointCoord - vec2(0.5);
+          float dist = length(coord) * 2.0;
+          if (dist > 1.0) discard;
+          
+          vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
+          vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
+          vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
+          vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
+          
+          vec4 gradientColor;
+          if (dist < 0.024) {
+              gradientColor = stop0;
+          } else if (dist < 0.125) {
+              float t = (dist - 0.024) / (0.125 - 0.024);
+              gradientColor = mix(stop0, stop1, t);
+          } else if (dist < 0.32) {
+              float t = (dist - 0.125) / (0.32 - 0.125);
+              gradientColor = mix(stop1, stop2, t);
+          } else {
+              float t = (dist - 0.32) / (1.0 - 0.32);
+              gradientColor = mix(stop2, stop3, t);
+          }
+          
+          diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a);
+          `
+        );
+      };
+      
+      this.coreMesh = new THREE.Points(geometry, material);
+      this.mesh.add(this.coreMesh);
+    } else {
+      // Use a slightly vertically elongated core for motion blur feel
+      const coreGeometry = new THREE.SphereGeometry(COMET_CORE_SIZE, 8, 8);
+      const coreMaterial = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false
+      });
+      this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+      this.coreMesh.scale.set(0.6, 1.8, 0.6); // Elongated in Y
+      this.mesh.add(this.coreMesh);
+    }
 
     this.mesh.position.copy(position);
     // Orient the comet towards velocity if needed, but since it falls down, 
@@ -86,7 +139,9 @@ export class CometEntity {
         this.coreMesh.material.opacity = 1.0 - decayRatio;
         // Shrink core
         const scale = 1.0 - decayRatio * 0.8;
-        this.coreMesh.scale.set(0.6 * scale, 1.8 * scale, 0.6 * scale);
+        if (this.preset?.shellType !== 'comet_cluster_notrail') {
+          this.coreMesh.scale.set(0.6 * scale, 1.8 * scale, 0.6 * scale);
+        }
       }
     }
 

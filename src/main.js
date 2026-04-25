@@ -25,9 +25,9 @@ const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
 const trailSystem = new TrailSystem(sceneManager.instance);
 const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem);
-const cometSystem = new CometSystem(sceneManager.instance, trailSystem);
-const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
 const smokeSystem = new SmokeSystem(sceneManager);
+const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
+const cometSystem = new CometSystem(sceneManager.instance, trailSystem, smokeSystem);
 const audioSystem = new AudioSystem(cameraManager);
 audioSystem.preload();
 const postProcessing = renderingConfig.post.enabled
@@ -58,9 +58,9 @@ renderer.instance.domElement.addEventListener('click', () => {
   if (inputSystem.controls.isLocked && !inputSystem.isPaused()) {
     const preset = inputSystem.getSelectedPreset();
     if (preset && preset.type === 'comet_cluster') {
-      cometSystem.launchRandom(preset);
+      cometSystem.launchRandom(preset, { effectOverrides: { instantBurst: false } });
     } else {
-      fireworkSystem.launchRandom(preset);
+      fireworkSystem.launchRandom(preset, { effectOverrides: { instantBurst: false } });
     }
   }
 });

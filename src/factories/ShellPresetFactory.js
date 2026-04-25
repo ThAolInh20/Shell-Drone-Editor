@@ -22,6 +22,7 @@ export class ShellPresetFactory {
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
+      { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
@@ -124,6 +125,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.fallingCometsShell());
       case 'comet_cluster':
         return this.validatePreset(this.cometCluster());
+      case 'comet_cluster_notrail':
+        return this.validatePreset(this.cometClusterNoTrail());
       case 'random':
       default:
         return null;
@@ -197,11 +200,13 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'crackle',
       shapeType: 'sphere',
-      effectType: 'crackle',
-      particleCountMultiplier: 1.2,
-      crackle: true,
-      pistil: false,
-      streamers: false
+      effectType: 'standard',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false,
+      crackle: true
     };
   }
 
@@ -410,9 +415,24 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster',
       shapeType: 'sphere',
       effectType: 'standard',
+      clusterCount: 15 + Math.floor(Math.random() * 6),
       particleCountMultiplier: 1.5,
       crackle: false,
       launchTrail: true
+    };
+  }
+
+  cometClusterNoTrail(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_notrail',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 15 + Math.floor(Math.random() * 6),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: false,
+      launchSmoke: true
     };
   }
 

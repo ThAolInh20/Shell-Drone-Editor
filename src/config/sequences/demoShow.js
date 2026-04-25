@@ -44,7 +44,8 @@ export const demoShow = [
    */
 
   // --- VÍ DỤ COMET SEQUENCES ---
-  { time: 0.0, type: 'sequence', pattern: 'random', count: 15, duration: 2.0, x1: 0.0, x2: 0.5, y1: 0.5, y2: 0.8 },  // { time: 0.5, type: 'cometsequence', pattern: 'sweep-left', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', y1: 0, y2: 0.8 },
+  // { time: 0.0, type: 'sequence', pattern: 'random', count: 15, duration: 2.0, x1: 0.0, x2: 0.5, y1: 0.5, y2: 0.8 },
+  { time: 0.5, type: 'sequence', pattern: 'sweep-left', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', pistil: true, preset: 'crysanthemum' },
   // { time: 1.5, type: 'cometsequence', pattern: 'sweep-right', count: 9, duration: 0.5, ratioX: 0.5, sectorId: 'center', y1: 0, y2: 0.8 },
   // Bắn sweep comet có giới hạn vị trí (x1 tới x2) và góc nghiêng (angle):
   // { time: 2.5, type: 'cometsequence', pattern: 'sweep-right', count: 10, duration: 1.0, x1: 0.2, x2: 0.8, angle: Math.PI/8 },

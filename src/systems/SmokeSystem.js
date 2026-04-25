@@ -156,9 +156,17 @@ export class SmokeSystem {
         continue;
       }
 
-      puff.velocity.x *= 0.992;
-      puff.velocity.z *= 0.992;
-      puff.velocity.y += 0.32 * deltaTime;
+      // Khói bị thổi bay bởi gió (wind) thay vì chỉ trôi bồng bềnh tại chỗ
+      if (!this.wind) {
+        // Gió thổi ngang sang phải (X) và hơi đẩy về sau (Z)
+        this.wind = new THREE.Vector3(5.5, 0.8, 2.5); 
+      }
+      
+      // Hạt khói dần dần hòa vào tốc độ của gió (lerp) để tạo cảm giác bị cuốn đi
+      puff.velocity.lerp(this.wind, deltaTime * 1.2);
+      
+      // Khói vẫn giữ một chút lực nổi tự nhiên (bốc lên trên)
+      puff.velocity.y += 0.4 * deltaTime;
       puff.sprite.position.addScaledVector(puff.velocity, deltaTime);
 
       const growthScale = 1 + puff.growth * t;

@@ -142,7 +142,7 @@ export class BurstShapeGenerator {
       const isDoubleRing = Boolean(preset?.doubleRing);
       const isOutline = preset?.shapeRenderMode === 'outline';
       const isJupiter = preset?.shapeRenderMode === 'jupiter';
-      const ringBand = isDoubleRing && index % 2 === 0 ? 0.52 : 0.78;
+      const ringBand = 0.78; // Cùng bán kính
       const contourThickness = Math.max(0.01, preset?.outlineThickness ?? (isOutline ? 0.03 : 0.06));
 
       if (isJupiter) {
@@ -175,9 +175,14 @@ export class BurstShapeGenerator {
       
       const radius = ringBand + distortion + noiseRadius;
       
+      let yOffset = (Math.random() - 0.5) * 0.03;
+      if (isDoubleRing) {
+        yOffset += index % 2 === 0 ? 0.2 : -0.2; // 2 mặt phẳng song song (cách nhau 0.4)
+      }
+
       return new THREE.Vector3(
         Math.cos(perfectAngle) * radius,
-        (Math.random() - 0.5) * 0.03, // Lắc nhẹ theo phương dọc (Y)
+        yOffset,
         Math.sin(perfectAngle) * radius
       );
     }

@@ -86,7 +86,7 @@ export class TrailSystem {
       velocity: new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
       color: color.clone().offsetHSL(0, 0.05, 0.18),
       // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn
-      life: 1.5 + Math.random() * 1.2, 
+      life: 1.5 + Math.random() * 1.2,
       age: 0
     };
     this.trailParticles.push(spark);
@@ -131,7 +131,7 @@ export class TrailSystem {
       particle.velocity.x *= (1.0 - 4.0 * deltaTime);
       particle.velocity.z *= (1.0 - 4.0 * deltaTime);
       // Rơi xuống từ từ
-      particle.velocity.y += GRAVITY * deltaTime * 0.5; 
+      particle.velocity.y += GRAVITY * deltaTime * 0.5;
       particle.position.addScaledVector(particle.velocity, deltaTime);
       particle.age += deltaTime;
 

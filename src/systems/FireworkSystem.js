@@ -121,7 +121,7 @@ export class FireworkSystem {
       this.scene.add(burst.points);
       this.activeFireworks.push(burst);
       this.diagnostics.bursted += 1;
-      
+
       for (const warning of shellPreset.__contract?.warnings ?? []) {
         this.registerWarning(`[Shell ${shellId}] ${warning}`);
       }
@@ -129,7 +129,7 @@ export class FireworkSystem {
       this.emitDiagnostics();
 
       const normalizedEnergy = 0.35 + ((shellPreset.shellSize ?? 1 - 1) / 5) * 0.65;
-      
+
       this.emitFireworkEvent('firework:burst', {
         shellId,
         shellType: shellPreset.shellType ?? shellPreset.shapeType,
@@ -232,7 +232,7 @@ export class FireworkSystem {
     const gravity = 30; // Trọng lực được định nghĩa là 30 trong update()
     const groundY = this.launchZone.center.y;
     const h = Math.max(burstHeight - groundY, 5);
-    
+
     // Tính vận tốc v = sqrt(2gh). Nhân thêm 1.02 để pháo hoa khi đến điểm nổ vẫn còn một chút đà bay lên.
     const launchSpeedY = Math.sqrt(2 * gravity * h) * 1.02;
 
@@ -362,13 +362,22 @@ export class FireworkSystem {
     const whiteColor = new THREE.Color(0xffffff);
 
     const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
-    const coreRatio = Math.min(0.85, Math.max(0.15, preset?.ringCoreRatio ?? 0.42));
-    const coreCount = isJupiterComposite ? Math.max(8, Math.floor(burstParticleCount * coreRatio)) : 0;
+    const hasPistil = Boolean(preset?.pistil);
+    const isCompositeCore = isJupiterComposite || hasPistil;
+
+    let coreRatio = 0;
+    if (isJupiterComposite) {
+      coreRatio = Math.min(0.85, Math.max(0.15, preset?.ringCoreRatio ?? 0.42));
+    } else if (hasPistil) {
+      coreRatio = 0.7; // Dành 70% số hạt cho phần lõi (pistil)
+    }
+
+    const coreCount = isCompositeCore ? Math.max(8, Math.floor(burstParticleCount * coreRatio)) : 0;
     const ringCount = Math.max(1, burstParticleCount - coreCount);
     const ringPreset = isJupiterComposite ? { ...preset, shapeRenderMode: 'outline' } : preset;
 
     for (let i = 0; i < burstParticleCount; i++) {
-      const isCoreParticle = isJupiterComposite && i < coreCount;
+      const isCoreParticle = isCompositeCore && i < coreCount;
       const particleShape = isCoreParticle ? 'sphere' : resolvedShape;
       const particleIndex = isCoreParticle ? i : (i - coreCount);
       const particleCount = isCoreParticle ? coreCount : ringCount;
@@ -415,7 +424,7 @@ export class FireworkSystem {
       positions[i * 3 + 2] = position.z;
 
       const particleColor = isCoreParticle
-        ? new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0]).lerp(whiteColor, 0.08 + Math.random() * 0.12)
+        ? (preset?.pistilColor ? new THREE.Color(preset.pistilColor) : new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0])).lerp(whiteColor, 0.08 + Math.random() * 0.12)
         : burstColor;
       colors[i * 3] = particleColor.r * brightnessIntensity;
       colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
@@ -556,22 +565,61 @@ export class FireworkSystem {
     const effectType = item.points.userData.effectType;
     const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
 
-    if (item.points.userData.crackle && !item.points.userData.crackleCloudTriggered && item.age >= item.maxLife * 0.85) {
+    if (item.points.userData.crackle && item.age >= item.maxLife * 0.65) {
       const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
 
-      for (let i = 0; i < particleCount; i++) {
-        if (Math.random() < 0.65) { // Burst 65% of particles to save FPS
-          const origin = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-          const baseColor = baseColors ? new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]) : null;
-          this.trailSystem.spawnMicroCrackle(origin, baseColor);
-        }
+      if (!item.points.userData.crackleTriggeredList) {
+        item.points.userData.crackleTriggeredList = new Uint8Array(particleCount);
+        item.points.userData.nextCrackleTime = item.age; // Nổ cụm đầu tiên ngay
       }
 
-      item.points.userData.crackleCloudTriggered = true;
-      item.age = item.maxLife; // Force main burst to vanish
+      const isLastFrame = item.age >= item.maxLife - deltaTime * 2;
 
-      const centerOrigin = new THREE.Vector3(positions[0], positions[1], positions[2]);
-      this.emitFireworkEvent('firework:crackle', { position: { x: centerOrigin.x, y: centerOrigin.y, z: centerOrigin.z } });
+      if (item.age >= item.points.userData.nextCrackleTime || isLastFrame) {
+        const remainingParticles = [];
+        for (let i = 0; i < particleCount; i++) {
+          if (item.points.userData.crackleTriggeredList[i] === 0) {
+            remainingParticles.push(i);
+          }
+        }
+
+        if (remainingParticles.length > 0) {
+          // Nổ từng cụm khoảng 15-25% tổng số hạt mỗi lần, nếu là frame cuối thì nổ sạch phần còn lại
+          const clusterSize = isLastFrame ? remainingParticles.length : Math.min(remainingParticles.length, Math.ceil(particleCount * (0.15 + Math.random() * 0.15)));
+          let centerOrigin = null;
+
+          for (let c = 0; c < clusterSize; c++) {
+            const rIdx = Math.floor(Math.random() * remainingParticles.length);
+            const i = remainingParticles.splice(rIdx, 1)[0];
+
+            item.points.userData.crackleTriggeredList[i] = 1;
+
+            if (Math.random() < 0.65) { // Burst 65% of particles to save FPS
+              const origin = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+              const baseColor = baseColors ? new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]) : null;
+              this.trailSystem.spawnMicroCrackle(origin, baseColor);
+              if (!centerOrigin) centerOrigin = origin;
+            }
+
+            // Ẩn hạt gốc đi sau khi nổ crackle
+            colors[i * 3] = 0;
+            colors[i * 3 + 1] = 0;
+            colors[i * 3 + 2] = 0;
+            if (baseColors) {
+              baseColors[i * 3] = 0;
+              baseColors[i * 3 + 1] = 0;
+              baseColors[i * 3 + 2] = 0;
+            }
+          }
+
+          if (centerOrigin) {
+            this.emitFireworkEvent('firework:crackle', { position: { x: centerOrigin.x, y: centerOrigin.y, z: centerOrigin.z } });
+          }
+
+          // Cụm tiếp theo sẽ nổ sau 0.05s đến 0.15s
+          item.points.userData.nextCrackleTime = item.age + 0.05 + Math.random() * 0.1;
+        }
+      }
     }
 
     const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
@@ -623,13 +671,20 @@ export class FireworkSystem {
       if (effectType === 'strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         const timeMs = (item.age + phase) * 1000;
-        const strobeFreq = 400; // Tăng từ 220 lên 400 để chớp chậm hơn
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-        const blink = isBlinking ? 1.0 : 0.05;
+        const strobeFreq = 150; // Chớp nhanh hơn để tạo cảm giác lung linh (150ms)
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0; // on:off:off
+        const blink = isBlinking ? 1.0 : 0.0; // Trắng tinh khi ON, tắt hoàn toàn (0) khi OFF
 
-        colors[i * 3] = baseColors[i * 3] * blink;
-        colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
-        colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+        // Chỉ ép màu trắng nếu đúng là pháo strobe nguyên bản, nếu là ringV2 thì giữ màu gốc
+        if (item.points.userData.shellType === 'strobe') {
+          colors[i * 3] = blink;
+          colors[i * 3 + 1] = blink;
+          colors[i * 3 + 2] = blink;
+        } else {
+          colors[i * 3] = baseColors[i * 3] * blink;
+          colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
+          colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+        }
         needsColorUpdate = true;
       } else if (effectType === 'white-strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];

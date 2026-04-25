@@ -152,13 +152,31 @@ export class CometSystem {
 
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING || comet.state === CometEntity.STATE.DECAYING) {
-        // Giảm thời gian sống của hạt trail xuống còn 35% để đuôi comet ngắn và sắc nét hơn
-        // Giảm số lượng hạt xuống còn khoảng 2/3 (chỉ sinh 1 hạt mỗi frame thay vì 1-2 hạt)
-        this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
+        if (comet.preset?.launchTrail !== false) {
+          // Giảm thời gian sống của hạt trail xuống còn 35% để đuôi comet ngắn và sắc nét hơn
+          // Giảm số lượng hạt xuống còn khoảng 2/3 (chỉ sinh 1 hạt mỗi frame thay vì 1-2 hạt)
+          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
+          
+          // Occasional sparks
+          if (Math.random() < 0.15) {
+            this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
+          }
+        }
         
-        // Occasional sparks
-        if (Math.random() < 0.15) {
-          this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
+        // Thêm hiệu ứng khói ở đuôi
+        if (this.smokeSystem && comet.preset?.launchSmoke && Math.random() < 0.2) {
+          const drift = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * 0.5 + 0.2,
+            (Math.random() - 0.5) * 0.5
+          );
+          this.smokeSystem.spawnPuff(comet.mesh.position.clone(), drift, {
+            life: 1.0 + Math.random() * 0.5,
+            scale: 2.5 + Math.random() * 2.0,
+            growth: 2.5,
+            opacity: 0.12 + Math.random() * 0.08,
+            color: new THREE.Color(0x778090)
+          });
         }
       }
 
