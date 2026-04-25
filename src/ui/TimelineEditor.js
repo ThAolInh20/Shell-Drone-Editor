@@ -178,26 +178,7 @@ export class TimelineEditor {
     this.trackContainer.appendChild(this.ruler);
 
     // Draw ruler ticks
-    for (let i = 0; i < 1000; i++) {
-      const tick = document.createElement('div');
-      tick.style.position = 'absolute';
-      tick.style.left = (i * this.pixelsPerSecond) + 'px';
-      tick.style.bottom = '0';
-      tick.style.height = '5px';
-      tick.style.borderLeft = '1px solid #777';
-      if (i % 5 === 0) {
-        tick.style.height = '10px';
-        const label = document.createElement('span');
-        label.textContent = i + 's';
-        label.style.position = 'absolute';
-        label.style.left = '2px';
-        label.style.bottom = '2px';
-        label.style.fontSize = '10px';
-        label.style.color = '#aaa';
-        tick.appendChild(label);
-      }
-      this.ruler.appendChild(tick);
-    }
+    this.renderRuler();
 
     // Tracks area
     this.tracksArea = document.createElement('div');
@@ -265,6 +246,16 @@ export class TimelineEditor {
         e.preventDefault();
         this.toggle();
       }
+      if (e.key === ')' || (e.shiftKey && e.key === '0')) {
+        e.preventDefault();
+        const zoomLevels = [25, 50, 100, 200];
+        let idx = zoomLevels.indexOf(this.pixelsPerSecond);
+        idx = (idx + 1) % zoomLevels.length;
+        this.pixelsPerSecond = zoomLevels[idx];
+        this.renderRuler();
+        this.renderTracks();
+        this.anchorHead.style.left = (this.anchorTime * this.pixelsPerSecond) + 'px';
+      }
       if (e.code === 'Space' && this.visible) {
         if (e.target.tagName !== 'INPUT') {
           e.preventDefault();
@@ -300,6 +291,35 @@ export class TimelineEditor {
       opt.value = 'demoShow.json';
       opt.textContent = 'demoShow.json';
       this.fileSelect.appendChild(opt);
+    }
+  }
+
+  renderRuler() {
+    this.ruler.innerHTML = '';
+    const maxSeconds = 10000 / this.pixelsPerSecond;
+    for (let i = 0; i < maxSeconds; i += 0.1) {
+      const time = Math.round(i * 10) / 10;
+      const tick = document.createElement('div');
+      tick.style.position = 'absolute';
+      tick.style.left = (time * this.pixelsPerSecond) + 'px';
+      tick.style.bottom = '0';
+      tick.style.height = '4px';
+      tick.style.borderLeft = '1px solid #555';
+      
+      if (time % 0.5 === 0) {
+        tick.style.height = time % 1 === 0 ? '12px' : '7px';
+        tick.style.borderLeft = time % 1 === 0 ? '1px solid #999' : '1px solid #777';
+        
+        const label = document.createElement('span');
+        label.textContent = time + 's';
+        label.style.position = 'absolute';
+        label.style.left = '2px';
+        label.style.bottom = '2px';
+        label.style.fontSize = '9px';
+        label.style.color = time % 1 === 0 ? '#ddd' : '#888';
+        tick.appendChild(label);
+      }
+      this.ruler.appendChild(tick);
     }
   }
 
@@ -373,29 +393,52 @@ export class TimelineEditor {
   }
 
   assignTracks() {
-    // Sort events by time
-    const sorted = [...this.sequences].filter(s => !s._deleted).sort((a, b) => a.time - b.time);
-    const rows = []; // array of end-times for each row
-
-    sorted.forEach(seq => {
+    const audioSequences = [...this.sequences].filter(s => !s._deleted && s.type === 'audio').sort((a, b) => a.time - b.time);
+    const otherSequences = [...this.sequences].filter(s => !s._deleted && s.type !== 'audio').sort((a, b) => a.time - b.time);
+    
+    let audioRows = [];
+    audioSequences.forEach(seq => {
       const start = seq.time;
       const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
-      // visual duration needs a minimum so we don't overlap zero-duration blocks
       const visualDuration = Math.max(visualDurationVal, this.minBlockWidth / this.pixelsPerSecond);
-      const end = start + visualDuration + 0.1; // 0.1 padding
+      const end = start + visualDuration + 0.1;
 
       let placed = false;
-      for (let i = 0; i < rows.length; i++) {
-        if (rows[i] <= start) {
+      for (let i = 0; i < audioRows.length; i++) {
+        if (audioRows[i] <= start) {
           seq._trackRow = i;
-          rows[i] = end;
+          audioRows[i] = end;
           placed = true;
           break;
         }
       }
       if (!placed) {
-        seq._trackRow = rows.length;
-        rows.push(end);
+        seq._trackRow = audioRows.length;
+        audioRows.push(end);
+      }
+    });
+
+    const reservedAudioRows = Math.max(1, audioRows.length);
+
+    let otherRows = [];
+    otherSequences.forEach(seq => {
+      const start = seq.time;
+      const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
+      const visualDuration = Math.max(visualDurationVal, this.minBlockWidth / this.pixelsPerSecond);
+      const end = start + visualDuration + 0.1;
+
+      let placed = false;
+      for (let i = 0; i < otherRows.length; i++) {
+        if (otherRows[i] <= start) {
+          seq._trackRow = reservedAudioRows + i;
+          otherRows[i] = end;
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        seq._trackRow = reservedAudioRows + otherRows.length;
+        otherRows.push(end);
       }
     });
   }
