@@ -11,7 +11,7 @@ export class FireworkSequencer {
       task.timeToLaunch -= deltaTime;
 
       if (task.timeToLaunch <= 0) {
-        const isComet = (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet')) 
+        const isComet = task.isComet || (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet')) 
                       || (typeof task.preset === 'string' && task.preset.startsWith('comet_cluster'));
 
         if (isComet) {
@@ -162,6 +162,7 @@ export class FireworkSequencer {
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
+        isComet: true,
         options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides }
       });
     }
