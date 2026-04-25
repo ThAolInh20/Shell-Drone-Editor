@@ -737,6 +737,17 @@ export class FireworkSystem {
     }
   }
 
+  clear() {
+    for (const fw of this.activeFireworks) {
+      if (fw.points) {
+        this.scene.remove(fw.points);
+        fw.points.geometry.dispose();
+        fw.points.material.dispose();
+      }
+    }
+    this.activeFireworks = [];
+  }
+
   update(deltaTime) {
     // Auto launch
     if (this.autoLaunchEnabled) {

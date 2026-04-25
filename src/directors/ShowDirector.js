@@ -8,11 +8,25 @@ export class ShowDirector {
   }
 
   loadScript(scriptConfig) {
-    // Clone and sort events by time
-    this.events = [...scriptConfig].sort((a, b) => a.time - b.time);
+    this.scriptConfig = [...scriptConfig].sort((a, b) => a.time - b.time);
+    this.events = [...this.scriptConfig];
     this.elapsedTime = 0;
     this.isPlaying = false;
     this.sequencer.clear();
+  }
+
+  seek(time) {
+    this.elapsedTime = time;
+    if (this.scriptConfig) {
+      this.events = this.scriptConfig.filter(evt => evt.time >= time);
+    }
+    this.sequencer.clear();
+    if (this.fireworkSystem && this.fireworkSystem.clear) {
+      this.fireworkSystem.clear();
+    }
+    if (this.sequencer.cometSystem && this.sequencer.cometSystem.clear) {
+      this.sequencer.cometSystem.clear();
+    }
   }
 
   play() {

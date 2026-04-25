@@ -144,6 +144,15 @@ export class CometSystem {
     return new THREE.Vector3(vx, vy, vz);
   }
 
+  clear() {
+    for (const comet of this.activeComets) {
+      if (comet.entity) {
+        comet.entity.dispose();
+      }
+    }
+    this.activeComets = [];
+  }
+
   update(deltaTime) {
     const finished = [];
 

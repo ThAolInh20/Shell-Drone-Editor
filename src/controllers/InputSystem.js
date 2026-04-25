@@ -208,7 +208,19 @@ export class InputSystem {
     this.resumeButton.textContent = 'Resume';
     this.resumeButton.addEventListener('click', () => this.resume());
 
+    this.timelineButton = document.createElement('button');
+    this.timelineButton.type = 'button';
+    this.timelineButton.className = 'firework-pause-button';
+    this.timelineButton.textContent = 'Timeline Editor (Ctrl+T)';
+    this.timelineButton.style.marginLeft = '10px';
+    this.timelineButton.style.background = '#03a9f4';
+    this.timelineButton.addEventListener('click', () => {
+      this.resume();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true }));
+    });
+
     buttonRow.appendChild(this.resumeButton);
+    buttonRow.appendChild(this.timelineButton);
     label.appendChild(this.presetSelect);
     panel.appendChild(this.selectedPresetHighlight);
     panel.appendChild(title);

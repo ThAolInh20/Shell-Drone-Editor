@@ -13,6 +13,7 @@ import { SmokeSystem } from './systems/SmokeSystem.js';
 import { AudioSystem } from './systems/AudioSystem.js';
 import { FireworkSequencer } from './directors/FireworkSequencer.js';
 import { ShowDirector } from './directors/ShowDirector.js';
+import { TimelineEditor } from './ui/TimelineEditor.js';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
@@ -47,6 +48,7 @@ const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 const fireworkSequencer = new FireworkSequencer(fireworkSystem, cometSystem);
 const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
+const timelineEditor = new TimelineEditor(showDirector);
 
 // The show script loading is now handled in InputSystem
 

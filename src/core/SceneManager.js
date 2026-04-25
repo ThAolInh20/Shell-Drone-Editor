@@ -75,8 +75,8 @@ export class SceneManager {
     // Add checkerboard floor
     this.addCheckerboardFloor();
 
-    // // Add launch pad for fireworks
-    // this.addLaunchPad();
+    // Add launch pad for fireworks
+    this.addLaunchPad();
 
     // // Add burst height guide lines
     // this.addBurstHeightGuides();
