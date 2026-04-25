@@ -163,6 +163,5 @@ export class InputSystem {
     const moving = direction !== '' && direction !== 'idle';
     this.status.moving = moving;
     this.status.direction = moving ? direction : 'idle';
-    this.updateStatusOverlay();
   }
 }

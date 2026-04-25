@@ -234,6 +234,12 @@ export class TimelineEditor {
         }
       }
     });
+
+    // Auto-hide when entering Move Mode (pointer lock), show when exiting Move Mode
+    document.addEventListener('pointerlockchange', () => {
+      this.visible = !document.pointerLockElement;
+      this.container.style.display = this.visible ? 'flex' : 'none';
+    });
   }
 
   async fetchFileList() {
@@ -473,20 +479,29 @@ export class TimelineEditor {
 
     const content = `export const ${this.filename.replace('.js', '')} = ${JSON.stringify(cleanSeqs, null, 2)};\n`;
 
+    // Cách 1: Copy vào Clipboard
     try {
-      const res = await fetch('/api/save-sequence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: this.filename, content })
-      });
-      const result = await res.json();
-      if (result.success) {
-        alert('Sequence saved to ' + this.filename + '!');
-      } else {
-        alert('Failed to save: ' + result.error);
-      }
+      await navigator.clipboard.writeText(content);
+      console.log('Đã copy nội dung vào Clipboard!');
     } catch (e) {
-      alert('Error saving sequence: ' + e.message);
+      console.warn("Không thể copy vào clipboard", e);
+    }
+
+    // Cách 2: Tự động tải file về máy
+    try {
+      const blob = new Blob([content], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert(`Đã tải xuống file ${this.filename}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
+    } catch (err) {
+      alert('Lỗi khi lưu file: ' + err.message);
     }
   }
 }
