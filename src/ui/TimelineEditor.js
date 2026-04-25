@@ -262,6 +262,27 @@ export class TimelineEditor {
           this.togglePlay();
         }
       }
+      
+      // Copy
+      if (e.key === 'c' && e.ctrlKey && this.visible) {
+        if (e.target.tagName !== 'INPUT' && this.inspector && this.inspector.selectedEvent) {
+          this.clipboardEvent = { ...this.inspector.selectedEvent };
+        }
+      }
+
+      // Paste
+      if (e.key === 'v' && e.ctrlKey && this.visible) {
+        if (e.target.tagName !== 'INPUT' && this.clipboardEvent) {
+          const newEvent = { ...this.clipboardEvent };
+          if (newEvent.effectOverrides) {
+            newEvent.effectOverrides = JSON.parse(JSON.stringify(newEvent.effectOverrides));
+          }
+          newEvent.time = this.anchorTime;
+          this.sequences.push(newEvent);
+          this.renderTracks();
+          this.inspector.show(newEvent);
+        }
+      }
     });
 
     // Auto-hide when entering Move Mode (pointer lock), show when exiting Move Mode
