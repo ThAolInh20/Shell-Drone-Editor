@@ -390,7 +390,7 @@ export class FireworkSystem {
         isCoreParticle ? preset : ringPreset
       ).applyQuaternion(burstRotation);
 
-      const useContourMagnitude = !isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart');
+      const useContourMagnitude = !isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -402,8 +402,8 @@ export class FireworkSystem {
       let baseSpeed;
       if (isCoreParticle) {
         baseSpeed = BURST_SPEED * coreSpeedBand;
-      } else if (particleShape === 'ring' || particleShape === 'heart') {
-        let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart và ring v2
+      } else if (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star') {
+        let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart, star và ring v2
         if (preset?.shellType === 'ring') {
           speedVariance = 0.01; // Ring v1 cần tròn xoe hoàn hảo không méo
         }
@@ -496,6 +496,20 @@ export class FireworkSystem {
       preset,
       effectState: BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount)
     };
+
+    if (normalizedEffect === 'ghost') {
+      const ghostDots = new Float32Array(burstParticleCount);
+      const ghostAxis = points.userData.effectState.ghostAxis;
+      for (let i = 0; i < burstParticleCount; i++) {
+        const vel = velocities[i];
+        const speed = vel.length();
+        const nx = speed > 0 ? vel.x / speed : 0;
+        const ny = speed > 0 ? vel.y / speed : 0;
+        const nz = speed > 0 ? vel.z / speed : 0;
+        ghostDots[i] = nx * ghostAxis.x + ny * ghostAxis.y + nz * ghostAxis.z;
+      }
+      points.userData.effectState.ghostDots = ghostDots;
+    }
 
     return {
       type: 'burst',
@@ -735,6 +749,24 @@ export class FireworkSystem {
           colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
           colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
         }
+        needsColorUpdate = true;
+      } else if (effectType === 'ghost' && baseColors) {
+        const dot = item.points.userData.effectState.ghostDots[i]; // -1.0 to 1.0
+
+        const lifeRatio = item.age / item.maxLife;
+        // Sweep from -1.5 to 1.5
+        const sweep = (lifeRatio / 0.8) * 3.0 - 1.5; 
+        
+        let intensity = 0;
+        if (dot < sweep) {
+            intensity = 1.0;
+        } else if (dot < sweep + 0.4) {
+            intensity = 1.0 - ((dot - sweep) / 0.4); // soft edge
+        }
+
+        colors[i * 3]     = baseColors[i * 3] * intensity;
+        colors[i * 3 + 1] = baseColors[i * 3 + 1] * intensity;
+        colors[i * 3 + 2] = baseColors[i * 3 + 2] * intensity;
         needsColorUpdate = true;
       } else if (effectType === 'white-strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];

@@ -45,6 +45,8 @@ export class ShellPresetFactory {
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
       { key: 'heart', label: 'Heart' },
+      { key: 'star', label: 'Star' },
+      { key: 'ghost', label: 'Ghost' },
       { key: 'falling-comets', label: 'Falling Comets' }
     ];
   }
@@ -71,7 +73,8 @@ export class ShellPresetFactory {
     if (roll < 0.96) return this.fishShell();
     if (roll < 0.975) return this.smileyShell();
     if (roll < 0.985) return this.waveShell();
-    if (roll < 0.995) return this.fallingCometsShell();
+    if (roll < 0.99) return this.fallingCometsShell();
+    if (roll < 0.995) return this.starShell();
     return this.hearthShell();
   }
 
@@ -125,6 +128,10 @@ export class ShellPresetFactory {
         return this.validatePreset(this.waveShell());
       case 'heart':
         return this.validatePreset(this.hearthShell());
+      case 'star':
+        return this.validatePreset(this.starShell());
+      case 'ghost':
+        return this.validatePreset(this.ghostShell());
       case 'falling-comets':
         return this.validatePreset(this.fallingCometsShell());
       case 'comet_cluster':
@@ -412,7 +419,7 @@ export class ShellPresetFactory {
   hearthShell(size = 1) {
     return {
       ...this.basePreset(size),
-      pistil: true,
+      pistil: false,
       starLife: 850 + size * 150,
       shellType: 'heart',
       shapeType: 'heart',
@@ -424,6 +431,32 @@ export class ShellPresetFactory {
       heartSegmentCount: 96,
       heartEdgeSharpness: 1.06,
       hearth: true
+    };
+  }
+
+  starShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      pistil: false,
+      starLife: 850 + size * 150,
+      shellType: 'star',
+      shapeType: 'star',
+      effectType: 'star',
+      shapeRenderMode: 'outline',
+      particleCountMultiplier: 0.9,
+      star: true
+    };
+  }
+
+  ghostShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'ghost',
+      shapeType: 'sphere',
+      effectType: 'ghost',
+      particleCountMultiplier: 1.5, // Nhiều hạt để thấy rõ làn sóng đổi màu quét qua
+      starLife: 1500 + size * 200,
+      ghost: true
     };
   }
 

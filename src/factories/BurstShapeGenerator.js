@@ -188,12 +188,38 @@ export class BurstShapeGenerator {
     }
 
     if (shape === 'star') {
-      const radius = Math.sin(angle * 5) * 0.45 + 0.75;
-      return new THREE.Vector3(
-        Math.cos(angle) * radius,
-        Math.sin(angle) * radius,
-        Math.random() * 0.45 - 0.225
-      ).normalize();
+      let starRotation = preset?.starRotation;
+
+      if (!starRotation) {
+        starRotation = {
+          x: (Math.random() - 0.5) * 0.3,
+          y: (Math.random() - 0.5) * 0.3,
+          z: Math.random() * Math.PI * 2
+        };
+        if (preset) preset.starRotation = starRotation;
+      }
+
+      const spikes = 5;
+      const innerRadius = 0.38;
+      const outerRadius = 1.0;
+      
+      const angleMod = (angle % ((Math.PI * 2) / spikes)) / ((Math.PI * 2) / spikes); 
+      const t = Math.abs(angleMod * 2 - 1); // 1 at spikes, 0 at inner valleys
+      
+      // Use pow(t, 1.8) for straighter edges on the star
+      const radius = innerRadius + (outerRadius - innerRadius) * Math.pow(t, 1.8); 
+
+      // Spread slightly in Z so it's not perfectly flat
+      let x = Math.cos(angle) * radius;
+      let y = Math.sin(angle) * radius;
+      let z = (Math.random() - 0.5) * 0.08;
+
+      const rotated = this.rotate3D(
+        x, y, z,
+        starRotation.x, starRotation.y, starRotation.z
+      );
+
+      return new THREE.Vector3(rotated.x, rotated.y, rotated.z);
     }
 
     if (shape === 'willow') {

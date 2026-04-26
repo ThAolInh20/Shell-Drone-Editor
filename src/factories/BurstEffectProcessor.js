@@ -13,9 +13,9 @@ export class BurstEffectProcessor {
     'glitter-strobe',
     'heart',
     'oval',
-    'falling-comets',
     'falling-comets-glitter',
-    'crysanthemum-trail'
+    'crysanthemum-trail',
+    'ghost'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -72,11 +72,18 @@ export class BurstEffectProcessor {
       turbulence[i] = 0.25 + Math.random() * 0.95;
     }
 
+    let ghostAxis = { x: 1, y: 0, z: 0 };
+    if (normalizedEffect === 'ghost') {
+      const vec = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+      ghostAxis = { x: vec.x, y: vec.y, z: vec.z };
+    }
+
     return {
       effectType: normalizedEffect,
       spin,
       phase,
-      turbulence
+      turbulence,
+      ghostAxis
     };
   }
 
@@ -179,6 +186,9 @@ export class BurstEffectProcessor {
       spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet, tuy nhiên nó sẽ mang màu của pháo đó
       trailLife = 0.6;
       trailIntensity = 0.7; // Cường độ sáng cao hơn để giữ màu sắc thật
+    } else if (effectType === 'ghost') {
+      gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
+      velocity.multiplyScalar(0.996);
     }
 
     return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };
