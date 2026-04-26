@@ -519,15 +519,65 @@ export class FireworkSystem {
     const shouldBurst = item.update(deltaTime);
 
     if (Math.random() < 0.4) {
-      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color);
+      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5);
     }
 
     if (!shouldBurst) {
       return;
     }
 
-    const burst = this.createBurst(item.mesh.position.clone(), item.color, item.shapeType ?? item.shape, item.preset);
     const burstPosition = item.mesh.position.clone();
+
+    if (item.shellType === 'floral' || item.preset?.effectType === 'floral') {
+      const clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+      for (let i = 0; i < clusterCount; i++) {
+        const colorHex = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+        const subColor = new THREE.Color(colorHex);
+
+        const speed = 35 + Math.random() * 30; // Increased speed for wider spread
+        const angleY = Math.random() * Math.PI / 2.2; // spread upwards and outwards
+        const angleXZ = Math.random() * Math.PI * 2;
+
+        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+        const vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+
+        const velocity = new THREE.Vector3(vx, vy, vz);
+        const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
+
+        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
+        subPreset.color = colorHex;
+        subPreset.shellType = 'floral-child';
+        subPreset.particleCountMultiplier = 0.5; // save FPS
+
+        const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c' + i);
+
+        this.scene.add(subShell.mesh);
+        this.activeFireworks.push(subShell);
+        this.diagnostics.launched += 1;
+      }
+
+      this.scene.remove(item.mesh);
+      item.markBursted?.();
+      finished.push(item);
+
+      const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+      const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
+
+      this.emitFireworkEvent('firework:burst', {
+        shellId: item.shellId,
+        shellType: item.shellType ?? item.shape,
+        shapeType: item.shapeType ?? item.shape,
+        effectType: item.preset?.effectType ?? item.shape,
+        colorHex: item.color.getHex(),
+        position: { x: burstPosition.x, y: burstPosition.y, z: burstPosition.z },
+        intensity: normalizedEnergy,
+        duration: 1.25 + normalizedEnergy * 1.1
+      });
+      return;
+    }
+
+    const burst = this.createBurst(burstPosition, item.color, item.shapeType ?? item.shape, item.preset);
     const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
     const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
     this.scene.add(burst.points);
