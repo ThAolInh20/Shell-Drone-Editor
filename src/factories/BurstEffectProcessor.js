@@ -14,7 +14,8 @@ export class BurstEffectProcessor {
     'heart',
     'oval',
     'falling-comets',
-    'falling-comets-glitter'
+    'falling-comets-glitter',
+    'crysanthemum-trail'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -173,6 +174,11 @@ export class BurstEffectProcessor {
       spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
       trailLife = 0.8;
       trailIntensity = 0.15; // Giảm sáng cực mạnh để không lóa
+    } else if (effectType === 'crysanthemum-trail') {
+      gravityScale = 0.3; 
+      spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet, tuy nhiên nó sẽ mang màu của pháo đó
+      trailLife = 0.6;
+      trailIntensity = 0.7; // Cường độ sáng cao hơn để giữ màu sắc thật
     }
 
     return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };

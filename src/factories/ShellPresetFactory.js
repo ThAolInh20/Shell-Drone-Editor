@@ -18,12 +18,13 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'crysanthemum-trail']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
+      { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
       { key: 'whiteStrobe', label: 'White Strobe' },
@@ -51,7 +52,8 @@ export class ShellPresetFactory {
   randomPreset() {
     const roll = Math.random();
 
-    if (roll < 0.14) return this.crysanthemumShell();
+    if (roll < 0.10) return this.crysanthemumShell();
+    if (roll < 0.14) return this.crysanthemumV2Shell();
     if (roll < 0.22) return this.crackleShell();
     if (roll < 0.27) return this.strobeShell();
     if (roll < 0.32) return this.whiteStrobeShell();
@@ -81,6 +83,8 @@ export class ShellPresetFactory {
     switch (key) {
       case 'crysanthemum':
         return this.validatePreset(this.crysanthemumShell());
+      case 'crysanthemumV2':
+        return this.validatePreset(this.crysanthemumV2Shell());
       case 'crackle':
         return this.validatePreset(this.crackleShell());
       case 'strobe':
@@ -175,6 +179,20 @@ export class ShellPresetFactory {
       shellType: 'crysanthemum',
       shapeType: 'sphere',
       effectType: 'standard',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumV2',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-trail',
       flower: false,
       smiley: false,
       hearth: false,
