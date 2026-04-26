@@ -34,6 +34,7 @@ export class ShellPresetFactory {
       { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3 (Glitter)' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
+      { key: 'bouquet', label: 'Bouquet (Cluster)' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
       { key: 'cat', label: 'Cat' },
@@ -106,6 +107,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.fallingLeavesShell());
       case 'floral':
         return this.validatePreset(this.floralShell());
+      case 'bouquet':
+        return this.validatePreset(this.bouquetShell());
       case 'rumble':
         return this.validatePreset(this.rumbleShell());
       case 'flower':
@@ -343,6 +346,16 @@ export class ShellPresetFactory {
       starLifeVariation: 0.5,
       pistil: false,
       streamers: false
+    };
+  }
+
+  bouquetShell(size = 1) {
+    return {
+      type: 'bouquet',
+      shellType: 'bouquet',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size
     };
   }
 

@@ -542,7 +542,7 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (item.shellType === 'floral' || item.preset?.effectType === 'floral') {
+    if (item.shellType === 'bouquet') {
       const clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
       for (let i = 0; i < clusterCount; i++) {
         const colorHex = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
