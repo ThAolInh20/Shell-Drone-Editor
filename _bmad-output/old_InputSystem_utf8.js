@@ -1,4 +1,4 @@
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+﻿import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { sequences } from '../config/sequences/index.js';
 
 export class InputSystem {
@@ -208,20 +208,7 @@ export class InputSystem {
     this.resumeButton.textContent = 'Resume';
     this.resumeButton.addEventListener('click', () => this.resume());
 
-    this.timelineButton = document.createElement('button');
-    this.timelineButton.type = 'button';
-    this.timelineButton.className = 'firework-pause-button';
-    this.timelineButton.textContent = 'Timeline (Ctrl+T)';
-    this.timelineButton.style.marginLeft = '10px';
-    this.timelineButton.style.backgroundColor = '#1976d2'; // distinct color
-    this.timelineButton.addEventListener('click', () => {
-      if (this.timelineEditor) {
-        this.timelineEditor.toggle();
-      }
-    });
-
     buttonRow.appendChild(this.resumeButton);
-    buttonRow.appendChild(this.timelineButton);
     label.appendChild(this.presetSelect);
     panel.appendChild(this.selectedPresetHighlight);
     panel.appendChild(title);

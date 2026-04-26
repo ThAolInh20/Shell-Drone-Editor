@@ -8,7 +8,7 @@ export class TimelineEditor {
     this.pixelsPerSecond = 50;
     this.rowHeight = 30;
     this.minBlockWidth = 20;
-    this.visible = true;
+    this.visible = false;
     this.dragOffsetX = 0;
     this.isResizing = false;
     this.resizedEvent = null;
@@ -35,7 +35,7 @@ export class TimelineEditor {
     this.container.style.background = 'rgba(10, 15, 20, 0.85)';
     this.container.style.backdropFilter = 'blur(10px)';
     this.container.style.borderTop = '1px solid #444';
-    this.container.style.display = 'flex';
+    this.container.style.display = 'none';
     this.container.style.flexDirection = 'row';
     this.container.style.zIndex = '1000';
     this.container.style.color = 'white';
@@ -242,7 +242,7 @@ export class TimelineEditor {
 
     // Global Hotkeys
     window.addEventListener('keydown', (e) => {
-      if (e.key === 't' && e.ctrlKey) {
+      if (e.code === 'KeyT' && e.ctrlKey) {
         e.preventDefault();
         this.toggle();
       }
@@ -285,10 +285,13 @@ export class TimelineEditor {
       }
     });
 
-    // Auto-hide when entering Move Mode (pointer lock), show when exiting Move Mode
+    // Auto-hide when entering Move Mode (pointer lock), show only if it was visible
     document.addEventListener('pointerlockchange', () => {
-      this.visible = !document.pointerLockElement;
-      this.container.style.display = this.visible ? 'flex' : 'none';
+      if (document.pointerLockElement) {
+        this.container.style.display = 'none';
+      } else {
+        this.container.style.display = this.visible ? 'flex' : 'none';
+      }
     });
   }
 

@@ -54,6 +54,7 @@ const timelineEditor = new TimelineEditor(showDirector);
 
 // Expose to input system or global for triggering
 inputSystem.showDirector = showDirector;
+inputSystem.timelineEditor = timelineEditor;
 
 renderer.instance.domElement.addEventListener('click', () => {
   audioSystem.resume();
