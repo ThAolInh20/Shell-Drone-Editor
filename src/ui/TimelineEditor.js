@@ -242,7 +242,7 @@ export class TimelineEditor {
 
     // Global Hotkeys
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyT' && e.ctrlKey) {
+      if (e.code === 'KeyT' && e.shiftKey) {
         e.preventDefault();
         this.toggle();
       }
@@ -353,6 +353,7 @@ export class TimelineEditor {
     if (this.visible && document.pointerLockElement) {
       document.exitPointerLock();
     }
+    window.dispatchEvent(new CustomEvent('timeline:toggle', { detail: this.visible }));
   }
 
   togglePlay() {

@@ -68,6 +68,17 @@ renderer.instance.domElement.addEventListener('click', () => {
   }
 });
 
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyY' && e.shiftKey) {
+    if (performanceMonitor.overlay) {
+      performanceMonitor.overlay.style.display = performanceMonitor.overlay.style.display === 'none' ? '' : 'none';
+    }
+    if (inputSystem.statusOverlay) {
+      inputSystem.statusOverlay.style.display = inputSystem.statusOverlay.style.display === 'none' ? '' : 'none';
+    }
+  }
+});
+
 function animate() {
   requestAnimationFrame(animate);
 
