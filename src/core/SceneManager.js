@@ -79,7 +79,7 @@ export class SceneManager {
     this.launchPadGroup = new THREE.Group();
     this.launchPadGroup.visible = false; // Hidden by default, synced with TimelineEditor
     this.instance.add(this.launchPadGroup);
-    this.addLaunchPad();
+    // this.addLaunchPad();
 
     window.addEventListener('timeline:toggle', (e) => {
       this.launchPadGroup.visible = e.detail;

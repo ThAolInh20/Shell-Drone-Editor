@@ -22,8 +22,8 @@ export class AudioSystem {
         volume: 0.9,
         playbackRateMin: 0.8,
         playbackRateMax: 0.9,
-        // fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
-        fileNames: ['burst1.mp3', 'burst2.mp3']
+        fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
+        // fileNames: ['burst1.mp3', 'burst2.mp3']
       },
       burstSmall: {
         volume: 0.4,
