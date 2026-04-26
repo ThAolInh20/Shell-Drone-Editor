@@ -13,6 +13,7 @@ export class BurstEffectProcessor {
     'glitter-strobe',
     'heart',
     'oval',
+    'falling-comets',
     'falling-comets-glitter',
     'crysanthemum-trail',
     'ghost'

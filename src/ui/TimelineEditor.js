@@ -16,6 +16,7 @@ export class TimelineEditor {
     this.initialDuration = 0;
     this.filename = 'demoShow.json';
     this.anchorTime = 0;
+    this.autoScrollEnabled = true;
     
     this.initDOM();
     this.renderTracks();
@@ -97,9 +98,19 @@ export class TimelineEditor {
     playBtn.textContent = 'Play/Pause (Space)';
     playBtn.addEventListener('click', () => this.togglePlay());
     
+    this.followBtn = document.createElement('button');
+    this.followBtn.textContent = 'Follow: ON';
+    this.followBtn.style.background = '#4CAF50';
+    this.followBtn.style.color = 'white';
+    this.followBtn.addEventListener('click', () => {
+      this.autoScrollEnabled = !this.autoScrollEnabled;
+      this.followBtn.textContent = this.autoScrollEnabled ? 'Follow: ON' : 'Follow: OFF';
+      this.followBtn.style.background = this.autoScrollEnabled ? '#4CAF50' : '#f44336';
+    });
+    
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ Add Sequence';
-    addBtn.addEventListener('click', () => this.addSequence());
+    addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
 
     const saveBtn = document.createElement('button');
     saveBtn.textContent = 'Save';
@@ -123,6 +134,7 @@ export class TimelineEditor {
     this.fetchFileList();
 
     toolbar.appendChild(playBtn);
+    toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
     toolbar.appendChild(this.fileSelect);
     toolbar.appendChild(importBtn);
@@ -137,6 +149,14 @@ export class TimelineEditor {
     this.trackContainer.style.position = 'relative';
     this.trackContainer.style.overflowX = 'auto';
     this.trackContainer.style.overflowY = 'auto';
+    
+    this.trackContainer.addEventListener('wheel', () => {
+      if (this.autoScrollEnabled) {
+        this.autoScrollEnabled = false;
+        this.followBtn.textContent = 'Follow: OFF';
+        this.followBtn.style.background = '#f44336';
+      }
+    });
     
     this.anchorHead = document.createElement('div');
     this.anchorHead.style.position = 'absolute';
@@ -170,7 +190,8 @@ export class TimelineEditor {
     this.ruler.style.borderBottom = '1px solid #555';
     this.ruler.style.cursor = 'text'; // Indicate it's clickable
     this.ruler.addEventListener('mousedown', (e) => {
-      const time = Math.max(0, e.offsetX / this.pixelsPerSecond);
+      const rect = this.ruler.getBoundingClientRect();
+      const time = Math.max(0, (e.clientX - rect.left) / this.pixelsPerSecond);
       this.anchorTime = time;
       this.anchorHead.style.left = (time * this.pixelsPerSecond) + 'px';
       this.seek(time);
@@ -195,7 +216,8 @@ export class TimelineEditor {
     // Click on empty space to add
     this.tracksArea.addEventListener('dblclick', (e) => {
       if (e.target === this.tracksArea) {
-        const time = e.offsetX / this.pixelsPerSecond;
+        const rect = this.tracksArea.getBoundingClientRect();
+        const time = (e.clientX - rect.left) / this.pixelsPerSecond;
         this.addSequence(time);
       }
     });
@@ -216,7 +238,8 @@ export class TimelineEditor {
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         if (file.type.startsWith('audio/') || file.name.endsWith('.mp3')) {
-          const time = Math.max(0, e.offsetX / this.pixelsPerSecond);
+          const rect = this.tracksArea.getBoundingClientRect();
+          const time = Math.max(0, (e.clientX - rect.left) / this.pixelsPerSecond);
           this.addAudioSequence(time, file);
         } else {
           alert('Chỉ hỗ trợ file âm thanh (vd: .mp3, .wav)');
@@ -264,23 +287,32 @@ export class TimelineEditor {
       }
       
       // Copy
-      if (e.key === 'c' && e.ctrlKey && this.visible) {
+      if (e.code === 'KeyC' && e.shiftKey && this.visible) {
         if (e.target.tagName !== 'INPUT' && this.inspector && this.inspector.selectedEvent) {
           this.clipboardEvent = { ...this.inspector.selectedEvent };
         }
       }
 
       // Paste
-      if (e.key === 'v' && e.ctrlKey && this.visible) {
+      if (e.code === 'KeyV' && e.shiftKey && this.visible) {
         if (e.target.tagName !== 'INPUT' && this.clipboardEvent) {
           const newEvent = { ...this.clipboardEvent };
           if (newEvent.effectOverrides) {
             newEvent.effectOverrides = JSON.parse(JSON.stringify(newEvent.effectOverrides));
           }
-          newEvent.time = this.anchorTime;
+          newEvent.time = Math.round(this.anchorTime * 10) / 10;
           this.sequences.push(newEvent);
           this.renderTracks();
           this.inspector.show(newEvent);
+        }
+      }
+
+      // Delete
+      if ((e.code === 'Delete' || e.code === 'Backspace') && this.visible) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && this.inspector && this.inspector.selectedEvent) {
+          this.inspector.selectedEvent._deleted = true;
+          this.renderTracks();
+          this.inspector.hide();
         }
       }
     });
@@ -329,6 +361,7 @@ export class TimelineEditor {
       tick.style.bottom = '0';
       tick.style.height = '4px';
       tick.style.borderLeft = '1px solid #555';
+      tick.style.pointerEvents = 'none';
       
       if (time % 0.5 === 0) {
         tick.style.height = time % 1 === 0 ? '12px' : '7px';
@@ -369,13 +402,18 @@ export class TimelineEditor {
   }
 
   seek(time) {
+    this.autoScrollEnabled = true;
+    if (this.followBtn) {
+      this.followBtn.textContent = 'Follow: ON';
+      this.followBtn.style.background = '#4CAF50';
+    }
     this.sequences = this.sequences.filter(s => !s._deleted);
     this.showDirector.loadScript(this.sequences);
     this.showDirector.seek(time);
     this.playhead.style.left = (time * this.pixelsPerSecond) + 'px';
   }
 
-  addSequence(time = 0) {
+  addSequence(time = this.anchorTime) {
     const newSeq = {
       time: Math.round(time * 10) / 10,
       type: 'sequence',
@@ -599,10 +637,14 @@ export class TimelineEditor {
       this.playhead.style.left = x + 'px';
       
       // Auto-scroll
-      const containerRect = this.trackContainer.getBoundingClientRect();
-      const scrollLeft = this.trackContainer.scrollLeft;
-      if (x > scrollLeft + containerRect.width - 100) {
-        this.trackContainer.scrollLeft = x - containerRect.width + 100;
+      if (this.autoScrollEnabled) {
+        const containerRect = this.trackContainer.getBoundingClientRect();
+        const scrollLeft = this.trackContainer.scrollLeft;
+        if (x > scrollLeft + containerRect.width - 100) {
+          this.trackContainer.scrollLeft = x - containerRect.width + 100;
+        } else if (x < scrollLeft) {
+          this.trackContainer.scrollLeft = Math.max(0, x - 100);
+        }
       }
     }
     requestAnimationFrame(this.updateLoop);

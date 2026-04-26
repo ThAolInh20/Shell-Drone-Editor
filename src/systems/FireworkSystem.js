@@ -755,16 +755,16 @@ export class FireworkSystem {
 
         const lifeRatio = item.age / item.maxLife;
         // Sweep from -1.5 to 1.5
-        const sweep = (lifeRatio / 0.8) * 3.0 - 1.5; 
-        
+        const sweep = (lifeRatio / 0.8) * 3.0 - 1.5;
+
         let intensity = 0;
         if (dot < sweep) {
-            intensity = 1.0;
+          intensity = 1.0;
         } else if (dot < sweep + 0.4) {
-            intensity = 1.0 - ((dot - sweep) / 0.4); // soft edge
+          intensity = 1.0 - ((dot - sweep) / 0.4); // soft edge
         }
 
-        colors[i * 3]     = baseColors[i * 3] * intensity;
+        colors[i * 3] = baseColors[i * 3] * intensity;
         colors[i * 3 + 1] = baseColors[i * 3 + 1] * intensity;
         colors[i * 3 + 2] = baseColors[i * 3 + 2] * intensity;
         needsColorUpdate = true;

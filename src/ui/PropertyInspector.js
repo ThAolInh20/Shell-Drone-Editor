@@ -5,11 +5,11 @@ export class PropertyInspector {
     this.presetOptions = presetOptions;
     this.selectedEvent = null;
     
-    this.container.style.position = 'fixed';
-    this.container.style.top = '0';
-    this.container.style.right = '0';
+    this.container.style.position = 'relative';
     this.container.style.width = '320px';
-    this.container.style.height = '100vh';
+    this.container.style.minWidth = '320px';
+    this.container.style.flexShrink = '0';
+    this.container.style.height = '100%';
     this.container.style.background = 'rgba(20, 25, 30, 0.95)';
     this.container.style.borderLeft = '1px solid #444';
     this.container.style.padding = '15px';
