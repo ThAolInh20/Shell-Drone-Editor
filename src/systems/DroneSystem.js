@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DroneEntity } from '../entities/DroneEntity.js';
 import { InstancedDroneMesh } from '../render/InstancedDroneMesh.js';
+import { ArrivalColorSystem } from '../effects/arrival/ArrivalColorSystem.js';
 
 export class DroneSystem {
     constructor(sceneManager) {
@@ -46,11 +47,27 @@ export class DroneSystem {
         this.droneMesh.setCount(actualCount);
     }
 
-    setTargets(positions, colorHex = 0xffffff, motionProfile = 'smooth') {
-        for (let i = 0; i < Math.min(this.drones.length, positions.length); i++) {
+    applyFormat(positions, formatConfig) {
+        const count = Math.min(this.drones.length, positions.length);
+        
+        // Set target positions first so ArrivalColorSystem can compute distances
+        for (let i = 0; i < count; i++) {
             this.drones[i].setTarget(positions[i]);
-            this.drones[i].setColor(colorHex);
-            this.drones[i].setMotionProfile(motionProfile);
+            this.drones[i].setMotionProfile(formatConfig.motion || 'smooth');
+        }
+        
+        // Compute arrival delays based on the new target positions
+        const delays = ArrivalColorSystem.computeDelays(this.drones.slice(0, count), formatConfig.arrivalColor);
+        
+        // Apply the format to all drones with their specific delay
+        for (let i = 0; i < count; i++) {
+            this.drones[i].setFormat(formatConfig, delays[i]);
+        }
+    }
+
+    triggerAnimation(animationType, params = {}, duration = 0) {
+        for (let i = 0; i < this.drones.length; i++) {
+            this.drones[i].animationLayer.applyAnimation(animationType, params, duration);
         }
     }
 
@@ -64,8 +81,9 @@ export class DroneSystem {
             this.droneMesh.updateInstance(
                 i, 
                 drone.position, 
-                drone.color, 
-                drone.size
+                drone.rotation,
+                drone.scale,
+                drone.color
             );
         }
         

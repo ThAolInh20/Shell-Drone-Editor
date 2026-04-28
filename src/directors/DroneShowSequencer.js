@@ -1,12 +1,17 @@
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
+import { DroneFormats } from '../config/droneFormats.js';
 
 export class DroneShowSequencer {
     constructor(droneSystem) {
         this.droneSystem = droneSystem;
         this.steps = [];
         this.currentStepIndex = 0;
+        this.isWaitingForFormation = false;
+        this.holdTimer = 0;
+        this.isActive = false;
         this.isPlaying = false;
         this.droneCount = 0;
+
         
         this.isWaitingForFormation = false;
         this.holdTimer = 0;
@@ -57,7 +62,12 @@ export class DroneShowSequencer {
                 this.droneSystem.drones.length, 
                 { y: 0, spacing: 15 }
             );
-            this.droneSystem.setTargets(positions, 0xffffff);
+            this.droneSystem.applyFormat(positions, {
+                formation: 'grid',
+                motion: 'smooth',
+                transitionColor: { type: 'solid', color: '#000000' },
+                arrivalColor: { type: 'instant', color: '#ffffff' }
+            });
         }
     }
 
@@ -88,19 +98,25 @@ export class DroneShowSequencer {
     executeStep(step) {
         if (!step) return;
         
-        if (step.type === 'formation') {
+        if (step.type === 'format') {
             const count = this.droneSystem.drones.length;
             if (count === 0) return;
             
+            const formatConfig = DroneFormats[step.id];
+            if (!formatConfig) {
+                console.error(`Format ${step.id} not found in DroneFormats`);
+                return;
+            }
+            
             const positions = DroneFormationFactory.createFormation(
-                step.formation, 
+                formatConfig.formation, 
                 count, 
-                step.params || {}
+                formatConfig.formationParams || {}
             );
             
-            const colorHex = step.color ? parseInt(step.color.replace('#', '0x')) : 0xffffff;
-            const motionProfile = step.motion || 'smooth';
-            this.droneSystem.setTargets(positions, colorHex, motionProfile);
+            this.droneSystem.applyFormat(positions, formatConfig);
+        } else if (step.type === 'animation') {
+            this.droneSystem.triggerAnimation(step.animation, step.params || {}, step.duration || 0);
         }
     }
 }
