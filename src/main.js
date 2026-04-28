@@ -13,7 +13,10 @@ import { SmokeSystem } from './systems/SmokeSystem.js';
 import { AudioSystem } from './systems/AudioSystem.js';
 import { FireworkSequencer } from './directors/FireworkSequencer.js';
 import { ShowDirector } from './directors/ShowDirector.js';
+import { DroneSystem } from './systems/DroneSystem.js';
+import { DroneShowSequencer } from './directors/DroneShowSequencer.js';
 import { TimelineEditor } from './ui/TimelineEditor.js';
+import droneDemoData from '../config/sequences/droneDemo.json';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
@@ -45,6 +48,12 @@ if (postProcessing) {
 // Initialize Systems
 const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
+
+const droneSystem = new DroneSystem(sceneManager);
+const droneSequencer = new DroneShowSequencer(droneSystem);
+// Load and auto-play demo sequence
+droneSequencer.loadSequence(droneDemoData);
+droneSequencer.play();
 
 const fireworkSequencer = new FireworkSequencer(fireworkSystem, cometSystem);
 const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
@@ -90,12 +99,16 @@ function animate() {
     movementSystem.update(clock.deltaTime);
     showDirector.update(clock.deltaTime);
     fireworkSequencer.update(clock.deltaTime);
+    droneSequencer.update(clock.deltaTime);
+    droneSystem.update(clock.deltaTime);
     fireworkSystem.update(clock.deltaTime);
     cometSystem.update(clock.deltaTime);
     trailSystem.update(clock.deltaTime);
     skyLightReactionSystem.update(clock.deltaTime);
     smokeSystem.update(clock.deltaTime);
   } else {
+    droneSequencer.update(clock.deltaTime);
+    droneSystem.update(clock.deltaTime);
     skyLightReactionSystem.update(clock.deltaTime);
     smokeSystem.update(clock.deltaTime);
   }

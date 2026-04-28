@@ -1,0 +1,69 @@
+{
+  "droneCount": 200,
+  "timeline": [
+    {
+      "time": 2,
+      "cue": {
+        "type": "formation",
+        "formation": "circle",
+        "params": {
+          "radius": 150,
+          "y": 100
+        },
+        "color": "#00ff00"
+      }
+    },
+    {
+      "time": 6,
+      "cue": {
+        "type": "formation",
+        "formation": "grid",
+        "params": {
+          "rows": 10,
+          "spacing": 20,
+          "y": 125
+        },
+        "color": "#ff00ff"
+      }
+    },
+    {
+      "time": 10,
+      "cue": {
+        "type": "formation",
+        "formation": "wave",
+        "params": {
+          "amplitude": 60,
+          "frequency": 0.04,
+          "y": 100,
+          "spacing": 15
+        },
+        "color": "#00ffff"
+      }
+    },
+    {
+      "time": 14,
+      "cue": {
+        "type": "formation",
+        "formation": "line",
+        "params": {
+          "spacing": 15,
+          "y": 80
+        },
+        "color": "#ffaa00"
+      }
+    },
+    {
+      "time": 18,
+      "cue": {
+        "type": "formation",
+        "formation": "grid",
+        "params": {
+          "rows": 14,
+          "spacing": 15,
+          "y": 0
+        },
+        "color": "#ffffff"
+      }
+    }
+  ]
+}
