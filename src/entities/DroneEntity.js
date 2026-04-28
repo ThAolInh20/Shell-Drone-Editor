@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { DronePropertyFactory } from '../factories/DronePropertyFactory.js';
 
 export class DroneEntity {
     constructor(id) {
@@ -16,6 +17,13 @@ export class DroneEntity {
         // Motion parameters
         this.damping = 2.0; // The higher the faster it arrives
         this.hasArrived = false;
+        
+        this.phaseOffset = Math.random() * Math.PI * 2;
+        this.motionProfile = DronePropertyFactory.getProfileData('smooth');
+    }
+
+    setMotionProfile(profileName) {
+        this.motionProfile = DronePropertyFactory.getProfileData(profileName);
     }
 
     setTarget(targetVector) {
@@ -31,9 +39,9 @@ export class DroneEntity {
         const desiredVelocity = new THREE.Vector3().subVectors(this.targetPosition, this.position);
         const distance = desiredVelocity.length();
         
-        const maxSpeed = 18.0; // units per sec
-        const maxForce = 12.0; // acceleration
-        const slowingRadius = 30.0; // start slowing down when within 30 units
+        const maxSpeed = this.motionProfile.maxSpeed || 18.0;
+        const maxForce = this.motionProfile.maxForce || 12.0;
+        const slowingRadius = this.motionProfile.slowingRadius || 30.0;
         
         if (distance > 0.05 || this.velocity.length() > 0.05) {
             this.hasArrived = false;
@@ -55,6 +63,20 @@ export class DroneEntity {
             
             this.velocity.add(steering.multiplyScalar(deltaTime));
             this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+            
+            // Add oscillation if moving
+            if (this.motionProfile.oscillation) {
+                const osc = this.motionProfile.oscillation;
+                const time = performance.now() * 0.001;
+                const offset = Math.sin(time * osc.frequency + this.phaseOffset) * osc.amplitude * deltaTime;
+                
+                if (osc.type === 'vertical') {
+                    this.position.y += offset;
+                } else if (osc.type === 'horizontal') {
+                    this.position.x += offset;
+                    this.position.z += offset;
+                }
+            }
         } else {
             this.hasArrived = true;
             this.position.copy(this.targetPosition);
@@ -62,7 +84,14 @@ export class DroneEntity {
         }
         
         // Add a pulsing glow effect similar to firework particles
-        const pulse = 1.0 + 0.3 * Math.sin(performance.now() * 0.005 + this.id);
+        let pulse = 1.0 + 0.3 * Math.sin(performance.now() * 0.005 + this.phaseOffset);
+        
+        if (this.motionProfile.blink) {
+            const blinkState = Math.sin(performance.now() * 0.001 * this.motionProfile.blink.rate + this.phaseOffset);
+            if (blinkState < 0) {
+                pulse = this.motionProfile.blink.minOpacity;
+            }
+        }
         
         // Clone baseColor to prevent modifying the original color, multiply by intensity and pulse
         this.color.copy(this.baseColor).multiplyScalar(this.intensity * pulse);

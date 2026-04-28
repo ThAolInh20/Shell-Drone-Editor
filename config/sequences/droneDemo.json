@@ -4,9 +4,11 @@
     {
       "type": "formation",
       "formation": "circle",
+      "motion": "smooth",
       "params": {
         "radius": 150,
-        "y": 100
+        "y": 100,
+        "variation": 10
       },
       "color": "#00ff00",
       "holdDuration": 2.0
@@ -14,10 +16,12 @@
     {
       "type": "formation",
       "formation": "grid",
+      "motion": "strobe",
       "params": {
         "rows": 10,
         "spacing": 20,
-        "y": 125
+        "y": 125,
+        "variation": 5
       },
       "color": "#ff00ff",
       "holdDuration": 2.5
@@ -25,6 +29,7 @@
     {
       "type": "formation",
       "formation": "wave",
+      "motion": "wave",
       "params": {
         "amplitude": 60,
         "frequency": 0.04,
@@ -37,6 +42,7 @@
     {
       "type": "formation",
       "formation": "line",
+      "motion": "swing",
       "params": {
         "spacing": 15,
         "y": 80
@@ -47,6 +53,7 @@
     {
       "type": "formation",
       "formation": "grid",
+      "motion": "fast",
       "params": {
         "rows": 14,
         "spacing": 15,

@@ -46,10 +46,11 @@ export class DroneSystem {
         this.droneMesh.setCount(actualCount);
     }
 
-    setTargets(positions, colorHex = 0xffffff) {
+    setTargets(positions, colorHex = 0xffffff, motionProfile = 'smooth') {
         for (let i = 0; i < Math.min(this.drones.length, positions.length); i++) {
             this.drones[i].setTarget(positions[i]);
             this.drones[i].setColor(colorHex);
+            this.drones[i].setMotionProfile(motionProfile);
         }
     }
 

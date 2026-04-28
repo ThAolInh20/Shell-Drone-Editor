@@ -99,7 +99,8 @@ export class DroneShowSequencer {
             );
             
             const colorHex = step.color ? parseInt(step.color.replace('#', '0x')) : 0xffffff;
-            this.droneSystem.setTargets(positions, colorHex);
+            const motionProfile = step.motion || 'smooth';
+            this.droneSystem.setTargets(positions, colorHex, motionProfile);
         }
     }
 }

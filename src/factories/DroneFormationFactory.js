@@ -77,13 +77,32 @@ export class DroneFormationFactory {
         return positions;
     }
 
+    static addVariation(positions, variation) {
+        if (!variation || variation <= 0) return positions;
+        
+        return positions.map(pos => {
+            return new THREE.Vector3(
+                pos.x + (Math.random() - 0.5) * variation,
+                pos.y + (Math.random() - 0.5) * variation,
+                pos.z + (Math.random() - 0.5) * variation
+            );
+        });
+    }
+
     static createFormation(type, count, params) {
+        let positions;
         switch (type) {
-            case 'circle': return this.circle(count, params);
-            case 'grid': return this.grid(count, params);
-            case 'line': return this.line(count, params);
-            case 'wave': return this.wave(count, params);
-            default: return this.grid(count, params);
+            case 'circle': positions = this.circle(count, params); break;
+            case 'grid': positions = this.grid(count, params); break;
+            case 'line': positions = this.line(count, params); break;
+            case 'wave': positions = this.wave(count, params); break;
+            default: positions = this.grid(count, params); break;
         }
+        
+        if (params && params.variation) {
+            positions = this.addVariation(positions, params.variation);
+        }
+        
+        return positions;
     }
 }
