@@ -3,11 +3,13 @@ import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 export class DroneShowSequencer {
     constructor(droneSystem) {
         this.droneSystem = droneSystem;
-        this.timeline = [];
-        this.currentTime = 0;
-        this.currentIndex = 0;
+        this.steps = [];
+        this.currentStepIndex = 0;
         this.isPlaying = false;
         this.droneCount = 0;
+        
+        this.isWaitingForFormation = false;
+        this.holdTimer = 0;
     }
 
     loadSequence(sequenceData) {
@@ -18,9 +20,11 @@ export class DroneShowSequencer {
             this.droneSystem.createDrones(this.droneCount);
         }
 
-        if (sequenceData && sequenceData.timeline) {
-            // Sort by time
-            this.timeline = [...sequenceData.timeline].sort((a, b) => a.time - b.time);
+        if (sequenceData && sequenceData.steps) {
+            this.steps = sequenceData.steps;
+        } else if (sequenceData && sequenceData.timeline) {
+            // Fallback for old time-based sequence: map to steps
+            this.steps = sequenceData.timeline.map(item => item.cue);
         }
     }
 
@@ -34,16 +38,17 @@ export class DroneShowSequencer {
 
     stop() {
         this.isPlaying = false;
-        this.currentTime = 0;
-        this.currentIndex = 0;
+        this.currentStepIndex = 0;
+        this.isWaitingForFormation = false;
     }
 
     reset() {
-        this.timeline = [];
-        this.currentTime = 0;
-        this.currentIndex = 0;
+        this.steps = [];
+        this.currentStepIndex = 0;
         this.isPlaying = false;
         this.droneCount = 0;
+        this.isWaitingForFormation = false;
+        this.holdTimer = 0;
         
         // Return drones to ground grid
         if (this.droneSystem && this.droneSystem.drones.length > 0) {
@@ -56,54 +61,44 @@ export class DroneShowSequencer {
         }
     }
 
-    seek(time) {
-        this.currentTime = time;
-        this.currentIndex = 0;
-        let lastCue = null;
-        
-        for (let i = 0; i < this.timeline.length; i++) {
-            if (this.timeline[i].time <= this.currentTime) {
-                this.currentIndex = i + 1;
-                lastCue = this.timeline[i];
-            } else {
-                break;
+    update(deltaTime) {
+        if (!this.isPlaying || this.steps.length === 0 || this.currentStepIndex >= this.steps.length) return;
+
+        if (!this.isWaitingForFormation) {
+            // Execute next step
+            const step = this.steps[this.currentStepIndex];
+            this.executeStep(step);
+            this.isWaitingForFormation = true;
+            this.holdTimer = 0;
+        } else {
+            // Check if formation is complete
+            if (this.droneSystem.isFormationComplete()) {
+                const step = this.steps[this.currentStepIndex];
+                const holdDuration = step.holdDuration || 2.0; // Default hold time 2 seconds
+                
+                this.holdTimer += deltaTime;
+                if (this.holdTimer >= holdDuration) {
+                    this.isWaitingForFormation = false;
+                    this.currentStepIndex++;
+                }
             }
         }
-        
-        if (lastCue) {
-            this.executeCue(lastCue.cue);
-        }
     }
 
-    update(deltaTime) {
-        if (!this.isPlaying || this.timeline.length === 0) return;
-
-        this.currentTime += deltaTime;
-
-        while (
-            this.currentIndex < this.timeline.length && 
-            this.currentTime >= this.timeline[this.currentIndex].time
-        ) {
-            const cue = this.timeline[this.currentIndex].cue;
-            this.executeCue(cue);
-            this.currentIndex++;
-        }
-    }
-
-    executeCue(cue) {
-        if (!cue) return;
+    executeStep(step) {
+        if (!step) return;
         
-        if (cue.type === 'formation') {
+        if (step.type === 'formation') {
             const count = this.droneSystem.drones.length;
             if (count === 0) return;
             
             const positions = DroneFormationFactory.createFormation(
-                cue.formation, 
+                step.formation, 
                 count, 
-                cue.params || {}
+                step.params || {}
             );
             
-            const colorHex = cue.color ? parseInt(cue.color.replace('#', '0x')) : 0xffffff;
+            const colorHex = step.color ? parseInt(step.color.replace('#', '0x')) : 0xffffff;
             this.droneSystem.setTargets(positions, colorHex);
         }
     }

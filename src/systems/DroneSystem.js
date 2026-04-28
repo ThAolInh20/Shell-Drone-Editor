@@ -70,4 +70,14 @@ export class DroneSystem {
         
         this.droneMesh.updateBuffers();
     }
+
+    isFormationComplete() {
+        if (this.drones.length === 0) return true;
+        // Require 70% of drones to arrive to consider formation complete
+        let arrivedCount = 0;
+        for (let i = 0; i < this.drones.length; i++) {
+            if (this.drones[i].hasArrived) arrivedCount++;
+        }
+        return arrivedCount / this.drones.length >= 0.70;
+    }
 }
