@@ -4,10 +4,10 @@ export class MovementSystem {
   constructor(inputSystem, camera) {
     this.input = inputSystem;
     this.camera = camera;
-    
+
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
-    
+
     this.speed = 500.0; // Movement acceleration
     this.friction = 10.0;  // Decrease velocity naturally
   }
@@ -42,33 +42,33 @@ export class MovementSystem {
     this.input.controls.moveRight(-this.velocity.x * deltaTime);
     this.input.controls.moveForward(-this.velocity.z * deltaTime);
 
-    this.constrainToLaunchViewZone();
+    // this.constrainToLaunchViewZone();
   }
 
-  constrainToLaunchViewZone() {
-    const launchZone = this.input.fireworkSystem?.getLaunchZone?.();
-    if (!launchZone) {
-      return;
-    }
+  // constrainToLaunchViewZone() {
+  //   const launchZone = this.input.fireworkSystem?.getLaunchZone?.();
+  //   if (!launchZone) {
+  //     return;
+  //   }
 
-    const { center, noEntryHalfWidth, noEntryHalfDepth, boundaryPadding } = launchZone;
-    const cameraPosition = this.camera.position;
-    const deltaX = cameraPosition.x - center.x;
-    const deltaZ = cameraPosition.z - center.z;
+  //   const { center, noEntryHalfWidth, noEntryHalfDepth, boundaryPadding } = launchZone;
+  //   const cameraPosition = this.camera.position;
+  //   const deltaX = cameraPosition.x - center.x;
+  //   const deltaZ = cameraPosition.z - center.z;
 
-    if (Math.abs(deltaX) >= noEntryHalfWidth || Math.abs(deltaZ) >= noEntryHalfDepth) {
-      return;
-    }
+  //   if (Math.abs(deltaX) >= noEntryHalfWidth || Math.abs(deltaZ) >= noEntryHalfDepth) {
+  //     return;
+  //   }
 
-    const xPenetration = noEntryHalfWidth - Math.abs(deltaX);
-    const zPenetration = noEntryHalfDepth - Math.abs(deltaZ);
+  //   const xPenetration = noEntryHalfWidth - Math.abs(deltaX);
+  //   const zPenetration = noEntryHalfDepth - Math.abs(deltaZ);
 
-    if (xPenetration < zPenetration) {
-      cameraPosition.x = center.x + Math.sign(deltaX || 1) * (noEntryHalfWidth + boundaryPadding);
-      this.velocity.x = 0;
-    } else {
-      cameraPosition.z = center.z + Math.sign(deltaZ || 1) * (noEntryHalfDepth + boundaryPadding);
-      this.velocity.z = 0;
-    }
-  }
+  //   if (xPenetration < zPenetration) {
+  //     cameraPosition.x = center.x + Math.sign(deltaX || 1) * (noEntryHalfWidth + boundaryPadding);
+  //     this.velocity.x = 0;
+  //   } else {
+  //     cameraPosition.z = center.z + Math.sign(deltaZ || 1) * (noEntryHalfDepth + boundaryPadding);
+  //     this.velocity.z = 0;
+  //   }
+  // }
 }

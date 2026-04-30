@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DroneEntity } from '../entities/DroneEntity.js';
 import { InstancedDroneMesh } from '../render/InstancedDroneMesh.js';
 import { ArrivalColorSystem } from '../effects/arrival/ArrivalColorSystem.js';
+import { DRONE_ZONE_CONFIG } from '../config/droneZone.js';
 
 export class DroneSystem {
     constructor(sceneManager) {
@@ -10,8 +11,41 @@ export class DroneSystem {
         this.maxDrones = 2000;
         this.droneMesh = new InstancedDroneMesh(this.maxDrones);
         
+        // Create Performance Zone (Local Space)
+        this.performanceZone = new THREE.Group();
+        this.performanceZone.name = "DronePerformanceZone";
+        this.performanceZone.position.copy(DRONE_ZONE_CONFIG.position);
+        this.performanceZone.rotation.copy(DRONE_ZONE_CONFIG.rotation);
+        this.performanceZone.scale.copy(DRONE_ZONE_CONFIG.scale);
+        
+        // Add drones mesh to the zone
+        this.performanceZone.add(this.droneMesh.mesh);
+        
+        // Add Visual Helpers
+        if (DRONE_ZONE_CONFIG.showHelpers) {
+            const { width, height, depth } = DRONE_ZONE_CONFIG;
+            
+            // Ground grid for the zone
+            const gridHelper = new THREE.GridHelper(width, 20, 0x00ffff, 0x00ffff);
+            gridHelper.material.opacity = 0.2;
+            gridHelper.material.transparent = true;
+            this.performanceZone.add(gridHelper);
+            
+            // Bounding box for the zone
+            const boxGeo = new THREE.BoxGeometry(width, height, depth);
+            // Translate the box so its bottom rests on the zone's local origin (y=0)
+            boxGeo.translate(0, height / 2, 0); 
+            const edges = new THREE.EdgesGeometry(boxGeo);
+            const boxHelper = new THREE.LineSegments(
+                edges, 
+                new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.15 })
+            );
+            this.performanceZone.add(boxHelper);
+        }
+        
+        // Add Zone to World Scene
         if (this.sceneManager && this.sceneManager.instance) {
-            this.sceneManager.instance.add(this.droneMesh.mesh);
+            this.sceneManager.instance.add(this.performanceZone);
         }
     }
 
