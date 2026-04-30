@@ -122,8 +122,8 @@ export function setupEditorUI(state, director) {
           <label>Color</label>
           <input type="color" id="ui-color" value="#ffffff" />
         </div>
-        <div class="input-group" style="margin-top: 10px;">
-          <label>Effect</label>
+        <div class="input-group" style="margin-top: 15px;">
+          <label>Effect (Per Drone)</label>
           <select id="ui-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
             <option value="none">None</option>
             <option value="wave">Wave (Vertical)</option>
@@ -134,6 +134,45 @@ export function setupEditorUI(state, director) {
           </select>
         </div>
         <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white; width: 100%;">Delete Selected</button>
+      </div>
+    </div>
+    
+    <div class="panel-section">
+      <h3>Step Properties</h3>
+      <div id="step-props">
+        <div class="input-group">
+          <label>Mode</label>
+          <select id="ui-step-mode" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="transform">🔄 Transform</option>
+            <option value="move">➡ Move Group</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Transition Effect</label>
+          <select id="ui-step-transition" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="none">✨ Normal</option>
+            <option value="wave">✨ Wave</option>
+            <option value="swing">✨ Swing</option>
+            <option value="pulse">✨ Pulse</option>
+            <option value="strobe">✨ Strobe</option>
+            <option value="shimmer">✨ Shimmer</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Hold Time (ms)</label>
+          <input type="number" id="ui-step-hold-time" step="100" style="width: 120px;" />
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Hold Effect</label>
+          <select id="ui-step-hold-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="none">🌟 Normal</option>
+            <option value="wave">🌟 Wave</option>
+            <option value="swing">🌟 Swing</option>
+            <option value="pulse">🌟 Pulse</option>
+            <option value="strobe">🌟 Strobe</option>
+            <option value="shimmer">🌟 Shimmer</option>
+          </select>
+        </div>
       </div>
     </div>
   `;
@@ -391,6 +430,32 @@ export function setupEditorUI(state, director) {
     }
   });
 
+  // Bind Step Properties Events
+  document.getElementById('ui-step-mode').addEventListener('change', (e) => {
+    state.steps[state.currentStepIndex].transitionMode = e.target.value;
+    state.saveCurrentStep();
+  });
+  
+  document.getElementById('ui-step-transition').addEventListener('change', (e) => {
+    state.steps[state.currentStepIndex].transitionEffect = e.target.value;
+    state.saveCurrentStep();
+  });
+  
+  document.getElementById('ui-step-hold-time').addEventListener('change', (e) => {
+    const val = parseInt(e.target.value);
+    if (!isNaN(val) && val >= 0) {
+      state.steps[state.currentStepIndex].holdTime = val;
+      state.saveCurrentStep();
+      state.recalculateTimes();
+      state.notify();
+    }
+  });
+  
+  document.getElementById('ui-step-hold-effect').addEventListener('change', (e) => {
+    state.steps[state.currentStepIndex].holdEffect = e.target.value;
+    state.saveCurrentStep();
+  });
+
   // Timeline UI
   document.getElementById('btn-add-step').addEventListener('click', () => {
     state.addStep();
@@ -420,8 +485,8 @@ export function setupEditorUI(state, director) {
     
     state.steps.forEach((step, index) => {
       const card = document.createElement('div');
-      card.style.minWidth = '130px';
-      card.style.height = '105px';
+      card.style.minWidth = '80px';
+      card.style.height = '40px';
       card.style.backgroundColor = index === state.currentStepIndex ? '#3498db' : '#333';
       card.style.border = index === state.currentStepIndex ? '2px solid #fff' : '1px solid #444';
       card.style.borderRadius = '4px';
@@ -461,19 +526,7 @@ export function setupEditorUI(state, director) {
       timeDiv.style.fontSize = '11px';
       timeDiv.style.color = index === state.currentStepIndex ? '#fff' : '#aaa';
       
-      card.ondblclick = (e) => {
-        e.stopPropagation();
-        const newTime = prompt(`Set time (ms) for Step ${index + 1}:`, step.time);
-        if (newTime !== null) {
-          const t = parseInt(newTime);
-          if (!isNaN(t)) {
-            step.time = t;
-            state.steps.sort((a, b) => a.time - b.time);
-            state.currentStepIndex = state.steps.indexOf(step);
-            state.notify();
-          }
-        }
-      };
+      // No manual time editing via double click anymore
       
       card.onclick = () => {
         if (!state.isPlaying) {
@@ -482,89 +535,8 @@ export function setupEditorUI(state, director) {
         }
       };
       
-      const modeSelect = document.createElement('select');
-      modeSelect.style.fontSize = '10px';
-      modeSelect.style.background = 'rgba(0,0,0,0.3)';
-      modeSelect.style.color = '#fff';
-      modeSelect.style.border = '1px solid rgba(255,255,255,0.2)';
-      modeSelect.style.borderRadius = '3px';
-      modeSelect.style.padding = '2px';
-      modeSelect.style.marginTop = '2px';
-      
-      const optTransform = document.createElement('option');
-      optTransform.value = 'transform';
-      optTransform.textContent = '🔄 Transform';
-      
-      const optMove = document.createElement('option');
-      optMove.value = 'move';
-      optMove.textContent = '➡ Move Group';
-      
-      modeSelect.appendChild(optTransform);
-      modeSelect.appendChild(optMove);
-      modeSelect.value = step.transitionMode || 'transform';
-      
-      modeSelect.onchange = (e) => {
-        e.stopPropagation();
-        step.transitionMode = e.target.value;
-        state.saveCurrentStep();
-      };
-      
-      modeSelect.onclick = (e) => e.stopPropagation();
-
-      const effectSelect = document.createElement('select');
-      effectSelect.style.fontSize = '10px';
-      effectSelect.style.background = 'rgba(0,0,0,0.3)';
-      effectSelect.style.color = '#fff';
-      effectSelect.style.border = '1px solid rgba(255,255,255,0.2)';
-      effectSelect.style.borderRadius = '3px';
-      effectSelect.style.padding = '2px';
-      effectSelect.style.marginTop = '2px';
-      
-      const optEffNone = document.createElement('option');
-      optEffNone.value = 'none';
-      optEffNone.textContent = '✨ Transition: Normal';
-      
-      const optEffWave = document.createElement('option');
-      optEffWave.value = 'wave';
-      optEffWave.textContent = '✨ Transition: Wave';
-      
-      const optEffSwing = document.createElement('option');
-      optEffSwing.value = 'swing';
-      optEffSwing.textContent = '✨ Transition: Swing';
-      
-      const optEffPulse = document.createElement('option');
-      optEffPulse.value = 'pulse';
-      optEffPulse.textContent = '✨ Transition: Pulse';
-      
-      const optEffStrobe = document.createElement('option');
-      optEffStrobe.value = 'strobe';
-      optEffStrobe.textContent = '✨ Transition: Strobe';
-      
-      const optEffShimmer = document.createElement('option');
-      optEffShimmer.value = 'shimmer';
-      optEffShimmer.textContent = '✨ Transition: Shimmer';
-      
-      effectSelect.appendChild(optEffNone);
-      effectSelect.appendChild(optEffWave);
-      effectSelect.appendChild(optEffSwing);
-      effectSelect.appendChild(optEffPulse);
-      effectSelect.appendChild(optEffStrobe);
-      effectSelect.appendChild(optEffShimmer);
-      
-      effectSelect.value = step.transitionEffect || 'none';
-      
-      effectSelect.onchange = (e) => {
-        e.stopPropagation();
-        step.transitionEffect = e.target.value;
-        state.saveCurrentStep();
-      };
-      
-      effectSelect.onclick = (e) => e.stopPropagation();
-
       card.appendChild(header);
       card.appendChild(timeDiv);
-      card.appendChild(modeSelect);
-      card.appendChild(effectSelect);
       container.appendChild(card);
     });
   }
@@ -618,6 +590,20 @@ export function setupEditorUI(state, director) {
       } else {
         coordInputs.style.display = 'none';
       }
+    }
+    
+    // Sync Step Properties
+    const currentStep = state.steps[state.currentStepIndex];
+    if (currentStep) {
+      const stepModeEl = document.getElementById('ui-step-mode');
+      const stepTransEl = document.getElementById('ui-step-transition');
+      const stepHoldTimeEl = document.getElementById('ui-step-hold-time');
+      const stepHoldEffEl = document.getElementById('ui-step-hold-effect');
+      
+      if (document.activeElement !== stepModeEl) stepModeEl.value = currentStep.transitionMode || 'transform';
+      if (document.activeElement !== stepTransEl) stepTransEl.value = currentStep.transitionEffect || 'none';
+      if (document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
+      if (document.activeElement !== stepHoldEffEl) stepHoldEffEl.value = currentStep.holdEffect || 'none';
     }
 
     if (groupList) {

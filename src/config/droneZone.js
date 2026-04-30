@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 export const DRONE_ZONE_CONFIG = {
-  // Vị trí mặc định: cùng độ cao pháo (-50), ngay sau khu vực bắn (z = -200)
-  position: new THREE.Vector3(0, -50, -200),
+  // Vị trí mặc định: trên bầu trời (50), ngay sau khu vực bắn (z = -200)
+  position: new THREE.Vector3(0, 50, -200),
   rotation: new THREE.Euler(0, 0, 0),
   scale: new THREE.Vector3(1, 1, 1),
   

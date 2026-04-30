@@ -8,7 +8,7 @@ export class DroneSystem {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
         this.drones = [];
-        this.maxDrones = 2000;
+        this.maxDrones = 10000;
         this.droneMesh = new InstancedDroneMesh(this.maxDrones);
         
         // Create Performance Zone (Local Space)

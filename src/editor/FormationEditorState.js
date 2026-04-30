@@ -8,7 +8,7 @@ export class FormationEditorState {
     this.colors = []; // Array of THREE.Color
     this.particleGroups = []; // Array of strings matching positions index
     this.effects = []; // Array of strings (e.g. 'none', 'wave', 'strobe')
-    
+
     // Timeline state
     this.steps = [{
       id: 'step_0',
@@ -23,10 +23,10 @@ export class FormationEditorState {
     this.currentStepIndex = 0;
     this.isPlaying = false;
     this.playbackTime = 0;
-    
+
     // Selection state
     this.selectedIndices = new Set();
-    
+
     // Undo/Redo stack
     this.history = [];
     this.historyIndex = -1;
@@ -53,6 +53,7 @@ export class FormationEditorState {
       this.steps[this.currentStepIndex].colors = this.colors.map(c => c.clone());
       this.steps[this.currentStepIndex].particleGroups = [...this.particleGroups];
       this.steps[this.currentStepIndex].effects = [...this.effects];
+      this.recalculateTimes();
     }
   }
 
@@ -70,28 +71,24 @@ export class FormationEditorState {
     }
   }
 
-  addStep(timeMs) {
+  addStep() {
     this.saveCurrentStep();
-    let newTime = timeMs;
-    if (newTime === undefined) {
-       const maxTime = this.steps.reduce((max, s) => Math.max(max, s.time), 0);
-       newTime = maxTime + 5000;
-    }
-    
     const newStep = {
       id: 'step_' + Date.now(),
-      time: newTime,
+      time: 0,
       positions: this.positions.map(p => p.clone()),
       colors: this.colors.map(c => c.clone()),
       particleGroups: [...this.particleGroups],
       effects: [...this.effects],
       transitionMode: 'transform',
-      transitionEffect: 'none'
+      transitionEffect: 'none',
+      holdTime: 0,
+      holdEffect: 'none'
     };
-    
+
     this.steps.push(newStep);
-    this.steps.sort((a, b) => a.time - b.time);
-    
+    this.recalculateTimes();
+
     const newIndex = this.steps.findIndex(s => s.id === newStep.id);
     this.currentStepIndex = newIndex;
     this.notify();
@@ -101,13 +98,47 @@ export class FormationEditorState {
     if (this.steps.length <= 1) return; // Must have at least 1 step
     this.steps.splice(index, 1);
     this.currentStepIndex = 0;
-    
+
     const step = this.steps[0];
     this.positions = step.positions.map(p => p.clone());
     this.colors = step.colors.map(c => c.clone());
+    this.colors = step.colors.map(c => c.clone());
     this.particleGroups = [...step.particleGroups];
     this.effects = [...(step.effects || new Array(step.positions.length).fill('none'))];
+    this.recalculateTimes();
     this.notify();
+  }
+
+  recalculateTimes() {
+    const SPEED = 30.0; // Faster drone speed (m/s) for quick preview in Editor
+    let currentTime = 0;
+
+    for (let i = 0; i < this.steps.length; i++) {
+      const step = this.steps[i];
+      if (i === 0) {
+        step.time = 0;
+        currentTime = step.holdTime || 0;
+      } else {
+        const prevStep = this.steps[i - 1];
+
+        // Calculate max distance to find transition duration
+        let maxDist = 0;
+        for (let j = 0; j < Math.min(step.positions.length, prevStep.positions.length); j++) {
+          const p1 = prevStep.positions[j];
+          const p2 = step.positions[j];
+          if (p1 && p2) {
+            const d = p1.distanceTo(p2);
+            if (d > maxDist) maxDist = d;
+          }
+        }
+
+        let flightTime = (maxDist / SPEED) * 1000;
+        if (flightTime < 1000) flightTime = 1000; // minimum 1s flight time
+
+        step.time = prevStep.time + (prevStep.holdTime || 0) + flightTime;
+        currentTime = step.time + (step.holdTime || 0);
+      }
+    }
   }
 
   saveStateToHistory() {
@@ -115,13 +146,13 @@ export class FormationEditorState {
     if (this.historyIndex < this.history.length - 1) {
       this.history = this.history.slice(0, this.historyIndex + 1);
     }
-    
+
     const snapshot = {
       positions: this.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
       colors: this.colors.map(c => c.getHex()),
       particleGroups: [...this.particleGroups]
     };
-    
+
     this.history.push(snapshot);
     if (this.history.length > 50) { // Limit history size
       this.history.shift();
@@ -158,7 +189,7 @@ export class FormationEditorState {
   loadFormat(data) {
     this.name = data.name || "LoadedFormat";
     this.droneCount = data.droneCount || 0;
-    
+
     if (data.steps && data.steps.length > 0) {
       this.steps = data.steps.map((s, i) => ({
         id: 'step_' + i + '_' + Date.now(),
@@ -168,7 +199,9 @@ export class FormationEditorState {
         particleGroups: s.particleGroups || new Array((s.positions || []).length).fill('Imported'),
         effects: s.effects || new Array((s.positions || []).length).fill('none'),
         transitionMode: s.transitionMode || 'transform',
-        transitionEffect: s.transitionEffect || s.transitionLight || 'none'
+        transitionEffect: s.transitionEffect || s.transitionLight || 'none',
+        holdTime: s.holdTime || 0,
+        holdEffect: s.holdEffect || 'none'
       }));
     } else {
       // Legacy support
@@ -180,38 +213,45 @@ export class FormationEditorState {
         particleGroups: new Array(data.positions?.length || 0).fill('Imported'),
         effects: new Array(data.positions?.length || 0).fill('none'),
         transitionMode: 'transform',
-        transitionEffect: 'none'
+        transitionEffect: 'none',
+        holdTime: 0,
+        holdEffect: 'none'
       }];
     }
-    
+
+    this.recalculateTimes();
+
     this.selectedIndices.clear();
     this.history = [];
     this.historyIndex = -1;
     this.currentStepIndex = 0;
-    
+
     const step = this.steps[0];
     this.positions = step.positions.map(p => p.clone());
     this.colors = step.colors.map(c => c.clone());
     this.particleGroups = [...step.particleGroups];
     this.effects = [...step.effects];
-    
+
     this.saveStateToHistory();
     this.notify();
   }
 
   exportFormat() {
     this.saveCurrentStep();
+    this.recalculateTimes(); // Ensure absolute times are computed
     return {
       name: this.name,
       droneCount: this.positions.length,
       steps: this.steps.map(step => ({
-        time: step.time,
+        time: step.time, // We export time for scrubbing compatibility
         positions: step.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
         colors: step.colors.map(c => c.getHex()),
         particleGroups: step.particleGroups,
         effects: step.effects,
         transitionMode: step.transitionMode,
-        transitionEffect: step.transitionEffect
+        transitionEffect: step.transitionEffect,
+        holdTime: step.holdTime || 0,
+        holdEffect: step.holdEffect || 'none'
       }))
     };
   }
@@ -224,7 +264,7 @@ export class FormationEditorState {
   }
 
   updatePositions(entries) {
-    for (const {index, pos} of entries) {
+    for (const { index, pos } of entries) {
       if (this.positions[index]) {
         this.positions[index].copy(pos);
       }
@@ -234,7 +274,7 @@ export class FormationEditorState {
 
   updateSelectionColor(hex) {
     if (this.selectedIndices.size === 0) return;
-    
+
     for (const index of this.selectedIndices) {
       if (this.colors[index]) {
         this.colors[index].setHex(hex);
@@ -273,19 +313,19 @@ export class FormationEditorState {
 
   deleteSelected() {
     if (this.selectedIndices.size === 0) return;
-    
+
     const sorted = Array.from(this.selectedIndices).sort((a, b) => b - a);
-    
+
     for (const index of sorted) {
       this.positions.splice(index, 1);
       this.colors.splice(index, 1);
       this.particleGroups.splice(index, 1);
       this.effects.splice(index, 1);
     }
-    
+
     for (const step of this.steps) {
       if (step === this.steps[this.currentStepIndex]) continue;
-      
+
       for (const index of sorted) {
         step.positions.splice(index, 1);
         step.colors.splice(index, 1);
@@ -293,7 +333,7 @@ export class FormationEditorState {
         step.effects.splice(index, 1);
       }
     }
-    
+
     this.selectedIndices.clear();
     this.saveCurrentStep();
     this.saveStateToHistory();
@@ -301,22 +341,22 @@ export class FormationEditorState {
 
   duplicateSelected() {
     if (this.selectedIndices.size === 0) return;
-    
+
     const newIndices = new Set();
     const startIndex = this.positions.length;
     let i = 0;
-    
+
     for (const index of this.selectedIndices) {
       const pos = this.positions[index];
       const col = this.colors[index];
       const group = this.particleGroups[index] || 'Duplicate';
       const eff = this.effects[index] || 'none';
-      
+
       this.positions.push(new THREE.Vector3(pos.x + 2, pos.y, pos.z + 2));
       this.colors.push(col.clone());
       this.particleGroups.push(group + '_copy');
       this.effects.push(eff);
-      
+
       for (let sIndex = 0; sIndex < this.steps.length; sIndex++) {
         if (sIndex === this.currentStepIndex) continue;
         const step = this.steps[sIndex];
@@ -324,18 +364,18 @@ export class FormationEditorState {
         const stepCol = step.colors[index] || col;
         const stepGrp = step.particleGroups[index] || group;
         const stepEff = step.effects ? (step.effects[index] || eff) : eff;
-        
+
         step.positions.push(new THREE.Vector3(stepPos.x + 2, stepPos.y, stepPos.z + 2));
         step.colors.push(stepCol.clone());
         step.particleGroups.push(stepGrp + '_copy');
         if (!step.effects) step.effects = [];
         step.effects.push(stepEff);
       }
-      
+
       newIndices.add(startIndex + i);
       i++;
     }
-    
+
     this.selectedIndices = newIndices;
     this.saveCurrentStep();
     this.saveStateToHistory();
@@ -360,7 +400,7 @@ export class FormationEditorState {
     if (!multi) {
       this.selectedIndices.clear();
     }
-    
+
     const prefix = groupName + '/';
     for (let i = 0; i < this.particleGroups.length; i++) {
       if (this.particleGroups[i] === groupName || this.particleGroups[i].startsWith(prefix)) {

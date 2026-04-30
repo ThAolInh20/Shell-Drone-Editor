@@ -236,12 +236,19 @@ export class EditorDirector {
           stepA = stepB;
         }
 
-        const duration = stepB.time - stepA.time;
+        const holdTime = stepA.holdTime || 0;
+        const flightDuration = stepB.time - (stepA.time + holdTime);
         let t = 0;
-        if (duration > 0) {
-          t = (this.state.playbackTime - stepA.time) / duration;
-          // Smoothstep for nicer easing
-          t = t * t * (3 - 2 * t);
+        
+        if (this.state.playbackTime <= stepA.time + holdTime) {
+            t = 0; // Holding
+        } else if (flightDuration > 0) {
+            t = (this.state.playbackTime - (stepA.time + holdTime)) / flightDuration;
+            // Smoothstep for nicer easing
+            t = t * t * (3 - 2 * t);
+            if (t > 1) t = 1;
+        } else {
+            t = 1;
         }
         
         const dummy = new THREE.Object3D();
@@ -256,12 +263,19 @@ export class EditorDirector {
           dummy.scale.set(1, 1, 1);
           
           // Apply mathematical effects
-          const effect = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
-          const transitionEffect = stepA.transitionEffect || 'none';
-          let currentEffect = effect;
+          const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
+          const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
           
-          if (t > 0.01 && t < 0.99 && transitionEffect !== 'none') {
-             currentEffect = transitionEffect;
+          const holdEffectA = (stepA.holdEffect && stepA.holdEffect !== 'none') ? stepA.holdEffect : droneEffectA;
+          const holdEffectB = (stepB.holdEffect && stepB.holdEffect !== 'none') ? stepB.holdEffect : droneEffectB;
+          
+          let currentEffect = 'none';
+          if (t > 0.01 && t < 0.99) {
+             currentEffect = stepA.transitionEffect || 'none';
+          } else if (t <= 0.01) {
+             currentEffect = holdEffectA;
+          } else {
+             currentEffect = holdEffectB;
           }
           
           const age = this.state.playbackTime / 1000; // in seconds

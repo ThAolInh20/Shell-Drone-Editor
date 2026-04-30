@@ -51,12 +51,12 @@ const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 const droneSystem = new DroneSystem(sceneManager);
 const droneSequencer = new DroneShowSequencer(droneSystem);
-// Load and auto-play demo sequence
-droneSequencer.loadSequence(droneDemoData);
-droneSequencer.play();
+// Note: We no longer auto-play demo sequence because ShowDirector manages it
+
 
 const fireworkSequencer = new FireworkSequencer(fireworkSystem, cometSystem);
 const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
+showDirector.droneSequencer = droneSequencer;
 const timelineEditor = new TimelineEditor(showDirector);
 
 // The show script loading is now handled in InputSystem

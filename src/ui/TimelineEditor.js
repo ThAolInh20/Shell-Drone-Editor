@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { PropertyInspector } from './PropertyInspector.js';
 import demoShow from '../config/sequences/demoShow.json';
 
@@ -241,8 +242,12 @@ export class TimelineEditor {
           const rect = this.tracksArea.getBoundingClientRect();
           const time = Math.max(0, (e.clientX - rect.left) / this.pixelsPerSecond);
           this.addAudioSequence(time, file);
+        } else if (file.name.endsWith('.json')) {
+          const rect = this.tracksArea.getBoundingClientRect();
+          const time = Math.max(0, (e.clientX - rect.left) / this.pixelsPerSecond);
+          this.addDroneSequence(time, file);
         } else {
-          alert('Chỉ hỗ trợ file âm thanh (vd: .mp3, .wav)');
+          alert('Chỉ hỗ trợ file âm thanh (.mp3, .wav) hoặc file Drone Show (.json)');
         }
       }
     });
@@ -455,6 +460,46 @@ export class TimelineEditor {
     });
   }
 
+  addDroneSequence(time, file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data.droneCount || !data.steps) {
+            throw new Error("Không phải file xuất từ Drone Editor.");
+        }
+        
+        let maxTime = 0;
+        data.steps.forEach(step => {
+            if (step.time > maxTime) maxTime = step.time;
+        });
+        const duration = (maxTime / 1000) + 2.0; // 2 seconds buffer
+
+        const parsedSteps = data.steps.map(step => ({
+            ...step,
+            positions: step.positions.map(p => new THREE.Vector3(p.x, p.y, p.z))
+        }));
+
+        const newSeq = {
+          time: Math.round(time * 10) / 10,
+          type: 'droneshow',
+          name: data.name || file.name,
+          duration: duration,
+          uiDuration: duration,
+          droneCount: data.droneCount,
+          steps: parsedSteps
+        };
+        this.sequences.push(newSeq);
+        this.renderTracks();
+        this.inspector.show(newSeq);
+        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+      } catch (err) {
+        alert("Lỗi khi đọc file Drone JSON: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
   assignTracks() {
     const audioSequences = [...this.sequences].filter(s => !s._deleted && s.type === 'audio').sort((a, b) => a.time - b.time);
     const otherSequences = [...this.sequences].filter(s => !s._deleted && s.type !== 'audio').sort((a, b) => a.time - b.time);
@@ -540,12 +585,16 @@ export class TimelineEditor {
         block.style.background = 'linear-gradient(90deg, #c2185b, #e91e63)';
       } else if (seq.type === 'audio') {
         block.style.background = 'linear-gradient(90deg, #673ab7, #9c27b0)';
+      } else if (seq.type === 'droneshow') {
+        block.style.background = 'linear-gradient(90deg, #00b4db, #0083b0)';
       } else {
         block.style.background = 'linear-gradient(90deg, #1565c0, #03a9f4)';
       }
 
       if (seq.type === 'audio') {
         block.textContent = `🎵 ${seq.name || seq.url || 'Audio'}`;
+      } else if (seq.type === 'droneshow') {
+        block.textContent = `🛸 ${seq.name || 'Drone Show'} (${seq.droneCount} drones)`;
       } else {
         block.textContent = `${seq.preset || seq.pattern} (${seq.count || 1})`;
       }
@@ -682,7 +731,7 @@ export class TimelineEditor {
     
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
-      const { _trackRow, _deleted, ...cleanObj } = s;
+      const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
       return cleanObj;
     });
 
