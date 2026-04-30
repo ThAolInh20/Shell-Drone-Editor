@@ -122,7 +122,18 @@ export function setupEditorUI(state, director) {
           <label>Color</label>
           <input type="color" id="ui-color" value="#ffffff" />
         </div>
-        <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white;">Delete Selected</button>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Effect</label>
+          <select id="ui-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="none">None</option>
+            <option value="wave">Wave (Vertical)</option>
+            <option value="swing">Swing (Horizontal)</option>
+            <option value="pulse">Pulse (Scale)</option>
+            <option value="strobe">Strobe (Blink)</option>
+            <option value="shimmer">Shimmer (Flicker)</option>
+          </select>
+        </div>
+        <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white; width: 100%;">Delete Selected</button>
       </div>
     </div>
   `;
@@ -233,15 +244,39 @@ export function setupEditorUI(state, director) {
       const count = parseInt(document.getElementById('ui-count').value) || 100;
       if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
       
-      const newPositions = DroneFormationFactory.createFormation(type, count, params);
+      const positions = DroneFormationFactory.createFormation(type, count, params);
+      const colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
       const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
-      const newGroups = new Array(newPositions.length).fill(groupName);
-      const newColors = new Array(newPositions.length).fill().map(() => new THREE.Color(0xffffff));
+      const startIndex = state.positions.length;
+
+      // Inject into active memory
+      for(let i = 0; i < count; i++) {
+         state.positions.push(positions[i]);
+         state.colors.push(colors[i]);
+         state.particleGroups.push(groupName);
+         state.effects.push('none');
+      }
       
-      state.positions = state.positions.concat(newPositions);
-      state.particleGroups = state.particleGroups.concat(newGroups);
-      state.colors = state.colors.concat(newColors);
+      // Inject into all other steps to keep indices aligned
+      for(let sIndex = 0; sIndex < state.steps.length; sIndex++) {
+         if (sIndex === state.currentStepIndex) continue;
+         const step = state.steps[sIndex];
+         for(let i = 0; i < count; i++) {
+             step.positions.push(positions[i].clone());
+             step.colors.push(colors[i].clone());
+             step.particleGroups.push(groupName);
+             if (!step.effects) step.effects = [];
+             step.effects.push('none');
+         }
+      }
       
+      // Select the newly spawned drones
+      state.selectedIndices.clear();
+      for (let i = startIndex; i < state.positions.length; i++) {
+        state.selectedIndices.add(i);
+      }
+      
+      state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
     }
@@ -346,11 +381,193 @@ export function setupEditorUI(state, director) {
     state.updateSelectionColor(hex);
   });
 
+  document.getElementById('ui-effect').addEventListener('change', (e) => {
+    state.updateSelectionEffect(e.target.value);
+  });
+
   document.getElementById('btn-delete-selected').addEventListener('click', () => {
     if (confirm(`Delete ${state.selectedIndices.size} selected items?`)) {
       state.deleteSelected();
     }
   });
+
+  // Timeline UI
+  document.getElementById('btn-add-step').addEventListener('click', () => {
+    state.addStep();
+  });
+  
+  document.getElementById('btn-play').addEventListener('click', () => {
+    state.isPlaying = !state.isPlaying;
+    if (state.isPlaying) {
+      document.getElementById('btn-play').textContent = '⏸ Pause';
+      document.getElementById('btn-play').style.backgroundColor = '#f44336';
+      // If we are at the end, restart
+      const maxTime = state.steps[state.steps.length - 1].time;
+      if (state.playbackTime >= maxTime) {
+        state.playbackTime = 0;
+      }
+    } else {
+      document.getElementById('btn-play').textContent = '▶ Play';
+      document.getElementById('btn-play').style.backgroundColor = '#4CAF50';
+      // Snap to current step when paused
+      state.playbackTime = state.steps[state.currentStepIndex].time;
+    }
+  });
+
+  function renderTimeline() {
+    const container = document.getElementById('steps-container');
+    container.innerHTML = '';
+    
+    state.steps.forEach((step, index) => {
+      const card = document.createElement('div');
+      card.style.minWidth = '130px';
+      card.style.height = '105px';
+      card.style.backgroundColor = index === state.currentStepIndex ? '#3498db' : '#333';
+      card.style.border = index === state.currentStepIndex ? '2px solid #fff' : '1px solid #444';
+      card.style.borderRadius = '4px';
+      card.style.padding = '8px';
+      card.style.cursor = 'pointer';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.justifyContent = 'flex-start';
+      card.style.gap = '4px';
+      
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.fontSize = '12px';
+      header.style.fontWeight = 'bold';
+      
+      const title = document.createElement('span');
+      title.textContent = `Step ${index + 1}`;
+      
+      const delBtn = document.createElement('span');
+      delBtn.textContent = '×';
+      delBtn.style.color = '#ffcccb';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm(`Delete Step ${index + 1}?`)) {
+          state.removeStep(index);
+        }
+      };
+      
+      header.appendChild(title);
+      if (state.steps.length > 1) {
+        header.appendChild(delBtn);
+      }
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.textContent = `${step.time} ms`;
+      timeDiv.style.fontSize = '11px';
+      timeDiv.style.color = index === state.currentStepIndex ? '#fff' : '#aaa';
+      
+      card.ondblclick = (e) => {
+        e.stopPropagation();
+        const newTime = prompt(`Set time (ms) for Step ${index + 1}:`, step.time);
+        if (newTime !== null) {
+          const t = parseInt(newTime);
+          if (!isNaN(t)) {
+            step.time = t;
+            state.steps.sort((a, b) => a.time - b.time);
+            state.currentStepIndex = state.steps.indexOf(step);
+            state.notify();
+          }
+        }
+      };
+      
+      card.onclick = () => {
+        if (!state.isPlaying) {
+          state.playbackTime = step.time;
+          state.loadStep(index);
+        }
+      };
+      
+      const modeSelect = document.createElement('select');
+      modeSelect.style.fontSize = '10px';
+      modeSelect.style.background = 'rgba(0,0,0,0.3)';
+      modeSelect.style.color = '#fff';
+      modeSelect.style.border = '1px solid rgba(255,255,255,0.2)';
+      modeSelect.style.borderRadius = '3px';
+      modeSelect.style.padding = '2px';
+      modeSelect.style.marginTop = '2px';
+      
+      const optTransform = document.createElement('option');
+      optTransform.value = 'transform';
+      optTransform.textContent = '🔄 Transform';
+      
+      const optMove = document.createElement('option');
+      optMove.value = 'move';
+      optMove.textContent = '➡ Move Group';
+      
+      modeSelect.appendChild(optTransform);
+      modeSelect.appendChild(optMove);
+      modeSelect.value = step.transitionMode || 'transform';
+      
+      modeSelect.onchange = (e) => {
+        e.stopPropagation();
+        step.transitionMode = e.target.value;
+        state.saveCurrentStep();
+      };
+      
+      modeSelect.onclick = (e) => e.stopPropagation();
+
+      const effectSelect = document.createElement('select');
+      effectSelect.style.fontSize = '10px';
+      effectSelect.style.background = 'rgba(0,0,0,0.3)';
+      effectSelect.style.color = '#fff';
+      effectSelect.style.border = '1px solid rgba(255,255,255,0.2)';
+      effectSelect.style.borderRadius = '3px';
+      effectSelect.style.padding = '2px';
+      effectSelect.style.marginTop = '2px';
+      
+      const optEffNone = document.createElement('option');
+      optEffNone.value = 'none';
+      optEffNone.textContent = '✨ Transition: Normal';
+      
+      const optEffWave = document.createElement('option');
+      optEffWave.value = 'wave';
+      optEffWave.textContent = '✨ Transition: Wave';
+      
+      const optEffSwing = document.createElement('option');
+      optEffSwing.value = 'swing';
+      optEffSwing.textContent = '✨ Transition: Swing';
+      
+      const optEffPulse = document.createElement('option');
+      optEffPulse.value = 'pulse';
+      optEffPulse.textContent = '✨ Transition: Pulse';
+      
+      const optEffStrobe = document.createElement('option');
+      optEffStrobe.value = 'strobe';
+      optEffStrobe.textContent = '✨ Transition: Strobe';
+      
+      const optEffShimmer = document.createElement('option');
+      optEffShimmer.value = 'shimmer';
+      optEffShimmer.textContent = '✨ Transition: Shimmer';
+      
+      effectSelect.appendChild(optEffNone);
+      effectSelect.appendChild(optEffWave);
+      effectSelect.appendChild(optEffSwing);
+      effectSelect.appendChild(optEffPulse);
+      effectSelect.appendChild(optEffStrobe);
+      effectSelect.appendChild(optEffShimmer);
+      
+      effectSelect.value = step.transitionEffect || 'none';
+      
+      effectSelect.onchange = (e) => {
+        e.stopPropagation();
+        step.transitionEffect = e.target.value;
+        state.saveCurrentStep();
+      };
+      
+      effectSelect.onclick = (e) => e.stopPropagation();
+
+      card.appendChild(header);
+      card.appendChild(timeDiv);
+      card.appendChild(modeSelect);
+      card.appendChild(effectSelect);
+      container.appendChild(card);
+    });
+  }
 
   state.subscribe(() => {
     const selInfo = document.getElementById('selection-info');
@@ -380,6 +597,23 @@ export function setupEditorUI(state, director) {
         if (state.colors[firstId]) {
           const hexStr = '#' + state.colors[firstId].getHexString();
           document.getElementById('ui-color').value = hexStr;
+        }
+
+        // Determine if all selected share the same effect
+        let sameEffect = true;
+        let firstEffect = state.effects[firstId] || 'none';
+        for (const id of state.selectedIndices) {
+          const eff = state.effects[id] || 'none';
+          if (eff !== firstEffect) {
+            sameEffect = false;
+            break;
+          }
+        }
+        
+        if (sameEffect) {
+          document.getElementById('ui-effect').value = firstEffect;
+        } else {
+          document.getElementById('ui-effect').value = 'none';
         }
       } else {
         coordInputs.style.display = 'none';
@@ -439,18 +673,29 @@ export function setupEditorUI(state, director) {
           }
         });
 
-        if (selectedInGroup > 0 && selectedInGroup === totalInGroup) {
-            div.style.background = '#3a86ff'; // Fully selected
-        } else if (selectedInGroup > 0) {
-            div.style.background = '#2a5a9e'; // Partially selected
+        if (totalInGroup > 0) {
+          const countSpan = document.createElement('span');
+          countSpan.textContent = ` (${selectedInGroup}/${totalInGroup})`;
+          countSpan.style.color = selectedInGroup > 0 ? '#4CAF50' : '#888';
+          countSpan.style.fontSize = '10px';
+          nameSpan.appendChild(countSpan);
         }
 
-        div.addEventListener('click', (e) => {
-          const multi = e.ctrlKey || e.shiftKey;
-          state.selectGroup(g, multi);
+        if (selectedInGroup > 0 && selectedInGroup === totalInGroup) {
+          div.style.backgroundColor = 'rgba(52, 152, 219, 0.3)'; // Highlight if fully selected
+        } else if (selectedInGroup > 0) {
+          div.style.backgroundColor = 'rgba(52, 152, 219, 0.1)'; // Highlight if partially selected
+        }
+        
+        div.addEventListener('click', (event) => {
+          state.selectGroup(g, event.ctrlKey || event.shiftKey); // hold ctrl to multi-select groups
         });
+
         groupList.appendChild(div);
       });
+      
+      // Update timeline
+      renderTimeline();
     }
   });
 }

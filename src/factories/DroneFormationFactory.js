@@ -98,10 +98,13 @@ export class DroneFormationFactory {
         const positions = [];
         
         if (fill === 'solid') {
+            const u_phi = 0.6180339887;
+            const v_phi = 0.7548776662;
+            const w_phi = 0.5698402910;
             for (let i = 0; i < count; i++) {
-                const u = Math.random();
-                const v = Math.random();
-                const w = Math.random();
+                const u = (i * u_phi) % 1;
+                const v = (i * v_phi) % 1;
+                const w = (i * w_phi) % 1;
                 const theta = u * 2.0 * Math.PI;
                 const phi = Math.acos(2.0 * v - 1.0);
                 const r = Math.cbrt(w) * radius;
@@ -147,14 +150,24 @@ export class DroneFormationFactory {
                 ));
             }
         } else {
-            const side = Math.ceil(Math.sqrt(count / 6));
-            const size = side * spacing;
+            const sideLength = Math.ceil(Math.sqrt(count / 6));
+            const size = sideLength * spacing;
             const offset = size / 2;
+            const perFace = Math.ceil(count / 6);
+            const gridSide = Math.ceil(Math.sqrt(perFace));
+            const step = size / gridSide;
             
             for (let i = 0; i < count; i++) {
-                const face = i % 6;
-                const u = (Math.random() - 0.5) * size;
-                const v = (Math.random() - 0.5) * size;
+                const face = Math.floor(i / perFace);
+                if (face >= 6) continue;
+                const faceIndex = i % perFace;
+                const gx = faceIndex % gridSide;
+                const gy = Math.floor(faceIndex / gridSide);
+                
+                // Center the grid
+                const u = (gx * step) - (size / 2) + (step / 2);
+                const v = (gy * step) - (size / 2) + (step / 2);
+                
                 let x = 0, y = 0, z = 0;
                 if (face === 0) { x = offset; y = u; z = v; }
                 else if (face === 1) { x = -offset; y = u; z = v; }
@@ -176,10 +189,13 @@ export class DroneFormationFactory {
         const positions = [];
         
         if (fill === 'solid') {
+            const u_phi = 0.6180339887;
+            const v_phi = 0.7548776662;
+            const w_phi = 0.5698402910;
             for (let i = 0; i < count; i++) {
-                const r = radius * Math.sqrt(Math.random());
-                const theta = Math.random() * 2 * Math.PI;
-                const y = Math.random() * height;
+                const r = radius * Math.sqrt((i * u_phi) % 1);
+                const theta = ((i * v_phi) % 1) * 2 * Math.PI;
+                const y = ((i * w_phi) % 1) * height;
                 positions.push(new THREE.Vector3(
                     Math.cos(theta) * r,
                     y + yOffset,
@@ -228,13 +244,15 @@ export class DroneFormationFactory {
         }
 
         if (fill === 'solid') {
+            const u_phi = 0.6180339887;
+            const v_phi = 0.7548776662;
             for (let i = 0; i < count; i++) {
                 const triIndex = i % 10;
                 const v1 = vertices[triIndex];
                 const v2 = vertices[(triIndex + 1) % 10];
                 
-                let r1 = Math.random();
-                let r2 = Math.random();
+                let r1 = (i * u_phi) % 1;
+                let r2 = (i * v_phi) % 1;
                 if (r1 + r2 > 1) {
                     r1 = 1 - r1;
                     r2 = 1 - r2;
@@ -327,8 +345,11 @@ export class DroneFormationFactory {
             const worldY = (centerY - px.y) * spacing * 0.05 + yOffset;
             const worldZ = 0;
             
-            const jitter = (count > filledPixels.length) ? (Math.random() - 0.5) * spacing * 0.02 : 0;
-            positions.push(new THREE.Vector3(worldX + jitter, worldY + jitter, worldZ + jitter));
+            const jitterX = (count > filledPixels.length) ? (((i * 0.618033) % 1) - 0.5) * spacing * 0.04 : 0;
+            const jitterY = (count > filledPixels.length) ? (((i * 0.754877) % 1) - 0.5) * spacing * 0.04 : 0;
+            const jitterZ = (count > filledPixels.length) ? (((i * 0.569840) % 1) - 0.5) * spacing * 0.04 : 0;
+            
+            positions.push(new THREE.Vector3(worldX + jitterX, worldY + jitterY, worldZ + jitterZ));
         }
         
         return positions;

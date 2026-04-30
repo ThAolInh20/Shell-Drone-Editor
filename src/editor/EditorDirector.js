@@ -200,6 +200,103 @@ export class EditorDirector {
 
   update(deltaTime) {
     this.controls.update();
-    // Gizmo update is handled automatically by Three.js
+    
+    if (this.state.isPlaying && this.instancedMesh) {
+      this.state.playbackTime += deltaTime * 1000;
+      const steps = this.state.steps;
+      if (steps.length === 0) return;
+      
+      const maxTime = steps[steps.length - 1].time;
+      
+      const timeDiv = document.getElementById('playback-time');
+      if (timeDiv) {
+        const ms = Math.floor(this.state.playbackTime);
+        const sec = Math.floor(ms / 1000);
+        const millis = ms % 1000;
+        timeDiv.textContent = `${sec.toString().padStart(2, '0')}:${millis.toString().padStart(3, '0')}`;
+      }
+
+      if (this.state.playbackTime >= maxTime && steps.length > 1) {
+        this.state.playbackTime = 0; // Loop playback
+      }
+      
+      if (steps.length > 1) {
+        let stepA = steps[0];
+        let stepB = steps[steps.length - 1];
+        
+        for (let i = 0; i < steps.length - 1; i++) {
+          if (this.state.playbackTime >= steps[i].time && this.state.playbackTime <= steps[i+1].time) {
+            stepA = steps[i];
+            stepB = steps[i+1];
+            break;
+          }
+        }
+        
+        if (this.state.playbackTime > stepB.time) {
+          stepA = stepB;
+        }
+
+        const duration = stepB.time - stepA.time;
+        let t = 0;
+        if (duration > 0) {
+          t = (this.state.playbackTime - stepA.time) / duration;
+          // Smoothstep for nicer easing
+          t = t * t * (3 - 2 * t);
+        }
+        
+        const dummy = new THREE.Object3D();
+        const color = new THREE.Color();
+        const count = this.state.positions.length;
+        
+        for (let i = 0; i < count; i++) {
+          const posA = stepA.positions[i] || this.state.positions[i];
+          const posB = stepB.positions[i] || posA;
+          
+          dummy.position.lerpVectors(posA, posB, t);
+          dummy.scale.set(1, 1, 1);
+          
+          // Apply mathematical effects
+          const effect = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
+          const transitionEffect = stepA.transitionEffect || 'none';
+          let currentEffect = effect;
+          
+          if (t > 0.01 && t < 0.99 && transitionEffect !== 'none') {
+             currentEffect = transitionEffect;
+          }
+          
+          const age = this.state.playbackTime / 1000; // in seconds
+          
+          if (currentEffect === 'wave') {
+            dummy.position.y += Math.sin(age * 3.0 + (i * 0.1)) * 2.0;
+          } else if (currentEffect === 'swing') {
+            dummy.position.x += Math.sin(age * 2.0 + (i * 0.1)) * 2.5;
+          } else if (currentEffect === 'pulse') {
+            const p = 1.0 + Math.sin(age * Math.PI * 2 + (i * 0.1)) * 0.5;
+            dummy.scale.set(p, p, p);
+          }
+          
+          dummy.updateMatrix();
+          this.instancedMesh.setMatrixAt(i, dummy.matrix);
+          
+          const colA = stepA.colors[i] || this.state.colors[i];
+          const colB = stepB.colors[i] || colA;
+          color.copy(colA).lerp(colB, t);
+          
+          if (currentEffect === 'strobe') {
+            const p = Math.sin(age * 15.0 + (i * 0.5));
+            if (p < 0) color.multiplyScalar(0.1);
+          } else if (currentEffect === 'shimmer') {
+            const flicker = 1.0 + (Math.random() - 0.5) * 0.8;
+            color.multiplyScalar(Math.max(0, flicker));
+          }
+          
+          this.instancedMesh.setColorAt(i, color);
+        }
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
+        if (this.instancedMesh.instanceColor) {
+           this.instancedMesh.instanceColor.needsUpdate = true;
+        }
+      }
+    }
   }
 }
