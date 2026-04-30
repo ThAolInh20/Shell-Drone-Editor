@@ -27,7 +27,7 @@ export class DroneShowSequencer {
             this.steps = sequenceData.steps;
 
             // Auto-calculate absolute times based on a fixed drone speed
-            const SPEED = 20 // m/s
+            const SPEED = 40 // m/s
             let currentTime = 0;
 
             for (let i = 0; i < this.steps.length; i++) {

@@ -30,6 +30,9 @@ export class FormationEditorState {
     // Undo/Redo stack
     this.history = [];
     this.historyIndex = -1;
+    
+    // Clipboard for copy/paste
+    this.clipboard = null;
 
     this.listeners = [];
   }
@@ -379,6 +382,78 @@ export class FormationEditorState {
     this.selectedIndices = newIndices;
     this.saveCurrentStep();
     this.saveStateToHistory();
+    this.notify();
+  }
+
+  copyToClipboard() {
+    if (this.selectedIndices.size === 0) return;
+
+    this.clipboard = {
+      positions: [],
+      colors: [],
+      particleGroups: [],
+      effects: [],
+      stepData: []
+    };
+
+    for (const index of this.selectedIndices) {
+      this.clipboard.positions.push(this.positions[index].clone());
+      this.clipboard.colors.push(this.colors[index].clone());
+      this.clipboard.particleGroups.push(this.particleGroups[index] || 'Pasted');
+      this.clipboard.effects.push(this.effects[index] || 'none');
+
+      const stepInfo = [];
+      for (const step of this.steps) {
+        stepInfo.push({
+          pos: step.positions[index] ? step.positions[index].clone() : this.positions[index].clone(),
+          col: step.colors[index] ? step.colors[index].clone() : this.colors[index].clone(),
+          grp: step.particleGroups[index] || 'Pasted',
+          eff: step.effects && step.effects[index] ? step.effects[index] : 'none'
+        });
+      }
+      this.clipboard.stepData.push(stepInfo);
+    }
+  }
+
+  pasteFromClipboard() {
+    if (!this.clipboard || this.clipboard.positions.length === 0) return;
+
+    const newIndices = new Set();
+    const startIndex = this.positions.length;
+    let i = 0;
+
+    for (let c = 0; c < this.clipboard.positions.length; c++) {
+      const pos = this.clipboard.positions[c];
+      const col = this.clipboard.colors[c];
+      const group = this.clipboard.particleGroups[c];
+      const eff = this.clipboard.effects[c];
+      const stepData = this.clipboard.stepData[c];
+
+      this.positions.push(new THREE.Vector3(pos.x + 2, pos.y, pos.z + 2));
+      this.colors.push(col.clone());
+      this.particleGroups.push(group + '_copy');
+      this.effects.push(eff);
+
+      for (let sIndex = 0; sIndex < this.steps.length; sIndex++) {
+        if (sIndex === this.currentStepIndex) continue;
+        const step = this.steps[sIndex];
+        const sData = stepData[sIndex];
+
+        step.positions.push(new THREE.Vector3(sData.pos.x + 2, sData.pos.y, sData.pos.z + 2));
+        step.colors.push(sData.col.clone());
+        step.particleGroups.push(sData.grp + '_copy');
+        if (!step.effects) step.effects = [];
+        step.effects.push(sData.eff);
+      }
+
+      newIndices.add(startIndex + i);
+      i++;
+    }
+
+    this.selectedIndices = newIndices;
+    this.saveCurrentStep();
+    this.saveStateToHistory();
+    this.notify();
   }
 
   getUniqueGroups() {

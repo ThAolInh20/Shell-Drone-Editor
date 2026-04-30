@@ -228,7 +228,7 @@ export function setupEditorUI(state, director) {
     const p1 = parseFloat(document.getElementById('ui-shape-p1').value) || 15;
     const p2 = parseFloat(document.getElementById('ui-shape-p2').value) || 30;
     const textVal = document.getElementById('ui-shape-text').value;
-    
+
     // Define default params for shapes
     let params = { y: 20, fill: fill };
     if (type === 'grid') params = { spacing: p1, y: 20, fill };
@@ -244,29 +244,29 @@ export function setupEditorUI(state, director) {
         alert("Please select some drones first.");
         return;
       }
-      
+
       const count = state.selectedIndices.size;
       if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-      
+
       const newPositions = DroneFormationFactory.createFormation(type, count, params);
-      
+
       // We want to arrange the selected drones around their current center!
       const currentCenter = new THREE.Vector3();
       for (const id of state.selectedIndices) {
         currentCenter.add(state.positions[id]);
       }
       currentCenter.divideScalar(count);
-      
+
       // Calculate the generated shape's center
       const shapeCenter = new THREE.Vector3();
       for (const pos of newPositions) {
         shapeCenter.add(pos);
       }
       shapeCenter.divideScalar(count);
-      
+
       // Offset all new positions to match the current center
       const offset = currentCenter.sub(shapeCenter);
-      
+
       const updates = [];
       let i = 0;
       for (const id of state.selectedIndices) {
@@ -274,47 +274,47 @@ export function setupEditorUI(state, director) {
         updates.push({ index: id, pos: finalPos });
         i++;
       }
-      
+
       state.updatePositions(updates);
       state.saveStateToHistory();
-      
+
     } else {
       // Spawn new drones
       const count = parseInt(document.getElementById('ui-count').value) || 100;
       if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-      
+
       const positions = DroneFormationFactory.createFormation(type, count, params);
       const colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
       const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
       const startIndex = state.positions.length;
 
       // Inject into active memory
-      for(let i = 0; i < count; i++) {
-         state.positions.push(positions[i]);
-         state.colors.push(colors[i]);
-         state.particleGroups.push(groupName);
-         state.effects.push('none');
+      for (let i = 0; i < count; i++) {
+        state.positions.push(positions[i]);
+        state.colors.push(colors[i]);
+        state.particleGroups.push(groupName);
+        state.effects.push('none');
       }
-      
+
       // Inject into all other steps to keep indices aligned
-      for(let sIndex = 0; sIndex < state.steps.length; sIndex++) {
-         if (sIndex === state.currentStepIndex) continue;
-         const step = state.steps[sIndex];
-         for(let i = 0; i < count; i++) {
-             step.positions.push(positions[i].clone());
-             step.colors.push(colors[i].clone());
-             step.particleGroups.push(groupName);
-             if (!step.effects) step.effects = [];
-             step.effects.push('none');
-         }
+      for (let sIndex = 0; sIndex < state.steps.length; sIndex++) {
+        if (sIndex === state.currentStepIndex) continue;
+        const step = state.steps[sIndex];
+        for (let i = 0; i < count; i++) {
+          step.positions.push(positions[i].clone());
+          step.colors.push(colors[i].clone());
+          step.particleGroups.push(groupName);
+          if (!step.effects) step.effects = [];
+          step.effects.push('none');
+        }
       }
-      
+
       // Select the newly spawned drones
       state.selectedIndices.clear();
       for (let i = startIndex; i < state.positions.length; i++) {
         state.selectedIndices.add(i);
       }
-      
+
       state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
@@ -342,10 +342,10 @@ export function setupEditorUI(state, director) {
     }
     const parentName = prompt("Enter new Parent Group name:");
     if (!parentName) return;
-    
+
     // Validate parent name to not contain slashes
     const cleanName = parentName.replace(/\//g, '_');
-    
+
     for (const idx of state.selectedIndices) {
       const current = state.particleGroups[idx] || 'Default';
       state.particleGroups[idx] = cleanName + '/' + current;
@@ -356,7 +356,7 @@ export function setupEditorUI(state, director) {
 
   document.getElementById('btn-ungroup')?.addEventListener('click', () => {
     if (state.selectedIndices.size === 0) return;
-    
+
     let changed = false;
     for (const idx of state.selectedIndices) {
       const current = state.particleGroups[idx];
@@ -388,19 +388,19 @@ export function setupEditorUI(state, director) {
       const x = parseFloat(document.getElementById('ui-pos-x').value) || 0;
       const y = parseFloat(document.getElementById('ui-pos-y').value) || 0;
       const z = parseFloat(document.getElementById('ui-pos-z').value) || 0;
-      
+
       const newCenter = new THREE.Vector3(x, y, z);
-      
+
       // Calculate current center
       const currentCenter = new THREE.Vector3();
       for (const id of state.selectedIndices) {
         currentCenter.add(state.positions[id]);
       }
       currentCenter.divideScalar(state.selectedIndices.size);
-      
+
       // Calculate delta
       const delta = newCenter.sub(currentCenter);
-      
+
       const updates = [];
       for (const id of state.selectedIndices) {
         const pos = state.positions[id].clone().add(delta);
@@ -414,7 +414,7 @@ export function setupEditorUI(state, director) {
   document.getElementById('ui-pos-x').addEventListener('change', updatePosFromInput);
   document.getElementById('ui-pos-y').addEventListener('change', updatePosFromInput);
   document.getElementById('ui-pos-z').addEventListener('change', updatePosFromInput);
-  
+
   document.getElementById('ui-color').addEventListener('input', (e) => {
     const hex = parseInt(e.target.value.replace('#', '0x'));
     state.updateSelectionColor(hex);
@@ -435,12 +435,12 @@ export function setupEditorUI(state, director) {
     state.steps[state.currentStepIndex].transitionMode = e.target.value;
     state.saveCurrentStep();
   });
-  
+
   document.getElementById('ui-step-transition').addEventListener('change', (e) => {
     state.steps[state.currentStepIndex].transitionEffect = e.target.value;
     state.saveCurrentStep();
   });
-  
+
   document.getElementById('ui-step-hold-time').addEventListener('change', (e) => {
     const val = parseInt(e.target.value);
     if (!isNaN(val) && val >= 0) {
@@ -450,7 +450,7 @@ export function setupEditorUI(state, director) {
       state.notify();
     }
   });
-  
+
   document.getElementById('ui-step-hold-effect').addEventListener('change', (e) => {
     state.steps[state.currentStepIndex].holdEffect = e.target.value;
     state.saveCurrentStep();
@@ -460,7 +460,7 @@ export function setupEditorUI(state, director) {
   document.getElementById('btn-add-step').addEventListener('click', () => {
     state.addStep();
   });
-  
+
   document.getElementById('btn-play').addEventListener('click', () => {
     state.isPlaying = !state.isPlaying;
     if (state.isPlaying) {
@@ -482,7 +482,7 @@ export function setupEditorUI(state, director) {
   function renderTimeline() {
     const container = document.getElementById('steps-container');
     container.innerHTML = '';
-    
+
     state.steps.forEach((step, index) => {
       const card = document.createElement('div');
       card.style.minWidth = '80px';
@@ -496,16 +496,16 @@ export function setupEditorUI(state, director) {
       card.style.flexDirection = 'column';
       card.style.justifyContent = 'flex-start';
       card.style.gap = '4px';
-      
+
       const header = document.createElement('div');
       header.style.display = 'flex';
       header.style.justifyContent = 'space-between';
       header.style.fontSize = '12px';
       header.style.fontWeight = 'bold';
-      
+
       const title = document.createElement('span');
       title.textContent = `Step ${index + 1}`;
-      
+
       const delBtn = document.createElement('span');
       delBtn.textContent = '×';
       delBtn.style.color = '#ffcccb';
@@ -515,26 +515,26 @@ export function setupEditorUI(state, director) {
           state.removeStep(index);
         }
       };
-      
+
       header.appendChild(title);
       if (state.steps.length > 1) {
         header.appendChild(delBtn);
       }
-      
+
       const timeDiv = document.createElement('div');
       timeDiv.textContent = `${step.time} ms`;
       timeDiv.style.fontSize = '11px';
       timeDiv.style.color = index === state.currentStepIndex ? '#fff' : '#aaa';
-      
+
       // No manual time editing via double click anymore
-      
+
       card.onclick = () => {
         if (!state.isPlaying) {
           state.playbackTime = step.time;
           state.loadStep(index);
         }
       };
-      
+
       card.appendChild(header);
       card.appendChild(timeDiv);
       container.appendChild(card);
@@ -545,25 +545,25 @@ export function setupEditorUI(state, director) {
     const selInfo = document.getElementById('selection-info');
     const coordInputs = document.getElementById('coord-inputs');
     const groupList = document.getElementById('group-list');
-    
+
     if (selInfo) {
       selInfo.textContent = `${state.selectedIndices.size} particles selected`;
-      
+
       if (state.selectedIndices.size > 0) {
         coordInputs.style.display = 'block';
-        
+
         // Calculate center of selection
         const center = new THREE.Vector3();
         for (const id of state.selectedIndices) {
           center.add(state.positions[id]);
         }
         center.divideScalar(state.selectedIndices.size);
-        
+
         // Only update input values if they are not actively being focused
         if (document.activeElement !== document.getElementById('ui-pos-x')) document.getElementById('ui-pos-x').value = center.x.toFixed(2);
         if (document.activeElement !== document.getElementById('ui-pos-y')) document.getElementById('ui-pos-y').value = center.y.toFixed(2);
         if (document.activeElement !== document.getElementById('ui-pos-z')) document.getElementById('ui-pos-z').value = center.z.toFixed(2);
-        
+
         // Get color of first selected particle to show in color picker
         const firstId = Array.from(state.selectedIndices)[0];
         if (state.colors[firstId]) {
@@ -581,7 +581,7 @@ export function setupEditorUI(state, director) {
             break;
           }
         }
-        
+
         if (sameEffect) {
           document.getElementById('ui-effect').value = firstEffect;
         } else {
@@ -591,7 +591,7 @@ export function setupEditorUI(state, director) {
         coordInputs.style.display = 'none';
       }
     }
-    
+
     // Sync Step Properties
     const currentStep = state.steps[state.currentStepIndex];
     if (currentStep) {
@@ -599,7 +599,7 @@ export function setupEditorUI(state, director) {
       const stepTransEl = document.getElementById('ui-step-transition');
       const stepHoldTimeEl = document.getElementById('ui-step-hold-time');
       const stepHoldEffEl = document.getElementById('ui-step-hold-effect');
-      
+
       if (document.activeElement !== stepModeEl) stepModeEl.value = currentStep.transitionMode || 'transform';
       if (document.activeElement !== stepTransEl) stepTransEl.value = currentStep.transitionEffect || 'none';
       if (document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
@@ -611,14 +611,53 @@ export function setupEditorUI(state, director) {
       groupList.innerHTML = '';
       groups.forEach(g => {
         const div = document.createElement('div');
-        
+
         const depth = g.split('/').length - 1;
         const name = g.split('/').pop();
-        
+
         const nameSpan = document.createElement('span');
         nameSpan.textContent = (depth > 0 ? '↳ ' : '') + name;
-        div.appendChild(nameSpan);
+        nameSpan.title = "Double click to rename group";
         
+        nameSpan.ondblclick = (e) => {
+          e.stopPropagation();
+          const newName = prompt(`Rename group "${name}":`, name);
+          if (newName !== null && newName.trim() !== '') {
+            const cleanName = newName.trim().replace(/\//g, '_'); // prevent nesting issues
+            const oldGroup = g;
+            
+            // Reconstruct the new full path
+            const parts = g.split('/');
+            parts[parts.length - 1] = cleanName;
+            const newGroup = parts.join('/');
+            
+            // Update active state
+            for (let i = 0; i < state.particleGroups.length; i++) {
+              if (state.particleGroups[i] === oldGroup) {
+                state.particleGroups[i] = newGroup;
+              } else if (state.particleGroups[i] && state.particleGroups[i].startsWith(oldGroup + '/')) {
+                state.particleGroups[i] = state.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
+              }
+            }
+            
+            // Update all steps
+            for (const step of state.steps) {
+              for (let i = 0; i < step.particleGroups.length; i++) {
+                if (step.particleGroups[i] === oldGroup) {
+                  step.particleGroups[i] = newGroup;
+                } else if (step.particleGroups[i] && step.particleGroups[i].startsWith(oldGroup + '/')) {
+                  step.particleGroups[i] = step.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
+                }
+              }
+            }
+            
+            state.saveStateToHistory();
+            state.notify();
+          }
+        };
+        
+        div.appendChild(nameSpan);
+
         const delBtn = document.createElement('span');
         delBtn.textContent = '×';
         delBtn.style.float = 'right';
@@ -628,7 +667,7 @@ export function setupEditorUI(state, director) {
         delBtn.style.borderRadius = '3px';
         delBtn.addEventListener('mouseover', () => delBtn.style.background = 'rgba(255,0,0,0.2)');
         delBtn.addEventListener('mouseout', () => delBtn.style.background = 'transparent');
-        
+
         delBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (confirm(`Are you sure you want to delete group "${name}" and all its drones?`)) {
@@ -636,7 +675,7 @@ export function setupEditorUI(state, director) {
             state.deleteSelected();
           }
         });
-        
+
         div.appendChild(delBtn);
 
         div.style.paddingLeft = `${depth * 15 + 8}px`;
@@ -645,7 +684,7 @@ export function setupEditorUI(state, director) {
         div.style.cursor = 'pointer';
         div.style.borderBottom = '1px solid #333';
         div.style.fontSize = '12px';
-        
+
         // Count how many selected particles belong to this group or its children
         let selectedInGroup = 0;
         let totalInGroup = 0;
@@ -672,14 +711,14 @@ export function setupEditorUI(state, director) {
         } else if (selectedInGroup > 0) {
           div.style.backgroundColor = 'rgba(52, 152, 219, 0.1)'; // Highlight if partially selected
         }
-        
+
         div.addEventListener('click', (event) => {
           state.selectGroup(g, event.ctrlKey || event.shiftKey); // hold ctrl to multi-select groups
         });
 
         groupList.appendChild(div);
       });
-      
+
       // Update timeline
       renderTimeline();
     }

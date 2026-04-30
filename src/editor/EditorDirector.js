@@ -136,9 +136,13 @@ export class EditorDirector {
   }
 
   onKeyDown(event) {
+    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+
     const isZ = event.key.toLowerCase() === 'z' || event.code === 'KeyZ';
     const isY = event.key.toLowerCase() === 'y' || event.code === 'KeyY';
     const isD = event.key.toLowerCase() === 'd' || event.code === 'KeyD';
+    const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
+    const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
 
     if (event.ctrlKey && isZ) {
       event.preventDefault();
@@ -152,9 +156,17 @@ export class EditorDirector {
       event.preventDefault();
       this.state.duplicateSelected();
     }
+    if (event.shiftKey && isC) {
+      event.preventDefault();
+      this.state.copyToClipboard();
+      console.log('Copied to clipboard');
+    }
+    if (event.shiftKey && isV) {
+      event.preventDefault();
+      this.state.pasteFromClipboard();
+      console.log('Pasted from clipboard');
+    }
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      // Avoid deleting if user is typing in an input field
-      if (document.activeElement.tagName === 'INPUT') return;
       this.state.deleteSelected();
     }
   }

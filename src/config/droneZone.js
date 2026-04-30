@@ -12,5 +12,5 @@ export const DRONE_ZONE_CONFIG = {
   depth: 200,  // Chiều sâu (Z)
   
   // Hiển thị lưới và ranh giới trong lúc thiết kế
-  showHelpers: true
+  showHelpers: false
 };
