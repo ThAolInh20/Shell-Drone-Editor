@@ -90,12 +90,14 @@ export function setupGroupPanel(state) {
             }
             
             // Update all steps
-            for (const step of state.steps) {
-              for (let i = 0; i < step.particleGroups.length; i++) {
-                if (step.particleGroups[i] === oldGroup) {
-                  step.particleGroups[i] = newGroup;
-                } else if (step.particleGroups[i] && step.particleGroups[i].startsWith(oldGroup + '/')) {
-                  step.particleGroups[i] = step.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
+            if (state.steps) {
+              for (const step of state.steps) {
+                for (let i = 0; i < step.particleGroups.length; i++) {
+                  if (step.particleGroups[i] === oldGroup) {
+                    step.particleGroups[i] = newGroup;
+                  } else if (step.particleGroups[i] && step.particleGroups[i].startsWith(oldGroup + '/')) {
+                    step.particleGroups[i] = step.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
+                  }
                 }
               }
             }
