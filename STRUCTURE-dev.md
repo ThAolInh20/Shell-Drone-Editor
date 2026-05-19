@@ -45,7 +45,8 @@
 - **`src/editor/main.js`**: Entry point for the standalone Drone Formation Editor application.
 - **`src/editor/FormationEditorState.js`**: Manages the state of the drone editor (selections, steps, playback history).
 - **`src/editor/EditorDirector.js`**: High-performance InstancedMesh rendering loop and math effects for the drone editor.
-- **`src/editor/ui/EditorUI.js`**: DOM UI logic for the drone editor tools.
+- **`src/editor/ui/EditorUI.js`**: Core module loading and assembling the layout panels.
+- **`src/editor/ui/panels/`**: Componentized UI views (FilePanel, ShapePanel, GizmoPanel, SelectionPanel, GroupPanel, StepPanel, TimelinePanel).
 - **`src/editor/systems/GizmoSystem.js`**: Provides 3D translation/rotation/scaling gizmos for editing drone positions.
 
 ### Config
