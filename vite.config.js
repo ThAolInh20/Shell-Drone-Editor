@@ -62,7 +62,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
-        editor: path.resolve(__dirname, 'editor.html')
+        editor: path.resolve(__dirname, 'editor.html'),
+        formation: path.resolve(__dirname, 'formation.html')
       }
     }
   }

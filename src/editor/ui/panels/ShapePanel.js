@@ -99,8 +99,11 @@ export function setupShapePanel(state, director) {
           const positions = [];
           const colors = [];
           for (const item of data) {
-             if (item.x !== undefined && item.y !== undefined && item.z !== undefined) {
-                positions.push(new THREE.Vector3(item.x, item.y, item.z));
+             if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+                const px = item.x || 0;
+                const py = item.y || 0;
+                const pz = item.z || 0;
+                positions.push(new THREE.Vector3(px, py, pz));
                 if (item.color !== undefined) {
                    colors.push(new THREE.Color(item.color));
                 } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
