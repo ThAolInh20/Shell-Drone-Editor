@@ -24,6 +24,10 @@ export class FormationDirector {
     // Instanced rendering for performance
     this.initInstancedMesh();
 
+    this.centerHelper = null;
+    this.pivotLines = null;
+    this.initCenterVisualizers();
+
     // Gizmo System for selecting and moving drones
     // We re-use GizmoSystem from the main editor, it just expects an object with {positions, selectedIndices, etc.}
     this.gizmoSystem = new GizmoSystem(
@@ -72,6 +76,32 @@ export class FormationDirector {
     this.sceneManager.instance.add(this.instancedMesh);
   }
 
+  initCenterVisualizers() {
+    // 1. Center Point Helper (Sphere)
+    const sphereGeo = new THREE.SphereGeometry(1.5, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ 
+      color: 0xffaa00, 
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.8
+    });
+    this.centerHelper = new THREE.Mesh(sphereGeo, sphereMat);
+    this.centerHelper.visible = false;
+    this.sceneManager.instance.add(this.centerHelper);
+
+    // 2. Pivot Connection Lines
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false
+    });
+    const lineGeo = new THREE.BufferGeometry();
+    this.pivotLines = new THREE.LineSegments(lineGeo, lineMat);
+    this.pivotLines.visible = false;
+    this.sceneManager.instance.add(this.pivotLines);
+  }
+
   setupEvents() {
     window.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
@@ -86,6 +116,13 @@ export class FormationDirector {
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
+
+    // Raycast centerHelper if visible
+    const centerIntersects = this.state.showCenter ? this.raycaster.intersectObject(this.centerHelper) : [];
+    if (centerIntersects.length > 0) {
+      this.state.selectCenter();
+      return;
+    }
 
     const intersects = this.raycaster.intersectObject(this.instancedMesh);
 
@@ -192,6 +229,28 @@ export class FormationDirector {
     }
     
     this.instancedMesh.computeBoundingSphere();
+
+    // Update center visualizer objects
+    if (this.state.center && this.centerHelper) {
+      this.centerHelper.position.copy(this.state.center);
+      this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
+
+      if (this.state.showPivotLines && positions.length > 0) {
+        const linePoints = [];
+        const centerPos = this.state.center;
+        for (let i = 0; i < positions.length; i++) {
+          linePoints.push(positions[i].clone());
+          linePoints.push(centerPos.clone());
+        }
+        this.pivotLines.geometry.setFromPoints(linePoints);
+        this.pivotLines.visible = true;
+      } else {
+        this.pivotLines.visible = false;
+      }
+    } else if (this.centerHelper) {
+      this.centerHelper.visible = false;
+      this.pivotLines.visible = false;
+    }
   }
 
   update(deltaTime) {
