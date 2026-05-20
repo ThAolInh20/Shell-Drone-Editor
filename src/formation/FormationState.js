@@ -7,6 +7,11 @@ export class FormationState {
     this.colors = []; // Array of THREE.Color
     this.particleGroups = []; // Array of strings matching positions index
 
+    this.center = new THREE.Vector3(0, 20, 0);
+    this.showCenter = true;
+    this.showPivotLines = false;
+    this.isCenterSelected = false;
+
     // Selection state
     this.selectedIndices = new Set();
 
@@ -41,7 +46,11 @@ export class FormationState {
     const snapshot = {
       positions: this.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
       colors: this.colors.map(c => c.getHex()),
-      particleGroups: [...this.particleGroups]
+      particleGroups: [...this.particleGroups],
+      center: { x: this.center.x, y: this.center.y, z: this.center.z },
+      showCenter: this.showCenter,
+      showPivotLines: this.showPivotLines,
+      isCenterSelected: this.isCenterSelected
     };
 
     this.history.push(snapshot);
@@ -73,6 +82,10 @@ export class FormationState {
     this.positions = snapshot.positions.map(p => new THREE.Vector3(p.x, p.y, p.z));
     this.colors = snapshot.colors ? snapshot.colors.map(c => new THREE.Color(c)) : new Array(this.positions.length).fill().map(() => new THREE.Color(0xffffff));
     this.particleGroups = snapshot.particleGroups ? [...snapshot.particleGroups] : new Array(this.positions.length).fill('Default');
+    this.center = snapshot.center ? new THREE.Vector3(snapshot.center.x, snapshot.center.y, snapshot.center.z) : new THREE.Vector3(0, 20, 0);
+    this.showCenter = snapshot.showCenter !== undefined ? snapshot.showCenter : true;
+    this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
+    this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
     this.selectedIndices.clear();
   }
 
@@ -104,7 +117,21 @@ export class FormationState {
     this.notify();
   }
 
+  selectCenter() {
+    this.selectedIndices.clear();
+    this.isCenterSelected = true;
+    this.notify();
+  }
+
+  deselectCenter() {
+    if (this.isCenterSelected) {
+      this.isCenterSelected = false;
+      this.notify();
+    }
+  }
+
   select(index, multi = false) {
+    this.isCenterSelected = false; // Deselect Center when selecting drone
     if (!multi) {
       this.selectedIndices.clear();
     }
@@ -119,6 +146,7 @@ export class FormationState {
 
   clearSelection() {
     this.selectedIndices.clear();
+    this.isCenterSelected = false;
     this.notify();
   }
 

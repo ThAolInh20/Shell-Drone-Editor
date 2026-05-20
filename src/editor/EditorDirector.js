@@ -24,6 +24,10 @@ export class EditorDirector {
     // Instanced rendering for performance
     this.initInstancedMesh();
 
+    this.centerHelper = null;
+    this.pivotLines = null;
+    this.initCenterVisualizers();
+
     // Gizmo System for selecting and moving drones
     this.gizmoSystem = new GizmoSystem(
       this.sceneManager.instance,
@@ -74,6 +78,32 @@ export class EditorDirector {
     this.sceneManager.instance.add(this.instancedMesh);
   }
 
+  initCenterVisualizers() {
+    // 1. Center Point Helper (Sphere)
+    const sphereGeo = new THREE.SphereGeometry(1.5, 16, 16);
+    const sphereMat = new THREE.MeshBasicMaterial({ 
+      color: 0xffaa00, 
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.8
+    });
+    this.centerHelper = new THREE.Mesh(sphereGeo, sphereMat);
+    this.centerHelper.visible = false;
+    this.sceneManager.instance.add(this.centerHelper);
+
+    // 2. Pivot Connection Lines
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.3,
+      depthWrite: false
+    });
+    const lineGeo = new THREE.BufferGeometry();
+    this.pivotLines = new THREE.LineSegments(lineGeo, lineMat);
+    this.pivotLines.visible = false;
+    this.sceneManager.instance.add(this.pivotLines);
+  }
+
   setupEvents() {
     window.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
@@ -90,6 +120,13 @@ export class EditorDirector {
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
+
+    // Raycast centerHelper if visible
+    const centerIntersects = this.state.showCenter ? this.raycaster.intersectObject(this.centerHelper) : [];
+    if (centerIntersects.length > 0) {
+      this.state.selectCenter();
+      return;
+    }
 
     const intersects = this.raycaster.intersectObject(this.instancedMesh);
 
@@ -208,6 +245,28 @@ export class EditorDirector {
     // Crucial for Raycasting: recompute the bounding sphere of the instanced mesh 
     // because the instance matrices have changed!
     this.instancedMesh.computeBoundingSphere();
+
+    // Update center visualizer objects
+    if (this.state.center && this.centerHelper) {
+      this.centerHelper.position.copy(this.state.center);
+      this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
+
+      if (this.state.showPivotLines && positions.length > 0) {
+        const linePoints = [];
+        const centerPos = this.state.center;
+        for (let i = 0; i < positions.length; i++) {
+          linePoints.push(positions[i].clone());
+          linePoints.push(centerPos.clone());
+        }
+        this.pivotLines.geometry.setFromPoints(linePoints);
+        this.pivotLines.visible = true;
+      } else {
+        this.pivotLines.visible = false;
+      }
+    } else if (this.centerHelper) {
+      this.centerHelper.visible = false;
+      this.pivotLines.visible = false;
+    }
   }
 
   update(deltaTime) {
@@ -262,10 +321,15 @@ export class EditorDirector {
         } else {
             t = 1;
         }
+        const defaultCenter = new THREE.Vector3(0, 20, 0);
+        const centerA = stepA.center || defaultCenter;
+        const centerB = stepB.center || defaultCenter;
+        const currentCenter = new THREE.Vector3().lerpVectors(centerA, centerB, t);
         
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
         const count = this.state.positions.length;
+        const age = this.state.playbackTime / 1000; // in seconds
         
         for (let i = 0; i < count; i++) {
           const posA = stepA.positions[i] || this.state.positions[i];
@@ -278,42 +342,98 @@ export class EditorDirector {
           const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
           const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
           
-          const holdEffectA = (stepA.holdEffect && stepA.holdEffect !== 'none') ? stepA.holdEffect : droneEffectA;
-          const holdEffectB = (stepB.holdEffect && stepB.holdEffect !== 'none') ? stepB.holdEffect : droneEffectB;
+          // 1. Phân tích Chuyển động (Movement Effect)
+          const holdMoveEffectA = (stepA.holdMoveEffect && stepA.holdMoveEffect !== 'none') ? stepA.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectA) ? droneEffectA : 'none');
+          const holdMoveEffectB = (stepB.holdMoveEffect && stepB.holdMoveEffect !== 'none') ? stepB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
           
-          let currentEffect = 'none';
+          let currentMoveEffect = 'none';
           if (t > 0.01 && t < 0.99) {
-             currentEffect = stepA.transitionEffect || 'none';
+             const transEff = stepA.transitionEffect || 'none';
+             currentMoveEffect = ['wave', 'swing', 'pulse'].includes(transEff) ? transEff : 'none';
           } else if (t <= 0.01) {
-             currentEffect = holdEffectA;
+             currentMoveEffect = holdMoveEffectA;
           } else {
-             currentEffect = holdEffectB;
+             currentMoveEffect = holdMoveEffectB;
           }
           
-          const age = this.state.playbackTime / 1000; // in seconds
+          // 2. Phân tích Ánh sáng (Light Effect)
+          const holdLightEffectA = (stepA.holdLightEffect && stepA.holdLightEffect !== 'none') ? stepA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
+          const holdLightEffectB = (stepB.holdLightEffect && stepB.holdLightEffect !== 'none') ? stepB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
           
-          if (currentEffect === 'wave') {
+          let currentLightEffect = 'none';
+          if (t > 0.01 && t < 0.99) {
+             const transEff = stepA.transitionEffect || 'none';
+             currentLightEffect = ['strobe', 'shimmer'].includes(transEff) ? transEff : 'none';
+          } else if (t <= 0.01) {
+             currentLightEffect = holdLightEffectA;
+          } else {
+             currentLightEffect = holdLightEffectB;
+          }
+          
+          // --- ÁP DỤNG HIỆU ỨNG DI CHUYỂN (MOVEMENT EFFECT) ---
+          if (currentMoveEffect === 'wave') {
             dummy.position.y += Math.sin(age * 3.0 + (i * 0.1)) * 2.0;
-          } else if (currentEffect === 'swing') {
+          } else if (currentMoveEffect === 'swing') {
             dummy.position.x += Math.sin(age * 2.0 + (i * 0.1)) * 2.5;
-          } else if (currentEffect === 'pulse') {
+          } else if (currentMoveEffect === 'pulse') {
             const p = 1.0 + Math.sin(age * Math.PI * 2 + (i * 0.1)) * 0.5;
             dummy.scale.set(p, p, p);
+          } else if (currentMoveEffect === 'orbit' || currentMoveEffect === 'spiral') {
+            const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+            let angle = age * 0.6; // Rotation speed
+            let radiusScale = 1.0;
+            
+            if (currentMoveEffect === 'spiral') {
+              const dist = toDrone.length();
+              radiusScale = 1.0 + Math.sin(age * 2.0 - dist * 0.05) * 0.15;
+              angle += dist * 0.02; // Twist spiral
+            }
+            
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const rx = toDrone.x * cos - toDrone.z * sin;
+            const rz = toDrone.x * sin + toDrone.z * cos;
+            
+            dummy.position.set(
+              currentCenter.x + rx * radiusScale,
+              dummy.position.y, // Maintain current height
+              currentCenter.z + rz * radiusScale
+            );
+          } else if (currentMoveEffect === 'expand') {
+            const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+            const pulseScale = 1.0 + Math.sin(age * 3.0) * 0.2;
+            
+            dummy.position.set(
+              currentCenter.x + toDrone.x * pulseScale,
+              dummy.position.y,
+              currentCenter.z + toDrone.z * pulseScale
+            );
           }
           
           dummy.updateMatrix();
           this.instancedMesh.setMatrixAt(i, dummy.matrix);
           
+          // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
           const colA = stepA.colors[i] || this.state.colors[i];
           const colB = stepB.colors[i] || colA;
           color.copy(colA).lerp(colB, t);
           
-          if (currentEffect === 'strobe') {
+          if (currentLightEffect === 'strobe') {
             const p = Math.sin(age * 15.0 + (i * 0.5));
             if (p < 0) color.multiplyScalar(0.1);
-          } else if (currentEffect === 'shimmer') {
+          } else if (currentLightEffect === 'shimmer') {
             const flicker = 1.0 + (Math.random() - 0.5) * 0.8;
             color.multiplyScalar(Math.max(0, flicker));
+          } else if (currentLightEffect === 'pulse-color') {
+            const factor = 0.5 + 0.5 * Math.sin(age * Math.PI * 2.0 + (i * 0.1));
+            color.multiplyScalar(factor);
+          } else if (currentLightEffect === 'rainbow') {
+            const hue = (age * 0.1 + (i * 0.01)) % 1.0;
+            color.setHSL(hue, 1.0, 0.5);
+          } else if (currentLightEffect === 'wave-light') {
+            const dist = dummy.position.distanceTo(currentCenter);
+            const waveFactor = 0.5 + 0.5 * Math.sin(age * 5.0 - dist * 0.2);
+            color.multiplyScalar(waveFactor);
           }
           
           this.instancedMesh.setColorAt(i, color);
@@ -321,6 +441,27 @@ export class EditorDirector {
         this.instancedMesh.instanceMatrix.needsUpdate = true;
         if (this.instancedMesh.instanceColor) {
            this.instancedMesh.instanceColor.needsUpdate = true;
+        }
+
+        // Interpolate and update center + pivot lines during active playback
+        if (this.centerHelper) {
+          this.centerHelper.position.copy(currentCenter);
+          this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
+
+          if (this.state.showPivotLines && count > 0) {
+            const linePoints = [];
+            const tempDronePos = new THREE.Vector3();
+            for (let i = 0; i < count; i++) {
+              this.instancedMesh.getMatrixAt(i, dummy.matrix);
+              tempDronePos.setFromMatrixPosition(dummy.matrix);
+              linePoints.push(tempDronePos.clone());
+              linePoints.push(currentCenter.clone());
+            }
+            this.pivotLines.geometry.setFromPoints(linePoints);
+            this.pivotLines.visible = true;
+          } else {
+            this.pivotLines.visible = false;
+          }
         }
       }
     }

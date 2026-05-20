@@ -55,7 +55,24 @@ export function renderShapePanel() {
         <label>Height (Cylinder)</label>
         <input type="number" id="ui-shape-p2" value="30" />
       </div>
-      <button class="btn btn-secondary" id="btn-apply-shape" style="margin-top: 10px; width: 100%;">Apply Shape</button>
+      <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
+        <label style="font-weight: bold; font-size: 12px; color: #aaa;">Formation Center (Tâm)</label>
+        <div style="display: flex; gap: 6px; margin-top: 6px;">
+          <div style="flex: 1;">
+            <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">X</label>
+            <input type="number" id="ui-shape-cx" value="0" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">Y</label>
+            <input type="number" id="ui-shape-cy" value="20" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">Z</label>
+            <input type="number" id="ui-shape-cz" value="0" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" id="btn-apply-shape" style="margin-top: 15px; width: 100%;">Apply Shape</button>
       <button class="btn" id="btn-clear-all" style="margin-top: 10px; background-color: #d90429; color: white; width: 100%;">Clear All Drones</button>
     </div>
   `;
@@ -146,20 +163,24 @@ export function setupShapePanel(state, director) {
     const p2 = parseFloat(document.getElementById('ui-shape-p2').value) || 30;
     const textVal = document.getElementById('ui-shape-text').value;
 
+    const cx = parseFloat(document.getElementById('ui-shape-cx').value) || 0;
+    const cy = parseFloat(document.getElementById('ui-shape-cy').value) || 0;
+    const cz = parseFloat(document.getElementById('ui-shape-cz').value) || 0;
+
     if (type === 'json' && !customShapeData) {
        alert("Please choose a valid JSON file first.");
        return;
     }
 
-    // Define default params for shapes
-    let params = { y: 20, fill: fill };
-    if (type === 'grid') params = { spacing: p1, y: 20, fill };
-    if (type === 'circle') params = { radius: p1, y: 20, fill };
-    if (type === 'sphere') params = { radius: p1, y: 25, fill };
-    if (type === 'cube') params = { spacing: p1, y: 15, fill };
-    if (type === 'cylinder') params = { radius: p1, height: p2, y: 15, fill };
-    if (type === 'star') params = { radius: p1, y: 20, fill };
-    if (type === 'text') params = { text: textVal, spacing: p1, y: 20, fill };
+    // Define default params for shapes with base height 0
+    let params = { y: 0, fill: fill };
+    if (type === 'grid') params = { spacing: p1, y: 0, fill };
+    if (type === 'circle') params = { radius: p1, y: 0, fill };
+    if (type === 'sphere') params = { radius: p1, y: 0, fill };
+    if (type === 'cube') params = { spacing: p1, y: 0, fill };
+    if (type === 'cylinder') params = { radius: p1, height: p2, y: 0, fill };
+    if (type === 'star') params = { radius: p1, y: 0, fill };
+    if (type === 'text') params = { text: textVal, spacing: p1, y: 0, fill };
 
     if (target === 'selected') {
       if (state.selectedIndices.size === 0) {
@@ -240,6 +261,12 @@ export function setupShapePanel(state, director) {
          colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
       }
 
+      // Offset by target center
+      const centerOffset = new THREE.Vector3(cx, cy, cz);
+      for (const pos of positions) {
+        pos.add(centerOffset);
+      }
+
       const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
       const startIndex = state.positions.length;
 
@@ -270,6 +297,7 @@ export function setupShapePanel(state, director) {
         state.selectedIndices.add(i);
       }
 
+      state.center.set(cx, cy, cz); // Update center
       state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();

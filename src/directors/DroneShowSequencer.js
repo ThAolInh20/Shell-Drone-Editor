@@ -32,9 +32,24 @@ export class DroneShowSequencer {
 
             for (let i = 0; i < this.steps.length; i++) {
                 const step = this.steps[i];
-                // Ensure default values
+                // Ensure default values and backward compatibility
                 step.holdTime = step.holdTime || 0;
-                step.holdEffect = step.holdEffect || 'none';
+                
+                let moveEff = step.holdMoveEffect;
+                let lightEff = step.holdLightEffect;
+                
+                if (!moveEff && !lightEff && step.holdEffect) {
+                    if (['strobe', 'shimmer'].includes(step.holdEffect)) {
+                        moveEff = 'none';
+                        lightEff = step.holdEffect;
+                    } else {
+                        moveEff = step.holdEffect;
+                        lightEff = 'none';
+                    }
+                }
+                
+                step.holdMoveEffect = moveEff || 'none';
+                step.holdLightEffect = lightEff || 'none';
 
                 if (i === 0) {
                     step.time = 0;
@@ -153,6 +168,11 @@ export class DroneShowSequencer {
             t = 1;
         }
 
+        const defaultCenter = new THREE.Vector3(0, 20, 0);
+        const centerA = stepA.center ? new THREE.Vector3(stepA.center.x, stepA.center.y, stepA.center.z) : defaultCenter;
+        const centerB = stepB.center ? new THREE.Vector3(stepB.center.x, stepB.center.y, stepB.center.z) : defaultCenter;
+        const currentCenter = new THREE.Vector3().lerpVectors(centerA, centerB, t);
+
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
         const count = this.droneSystem.droneMesh.count; // Respect maxDrones cap
@@ -170,29 +190,75 @@ export class DroneShowSequencer {
             const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
             const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
 
-            const holdEffectA = (stepA.holdEffect && stepA.holdEffect !== 'none') ? stepA.holdEffect : droneEffectA;
-            const holdEffectB = (stepB.holdEffect && stepB.holdEffect !== 'none') ? stepB.holdEffect : droneEffectB;
+            // 1. Phân tích Chuyển động (Movement Effect)
+            const holdMoveEffectA = (stepA.holdMoveEffect && stepA.holdMoveEffect !== 'none') ? stepA.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectA) ? droneEffectA : 'none');
+            const holdMoveEffectB = (stepB.holdMoveEffect && stepB.holdMoveEffect !== 'none') ? stepB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
 
-            let currentEffect = 'none';
+            let currentMoveEffect = 'none';
             if (t > 0.01 && t < 0.99) {
-                currentEffect = stepA.transitionEffect || 'none';
+                const transEff = stepA.transitionEffect || 'none';
+                currentMoveEffect = ['wave', 'swing', 'pulse'].includes(transEff) ? transEff : 'none';
             } else if (t <= 0.01) {
-                currentEffect = holdEffectA;
+                currentMoveEffect = holdMoveEffectA;
             } else {
-                currentEffect = holdEffectB;
+                currentMoveEffect = holdMoveEffectB;
             }
 
-            if (currentEffect === 'wave') {
+            // 2. Phân tích Ánh sáng (Light Effect)
+            const holdLightEffectA = (stepA.holdLightEffect && stepA.holdLightEffect !== 'none') ? stepA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
+            const holdLightEffectB = (stepB.holdLightEffect && stepB.holdLightEffect !== 'none') ? stepB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
+
+            let currentLightEffect = 'none';
+            if (t > 0.01 && t < 0.99) {
+                const transEff = stepA.transitionEffect || 'none';
+                currentLightEffect = ['strobe', 'shimmer'].includes(transEff) ? transEff : 'none';
+            } else if (t <= 0.01) {
+                currentLightEffect = holdLightEffectA;
+            } else {
+                currentLightEffect = holdLightEffectB;
+            }
+
+            // --- ÁP DỤNG HIỆU ỨNG DI CHUYỂN (MOVEMENT EFFECT) ---
+            if (currentMoveEffect === 'wave') {
                 dummy.position.y += Math.sin(age * 3.0 + (i * 0.1)) * 2.0;
-            } else if (currentEffect === 'swing') {
+            } else if (currentMoveEffect === 'swing') {
                 dummy.position.x += Math.sin(age * 2.0 + (i * 0.1)) * 2.5;
-            } else if (currentEffect === 'pulse') {
+            } else if (currentMoveEffect === 'pulse') {
                 const p = 1.0 + Math.sin(age * Math.PI * 2 + (i * 0.1)) * 0.5;
                 dummy.scale.set(p, p, p);
+            } else if (currentMoveEffect === 'orbit' || currentMoveEffect === 'spiral') {
+                const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+                let angle = age * 0.6; // Rotation speed
+                let radiusScale = 1.0;
+                
+                if (currentMoveEffect === 'spiral') {
+                    const dist = toDrone.length();
+                    radiusScale = 1.0 + Math.sin(age * 2.0 - dist * 0.05) * 0.15;
+                    angle += dist * 0.02; // Twist spiral
+                }
+                
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                const rx = toDrone.x * cos - toDrone.z * sin;
+                const rz = toDrone.x * sin + toDrone.z * cos;
+                
+                dummy.position.set(
+                    currentCenter.x + rx * radiusScale,
+                    dummy.position.y, // Maintain height
+                    currentCenter.z + rz * radiusScale
+                );
+            } else if (currentMoveEffect === 'expand') {
+                const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+                const pulseScale = 1.0 + Math.sin(age * 3.0) * 0.2;
+                
+                dummy.position.set(
+                    currentCenter.x + toDrone.x * pulseScale,
+                    dummy.position.y,
+                    currentCenter.z + toDrone.z * pulseScale
+                );
             }
 
-            // Apply Global Offset: DRONE_ZONE_CONFIG.position is already applied via performanceZone Group
-            // We just write to the local InstancedMesh buffer!
+            // Apply Global Offset
             dummy.updateMatrix();
             this.droneSystem.droneMesh.mesh.setMatrixAt(i, dummy.matrix);
 
@@ -200,12 +266,23 @@ export class DroneShowSequencer {
             const colB = stepB.colors[i] ? new THREE.Color(stepB.colors[i]) : colA;
             color.copy(colA).lerp(colB, t);
 
-            if (currentEffect === 'strobe') {
+            // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
+            if (currentLightEffect === 'strobe') {
                 const p = Math.sin(age * 15.0 + (i * 0.5));
                 if (p < 0) color.multiplyScalar(0.1);
-            } else if (currentEffect === 'shimmer') {
+            } else if (currentLightEffect === 'shimmer') {
                 const flicker = 1.0 + (Math.random() - 0.5) * 0.8;
                 color.multiplyScalar(Math.max(0, flicker));
+            } else if (currentLightEffect === 'pulse-color') {
+                const factor = 0.5 + 0.5 * Math.sin(age * Math.PI * 2.0 + (i * 0.1));
+                color.multiplyScalar(factor);
+            } else if (currentLightEffect === 'rainbow') {
+                const hue = (age * 0.1 + (i * 0.01)) % 1.0;
+                color.setHSL(hue, 1.0, 0.5);
+            } else if (currentLightEffect === 'wave-light') {
+                const dist = dummy.position.distanceTo(currentCenter);
+                const waveFactor = 0.5 + 0.5 * Math.sin(age * 5.0 - dist * 0.2);
+                color.multiplyScalar(waveFactor);
             }
 
             this.droneSystem.droneMesh.mesh.setColorAt(i, color);
