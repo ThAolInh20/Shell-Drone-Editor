@@ -105,15 +105,34 @@ export class EditorDirector {
   }
 
   setupEvents() {
-    window.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
   }
 
   onPointerDown(event) {
     if (event.button !== 0) return; // Only left click
-    if (event.target !== this.renderer.instance.domElement) return; // Only interact with canvas
     if (this.gizmoSystem.isHovering()) return; // Don't select if interacting with Gizmo
 
+    const startX = event.clientX;
+    const startY = event.clientY;
+
+    const onPointerUp = (upEvent) => {
+      window.removeEventListener('pointerup', onPointerUp);
+
+      const dx = upEvent.clientX - startX;
+      const dy = upEvent.clientY - startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Only handle selection/placement if it's a true click (dragged < 5px)
+      if (dist < 5) {
+        this.handleCanvasClick(upEvent);
+      }
+    };
+
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  handleCanvasClick(event) {
     // Calculate mouse position in normalized device coordinates
     // (-1 to +1) for both components
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -121,6 +140,7 @@ export class EditorDirector {
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
 
+    // 1. Standard drone / center point selection logic
     // Raycast centerHelper if visible
     const centerIntersects = this.state.showCenter ? this.raycaster.intersectObject(this.centerHelper) : [];
     if (centerIntersects.length > 0) {
@@ -133,7 +153,7 @@ export class EditorDirector {
     if (intersects.length > 0) {
       const instanceId = intersects[0].instanceId;
       const multiSelect = event.shiftKey || event.ctrlKey;
-      
+
       const selectGroupUI = document.getElementById('ui-select-group');
       if (selectGroupUI && selectGroupUI.checked) {
         const groupName = this.state.particleGroups[instanceId];
@@ -146,7 +166,7 @@ export class EditorDirector {
               break;
             }
           }
-          
+
           if (groupHasSelection) {
             // Group is already "active", drill down to individual particle
             if (multiSelect && this.state.selectedIndices.has(instanceId)) {

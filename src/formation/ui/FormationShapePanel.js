@@ -15,6 +15,8 @@ export function renderFormationShapePanel() {
         <label>Shape</label>
         <select id="ui-shape-type" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
           <option value="grid">Grid</option>
+          <option value="line">Line</option>
+          <option value="bezier">Bezier Curve (Illustrator)</option>
           <option value="circle">Circle</option>
           <option value="sphere">Sphere</option>
           <option value="cube">Cube</option>
@@ -26,6 +28,23 @@ export function renderFormationShapePanel() {
       <div class="input-group" id="ui-text-container" style="display: none; margin-top: 10px;">
         <label>Text</label>
         <input type="text" id="ui-shape-text" value="2026" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;" />
+      </div>
+
+      <!-- Bezier Edit controls -->
+      <div id="ui-bezier-container" style="display: none; margin-top: 10px; border: 1px solid #333; padding: 10px; background: #151515; border-radius: 4px;">
+        <h4 style="margin: 0 0 10px 0; color: #00ffff; font-size: 13px;">Bezier Edit System</h4>
+        
+        <button class="btn" id="btn-toggle-bezier-edit" style="width: 100%; font-weight: bold; background: #111; color: #00ffff; border: 2px solid #00ffff; box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); transition: all 0.3s ease; margin-bottom: 10px;">
+          🎨 Vẽ & Kéo Cong Bezier: TẮT
+        </button>
+        
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Độ Cao Điểm Uốn (Y)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-bezier-control-y" min="-50" max="150" value="35" style="flex: 1;" />
+            <span id="ui-bezier-control-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">35</span>
+          </div>
+        </div>
       </div>
       <div class="input-group" style="margin-top: 10px;">
         <label>Fill Mode</label>
@@ -73,13 +92,101 @@ export function renderFormationShapePanel() {
       <button class="btn btn-secondary" id="btn-apply-shape" style="margin-top: 15px; width: 100%;">Apply Shape</button>
       <button class="btn" id="btn-clear-all" style="margin-top: 10px; background-color: #d90429; color: white; width: 100%;">Clear All Drones</button>
     </div>
+
+    <div class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+      <h3>Hologram Guide (Mô hình ảo ảnh 3D)</h3>
+      
+      <!-- Click-to-Place Toggle -->
+      <div style="margin-bottom: 15px;">
+        <button class="btn" id="btn-toggle-click-to-place" style="width: 100%; font-weight: bold; background: #111; color: #00ffff; border: 2px solid #00ffff; box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); transition: all 0.3s ease;">
+          🎨 Bút vẽ Drone: TẮT
+        </button>
+      </div>
+
+      <!-- File Import -->
+      <div class="input-group">
+        <label>Import Model (3D)</label>
+        <input type="file" id="ui-ghost-model-file" accept=".glb,.gltf,.obj" style="width: 100%; font-size: 11px; background: #222; border: 1px solid #444; padding: 4px;" />
+      </div>
+      <div id="ui-ghost-model-status" style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">
+        Chưa tải mô hình
+      </div>
+
+      <!-- Transform Controls -->
+      <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">Hiệu chỉnh mô hình</label>
+        
+        <!-- Y Height Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Y Offset (Chiều cao)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-pos-y" min="-100" max="200" value="20" style="flex: 1;" />
+            <span id="ui-ghost-pos-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">20</span>
+          </div>
+        </div>
+
+        <!-- X Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">X Offset (Dịch ngang)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-pos-x" min="-150" max="150" value="0" style="flex: 1;" />
+            <span id="ui-ghost-pos-x-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
+          </div>
+        </div>
+
+        <!-- Z Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Z Offset (Dịch sâu)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-pos-z" min="-150" max="150" value="0" style="flex: 1;" />
+            <span id="ui-ghost-pos-z-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
+          </div>
+        </div>
+
+        <!-- Scale multiplier -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Scale (Tỉ lệ)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-scale" min="0.1" max="10" step="0.1" value="1.0" style="flex: 1;" />
+            <span id="ui-ghost-scale-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">1.0</span>
+          </div>
+        </div>
+
+        <!-- Yaw Y rotation -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Rotation Y (Góc xoay)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-rot-y" min="0" max="360" value="0" style="flex: 1;" />
+            <span id="ui-ghost-rot-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0°</span>
+          </div>
+        </div>
+
+        <!-- Opacity -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Opacity (Độ mờ)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.15" style="flex: 1;" />
+            <span id="ui-ghost-opacity-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0.15</span>
+          </div>
+        </div>
+
+        <!-- Wireframe Checkbox -->
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+          <input type="checkbox" id="ui-ghost-wireframe" checked style="width: auto; margin: 0;" />
+          <label for="ui-ghost-wireframe" style="font-size: 11px; margin: 0; cursor: pointer; user-select: none;">Hiển thị dạng khung lưới (Wireframe)</label>
+        </div>
+      </div>
+
+      <!-- Delete Ghost -->
+      <button class="btn" id="btn-clear-ghost" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá Hologram</button>
+    </div>
   `;
 }
 
-export function setupFormationShapePanel(state) {
+export function setupFormationShapePanel(state, director) {
   // Export JSON
   document.getElementById('btn-export-json').addEventListener('click', () => {
-    const exportData = [];
+    const drones = [];
     for (let i = 0; i < state.positions.length; i++) {
       const pos = state.positions[i];
       const col = state.colors[i] || new THREE.Color(0xffffff);
@@ -87,17 +194,37 @@ export function setupFormationShapePanel(state) {
       const r = parseInt(hexStr.substring(0, 2), 16);
       const g = parseInt(hexStr.substring(2, 4), 16);
       const b = parseInt(hexStr.substring(4, 6), 16);
-      exportData.push({
+      const groupName = state.particleGroups[i] || 'Default';
+      drones.push({
         x: parseFloat(pos.x.toFixed(2)),
         y: parseFloat(pos.y.toFixed(2)),
         z: parseFloat(pos.z.toFixed(2)),
         r: r,
         g: g,
-        b: b
+        b: b,
+        group: groupName
       });
     }
-    
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+
+    const exportObject = {
+      version: "1.1",
+      name: state.name,
+      drones: drones,
+      ghostModelConfig: {
+        position: {
+          x: state.ghostModelConfig.position.x,
+          y: state.ghostModelConfig.position.y,
+          z: state.ghostModelConfig.position.z
+        },
+        scale: state.ghostModelConfig.scale,
+        rotationY: state.ghostModelConfig.rotationY,
+        opacity: state.ghostModelConfig.opacity,
+        wireframe: state.ghostModelConfig.wireframe
+      },
+      bezierControlPoints: state.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z }))
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", state.name + ".json");
@@ -115,47 +242,103 @@ export function setupFormationShapePanel(state) {
   document.getElementById('ui-formation-json-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     // Suggest name based on filename
     state.name = file.name.replace('.json', '');
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = JSON.parse(event.target.result);
-        if (Array.isArray(data)) {
-          const positions = [];
-          const colors = [];
-          for (const item of data) {
-             if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
-                const px = item.x || 0;
-                const py = item.y || 0;
-                const pz = item.z || 0;
-                positions.push(new THREE.Vector3(px, py, pz));
-                if (item.color !== undefined) {
-                   colors.push(new THREE.Color(item.color));
-                } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
-                   colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
-                } else {
-                   colors.push(new THREE.Color(0xffffff));
-                }
-             }
-          }
-          if (positions.length > 0) {
-             state.positions = positions;
-             state.colors = colors;
-             state.particleGroups = new Array(positions.length).fill('Imported');
-             state.selectedIndices.clear();
-             state.saveStateToHistory();
-             state.notify();
-          } else {
-             alert("No valid coordinates found in JSON");
+        const parsed = JSON.parse(event.target.result);
+        let droneData = [];
+        let importedConfig = null;
+
+        // Check if parsed content is old format (direct array) or new format (wrapper object)
+        if (Array.isArray(parsed)) {
+          droneData = parsed;
+        } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
+          droneData = parsed.drones;
+          if (parsed.ghostModelConfig) {
+            importedConfig = parsed.ghostModelConfig;
           }
         } else {
-          alert("JSON must be an array of objects");
+          alert("JSON không đúng định dạng Drone Formation!");
+          return;
+        }
+
+        const positions = [];
+        const colors = [];
+        const particleGroups = [];
+        for (const item of droneData) {
+          if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+            const px = item.x || 0;
+            const py = item.y || 0;
+            const pz = item.z || 0;
+            positions.push(new THREE.Vector3(px, py, pz));
+            if (item.color !== undefined) {
+              colors.push(new THREE.Color(item.color));
+            } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+              colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+            } else {
+              colors.push(new THREE.Color(0xffffff));
+            }
+
+            // Restore original group name, fallback to 'Imported'
+            const groupName = item.group || item.particleGroup || 'Imported';
+            particleGroups.push(groupName);
+          }
+        }
+
+        if (positions.length > 0) {
+          state.positions = positions;
+          state.colors = colors;
+          state.particleGroups = particleGroups; // Keep the original groups intact
+          state.selectedIndices.clear();
+
+          // Restore hologram configurations if present in new JSON format
+          if (importedConfig) {
+            if (importedConfig.position) {
+              state.ghostModelConfig.position.set(
+                importedConfig.position.x !== undefined ? importedConfig.position.x : 0,
+                importedConfig.position.y !== undefined ? importedConfig.position.y : 20,
+                importedConfig.position.z !== undefined ? importedConfig.position.z : 0
+              );
+            }
+            if (importedConfig.scale !== undefined) {
+              state.ghostModelConfig.scale = importedConfig.scale;
+            }
+            if (importedConfig.rotationY !== undefined) {
+              state.ghostModelConfig.rotationY = importedConfig.rotationY;
+            }
+            if (importedConfig.opacity !== undefined) {
+              state.ghostModelConfig.opacity = importedConfig.opacity;
+            }
+            if (importedConfig.wireframe !== undefined) {
+              state.ghostModelConfig.wireframe = importedConfig.wireframe;
+            }
+
+            // Immediately update the visual hologram transform in active 3D view
+            if (director && typeof director.updateGhostModelTransform === 'function') {
+              director.updateGhostModelTransform();
+            }
+          }
+
+          // Restore Bezier control points if present in JSON
+          if (parsed.bezierControlPoints && Array.isArray(parsed.bezierControlPoints)) {
+            state.bezierControlPoints = parsed.bezierControlPoints.map(p => new THREE.Vector3(
+              p.x !== undefined ? p.x : 0,
+              p.y !== undefined ? p.y : 20,
+              p.z !== undefined ? p.z : 0
+            ));
+          }
+
+          state.saveStateToHistory();
+          state.notify();
+        } else {
+          alert("Không tìm thấy dữ liệu tọa độ drone hợp lệ trong JSON!");
         }
       } catch (err) {
-        alert("Invalid JSON format");
+        alert("Lỗi phân tích cú pháp file JSON!");
         console.error("Shape Import Error:", err);
       }
       // Reset input
@@ -168,6 +351,23 @@ export function setupFormationShapePanel(state) {
   document.getElementById('ui-shape-type').addEventListener('change', (e) => {
     const isText = e.target.value === 'text';
     document.getElementById('ui-text-container').style.display = isText ? 'flex' : 'none';
+
+    const isBezier = e.target.value === 'bezier';
+    document.getElementById('ui-bezier-container').style.display = isBezier ? 'block' : 'none';
+    
+    if (isBezier) {
+      state.isBezierEditActive = true;
+      const btn = document.getElementById('btn-toggle-bezier-edit');
+      if (btn) {
+        btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: BẬT";
+        btn.style.background = "#00ffff";
+        btn.style.color = "#000";
+        btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
+      }
+    } else {
+      state.isBezierEditActive = false;
+    }
+    state.notify();
   });
 
   document.getElementById('ui-shape-target').addEventListener('change', (e) => {
@@ -200,6 +400,8 @@ export function setupFormationShapePanel(state) {
 
     let params = { y: 0, fill: fill };
     if (type === 'grid') params = { spacing: p1, y: 0, fill };
+    if (type === 'line') params = { spacing: p1, y: 0 };
+    if (type === 'bezier') params = { p0: state.bezierControlPoints[0], p1: state.bezierControlPoints[1], p2: state.bezierControlPoints[2] };
     if (type === 'circle') params = { radius: p1, y: 0, fill };
     if (type === 'sphere') params = { radius: p1, y: 0, fill };
     if (type === 'cube') params = { spacing: p1, y: 0, fill };
@@ -212,10 +414,12 @@ export function setupFormationShapePanel(state) {
 
     if (!positions || positions.length === 0) return;
 
-    // Apply offset of designated center coordinate
-    const centerOffset = new THREE.Vector3(cx, cy, cz);
-    for (const pos of positions) {
-      pos.add(centerOffset);
+    // Apply offset of designated center coordinate (except absolute Bezier Curve)
+    if (type !== 'bezier') {
+      const centerOffset = new THREE.Vector3(cx, cy, cz);
+      for (const pos of positions) {
+        pos.add(centerOffset);
+      }
     }
 
     if (target === 'new') {
@@ -271,4 +475,178 @@ export function setupFormationShapePanel(state) {
       state.notify();
     }
   });
+
+  // Hologram Guide and Click-to-Place Listeners
+  const btnToggle = document.getElementById('btn-toggle-click-to-place');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', () => {
+      state.isClickToPlaceActive = !state.isClickToPlaceActive;
+      updateClickToPlaceUI();
+      state.notify();
+    });
+  }
+
+  function updateClickToPlaceUI() {
+    const btn = document.getElementById('btn-toggle-click-to-place');
+    if (!btn) return;
+    if (state.isClickToPlaceActive) {
+      btn.textContent = "🎨 Bút vẽ Drone: ĐANG BẬT";
+      btn.style.background = "#00ffff";
+      btn.style.color = "#111";
+      btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
+    } else {
+      btn.textContent = "🎨 Bút vẽ Drone: TẮT";
+      btn.style.background = "#111";
+      btn.style.color = "#00ffff";
+      btn.style.boxShadow = "0 0 8px rgba(0, 255, 255, 0.3)";
+    }
+  }
+
+  // Initialize click-to-place UI
+  updateClickToPlaceUI();
+
+  const fileInput = document.getElementById('ui-ghost-model-file');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (director && typeof director.loadGhostModel === 'function') {
+        director.loadGhostModel(file);
+      }
+    });
+  }
+
+  const sliders = [
+    { id: 'ui-ghost-pos-y', prop: 'position', subProp: 'y', valId: 'ui-ghost-pos-y-val', suffix: '' },
+    { id: 'ui-ghost-pos-x', prop: 'position', subProp: 'x', valId: 'ui-ghost-pos-x-val', suffix: '' },
+    { id: 'ui-ghost-pos-z', prop: 'position', subProp: 'z', valId: 'ui-ghost-pos-z-val', suffix: '' },
+    { id: 'ui-ghost-scale', prop: 'scale', valId: 'ui-ghost-scale-val', suffix: '' },
+    { id: 'ui-ghost-rot-y', prop: 'rotationY', valId: 'ui-ghost-rot-y-val', suffix: '°' },
+    { id: 'ui-ghost-opacity', prop: 'opacity', valId: 'ui-ghost-opacity-val', suffix: '' }
+  ];
+
+  // Utility to synchronize all Sidebar UI controls from current state values
+  function syncGhostModelUIFromState() {
+    sliders.forEach(sliderDef => {
+      const el = document.getElementById(sliderDef.id);
+      const valEl = document.getElementById(sliderDef.valId);
+      if (el) {
+        let val;
+        if (sliderDef.subProp) {
+          val = state.ghostModelConfig[sliderDef.prop][sliderDef.subProp];
+        } else {
+          val = state.ghostModelConfig[sliderDef.prop];
+        }
+        el.value = val;
+        if (valEl) valEl.textContent = val + sliderDef.suffix;
+      }
+    });
+
+    const wireframeCheckbox = document.getElementById('ui-ghost-wireframe');
+    if (wireframeCheckbox) {
+      wireframeCheckbox.checked = state.ghostModelConfig.wireframe;
+    }
+  }
+
+  // Bind initial UI control values
+  syncGhostModelUIFromState();
+  syncBezierUIFromState();
+
+  // Subscribe to state notifications to dynamically sync sliders on Undo/Redo or JSON import
+  state.subscribe(() => {
+    syncGhostModelUIFromState();
+    syncBezierUIFromState();
+  });
+
+  // Bezier Edit Toggler & Slider Listeners
+  document.getElementById('btn-toggle-bezier-edit')?.addEventListener('click', () => {
+    state.isBezierEditActive = !state.isBezierEditActive;
+    syncBezierUIFromState();
+    state.notify();
+  });
+
+  const bezierYInput = document.getElementById('ui-bezier-control-y');
+  const bezierYVal = document.getElementById('ui-bezier-control-y-val');
+  if (bezierYInput) {
+    bezierYInput.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (bezierYVal) bezierYVal.textContent = val;
+      state.bezierControlPoints[1].y = val;
+      
+      if (director && typeof director.recalculateBezierDrones === 'function') {
+        director.recalculateBezierDrones();
+      }
+      state.notify();
+    });
+    bezierYInput.addEventListener('change', () => {
+      state.saveStateToHistory();
+    });
+  }
+
+  function syncBezierUIFromState() {
+    const btn = document.getElementById('btn-toggle-bezier-edit');
+    if (btn) {
+      if (state.isBezierEditActive) {
+        btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: BẬT";
+        btn.style.background = "#00ffff";
+        btn.style.color = "#000";
+        btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
+      } else {
+        btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: TẮT";
+        btn.style.background = "#111";
+        btn.style.color = "#00ffff";
+        btn.style.boxShadow = "0 0 8px rgba(0, 255, 255, 0.3)";
+      }
+    }
+    
+    const slider = document.getElementById('ui-bezier-control-y');
+    const label = document.getElementById('ui-bezier-control-y-val');
+    if (slider && state.bezierControlPoints[1]) {
+      const yVal = Math.round(state.bezierControlPoints[1].y);
+      slider.value = yVal;
+      if (label) label.textContent = yVal;
+    }
+  }
+
+  sliders.forEach(sliderDef => {
+    const el = document.getElementById(sliderDef.id);
+    const valEl = document.getElementById(sliderDef.valId);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (valEl) valEl.textContent = val + sliderDef.suffix;
+
+        if (sliderDef.subProp) {
+          state.ghostModelConfig[sliderDef.prop][sliderDef.subProp] = val;
+        } else {
+          state.ghostModelConfig[sliderDef.prop] = val;
+        }
+
+        if (director && typeof director.updateGhostModelTransform === 'function') {
+          director.updateGhostModelTransform();
+        }
+      });
+    }
+  });
+
+  const wireframeCheckbox = document.getElementById('ui-ghost-wireframe');
+  if (wireframeCheckbox) {
+    wireframeCheckbox.addEventListener('change', (e) => {
+      state.ghostModelConfig.wireframe = e.target.checked;
+      if (director && typeof director.updateGhostModelTransform === 'function') {
+        director.updateGhostModelTransform();
+      }
+    });
+  }
+
+  const btnClearGhost = document.getElementById('btn-clear-ghost');
+  if (btnClearGhost) {
+    btnClearGhost.addEventListener('click', () => {
+      if (director && typeof director.clearGhostModel === 'function') {
+        director.clearGhostModel();
+      }
+      const fileInput = document.getElementById('ui-ghost-model-file');
+      if (fileInput) fileInput.value = '';
+    });
+  }
 }
