@@ -3,8 +3,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FormationEditorState } from './FormationEditorState.js';
 import { GizmoSystem } from './systems/GizmoSystem.js';
 import { setupEditorUI } from './ui/EditorUI.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 export class EditorDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -47,10 +45,6 @@ export class EditorDirector {
     this.mouse = new THREE.Vector2();
     
     this.setupEvents();
-
-    // Hologram Ghost Guide fields
-    this.ghostModel = null;
-    this.ghostMeshes = [];
   }
 
   initInstancedMesh() {
@@ -146,44 +140,7 @@ export class EditorDirector {
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
 
-    // 1. If Click-to-Place Snapping is active and we have ghost meshes loaded
-    if (this.state.isClickToPlaceActive && this.ghostMeshes.length > 0) {
-      const ghostIntersects = this.raycaster.intersectObjects(this.ghostMeshes);
-      if (ghostIntersects.length > 0) {
-        // Place new drone snapped to surface
-        const snapPoint = ghostIntersects[0].point.clone();
-        const defaultColor = new THREE.Color(0xffffff);
-        const groupName = "GHOST_GUIDE";
-
-        this.state.positions.push(snapPoint);
-        this.state.colors.push(defaultColor);
-        this.state.particleGroups.push(groupName);
-        this.state.effects.push('none');
-
-        // Inject into other step sequences to align indices
-        for (let sIndex = 0; sIndex < this.state.steps.length; sIndex++) {
-          if (sIndex === this.state.currentStepIndex) continue;
-          const step = this.state.steps[sIndex];
-          step.positions.push(snapPoint.clone());
-          step.colors.push(defaultColor.clone());
-          step.particleGroups.push(groupName);
-          if (!step.effects) step.effects = [];
-          step.effects.push('none');
-        }
-
-        // Select the newly added drone
-        const newIndex = this.state.positions.length - 1;
-        this.state.select(newIndex);
-
-        // Record history and notify
-        this.state.saveCurrentStep();
-        this.state.saveStateToHistory();
-        this.state.notify();
-        return; // Drone successfully placed, bypass standard selection
-      }
-    }
-
-    // 2. Standard drone / center point selection logic
+    // 1. Standard drone / center point selection logic
     // Raycast centerHelper if visible
     const centerIntersects = this.state.showCenter ? this.raycaster.intersectObject(this.centerHelper) : [];
     if (centerIntersects.length > 0) {
@@ -527,145 +484,6 @@ export class EditorDirector {
           }
         }
       }
-    }
-  }
-
-  loadGhostModel(file, callback) {
-    const statusLabel = document.getElementById('ui-ghost-model-status');
-    if (statusLabel) {
-      statusLabel.textContent = "Đang tải mô hình...";
-      statusLabel.style.color = "#00ffff";
-    }
-
-    const filename = file.name;
-    const extension = filename.split('.').pop().toLowerCase();
-    const url = URL.createObjectURL(file);
-
-    const onLoadSuccess = (model) => {
-      this.clearGhostModel();
-
-      this.ghostModel = model;
-      this.sceneManager.instance.add(this.ghostModel);
-
-      this.applyHologramMaterial();
-      this.updateGhostModelTransform();
-
-      URL.revokeObjectURL(url);
-
-      if (statusLabel) {
-        let polyCount = 0;
-        this.ghostModel.traverse((child) => {
-          if (child.isMesh && child.geometry && child.geometry.index) {
-            polyCount += child.geometry.index.count / 3;
-          } else if (child.isMesh && child.geometry && child.geometry.attributes.position) {
-            polyCount += child.geometry.attributes.position.count / 3;
-          }
-        });
-        statusLabel.textContent = `Đã tải: ${filename} (~${Math.round(polyCount)} polys)`;
-        statusLabel.style.color = "#4CAF50";
-      }
-
-      if (callback) callback();
-    };
-
-    const onLoadError = (error) => {
-      console.error("Lỗi nạp mô hình Hologram:", error);
-      URL.revokeObjectURL(url);
-      if (statusLabel) {
-        statusLabel.textContent = "Lỗi tải file!";
-        statusLabel.style.color = "#ff4d4d";
-      }
-      alert("Lỗi tải file mô hình 3D! Vui lòng kiểm tra lại định dạng file.");
-    };
-
-    if (extension === 'gltf' || extension === 'glb') {
-      const loader = new GLTFLoader();
-      loader.load(url, (gltf) => {
-        onLoadSuccess(gltf.scene);
-      }, undefined, onLoadError);
-    } else if (extension === 'obj') {
-      const loader = new OBJLoader();
-      loader.load(url, (obj) => {
-        onLoadSuccess(obj);
-      }, undefined, onLoadError);
-    } else {
-      onLoadError(new Error("Định dạng file không hỗ trợ."));
-    }
-  }
-
-  applyHologramMaterial() {
-    if (!this.ghostModel) return;
-
-    this.ghostMeshes = [];
-    const config = this.state.ghostModelConfig;
-
-    const hologramMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff, // Sleek cyan hologram glow
-      transparent: true,
-      opacity: config.opacity,
-      wireframe: config.wireframe,
-      depthWrite: false,
-      side: THREE.DoubleSide
-    });
-
-    this.ghostModel.traverse((child) => {
-      if (child.isMesh) {
-        child.material = hologramMaterial;
-        this.ghostMeshes.push(child);
-      }
-    });
-  }
-
-  updateGhostModelTransform() {
-    if (!this.ghostModel) return;
-
-    const config = this.state.ghostModelConfig;
-
-    // Apply translation
-    this.ghostModel.position.copy(config.position);
-
-    // Apply scale
-    this.ghostModel.scale.set(config.scale, config.scale, config.scale);
-
-    // Apply Yaw (Y rotation)
-    this.ghostModel.rotation.set(0, (config.rotationY * Math.PI) / 180, 0);
-
-    // Update opacity and wireframe of children meshes
-    this.ghostModel.traverse((child) => {
-      if (child.isMesh && child.material) {
-        child.material.opacity = config.opacity;
-        child.material.wireframe = config.wireframe;
-        child.material.needsUpdate = true;
-      }
-    });
-  }
-
-  clearGhostModel() {
-    if (this.ghostModel) {
-      this.sceneManager.instance.remove(this.ghostModel);
-
-      // Deep dispose geometries and materials to avoid memory leaks
-      this.ghostModel.traverse((child) => {
-        if (child.isMesh) {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material.dispose();
-            }
-          }
-        }
-      });
-
-      this.ghostModel = null;
-    }
-    this.ghostMeshes = [];
-
-    const statusLabel = document.getElementById('ui-ghost-model-status');
-    if (statusLabel) {
-      statusLabel.textContent = "Chưa tải mô hình";
-      statusLabel.style.color = "#888";
     }
   }
 }
