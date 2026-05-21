@@ -229,6 +229,85 @@ export class InputSystem {
     panel.appendChild(label);
     panel.appendChild(seqLabel);
     panel.appendChild(buttonRow);
+
+    // Section "Tools & Navigation" to switch other editor sites (requested by USER inside pause menu)
+    const navSection = document.createElement('div');
+    navSection.style.marginTop = '20px';
+    navSection.style.paddingTop = '16px';
+    navSection.style.borderTop = '1px solid rgba(255, 255, 255, 0.12)';
+    navSection.style.display = 'flex';
+    navSection.style.flexDirection = 'column';
+    navSection.style.gap = '10px';
+
+    const navTitle = document.createElement('div');
+    navTitle.className = 'firework-pause-label';
+    navTitle.style.marginBottom = '4px';
+    navTitle.textContent = 'Tools & Editors';
+
+    const navButtons = document.createElement('div');
+    navButtons.style.display = 'flex';
+    navButtons.style.gap = '10px';
+
+    const btnTimeline = document.createElement('button');
+    btnTimeline.type = 'button';
+    btnTimeline.className = 'firework-pause-button';
+    btnTimeline.style.flex = '1';
+    btnTimeline.style.background = 'linear-gradient(180deg, #1e3c72 0%, #2a5298 100%)';
+    btnTimeline.style.color = '#fff';
+    btnTimeline.style.border = '1px solid rgba(0, 243, 255, 0.3)';
+    btnTimeline.style.boxShadow = '0 6px 15px rgba(42, 82, 152, 0.3)';
+    btnTimeline.style.fontSize = '13px';
+    btnTimeline.style.fontWeight = 'bold';
+    btnTimeline.style.padding = '10px 14px';
+    btnTimeline.style.borderRadius = '999px';
+    btnTimeline.style.cursor = 'pointer';
+    btnTimeline.style.transition = 'all 0.3s ease';
+    btnTimeline.innerHTML = '🎞️ Timeline Editor';
+    btnTimeline.addEventListener('mouseover', () => {
+      btnTimeline.style.filter = 'brightness(1.15)';
+      btnTimeline.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.4)';
+    });
+    btnTimeline.addEventListener('mouseout', () => {
+      btnTimeline.style.filter = 'none';
+      btnTimeline.style.boxShadow = '0 6px 15px rgba(42, 82, 152, 0.3)';
+    });
+    btnTimeline.addEventListener('click', () => {
+      window.location.href = '/editor.html';
+    });
+
+    const btnStatic = document.createElement('button');
+    btnStatic.type = 'button';
+    btnStatic.className = 'firework-pause-button';
+    btnStatic.style.flex = '1';
+    btnStatic.style.background = 'linear-gradient(180deg, #aa3bff 0%, #8a1bef 100%)';
+    btnStatic.style.color = '#fff';
+    btnStatic.style.border = '1px solid rgba(170, 59, 255, 0.3)';
+    btnStatic.style.boxShadow = '0 6px 15px rgba(170, 59, 255, 0.3)';
+    btnStatic.style.fontSize = '13px';
+    btnStatic.style.fontWeight = 'bold';
+    btnStatic.style.padding = '10px 14px';
+    btnStatic.style.borderRadius = '999px';
+    btnStatic.style.cursor = 'pointer';
+    btnStatic.style.transition = 'all 0.3s ease';
+    btnStatic.innerHTML = '📐 Static Editor';
+    btnStatic.addEventListener('mouseover', () => {
+      btnStatic.style.filter = 'brightness(1.15)';
+      btnStatic.style.boxShadow = '0 0 15px rgba(170, 59, 255, 0.4)';
+    });
+    btnStatic.addEventListener('mouseout', () => {
+      btnStatic.style.filter = 'none';
+      btnStatic.style.boxShadow = '0 6px 15px rgba(170, 59, 255, 0.3)';
+    });
+    btnStatic.addEventListener('click', () => {
+      window.location.href = '/formation.html';
+    });
+
+    navButtons.appendChild(btnTimeline);
+    navButtons.appendChild(btnStatic);
+    navSection.appendChild(navTitle);
+    navSection.appendChild(navButtons);
+    panel.appendChild(navSection);
+
     this.pauseOverlay.appendChild(panel);
     document.body.appendChild(this.pauseOverlay);
     this.updateSelectedPresetHighlight();
