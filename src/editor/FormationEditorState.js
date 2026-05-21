@@ -43,6 +43,16 @@ export class FormationEditorState {
     // Clipboard for copy/paste
     this.clipboard = null;
 
+    // Hologram Ghost Guide state
+    this.isClickToPlaceActive = false;
+    this.ghostModelConfig = {
+      position: new THREE.Vector3(0, 20, 0),
+      scale: 1.0,
+      rotationY: 0,
+      opacity: 0.15,
+      wireframe: true
+    };
+
     this.listeners = [];
   }
 
