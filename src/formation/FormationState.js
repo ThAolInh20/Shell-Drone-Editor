@@ -22,6 +22,15 @@ export class FormationState {
     // Clipboard for copy/paste
     this.clipboard = null;
 
+    this.isClickToPlaceActive = false;
+    this.ghostModelConfig = {
+      position: new THREE.Vector3(0, 20, 0),
+      scale: 1.0,
+      rotationY: 0,
+      opacity: 0.35,
+      wireframe: false
+    };
+
     this.listeners = [];
   }
 
@@ -50,7 +59,15 @@ export class FormationState {
       center: { x: this.center.x, y: this.center.y, z: this.center.z },
       showCenter: this.showCenter,
       showPivotLines: this.showPivotLines,
-      isCenterSelected: this.isCenterSelected
+      isCenterSelected: this.isCenterSelected,
+      isClickToPlaceActive: this.isClickToPlaceActive,
+      ghostModelConfig: {
+        position: { x: this.ghostModelConfig.position.x, y: this.ghostModelConfig.position.y, z: this.ghostModelConfig.position.z },
+        scale: this.ghostModelConfig.scale,
+        rotationY: this.ghostModelConfig.rotationY,
+        opacity: this.ghostModelConfig.opacity,
+        wireframe: this.ghostModelConfig.wireframe
+      }
     };
 
     this.history.push(snapshot);
@@ -86,6 +103,18 @@ export class FormationState {
     this.showCenter = snapshot.showCenter !== undefined ? snapshot.showCenter : true;
     this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
     this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
+    
+    this.isClickToPlaceActive = snapshot.isClickToPlaceActive !== undefined ? snapshot.isClickToPlaceActive : false;
+    if (snapshot.ghostModelConfig) {
+      this.ghostModelConfig = {
+        position: new THREE.Vector3(snapshot.ghostModelConfig.position.x, snapshot.ghostModelConfig.position.y, snapshot.ghostModelConfig.position.z),
+        scale: snapshot.ghostModelConfig.scale,
+        rotationY: snapshot.ghostModelConfig.rotationY,
+        opacity: snapshot.ghostModelConfig.opacity,
+        wireframe: snapshot.ghostModelConfig.wireframe
+      };
+    }
+    
     this.selectedIndices.clear();
   }
 

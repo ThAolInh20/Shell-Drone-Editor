@@ -21,7 +21,7 @@ export function setupFormationUI(state, director) {
   `;
 
   // Bind Events & Logic
-  setupFormationShapePanel(state);
+  setupFormationShapePanel(state, director);
   setupGroupPanel(state);
   setupGizmoPanel(state, director);
   setupFormationPropertiesPanel(state);
