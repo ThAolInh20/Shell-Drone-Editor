@@ -355,12 +355,25 @@ export class DroneFormationFactory {
         return positions;
     }
 
+    static bezier(count, params = {}) {
+        const p0 = params.p0 || new THREE.Vector3(-30, 20, 0);
+        const p1 = params.p1 || new THREE.Vector3(0, 35, 0);
+        const p2 = params.p2 || new THREE.Vector3(30, 20, 0);
+        
+        if (count <= 0) return [];
+        if (count === 1) return [p0.clone()];
+        
+        const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
+        return curve.getSpacedPoints(count - 1);
+    }
+
     static createFormation(type, count, params) {
         let positions;
         switch (type) {
             case 'circle': positions = this.circle(count, params); break;
             case 'grid': positions = this.grid(count, params); break;
             case 'line': positions = this.line(count, params); break;
+            case 'bezier': positions = this.bezier(count, params); break;
             case 'wave': positions = this.wave(count, params); break;
             case 'sphere': positions = this.sphere(count, params); break;
             case 'cube': positions = this.cube(count, params); break;

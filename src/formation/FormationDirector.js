@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
 import { setupFormationUI } from './ui/FormationUI.js';
@@ -52,6 +53,11 @@ export class FormationDirector {
     // Hologram Ghost Guide fields
     this.ghostModel = null;
     this.ghostMeshes = [];
+
+    // Bezier Curve helpers
+    this.bezierHelpers = [];
+    this.bezierLine = null;
+    this.initBezierHelpers();
   }
 
   initInstancedMesh() {
@@ -116,6 +122,7 @@ export class FormationDirector {
   onPointerDown(event) {
     if (event.button !== 0) return; // Only left click
     if (this.gizmoSystem.isHovering()) return; // Don't select if interacting with Gizmo
+    if (this.bezierTransformControl && (this.bezierTransformControl.dragging || this.bezierTransformControl.axis !== null)) return;
 
     const startX = event.clientX;
     const startY = event.clientY;
@@ -142,6 +149,17 @@ export class FormationDirector {
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
+
+    // 0. Bezier Control Points click detection
+    if (this.state.isBezierEditActive) {
+      const bezierIntersects = this.raycaster.intersectObjects(this.bezierHelpers);
+      if (bezierIntersects.length > 0) {
+        const hitHelper = bezierIntersects[0].object;
+        this.activeBezierHelper = hitHelper;
+        this.bezierTransformControl.attach(hitHelper);
+        return; // Dragging handle, bypass normal selection
+      }
+    }
 
     // 1. If Click-to-Place Snapping is active and we have ghost meshes loaded
     if (this.state.isClickToPlaceActive && this.ghostMeshes.length > 0) {
@@ -301,6 +319,132 @@ export class FormationDirector {
     } else if (this.centerHelper) {
       this.centerHelper.visible = false;
       this.pivotLines.visible = false;
+    }
+
+    // Update Bezier helper spheres and dashed line guide path
+    const shapeTypeUI = document.getElementById('ui-shape-type');
+    const isBezierActive = !!(this.state.isBezierEditActive && shapeTypeUI && shapeTypeUI.value === 'bezier');
+    
+    if (isBezierActive) {
+      for (let i = 0; i < 3; i++) {
+        const helper = this.bezierHelpers[i];
+        if (helper) {
+          helper.position.copy(this.state.bezierControlPoints[i]);
+          helper.visible = true;
+        }
+      }
+      
+      if (this.bezierLine) {
+        const p0 = this.state.bezierControlPoints[0];
+        const p1 = this.state.bezierControlPoints[1];
+        const p2 = this.state.bezierControlPoints[2];
+        const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
+        const linePoints = curve.getPoints(50);
+        this.bezierLine.geometry.setFromPoints(linePoints);
+        this.bezierLine.computeLineDistances(); // Required for dashed rendering
+        this.bezierLine.visible = true;
+      }
+    } else {
+      for (let i = 0; i < 3; i++) {
+        if (this.bezierHelpers[i]) this.bezierHelpers[i].visible = false;
+      }
+      if (this.bezierLine) this.bezierLine.visible = false;
+      if (this.bezierTransformControl) this.bezierTransformControl.detach();
+      this.activeBezierHelper = null;
+    }
+  }
+
+  initBezierHelpers() {
+    const colors = [0x00ffff, 0xffaa00, 0x00ff00]; // Cyan, Orange, Green
+    const geometry = new THREE.SphereGeometry(1.2, 16, 16);
+    
+    for (let i = 0; i < 3; i++) {
+      const material = new THREE.MeshBasicMaterial({
+        color: colors[i],
+        toneMapped: false,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.8
+      });
+      const helper = new THREE.Mesh(geometry, material);
+      helper.visible = false;
+      helper.userData = { isBezierHelper: true, controlPointIndex: i };
+      this.sceneManager.instance.add(helper);
+      this.bezierHelpers.push(helper);
+    }
+
+    const lineMat = new THREE.LineDashedMaterial({
+      color: 0x00ffff,
+      dashSize: 1.5,
+      gapSize: 1.0,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false
+    });
+    const lineGeo = new THREE.BufferGeometry();
+    this.bezierLine = new THREE.Line(lineGeo, lineMat);
+    this.bezierLine.visible = false;
+    this.sceneManager.instance.add(this.bezierLine);
+
+    this.bezierTransformControl = new TransformControls(this.cameraManager.instance, this.renderer.instance.domElement);
+    this.bezierTransformControl.setMode('translate');
+    this.bezierTransformControl.addEventListener('dragging-changed', (event) => {
+      this.controls.enabled = !event.value;
+      if (!event.value) {
+        this.state.saveStateToHistory();
+      }
+    });
+
+    this.bezierTransformControl.addEventListener('change', () => {
+      if (this.bezierTransformControl.dragging && this.activeBezierHelper) {
+        const index = this.activeBezierHelper.userData.controlPointIndex;
+        const newPos = new THREE.Vector3();
+        this.activeBezierHelper.getWorldPosition(newPos);
+        
+        this.state.bezierControlPoints[index].copy(newPos);
+        this.recalculateBezierDrones();
+        this.state.notify();
+      }
+    });
+
+    this.sceneManager.instance.add(this.bezierTransformControl.getHelper());
+    this.activeBezierHelper = null;
+  }
+
+  recalculateBezierDrones() {
+    const p0 = this.state.bezierControlPoints[0];
+    const p1 = this.state.bezierControlPoints[1];
+    const p2 = this.state.bezierControlPoints[2];
+    
+    const shapeTypeUI = document.getElementById('ui-shape-type');
+    if (!shapeTypeUI || shapeTypeUI.value !== 'bezier') return;
+    
+    const targetUI = document.getElementById('ui-shape-target');
+    const target = targetUI ? targetUI.value : 'new';
+    
+    let indicesToUpdate = [];
+    if (target === 'new') {
+      if (this.state.selectedIndices.size > 0) {
+        indicesToUpdate = Array.from(this.state.selectedIndices);
+      } else {
+        indicesToUpdate = Array.from({ length: this.state.positions.length }, (_, i) => i);
+      }
+    } else {
+      indicesToUpdate = Array.from(this.state.selectedIndices);
+    }
+    
+    if (indicesToUpdate.length === 0) return;
+    
+    const count = indicesToUpdate.length;
+    const curve = new THREE.QuadraticBezierCurve3(p0, p1, p2);
+    const points = curve.getSpacedPoints(count - 1);
+    
+    const indicesSorted = [...indicesToUpdate].sort((a, b) => a - b);
+    for (let i = 0; i < count; i++) {
+      const idx = indicesSorted[i];
+      if (this.state.positions[idx]) {
+        this.state.positions[idx].copy(points[i]);
+      }
     }
   }
 

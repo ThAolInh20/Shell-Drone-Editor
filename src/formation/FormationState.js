@@ -31,6 +31,14 @@ export class FormationState {
       wireframe: false
     };
 
+    // Bezier control points for uốn cong drone
+    this.bezierControlPoints = [
+      new THREE.Vector3(-30, 20, 0),
+      new THREE.Vector3(0, 35, 0),
+      new THREE.Vector3(30, 20, 0)
+    ];
+    this.isBezierEditActive = false;
+
     this.listeners = [];
   }
 
@@ -67,7 +75,9 @@ export class FormationState {
         rotationY: this.ghostModelConfig.rotationY,
         opacity: this.ghostModelConfig.opacity,
         wireframe: this.ghostModelConfig.wireframe
-      }
+      },
+      bezierControlPoints: this.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z })),
+      isBezierEditActive: this.isBezierEditActive
     };
 
     this.history.push(snapshot);
@@ -114,6 +124,17 @@ export class FormationState {
         wireframe: snapshot.ghostModelConfig.wireframe
       };
     }
+    
+    if (snapshot.bezierControlPoints) {
+      this.bezierControlPoints = snapshot.bezierControlPoints.map(p => new THREE.Vector3(p.x, p.y, p.z));
+    } else {
+      this.bezierControlPoints = [
+        new THREE.Vector3(-30, 20, 0),
+        new THREE.Vector3(0, 35, 0),
+        new THREE.Vector3(30, 20, 0)
+      ];
+    }
+    this.isBezierEditActive = snapshot.isBezierEditActive !== undefined ? snapshot.isBezierEditActive : false;
     
     this.selectedIndices.clear();
   }
@@ -288,5 +309,12 @@ export class FormationState {
       }
     }
     return Array.from(groups).sort();
+  }
+
+  updateBezierControlPoint(index, newPos) {
+    if (this.bezierControlPoints[index]) {
+      this.bezierControlPoints[index].copy(newPos);
+      this.notify();
+    }
   }
 }
