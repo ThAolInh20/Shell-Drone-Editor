@@ -54,6 +54,10 @@ export class FormationDirector {
     this.ghostModel = null;
     this.ghostMeshes = [];
 
+    // 2D Reference Image fields
+    this.refImageMesh = null;
+    this.refImageTexture = null;
+
     // Bezier Curve helpers
     this.bezierHelpers = [];
     this.bezierLine = null;
@@ -161,27 +165,40 @@ export class FormationDirector {
       }
     }
 
-    // 1. If Click-to-Place Snapping is active and we have ghost meshes loaded
-    if (this.state.isClickToPlaceActive && this.ghostMeshes.length > 0) {
-      const ghostIntersects = this.raycaster.intersectObjects(this.ghostMeshes);
-      if (ghostIntersects.length > 0) {
-        // Place new drone snapped to surface
-        const snapPoint = ghostIntersects[0].point.clone();
-        const defaultColor = new THREE.Color(0xffffff);
-        const groupName = "GHOST_GUIDE";
+    // 1. If Click-to-Place Snapping is active
+    if (this.state.isClickToPlaceActive) {
+      const targets = [];
+      if (this.ghostMeshes.length > 0) {
+        targets.push(...this.ghostMeshes);
+      }
+      if (this.refImageMesh) {
+        targets.push(this.refImageMesh);
+      }
 
-        this.state.positions.push(snapPoint);
-        this.state.colors.push(defaultColor);
-        this.state.particleGroups.push(groupName);
+      if (targets.length > 0) {
+        const intersects = this.raycaster.intersectObjects(targets);
+        if (intersects.length > 0) {
+          // Place new drone snapped to surface
+          const snapPoint = intersects[0].point.clone();
+          const defaultColor = new THREE.Color(0xffffff);
+          
+          // Determine if we snapped to the 3D model or 2D image
+          const snappedMesh = intersects[0].object;
+          const groupName = snappedMesh === this.refImageMesh ? "REF_IMAGE_GUIDE" : "GHOST_GUIDE";
 
-        // Select the newly added drone
-        const newIndex = this.state.positions.length - 1;
-        this.state.select(newIndex);
+          this.state.positions.push(snapPoint);
+          this.state.colors.push(defaultColor);
+          this.state.particleGroups.push(groupName);
 
-        // Record history and notify
-        this.state.saveStateToHistory();
-        this.state.notify();
-        return; // Drone successfully placed, bypass standard selection
+          // Select the newly added drone
+          const newIndex = this.state.positions.length - 1;
+          this.state.select(newIndex);
+
+          // Record history and notify
+          this.state.saveStateToHistory();
+          this.state.notify();
+          return; // Drone successfully placed, bypass standard selection
+        }
       }
     }
 
@@ -298,6 +315,13 @@ export class FormationDirector {
     }
     
     this.instancedMesh.computeBoundingSphere();
+
+    // Sync reference image if state changed (e.g., Undo/Redo)
+    if (this.refImageMesh && !this.state.referenceImageConfig.url) {
+      this.clearReferenceImage();
+    } else if (this.refImageMesh && this.state.referenceImageConfig.url) {
+      this.updateReferenceImageTransform();
+    }
 
     // Update center visualizer objects
     if (this.state.center && this.centerHelper) {
@@ -622,6 +646,130 @@ export class FormationDirector {
     const statusLabel = document.getElementById('ui-ghost-model-status');
     if (statusLabel) {
       statusLabel.textContent = "Chưa tải mô hình";
+      statusLabel.style.color = "#888";
+    }
+  }
+
+  loadReferenceImage(file, callback) {
+    const statusLabel = document.getElementById('ui-ref-image-status');
+    if (statusLabel) {
+      statusLabel.textContent = "Đang tải ảnh...";
+      statusLabel.style.color = "#00ffff";
+    }
+
+    const filename = file.name;
+    const url = URL.createObjectURL(file);
+    
+    // Clear old image mesh and texture first (which resets old state info)
+    this.clearReferenceImage();
+
+    // Save NEW image info to state
+    this.state.referenceImageConfig.url = url;
+    this.state.referenceImageConfig.fileName = filename;
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(
+      url,
+      (texture) => {
+        this.refImageTexture = texture;
+        // Enable bilinear filtering for smoother preview
+        texture.minFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+
+        const aspect = texture.image.width / texture.image.height;
+
+        // Use standard 1x1 geometry and scale the mesh to preserve aspect ratio
+        const geometry = new THREE.PlaneGeometry(1, 1);
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          opacity: this.state.referenceImageConfig.opacity,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+
+        this.refImageMesh = new THREE.Mesh(geometry, material);
+        this.refImageMesh.userData = { isReferenceImage: true, aspect: aspect };
+        
+        this.sceneManager.instance.add(this.refImageMesh);
+        this.updateReferenceImageTransform();
+
+        if (statusLabel) {
+          statusLabel.textContent = `Đã tải: ${filename}`;
+          statusLabel.style.color = "#4CAF50";
+        }
+
+        if (callback) callback();
+      },
+      undefined,
+      (error) => {
+        console.error("Lỗi tải ảnh tham chiếu:", error);
+        URL.revokeObjectURL(url);
+        if (statusLabel) {
+          statusLabel.textContent = "Lỗi tải ảnh!";
+          statusLabel.style.color = "#ff4d4d";
+        }
+        alert("Lỗi tải ảnh tham chiếu! Vui lòng kiểm tra lại định dạng file.");
+      }
+    );
+  }
+
+  updateReferenceImageTransform() {
+    if (!this.refImageMesh || !this.refImageTexture) return;
+
+    const config = this.state.referenceImageConfig;
+    const aspect = this.refImageMesh.userData.aspect || 1.0;
+
+    // Apply translation
+    this.refImageMesh.position.copy(config.position);
+
+    // Apply scale (maintain aspect ratio)
+    this.refImageMesh.scale.set(config.scale * aspect, config.scale, 1.0);
+
+    // Apply rotation based on orientation
+    if (config.orientation === 'horizontal') {
+      // Lie flat on XZ plane: rotate -90 degrees around X axis
+      this.refImageMesh.rotation.set(-Math.PI / 2, 0, (config.rotationY * Math.PI) / 180);
+    } else {
+      // Stand vertically on XY plane
+      this.refImageMesh.rotation.set(0, (config.rotationY * Math.PI) / 180, 0);
+    }
+
+    // Update opacity
+    if (this.refImageMesh.material) {
+      this.refImageMesh.material.opacity = config.opacity;
+      this.refImageMesh.material.needsUpdate = true;
+    }
+  }
+
+  clearReferenceImage() {
+    if (this.refImageMesh) {
+      this.sceneManager.instance.remove(this.refImageMesh);
+
+      if (this.refImageMesh.geometry) this.refImageMesh.geometry.dispose();
+      if (this.refImageMesh.material) {
+        this.refImageMesh.material.dispose();
+      }
+      this.refImageMesh = null;
+    }
+
+    if (this.refImageTexture) {
+      this.refImageTexture.dispose();
+      this.refImageTexture = null;
+    }
+
+    // Clean state
+    if (this.state.referenceImageConfig.url) {
+      if (this.state.referenceImageConfig.url.startsWith('blob:')) {
+        URL.revokeObjectURL(this.state.referenceImageConfig.url);
+      }
+      this.state.referenceImageConfig.url = null;
+      this.state.referenceImageConfig.fileName = '';
+    }
+
+    const statusLabel = document.getElementById('ui-ref-image-status');
+    if (statusLabel) {
+      statusLabel.textContent = "Chưa tải ảnh nền";
       statusLabel.style.color = "#888";
     }
   }

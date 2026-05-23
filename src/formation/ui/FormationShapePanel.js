@@ -180,6 +180,90 @@ export function renderFormationShapePanel() {
       <!-- Delete Ghost -->
       <button class="btn" id="btn-clear-ghost" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá Hologram</button>
     </div>
+
+    <div class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+      <h3>Ảnh tham chiếu 2D (Reference Image)</h3>
+      
+      <!-- File Import -->
+      <div class="input-group">
+        <label>Import Ảnh Nền (2D)</label>
+        <input type="file" id="ui-ref-image-file" accept="image/*" style="width: 100%; font-size: 11px; background: #222; border: 1px solid #444; padding: 4px;" />
+      </div>
+      <div id="ui-ref-image-status" style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">
+        Chưa tải ảnh nền
+      </div>
+
+      <!-- Transform Controls -->
+      <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">Hiệu chỉnh ảnh nền</label>
+        
+        <!-- Y Height Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Y Offset (Chiều cao)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-pos-y" min="-100" max="200" value="20" style="flex: 1;" />
+            <span id="ui-ref-pos-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">20</span>
+          </div>
+        </div>
+
+        <!-- X Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">X Offset (Dịch ngang)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-pos-x" min="-150" max="150" value="0" style="flex: 1;" />
+            <span id="ui-ref-pos-x-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
+          </div>
+        </div>
+
+        <!-- Z Offset -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Z Offset (Dịch sâu)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-pos-z" min="-150" max="150" value="0" style="flex: 1;" />
+            <span id="ui-ref-pos-z-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
+          </div>
+        </div>
+
+        <!-- Scale multiplier -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Kích thước (Scale)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-scale" min="1" max="150" step="1" value="40" style="flex: 1;" />
+            <span id="ui-ref-scale-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">40</span>
+          </div>
+        </div>
+
+        <!-- Yaw Y rotation -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Góc xoay Y</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-rot-y" min="0" max="360" value="0" style="flex: 1;" />
+            <span id="ui-ref-rot-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0°</span>
+          </div>
+        </div>
+
+        <!-- Orientation Dropdown -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Hướng ảnh</label>
+          <select id="ui-ref-orientation" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 11px;">
+            <option value="horizontal">Nằm ngang (XZ)</option>
+            <option value="vertical">Thẳng đứng (XY)</option>
+          </select>
+        </div>
+
+        <!-- Opacity -->
+        <div class="input-group" style="margin-top: 8px;">
+          <label style="font-size: 11px;">Opacity (Độ mờ)</label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="ui-ref-opacity" min="0.05" max="0.9" step="0.05" value="0.35" style="flex: 1;" />
+            <span id="ui-ref-opacity-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0.35</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Reference Image -->
+      <button class="btn" id="btn-clear-ref-image" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá ảnh tham chiếu</button>
+    </div>
   `;
 }
 
@@ -236,6 +320,7 @@ export function setupFormationShapePanel(state, director) {
         const parsed = JSON.parse(event.target.result);
         let droneData = [];
         let importedConfig = null;
+        let importedRefConfig = null;
 
         // Check if parsed content is old format (direct array) or new format (wrapper object)
         if (Array.isArray(parsed)) {
@@ -244,6 +329,9 @@ export function setupFormationShapePanel(state, director) {
           droneData = parsed.drones;
           if (parsed.ghostModelConfig) {
             importedConfig = parsed.ghostModelConfig;
+          }
+          if (parsed.referenceImageConfig) {
+            importedRefConfig = parsed.referenceImageConfig;
           }
         } else {
           alert("JSON không đúng định dạng Drone Formation!");
@@ -304,6 +392,34 @@ export function setupFormationShapePanel(state, director) {
             // Immediately update the visual hologram transform in active 3D view
             if (director && typeof director.updateGhostModelTransform === 'function') {
               director.updateGhostModelTransform();
+            }
+          }
+
+          // Restore reference image configurations if present in new JSON format
+          if (importedRefConfig) {
+            if (importedRefConfig.position) {
+              state.referenceImageConfig.position.set(
+                importedRefConfig.position.x !== undefined ? importedRefConfig.position.x : 0,
+                importedRefConfig.position.y !== undefined ? importedRefConfig.position.y : 20,
+                importedRefConfig.position.z !== undefined ? importedRefConfig.position.z : 0
+              );
+            }
+            if (importedRefConfig.scale !== undefined) {
+              state.referenceImageConfig.scale = importedRefConfig.scale;
+            }
+            if (importedRefConfig.rotationY !== undefined) {
+              state.referenceImageConfig.rotationY = importedRefConfig.rotationY;
+            }
+            if (importedRefConfig.opacity !== undefined) {
+              state.referenceImageConfig.opacity = importedRefConfig.opacity;
+            }
+            if (importedRefConfig.orientation !== undefined) {
+              state.referenceImageConfig.orientation = importedRefConfig.orientation;
+            }
+
+            // Immediately update visual reference image transform
+            if (director && typeof director.updateReferenceImageTransform === 'function') {
+              director.updateReferenceImageTransform();
             }
           }
 
@@ -532,13 +648,58 @@ export function setupFormationShapePanel(state, director) {
     }
   }
 
+  const refSliders = [
+    { id: 'ui-ref-pos-y', prop: 'position', subProp: 'y', valId: 'ui-ref-pos-y-val', suffix: '' },
+    { id: 'ui-ref-pos-x', prop: 'position', subProp: 'x', valId: 'ui-ref-pos-x-val', suffix: '' },
+    { id: 'ui-ref-pos-z', prop: 'position', subProp: 'z', valId: 'ui-ref-pos-z-val', suffix: '' },
+    { id: 'ui-ref-scale', prop: 'scale', valId: 'ui-ref-scale-val', suffix: '' },
+    { id: 'ui-ref-rot-y', prop: 'rotationY', valId: 'ui-ref-rot-y-val', suffix: '°' },
+    { id: 'ui-ref-opacity', prop: 'opacity', valId: 'ui-ref-opacity-val', suffix: '' }
+  ];
+
+  // Utility to synchronize reference image controls from state values
+  function syncRefImageUIFromState() {
+    refSliders.forEach(sliderDef => {
+      const el = document.getElementById(sliderDef.id);
+      const valEl = document.getElementById(sliderDef.valId);
+      if (el) {
+        let val;
+        if (sliderDef.subProp) {
+          val = state.referenceImageConfig[sliderDef.prop][sliderDef.subProp];
+        } else {
+          val = state.referenceImageConfig[sliderDef.prop];
+        }
+        el.value = val;
+        if (valEl) valEl.textContent = val + sliderDef.suffix;
+      }
+    });
+
+    const orientationSelect = document.getElementById('ui-ref-orientation');
+    if (orientationSelect) {
+      orientationSelect.value = state.referenceImageConfig.orientation;
+    }
+
+    const statusLabel = document.getElementById('ui-ref-image-status');
+    if (statusLabel) {
+      if (state.referenceImageConfig.fileName) {
+        statusLabel.textContent = `Đã tải: ${state.referenceImageConfig.fileName}`;
+        statusLabel.style.color = "#4CAF50";
+      } else {
+        statusLabel.textContent = "Chưa tải ảnh nền";
+        statusLabel.style.color = "#888";
+      }
+    }
+  }
+
   // Bind initial UI control values
   syncGhostModelUIFromState();
+  syncRefImageUIFromState();
   syncBezierUIFromState();
 
   // Subscribe to state notifications to dynamically sync sliders on Undo/Redo or JSON import
   state.subscribe(() => {
     syncGhostModelUIFromState();
+    syncRefImageUIFromState();
     syncBezierUIFromState();
   });
 
@@ -631,6 +792,64 @@ export function setupFormationShapePanel(state, director) {
       }
       const fileInput = document.getElementById('ui-ghost-model-file');
       if (fileInput) fileInput.value = '';
+    });
+  }
+
+  const refFileInput = document.getElementById('ui-ref-image-file');
+  if (refFileInput) {
+    refFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (director && typeof director.loadReferenceImage === 'function') {
+        director.loadReferenceImage(file);
+      }
+    });
+  }
+
+  refSliders.forEach(sliderDef => {
+    const el = document.getElementById(sliderDef.id);
+    const valEl = document.getElementById(sliderDef.valId);
+    if (el) {
+      el.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (valEl) valEl.textContent = val + sliderDef.suffix;
+
+        if (sliderDef.subProp) {
+          state.referenceImageConfig[sliderDef.prop][sliderDef.subProp] = val;
+        } else {
+          state.referenceImageConfig[sliderDef.prop] = val;
+        }
+
+        if (director && typeof director.updateReferenceImageTransform === 'function') {
+          director.updateReferenceImageTransform();
+        }
+      });
+      el.addEventListener('change', () => {
+        state.saveStateToHistory();
+      });
+    }
+  });
+
+  const orientationSelect = document.getElementById('ui-ref-orientation');
+  if (orientationSelect) {
+    orientationSelect.addEventListener('change', (e) => {
+      state.referenceImageConfig.orientation = e.target.value;
+      if (director && typeof director.updateReferenceImageTransform === 'function') {
+        director.updateReferenceImageTransform();
+      }
+      state.saveStateToHistory();
+    });
+  }
+
+  const btnClearRef = document.getElementById('btn-clear-ref-image');
+  if (btnClearRef) {
+    btnClearRef.addEventListener('click', () => {
+      if (director && typeof director.clearReferenceImage === 'function') {
+        director.clearReferenceImage();
+      }
+      const refFileInput = document.getElementById('ui-ref-image-file');
+      if (refFileInput) refFileInput.value = '';
+      state.saveStateToHistory();
     });
   }
 }

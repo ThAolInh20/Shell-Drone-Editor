@@ -31,6 +31,16 @@ export class FormationState {
       wireframe: false
     };
 
+    this.referenceImageConfig = {
+      url: null,
+      fileName: '',
+      position: new THREE.Vector3(0, 20, 0),
+      scale: 40.0,
+      rotationY: 0,
+      opacity: 0.35,
+      orientation: 'horizontal'
+    };
+
     // Bezier control points for uốn cong drone
     this.bezierControlPoints = [
       new THREE.Vector3(-30, 20, 0),
@@ -75,6 +85,15 @@ export class FormationState {
         rotationY: this.ghostModelConfig.rotationY,
         opacity: this.ghostModelConfig.opacity,
         wireframe: this.ghostModelConfig.wireframe
+      },
+      referenceImageConfig: {
+        url: this.referenceImageConfig.url,
+        fileName: this.referenceImageConfig.fileName,
+        position: { x: this.referenceImageConfig.position.x, y: this.referenceImageConfig.position.y, z: this.referenceImageConfig.position.z },
+        scale: this.referenceImageConfig.scale,
+        rotationY: this.referenceImageConfig.rotationY,
+        opacity: this.referenceImageConfig.opacity,
+        orientation: this.referenceImageConfig.orientation
       },
       bezierControlPoints: this.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z })),
       isBezierEditActive: this.isBezierEditActive
@@ -122,6 +141,18 @@ export class FormationState {
         rotationY: snapshot.ghostModelConfig.rotationY,
         opacity: snapshot.ghostModelConfig.opacity,
         wireframe: snapshot.ghostModelConfig.wireframe
+      };
+    }
+    
+    if (snapshot.referenceImageConfig) {
+      this.referenceImageConfig = {
+        url: snapshot.referenceImageConfig.url,
+        fileName: snapshot.referenceImageConfig.fileName,
+        position: new THREE.Vector3(snapshot.referenceImageConfig.position.x, snapshot.referenceImageConfig.position.y, snapshot.referenceImageConfig.position.z),
+        scale: snapshot.referenceImageConfig.scale,
+        rotationY: snapshot.referenceImageConfig.rotationY,
+        opacity: snapshot.referenceImageConfig.opacity,
+        orientation: snapshot.referenceImageConfig.orientation
       };
     }
     
