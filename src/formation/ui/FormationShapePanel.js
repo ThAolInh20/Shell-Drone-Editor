@@ -206,23 +206,7 @@ export function setupFormationShapePanel(state, director) {
       });
     }
 
-    const exportObject = {
-      version: "1.1",
-      name: state.name,
-      drones: drones,
-      ghostModelConfig: {
-        position: {
-          x: state.ghostModelConfig.position.x,
-          y: state.ghostModelConfig.position.y,
-          z: state.ghostModelConfig.position.z
-        },
-        scale: state.ghostModelConfig.scale,
-        rotationY: state.ghostModelConfig.rotationY,
-        opacity: state.ghostModelConfig.opacity,
-        wireframe: state.ghostModelConfig.wireframe
-      },
-      bezierControlPoints: state.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z }))
-    };
+    const exportObject = drones;
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
     const downloadAnchorNode = document.createElement('a');
