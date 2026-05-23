@@ -111,34 +111,42 @@ export function setupShapePanel(state, director) {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = JSON.parse(event.target.result);
-        if (Array.isArray(data)) {
-          const positions = [];
-          const colors = [];
-          for (const item of data) {
-             if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
-                const px = item.x || 0;
-                const py = item.y || 0;
-                const pz = item.z || 0;
-                positions.push(new THREE.Vector3(px, py, pz));
-                if (item.color !== undefined) {
-                   colors.push(new THREE.Color(item.color));
-                } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
-                   colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
-                } else {
-                   colors.push(new THREE.Color(0xffffff));
-                }
-             }
-          }
-          if (positions.length > 0) {
-             customShapeData = { positions, colors };
-             document.getElementById('ui-json-status').textContent = `Loaded ${positions.length} points`;
-             document.getElementById('ui-json-status').style.color = '#4CAF50';
-          } else {
-             throw new Error("No valid coordinates found");
-          }
+        const parsed = JSON.parse(event.target.result);
+        let droneData = [];
+        if (Array.isArray(parsed)) {
+          droneData = parsed;
+        } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
+          droneData = parsed.drones;
         } else {
-          throw new Error("JSON must be an array of objects");
+          throw new Error("JSON must be an array of objects or contain a drones array");
+        }
+
+        const positions = [];
+        const colors = [];
+        const particleGroups = [];
+        for (const item of droneData) {
+           if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+              const px = item.x || 0;
+              const py = item.y || 0;
+              const pz = item.z || 0;
+              positions.push(new THREE.Vector3(px, py, pz));
+              if (item.color !== undefined) {
+                 colors.push(new THREE.Color(item.color));
+              } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+                 colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+              } else {
+                 colors.push(new THREE.Color(0xffffff));
+              }
+              const gName = item.group || item.particleGroup || 'Imported';
+              particleGroups.push(gName);
+           }
+        }
+        if (positions.length > 0) {
+           customShapeData = { positions, colors, particleGroups };
+           document.getElementById('ui-json-status').textContent = `Loaded ${positions.length} points`;
+           document.getElementById('ui-json-status').style.color = '#4CAF50';
+        } else {
+           throw new Error("No valid coordinates found");
         }
       } catch (err) {
         customShapeData = null;
@@ -233,12 +241,15 @@ export function setupShapePanel(state, director) {
 
       state.updatePositions(updates);
       
-      // Update colors if json imported
+      // Update colors and groups if json imported
       if (type === 'json' && newColors) {
          let j = 0;
          for (const id of state.selectedIndices) {
             if (j >= newColors.length) break;
             state.colors[id].copy(newColors[j]);
+            if (customShapeData.particleGroups && customShapeData.particleGroups[j]) {
+               state.particleGroups[id] = customShapeData.particleGroups[j];
+            }
             j++;
          }
          state.notify(); // Force UI color refresh if selection color changed
@@ -274,7 +285,8 @@ export function setupShapePanel(state, director) {
       for (let i = 0; i < count; i++) {
         state.positions.push(positions[i]);
         state.colors.push(colors[i]);
-        state.particleGroups.push(groupName);
+        const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : groupName;
+        state.particleGroups.push(gName);
         state.effects.push('none');
       }
 
@@ -285,7 +297,8 @@ export function setupShapePanel(state, director) {
         for (let i = 0; i < count; i++) {
           step.positions.push(positions[i].clone());
           step.colors.push(colors[i].clone());
-          step.particleGroups.push(groupName);
+          const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : groupName;
+          step.particleGroups.push(gName);
           if (!step.effects) step.effects = [];
           step.effects.push('none');
         }
