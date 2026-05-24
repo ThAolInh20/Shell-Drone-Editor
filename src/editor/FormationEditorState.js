@@ -9,6 +9,11 @@ export class FormationEditorState {
     this.particleGroups = []; // Array of strings matching positions index
     this.effects = []; // Array of strings (e.g. 'none', 'wave', 'strobe')
 
+    this.center = new THREE.Vector3(0, 20, 0);
+    this.showCenter = true;
+    this.showPivotLines = false;
+    this.isCenterSelected = false;
+
     // Timeline state
     this.steps = [{
       id: 'step_0',
@@ -18,7 +23,11 @@ export class FormationEditorState {
       particleGroups: [],
       effects: [],
       transitionMode: 'transform', // 'transform' or 'move'
-      transitionEffect: 'none'
+      transitionEffect: 'none',
+      holdTime: 0,
+      holdMoveEffect: 'none',
+      holdLightEffect: 'none',
+      center: new THREE.Vector3(0, 20, 0)
     }];
     this.currentStepIndex = 0;
     this.isPlaying = false;
@@ -56,6 +65,7 @@ export class FormationEditorState {
       this.steps[this.currentStepIndex].colors = this.colors.map(c => c.clone());
       this.steps[this.currentStepIndex].particleGroups = [...this.particleGroups];
       this.steps[this.currentStepIndex].effects = [...this.effects];
+      this.steps[this.currentStepIndex].center = this.center.clone();
       this.recalculateTimes();
     }
   }
@@ -69,7 +79,9 @@ export class FormationEditorState {
       this.colors = step.colors.map(c => c.clone());
       this.particleGroups = [...step.particleGroups];
       this.effects = [...(step.effects || new Array(step.positions.length).fill('none'))];
+      this.center = step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0);
       this.selectedIndices.clear(); // Clear selection when changing steps
+      this.isCenterSelected = false;
       this.notify();
     }
   }
@@ -86,7 +98,9 @@ export class FormationEditorState {
       transitionMode: 'transform',
       transitionEffect: 'none',
       holdTime: 0,
-      holdEffect: 'none'
+      holdMoveEffect: 'none',
+      holdLightEffect: 'none',
+      center: this.center.clone()
     };
 
     this.steps.push(newStep);
@@ -105,9 +119,9 @@ export class FormationEditorState {
     const step = this.steps[0];
     this.positions = step.positions.map(p => p.clone());
     this.colors = step.colors.map(c => c.clone());
-    this.colors = step.colors.map(c => c.clone());
     this.particleGroups = [...step.particleGroups];
     this.effects = [...(step.effects || new Array(step.positions.length).fill('none'))];
+    this.center = step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0);
     this.recalculateTimes();
     this.notify();
   }
@@ -153,7 +167,11 @@ export class FormationEditorState {
     const snapshot = {
       positions: this.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
       colors: this.colors.map(c => c.getHex()),
-      particleGroups: [...this.particleGroups]
+      particleGroups: [...this.particleGroups],
+      center: { x: this.center.x, y: this.center.y, z: this.center.z },
+      showCenter: this.showCenter,
+      showPivotLines: this.showPivotLines,
+      isCenterSelected: this.isCenterSelected
     };
 
     this.history.push(snapshot);
@@ -185,6 +203,10 @@ export class FormationEditorState {
     this.positions = snapshot.positions.map(p => new THREE.Vector3(p.x, p.y, p.z));
     this.colors = snapshot.colors ? snapshot.colors.map(c => new THREE.Color(c)) : new Array(this.positions.length).fill().map(() => new THREE.Color(0xffffff));
     this.particleGroups = snapshot.particleGroups ? [...snapshot.particleGroups] : new Array(this.positions.length).fill('Default');
+    this.center = snapshot.center ? new THREE.Vector3(snapshot.center.x, snapshot.center.y, snapshot.center.z) : new THREE.Vector3(0, 20, 0);
+    this.showCenter = snapshot.showCenter !== undefined ? snapshot.showCenter : true;
+    this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
+    this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
     // Clear selection on undo/redo to avoid invalid states
     this.selectedIndices.clear();
   }
@@ -194,18 +216,35 @@ export class FormationEditorState {
     this.droneCount = data.droneCount || 0;
 
     if (data.steps && data.steps.length > 0) {
-      this.steps = data.steps.map((s, i) => ({
-        id: 'step_' + i + '_' + Date.now(),
-        time: s.time || i * 5000,
-        positions: (s.positions || []).map(p => new THREE.Vector3(p.x, p.y, p.z)),
-        colors: (s.colors || []).map(c => new THREE.Color(c)),
-        particleGroups: s.particleGroups || new Array((s.positions || []).length).fill('Imported'),
-        effects: s.effects || new Array((s.positions || []).length).fill('none'),
-        transitionMode: s.transitionMode || 'transform',
-        transitionEffect: s.transitionEffect || s.transitionLight || 'none',
-        holdTime: s.holdTime || 0,
-        holdEffect: s.holdEffect || 'none'
-      }));
+      this.steps = data.steps.map((s, i) => {
+        let moveEff = s.holdMoveEffect;
+        let lightEff = s.holdLightEffect;
+        
+        if (!moveEff && !lightEff && s.holdEffect) {
+          if (['strobe', 'shimmer'].includes(s.holdEffect)) {
+            moveEff = 'none';
+            lightEff = s.holdEffect;
+          } else {
+            moveEff = s.holdEffect;
+            lightEff = 'none';
+          }
+        }
+        
+        return {
+          id: 'step_' + i + '_' + Date.now(),
+          time: s.time || i * 5000,
+          positions: (s.positions || []).map(p => new THREE.Vector3(p.x, p.y, p.z)),
+          colors: (s.colors || []).map(c => new THREE.Color(c)),
+          particleGroups: s.particleGroups || new Array((s.positions || []).length).fill('Imported'),
+          effects: s.effects || new Array((s.positions || []).length).fill('none'),
+          transitionMode: s.transitionMode || 'transform',
+          transitionEffect: s.transitionEffect || s.transitionLight || 'none',
+          holdTime: s.holdTime || 0,
+          holdMoveEffect: moveEff || 'none',
+          holdLightEffect: lightEff || 'none',
+          center: s.center ? new THREE.Vector3(s.center.x, s.center.y, s.center.z) : new THREE.Vector3(0, 20, 0)
+        };
+      });
     } else {
       // Legacy support
       this.steps = [{
@@ -218,7 +257,9 @@ export class FormationEditorState {
         transitionMode: 'transform',
         transitionEffect: 'none',
         holdTime: 0,
-        holdEffect: 'none'
+        holdMoveEffect: 'none',
+        holdLightEffect: 'none',
+        center: data.center ? new THREE.Vector3(data.center.x, data.center.y, data.center.z) : new THREE.Vector3(0, 20, 0)
       }];
     }
 
@@ -234,6 +275,7 @@ export class FormationEditorState {
     this.colors = step.colors.map(c => c.clone());
     this.particleGroups = [...step.particleGroups];
     this.effects = [...step.effects];
+    this.center = step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0);
 
     this.saveStateToHistory();
     this.notify();
@@ -254,7 +296,10 @@ export class FormationEditorState {
         transitionMode: step.transitionMode,
         transitionEffect: step.transitionEffect,
         holdTime: step.holdTime || 0,
-        holdEffect: step.holdEffect || 'none'
+        holdMoveEffect: step.holdMoveEffect || 'none',
+        holdLightEffect: step.holdLightEffect || 'none',
+        holdEffect: step.holdMoveEffect || 'none', // For backward compatibility
+        center: step.center ? { x: step.center.x, y: step.center.y, z: step.center.z } : { x: 0, y: 20, z: 0 }
       }))
     };
   }
@@ -286,7 +331,21 @@ export class FormationEditorState {
     this.saveStateToHistory();
   }
 
+  selectCenter() {
+    this.selectedIndices.clear();
+    this.isCenterSelected = true;
+    this.notify();
+  }
+
+  deselectCenter() {
+    if (this.isCenterSelected) {
+      this.isCenterSelected = false;
+      this.notify();
+    }
+  }
+
   select(index, multi = false) {
+    this.isCenterSelected = false;
     if (!multi) {
       this.selectedIndices.clear();
     }
@@ -301,6 +360,7 @@ export class FormationEditorState {
 
   clearSelection() {
     this.selectedIndices.clear();
+    this.isCenterSelected = false;
     this.notify();
   }
 

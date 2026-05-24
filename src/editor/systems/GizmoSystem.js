@@ -32,6 +32,11 @@ export class GizmoSystem {
           mesh.scale.copy(invScale);
         }
       }
+
+      // Realtime translation/rotation/scale feedback!
+      if (this.transformControl.dragging) {
+        this.applyProxyTransformsToStateRealtime();
+      }
     });
 
     this.scene.add(this.transformControl.getHelper());
@@ -65,6 +70,30 @@ export class GizmoSystem {
   }
 
   onStateChange() {
+    // If actively dragging, do not rebuild proxies to avoid interrupting the TransformControls
+    if (this.transformControl.dragging) {
+      return;
+    }
+
+    // Check if Center is selected
+    if (this.state.isCenterSelected) {
+      this.clearProxies();
+      
+      this.proxyGroup.position.copy(this.state.center);
+      this.proxyGroup.rotation.set(0, 0, 0);
+      this.proxyGroup.scale.set(1, 1, 1);
+      this.proxyGroup.updateMatrixWorld();
+      
+      // Create a proxy mesh for the center (using a slightly larger geometry for visibility)
+      const mesh = new THREE.Mesh(this.proxyGeometry, this.proxyMaterial);
+      mesh.position.set(0, 0, 0);
+      this.proxyGroup.add(mesh);
+      this.proxyMeshes.set('center', mesh);
+      
+      this.transformControl.attach(this.proxyGroup);
+      return;
+    }
+
     const selected = Array.from(this.state.selectedIndices);
     
     // If selection is empty, detach
@@ -123,17 +152,62 @@ export class GizmoSystem {
     this.proxyMeshes.clear();
   }
 
-  applyProxyTransformsToState() {
-    // When dragging ends, apply the world positions of proxies back to state
+  applyProxyTransformsToStateRealtime() {
+    // Apply changes in realtime during dragging
     this.proxyGroup.updateMatrixWorld(true);
     
+    if (this.state.isCenterSelected) {
+      const targetPos = new THREE.Vector3();
+      const mesh = this.proxyMeshes.get('center');
+      if (mesh) {
+        mesh.getWorldPosition(targetPos);
+        this.state.center.copy(targetPos);
+        this.state.notify();
+      }
+      return;
+    }
+
     const targetPos = new THREE.Vector3();
     const updates = [];
     
     for (const [id, mesh] of this.proxyMeshes.entries()) {
+      if (id === 'center') continue;
+      mesh.getWorldPosition(targetPos);
+      updates.push({ index: id, pos: targetPos.clone() });
+    }
+    
+    this.state.updatePositions(updates);
+  }
+
+  applyProxyTransformsToState() {
+    // When dragging ends, apply the world positions of proxies back to state
+    this.proxyGroup.updateMatrixWorld(true);
+    
+    if (this.state.isCenterSelected) {
+      const targetPos = new THREE.Vector3();
+      const mesh = this.proxyMeshes.get('center');
+      if (mesh) {
+        mesh.getWorldPosition(targetPos);
+        this.state.center.copy(targetPos);
+        if (typeof this.state.saveCurrentStep === 'function') {
+          this.state.saveCurrentStep();
+        }
+        this.state.notify();
+      }
+      return;
+    }
+
+    const targetPos = new THREE.Vector3();
+    const updates = [];
+    
+    for (const [id, mesh] of this.proxyMeshes.entries()) {
+      if (id === 'center') continue;
       mesh.getWorldPosition(targetPos);
       updates.push({ index: id, pos: targetPos.clone() });
     }
     this.state.updatePositions(updates);
+    if (typeof this.state.saveCurrentStep === 'function') {
+      this.state.saveCurrentStep();
+    }
   }
 }
