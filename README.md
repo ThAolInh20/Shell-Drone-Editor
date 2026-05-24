@@ -1,19 +1,24 @@
-# Shell Drone Animation 🎆🛸
+# Shell Drone Animation
 
-- Dự án **Shell Drone Animation** là một ứng dụng Web 3D tương tác, cho phép người dùng mô phỏng và biên đạo các màn trình diễn pháo hoa kết hợp với drone nghệ thuật. Ứng dụng được thiết kế để mang lại trải nghiệm thị giác sống động, được xây dựng trên nền tảng **Three.js** và **Vite**.
-- Dự án được phát triển 90% bằng Antigravity trong đó BMAD góp 1 phần tăng hiệu suất của dự án.
+**Shell Drone Animation** is an interactive 3D web application that allows users to simulate and choreograph firework shows combined with artistic drone light shows. The application is designed to deliver immersive visual experiences, built on top of **Three.js** and **Vite**.
 
-## 🌟 Tính năng nổi bật
-- **Mô phỏng 3D:** Hiệu ứng pháo hoa và ánh sáng chân thực trong không gian 3 chiều.
-- **Timeline Editor:** Hệ thống giao diện trực quan cho phép biên đạo pháo hoa, chèn âm thanh và đồng bộ hóa theo thời gian.
-- **Tùy chỉnh linh hoạt:** Quản lý cấu hình các loại pháo, thông số vật lý và góc nhìn camera.
+This project is 90% developed using Antigravity, with BMAD contributing to accelerating the development process.
+
+## Key Features
+
+- **3D Simulation:** Realistic firework effects and lighting in a three-dimensional environment.
+- **Timeline Editor:** An intuitive user interface to choreograph fireworks, add audio tracks, and synchronize sequences over time.
+- **Flexible Customization:** Manage firework configurations, physical parameters, and camera viewpoints.
+- **3D Static Drone Formation:** Design and generate formations for the drone fleet.
+- **3D Timeline Drone Editor:** Design and edit drone animation timelines in real-time.
+
 ---
 
-## 🚀 Trạng thái và Cấu trúc Repository
+## Repository Structure and Deployment Status
 
-Dự án sử dụng chiến lược chia nhánh như sau:
+The repository follows this branching strategy:
 
-- **Mã nguồn phát triển (Development):** Toàn bộ mã nguồn, lịch sử commit và hướng dẫn cài đặt cục bộ (local) đều nằm ở nhánh `dev`. Vui lòng chuyển sang nhánh [`dev`](https://github.com/ThAolInh20/Shell-Drone_3d/tree/dev) để xem source code chi tiết và đóng góp cho dự án.
+- **Development Source Code:** The entire source code, commit history, and local setup instructions are hosted on the `dev` branch. Please switch to the [`dev`](https://github.com/ThAolInh20/Shell-Drone_3d/tree/dev) branch to view the detailed source code and contribute to the project.
   
-- **Trải nghiệm trực tuyến (Deploy):** Dự án đã được triển khai (deploy) hoàn chỉnh. Bạn có thể xem bản demo và trải nghiệm trực tiếp trên trình duyệt tại địa chỉ:
-  👉 **[https://shell3d.netlify.app/](https://shell3d.netlify.app/)**
+- **Live Demo (Deployment):** The project is fully deployed. You can view the live demo and experience it directly in your browser at:
+  **[https://shell3d.netlify.app/](https://shell3d.netlify.app/)**
