@@ -1,64 +1,64 @@
 # Shell Drone Animation
 
-Dự án này là một ứng dụng mô phỏng pháo hoa và drone 3D, được xây dựng bằng Three.js và Vite.
+This project is a 3D firework and drone simulation application built with Three.js and Vite.
 
-## 📥 Hướng dẫn tải (Download)
+## Download Instructions
 
-Bạn có thể tải mã nguồn của dự án này về máy bằng một trong các cách sau:
+You can download the source code of this project using one of the following methods:
 
-### Cách 1: Sử dụng Git (Khuyên dùng)
-Nếu máy bạn đã cài đặt [Git](https://git-scm.com/), hãy mở Terminal (hoặc Command Prompt/PowerShell) và chạy lệnh sau:
+### Method 1: Using Git (Recommended)
+If you have Git installed, open your terminal (or Command Prompt/PowerShell) and run the following command:
 
 ```bash
-git clone <đường-dẫn-repo-của-bạn>
+git clone <your-repo-url>
 cd shell-drone-animation
 ```
 
-*(Lưu ý: Thay `<đường-dẫn-repo-của-bạn>` bằng URL thực tế của repository này).*
+*(Note: Replace `<your-repo-url>` with the actual URL of this repository).*
 
-### Cách 2: Tải file ZIP
-1. Nhấn vào nút **Code** màu xanh lá cây ở trên cùng của trang kho lưu trữ (repository) này.
-2. Chọn **Download ZIP**.
-3. Giải nén file ZIP vừa tải về và mở thư mục giải nén.
+### Method 2: Download ZIP
+1. Click the green **Code** button at the top of this repository page.
+2. Select **Download ZIP**.
+3. Extract the downloaded ZIP file and open the extracted folder.
 
 ---
 
-## 🚀 Hướng dẫn cài đặt và sử dụng
+## Installation and Setup
 
-Dự án này sử dụng môi trường Node.js. Vui lòng đảm bảo máy tính của bạn đã cài đặt sẵn [Node.js](https://nodejs.org/) (phiên bản 18+ được khuyến nghị).
+This project requires Node.js. Please ensure that you have Node.js (version 18 or higher recommended) installed on your system.
 
-### Bước 1: Cài đặt các thư viện cần thiết (Dependencies)
-Mở Terminal (hoặc Command Prompt/PowerShell), điều hướng đến thư mục gốc của dự án (`shell-drone-animation`) và chạy lệnh sau để tải các package:
+### Step 1: Install Dependencies
+Open your terminal, navigate to the project's root directory (`shell-drone-animation`), and run the following command:
 
 ```bash
 npm install
 ```
 
-### Bước 2: Chạy dự án (Development Mode)
-Sau khi quá trình cài đặt hoàn tất, bạn khởi động máy chủ môi trường dev (development server) bằng lệnh:
+### Step 2: Run the Development Server
+After the installation is complete, start the local development server with:
 
 ```bash
 npm run dev
 ```
 
-### Bước 3: Trải nghiệm ứng dụng
-Khi máy chủ chạy thành công, Terminal sẽ hiển thị một đường dẫn (thường là `http://localhost:5173/`). Bạn hãy:
-1. Mở trình duyệt web (Google Chrome, Edge, Firefox, v.v.).
-2. Truy cập vào đường dẫn được cung cấp ở trên.
-3. Trải nghiệm hoạt ảnh pháo hoa và drone!
+### Step 3: Access the Application
+Once the server starts successfully, the terminal will display a local address (typically `http://localhost:5173/`).
+1. Open your web browser (Google Chrome, Edge, Firefox, etc.).
+2. Navigate to the provided URL.
+3. View the firework and drone simulation.
 
 ---
 
-## 🛠 Các lệnh khác (Dành cho nhà phát triển)
+## Additional Commands
 
-- **Đóng gói dự án (Build Production):**
-  Lệnh này sẽ đóng gói và tối ưu hoá dự án để chuẩn bị triển khai lên server thực tế (kết quả nằm trong thư mục `dist`).
+- **Build for Production:**
+  Compile and optimize the project for production deployment. The output files will be saved in the `dist` directory.
   ```bash
   npm run build
   ```
 
-- **Xem trước bản Build (Preview):**
-  Lệnh này giúp bạn chạy và kiểm tra kết quả ứng dụng sau khi build ở môi trường cục bộ.
+- **Preview Production Build:**
+  Run the production build locally to test and preview the application before actual deployment.
   ```bash
   npm run preview
   ```
