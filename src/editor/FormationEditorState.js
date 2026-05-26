@@ -3,6 +3,7 @@ import * as THREE from 'three';
 export class FormationEditorState {
   constructor() {
     this.name = "NewFormat";
+    this.currentFilePath = null;
     this.droneCount = 100;
     this.positions = []; // Array of THREE.Vector3
     this.colors = []; // Array of THREE.Color
@@ -211,8 +212,9 @@ export class FormationEditorState {
     this.selectedIndices.clear();
   }
 
-  loadFormat(data) {
+  loadFormat(data, filePath = null) {
     this.name = data.name || "LoadedFormat";
+    this.currentFilePath = filePath;
     this.droneCount = data.droneCount || 0;
 
     if (data.steps && data.steps.length > 0) {

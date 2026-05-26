@@ -257,7 +257,12 @@ export class FormationDirector {
     const isD = event.key.toLowerCase() === 'd' || event.code === 'KeyD';
     const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
     const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
+    const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
 
+    if (event.shiftKey && isS) {
+      event.preventDefault();
+      this.saveDirectly();
+    }
     if (event.ctrlKey && isZ) {
       event.preventDefault();
       this.state.undo();
@@ -281,6 +286,85 @@ export class FormationDirector {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       this.state.deleteSelected();
     }
+  }
+
+  async saveDirectly() {
+    const drones = [];
+    for (let i = 0; i < this.state.positions.length; i++) {
+      const pos = this.state.positions[i];
+      const col = this.state.colors[i] || new THREE.Color(0xffffff);
+      const hexStr = col.getHexString();
+      const r = parseInt(hexStr.substring(0, 2), 16);
+      const g = parseInt(hexStr.substring(2, 4), 16);
+      const b = parseInt(hexStr.substring(4, 6), 16);
+      const groupName = this.state.particleGroups[i] || 'Default';
+      drones.push({
+        x: parseFloat(pos.x.toFixed(2)),
+        y: parseFloat(pos.y.toFixed(2)),
+        z: parseFloat(pos.z.toFixed(2)),
+        r: r,
+        g: g,
+        b: b,
+        group: groupName
+      });
+    }
+
+    const exportObject = {
+      drones,
+      ghostModelConfig: {
+        position: { x: this.state.ghostModelConfig.position.x, y: this.state.ghostModelConfig.position.y, z: this.state.ghostModelConfig.position.z },
+        scale: this.state.ghostModelConfig.scale,
+        rotationY: this.state.ghostModelConfig.rotationY,
+        opacity: this.state.ghostModelConfig.opacity,
+        wireframe: this.state.ghostModelConfig.wireframe
+      },
+      referenceImageConfig: {
+        url: this.state.referenceImageConfig.url,
+        fileName: this.state.referenceImageConfig.fileName,
+        position: { x: this.state.referenceImageConfig.position.x, y: this.state.referenceImageConfig.position.y, z: this.state.referenceImageConfig.position.z },
+        scale: this.state.referenceImageConfig.scale,
+        rotationY: this.state.referenceImageConfig.rotationY,
+        opacity: this.state.referenceImageConfig.opacity,
+        orientation: this.state.referenceImageConfig.orientation
+      },
+      bezierControlPoints: this.state.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z }))
+    };
+
+    const content = JSON.stringify(exportObject, null, 2);
+
+    if (window.electronAPI) {
+      if (this.state.currentFilePath) {
+        try {
+          await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
+          alert(`Đã lưu đội hình static trực tiếp thành công vào: ${this.state.name}.json`);
+        } catch (err) {
+          alert("Lỗi khi lưu file trực tiếp: " + err.message);
+        }
+      } else {
+        // Save As
+        try {
+          const res = await window.electronAPI.saveFileDialog(content, `${this.state.name}.json`);
+          if (res) {
+            this.state.currentFilePath = res.filePath;
+            this.state.name = res.filename.replace('.json', '');
+            alert(`Đã lưu đội hình mới thành công: ${res.filename}`);
+          }
+        } catch (err) {
+          alert("Lỗi khi lưu đội hình mới: " + err.message);
+        }
+      }
+      return;
+    }
+
+    // Fallback to browser download if not in Electron
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(content);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", this.state.name + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    alert(`Đã xuất kịch bản thành file ${this.state.name}.json!`);
   }
 
   updateMeshFromState() {

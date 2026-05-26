@@ -18,6 +18,7 @@ export class TimelineEditor {
     this.filename = 'demoShow.json';
     this.anchorTime = 0;
     this.autoScrollEnabled = true;
+    this.currentFilePath = null;
     
     this.initDOM();
     this.renderTracks();
@@ -123,7 +124,13 @@ export class TimelineEditor {
     importBtn.textContent = 'Import JSON';
     importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
-    importBtn.addEventListener('click', () => this.fileInput.click());
+    importBtn.addEventListener('click', () => {
+      if (window.electronAPI) {
+        this.openNativeFile();
+      } else {
+        this.fileInput.click();
+      }
+    });
 
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
@@ -270,6 +277,14 @@ export class TimelineEditor {
 
     // Global Hotkeys
     window.addEventListener('keydown', (e) => {
+      // Direct Save (Shift + S)
+      if (e.code === 'KeyS' && e.shiftKey && this.visible) {
+        if (e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          this.saveDirectly();
+        }
+      }
+
       if (e.code === 'KeyT' && e.shiftKey) {
         e.preventDefault();
         this.toggle();
@@ -334,17 +349,29 @@ export class TimelineEditor {
 
   async fetchFileList() {
     try {
-      const res = await fetch('/api/list-sequences');
-      const data = await res.json();
-      if (data.success) {
+      if (window.electronAPI) {
+        const files = await window.electronAPI.listSequences();
         this.fileSelect.innerHTML = '';
-        data.files.forEach(f => {
+        files.forEach(f => {
           const opt = document.createElement('option');
           opt.value = f;
           opt.textContent = f;
           if (f === this.filename) opt.selected = true;
           this.fileSelect.appendChild(opt);
         });
+      } else {
+        const res = await fetch('/api/list-sequences');
+        const data = await res.json();
+        if (data.success) {
+          this.fileSelect.innerHTML = '';
+          data.files.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f;
+            if (f === this.filename) opt.selected = true;
+            this.fileSelect.appendChild(opt);
+          });
+        }
       }
     } catch (e) {
       console.warn("Could not fetch file list. Fallback to demoShow.json");
@@ -699,6 +726,70 @@ export class TimelineEditor {
     requestAnimationFrame(this.updateLoop);
   }
 
+  async openNativeFile() {
+    try {
+      const fileData = await window.electronAPI.openFileDialog();
+      if (fileData) {
+        const { filePath, content, filename } = fileData;
+        const data = JSON.parse(content);
+        if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
+        
+        if (this.sequences.length > 0 && !confirm("Tiến hành import sẽ ghi đè lên các thay đổi chưa được lưu. Bạn có chắc chắn muốn tiếp tục?")) {
+          return;
+        }
+
+        this.sequences = data;
+        this.filename = filename;
+        this.currentFilePath = filePath;
+        this.renderTracks();
+        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+        alert(`Import thành công từ file: ${filename}`);
+      }
+    } catch (err) {
+      alert("Lỗi khi đọc file qua Electron: " + err.message);
+    }
+  }
+
+  async saveDirectly() {
+    this.filename = this.fileSelect.value || 'demoShow.json';
+    
+    // Cleanup temporary variables
+    const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
+      const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
+      return cleanObj;
+    });
+
+    const content = JSON.stringify(cleanSeqs, null, 2);
+
+    if (window.electronAPI) {
+      if (this.currentFilePath) {
+        try {
+          await window.electronAPI.saveFileAbsolute(this.currentFilePath, content);
+          alert(`Đã lưu kịch bản trực tiếp thành công vào: ${this.filename}`);
+        } catch (err) {
+          alert('Lỗi khi lưu file trực tiếp: ' + err.message);
+        }
+      } else {
+        // Save As
+        try {
+          const res = await window.electronAPI.saveFileDialog(content, this.filename);
+          if (res) {
+            this.currentFilePath = res.filePath;
+            this.filename = res.filename;
+            alert(`Đã lưu kịch bản mới thành công vào: ${res.filename}`);
+            this.fetchFileList();
+          }
+        } catch (err) {
+          alert('Lỗi khi lưu mới file: ' + err.message);
+        }
+      }
+      return;
+    }
+
+    // Fallback to standard saveSequence if not in Electron
+    this.saveSequence();
+  }
+
   importSequence(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -736,6 +827,18 @@ export class TimelineEditor {
     });
 
     const content = JSON.stringify(cleanSeqs, null, 2);
+
+    // If running in Electron, save directly to disk
+    if (window.electronAPI) {
+      try {
+        await window.electronAPI.saveSequence(this.filename, content);
+        alert(`Đã lưu kịch bản vào file ${this.filename} thành công!`);
+        this.fetchFileList();
+      } catch (err) {
+        alert('Lỗi khi lưu file qua Electron: ' + err.message);
+      }
+      return;
+    }
 
     // Cách 1: Copy vào Clipboard
     try {
