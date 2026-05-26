@@ -200,7 +200,12 @@ export class EditorDirector {
     const isD = event.key.toLowerCase() === 'd' || event.code === 'KeyD';
     const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
     const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
+    const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
 
+    if (event.shiftKey && isS) {
+      event.preventDefault();
+      this.saveDirectly();
+    }
     if (event.ctrlKey && isZ) {
       event.preventDefault();
       this.state.undo();
@@ -226,6 +231,46 @@ export class EditorDirector {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       this.state.deleteSelected();
     }
+  }
+
+  async saveDirectly() {
+    const data = this.state.exportFormat();
+    const content = JSON.stringify(data, null, 2);
+
+    if (window.electronAPI) {
+      if (this.state.currentFilePath) {
+        try {
+          await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
+          alert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
+        } catch (err) {
+          alert("Lỗi khi lưu file trực tiếp: " + err.message);
+        }
+      } else {
+        // Save As
+        try {
+          const res = await window.electronAPI.saveFileDialog(content, `${this.state.name}.json`);
+          if (res) {
+            this.state.currentFilePath = res.filePath;
+            this.state.name = res.filename.replace('.json', '');
+            document.getElementById('ui-name').value = this.state.name;
+            alert(`Đã lưu kịch bản mới thành công: ${res.filename}`);
+          }
+        } catch (err) {
+          alert("Lỗi khi lưu kịch bản mới: " + err.message);
+        }
+      }
+      return;
+    }
+
+    // Fallback to browser download if not in Electron
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.state.name}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    alert(`Đã tải xuống kịch bản ${this.state.name}.json thành công!`);
   }
 
   updateMeshFromState() {
