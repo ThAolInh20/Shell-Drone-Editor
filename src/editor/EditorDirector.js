@@ -188,7 +188,10 @@ export class EditorDirector {
         }
       }
     } else {
-      this.state.clearSelection();
+      const multiSelect = event.shiftKey || event.ctrlKey;
+      if (!multiSelect) {
+        this.state.clearSelection();
+      }
     }
   }
 

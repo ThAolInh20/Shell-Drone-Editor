@@ -48,6 +48,7 @@ export class FormationDirector {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     
+    this.isCtrlPressed = false;
     this.setupEvents();
 
     // Hologram Ghost Guide fields
@@ -121,6 +122,20 @@ export class FormationDirector {
   setupEvents() {
     this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
+    window.addEventListener('keyup', this.onKeyUp.bind(this));
+    window.addEventListener('blur', this.onBlur.bind(this));
+
+    // Synchronize isCtrlPressed state via pointer events
+    this.handlePointer = (e) => {
+      const ctrl = e.ctrlKey;
+      if (ctrl !== this.isCtrlPressed) {
+        this.isCtrlPressed = ctrl;
+        this.updateBezierGizmoVisibility();
+      }
+    };
+    window.addEventListener('pointerdown', this.handlePointer, true);
+    window.addEventListener('pointerup', this.handlePointer, true);
+    window.addEventListener('pointermove', this.handlePointer, true);
   }
 
   onPointerDown(event) {
@@ -161,6 +176,7 @@ export class FormationDirector {
         const hitHelper = bezierIntersects[0].object;
         this.activeBezierHelper = hitHelper;
         this.bezierTransformControl.attach(hitHelper);
+        this.updateBezierGizmoVisibility();
         return; // Dragging handle, bypass normal selection
       }
     }
@@ -245,11 +261,18 @@ export class FormationDirector {
         }
       }
     } else {
-      this.state.clearSelection();
+      const multiSelect = event.shiftKey || event.ctrlKey;
+      if (!multiSelect) {
+        this.state.clearSelection();
+      }
     }
   }
 
   onKeyDown(event) {
+    if (event.key === 'Control') {
+      this.isCtrlPressed = true;
+      this.updateBezierGizmoVisibility();
+    }
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
 
     const isZ = event.key.toLowerCase() === 'z' || event.code === 'KeyZ';
@@ -286,6 +309,18 @@ export class FormationDirector {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       this.state.deleteSelected();
     }
+  }
+
+  onKeyUp(event) {
+    if (event.key === 'Control') {
+      this.isCtrlPressed = false;
+      this.updateBezierGizmoVisibility();
+    }
+  }
+
+  onBlur() {
+    this.isCtrlPressed = false;
+    this.updateBezierGizmoVisibility();
   }
 
   async saveDirectly() {
@@ -457,7 +492,10 @@ export class FormationDirector {
         if (this.bezierHelpers[i]) this.bezierHelpers[i].visible = false;
       }
       if (this.bezierLine) this.bezierLine.visible = false;
-      if (this.bezierTransformControl) this.bezierTransformControl.detach();
+      if (this.bezierTransformControl) {
+        this.bezierTransformControl.detach();
+        this.updateBezierGizmoVisibility();
+      }
       this.activeBezierHelper = null;
     }
   }
@@ -517,6 +555,19 @@ export class FormationDirector {
 
     this.sceneManager.instance.add(this.bezierTransformControl.getHelper());
     this.activeBezierHelper = null;
+    this.updateBezierGizmoVisibility();
+  }
+
+  updateBezierGizmoVisibility() {
+    if (!this.bezierTransformControl) return;
+    const isVisible = !this.isCtrlPressed && !!this.bezierTransformControl.object;
+    this.bezierTransformControl.visible = isVisible;
+    this.bezierTransformControl.enabled = isVisible;
+
+    const helper = this.bezierTransformControl.getHelper ? this.bezierTransformControl.getHelper() : null;
+    if (helper) {
+      helper.visible = isVisible;
+    }
   }
 
   recalculateBezierDrones() {
