@@ -14,12 +14,12 @@ export function renderGroupPanel() {
 }
 
 export function setupGroupPanel(state) {
-  document.getElementById('btn-group-selected')?.addEventListener('click', () => {
+  document.getElementById('btn-group-selected')?.addEventListener('click', async () => {
     if (state.selectedIndices.size === 0) {
       alert("Select some drones to group.");
       return;
     }
-    const parentName = prompt("Enter new Parent Group name:");
+    const parentName = await customPrompt("Enter new Parent Group name:");
     if (!parentName) return;
 
     // Validate parent name to not contain slashes
@@ -68,9 +68,9 @@ export function setupGroupPanel(state) {
         nameSpan.textContent = (depth > 0 ? '↳ ' : '') + name;
         nameSpan.title = "Double click to rename group";
         
-        nameSpan.ondblclick = (e) => {
+        nameSpan.ondblclick = async (e) => {
           e.stopPropagation();
-          const newName = prompt(`Rename group "${name}":`, name);
+          const newName = await customPrompt(`Rename group "${name}":`, name);
           if (newName !== null && newName.trim() !== '') {
             const cleanName = newName.trim().replace(/\//g, '_'); // prevent nesting issues
             const oldGroup = g;
@@ -169,6 +169,158 @@ export function setupGroupPanel(state) {
 
         groupList.appendChild(div);
       });
+    }
+  });
+}
+
+function customPrompt(title, defaultValue = "") {
+  return new Promise((resolve) => {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0, 0, 0, 0.6)';
+    overlay.style.backdropFilter = 'blur(5px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '99999';
+    overlay.style.transition = 'opacity 0.2s ease';
+    overlay.style.opacity = '0';
+
+    // Prevent any pointer events from leaking into the 3D scene / OrbitControls
+    overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+    overlay.addEventListener('pointerup', (e) => e.stopPropagation());
+    overlay.addEventListener('mouseup', (e) => e.stopPropagation());
+    overlay.addEventListener('click', (e) => e.stopPropagation());
+
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #333';
+    modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '320px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '15px';
+
+    // Title
+    const titleEl = document.createElement('div');
+    titleEl.textContent = title;
+    titleEl.style.color = '#fff';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '14px';
+    modal.appendChild(titleEl);
+
+    // Input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultValue;
+    input.style.width = '100%';
+    input.style.background = '#222';
+    input.style.border = '1px solid #555';
+    input.style.color = '#fff';
+    input.style.padding = '8px';
+    input.style.borderRadius = '4px';
+    input.style.boxSizing = 'border-box';
+    input.style.outline = 'none';
+    input.style.userSelect = 'text';
+    input.style.webkitUserSelect = 'text';
+    input.autocomplete = 'off';
+
+    // Prevent events inside the input field from triggering hotkeys or canvas selection
+    input.addEventListener('pointerdown', (e) => e.stopPropagation());
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        submit();
+      } else if (e.key === 'Escape') {
+        cleanup(null);
+      }
+    });
+    input.addEventListener('keyup', (e) => e.stopPropagation());
+    input.addEventListener('keypress', (e) => e.stopPropagation());
+
+    modal.appendChild(input);
+
+    // Buttons Container
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+    
+    cancelBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    cancelBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    cancelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cleanup(null);
+    });
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'OK';
+    okBtn.style.background = '#3a86ff';
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#fff';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+    
+    const submit = () => {
+      const val = input.value.trim();
+      cleanup(val);
+    };
+
+    okBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+    okBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    okBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      submit();
+    });
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Focus immediately
+    input.focus();
+    input.select();
+
+    // Fade in and focus on the input field again to make sure
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      input.focus();
+      input.select();
+    }, 50);
+
+    function cleanup(value) {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          document.body.removeChild(overlay);
+        }
+        resolve(value);
+      }, 200);
     }
   });
 }

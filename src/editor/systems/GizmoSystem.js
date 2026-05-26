@@ -58,6 +58,43 @@ export class GizmoSystem {
     this.proxyMeshes = new Map(); // instanceId -> Mesh
 
     this.state.subscribe(() => this.onStateChange());
+
+    // Ctrl key tracking for hiding the gizmo during selection
+    this.isCtrlPressed = false;
+    this.handleKeyDown = (e) => {
+      if (e.key === 'Control') {
+        this.isCtrlPressed = true;
+        this.updateGizmoVisibility();
+      }
+    };
+    this.handleKeyUp = (e) => {
+      if (e.key === 'Control') {
+        this.isCtrlPressed = false;
+        this.updateGizmoVisibility();
+      }
+    };
+    this.handleBlur = () => {
+      this.isCtrlPressed = false;
+      this.updateGizmoVisibility();
+    };
+
+    window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('keyup', this.handleKeyUp);
+    window.addEventListener('blur', this.handleBlur);
+
+    this.handlePointer = (e) => {
+      const ctrl = e.ctrlKey;
+      if (ctrl !== this.isCtrlPressed) {
+        this.isCtrlPressed = ctrl;
+        this.updateGizmoVisibility();
+      }
+    };
+    window.addEventListener('pointerdown', this.handlePointer, true);
+    window.addEventListener('pointerup', this.handlePointer, true);
+    window.addEventListener('pointermove', this.handlePointer, true);
+
+    // Hide gizmo initially since no object is attached yet
+    this.updateGizmoVisibility();
   }
 
   isHovering() {
@@ -67,6 +104,17 @@ export class GizmoSystem {
   setMode(mode) {
     // mode: 'translate', 'rotate', 'scale'
     this.transformControl.setMode(mode);
+  }
+
+  updateGizmoVisibility() {
+    const isVisible = !this.isCtrlPressed && !!this.transformControl.object;
+    this.transformControl.visible = isVisible;
+    this.transformControl.enabled = isVisible;
+
+    const helper = this.transformControl.getHelper ? this.transformControl.getHelper() : null;
+    if (helper) {
+      helper.visible = isVisible;
+    }
   }
 
   onStateChange() {
@@ -91,6 +139,7 @@ export class GizmoSystem {
       this.proxyMeshes.set('center', mesh);
       
       this.transformControl.attach(this.proxyGroup);
+      this.updateGizmoVisibility();
       return;
     }
 
@@ -100,6 +149,7 @@ export class GizmoSystem {
     if (selected.length === 0) {
       this.transformControl.detach();
       this.clearProxies();
+      this.updateGizmoVisibility();
       return;
     }
 
@@ -142,6 +192,7 @@ export class GizmoSystem {
       }
       
       this.transformControl.attach(this.proxyGroup);
+      this.updateGizmoVisibility();
     }
   }
 
