@@ -334,17 +334,29 @@ export class TimelineEditor {
 
   async fetchFileList() {
     try {
-      const res = await fetch('/api/list-sequences');
-      const data = await res.json();
-      if (data.success) {
+      if (window.electronAPI) {
+        const files = await window.electronAPI.listSequences();
         this.fileSelect.innerHTML = '';
-        data.files.forEach(f => {
+        files.forEach(f => {
           const opt = document.createElement('option');
           opt.value = f;
           opt.textContent = f;
           if (f === this.filename) opt.selected = true;
           this.fileSelect.appendChild(opt);
         });
+      } else {
+        const res = await fetch('/api/list-sequences');
+        const data = await res.json();
+        if (data.success) {
+          this.fileSelect.innerHTML = '';
+          data.files.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = f;
+            if (f === this.filename) opt.selected = true;
+            this.fileSelect.appendChild(opt);
+          });
+        }
       }
     } catch (e) {
       console.warn("Could not fetch file list. Fallback to demoShow.json");
@@ -736,6 +748,18 @@ export class TimelineEditor {
     });
 
     const content = JSON.stringify(cleanSeqs, null, 2);
+
+    // If running in Electron, save directly to disk
+    if (window.electronAPI) {
+      try {
+        await window.electronAPI.saveSequence(this.filename, content);
+        alert(`Đã lưu kịch bản vào file ${this.filename} thành công!`);
+        this.fetchFileList();
+      } catch (err) {
+        alert('Lỗi khi lưu file qua Electron: ' + err.message);
+      }
+      return;
+    }
 
     // Cách 1: Copy vào Clipboard
     try {
