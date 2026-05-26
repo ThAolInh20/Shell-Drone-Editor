@@ -3,6 +3,7 @@ import * as THREE from 'three';
 export class FormationState {
   constructor() {
     this.name = "NewFormation";
+    this.currentFilePath = null;
     this.positions = []; // Array of THREE.Vector3
     this.colors = []; // Array of THREE.Color
     this.particleGroups = []; // Array of strings matching positions index

@@ -268,8 +268,109 @@ export function renderFormationShapePanel() {
 }
 
 export function setupFormationShapePanel(state, director) {
+  // Helper to load parsed formation JSON data safely
+  function loadFormationFromData(parsed, filename, filePath = null) {
+    let droneData = [];
+    let importedConfig = null;
+    let importedRefConfig = null;
+
+    if (Array.isArray(parsed)) {
+      droneData = parsed;
+    } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
+      droneData = parsed.drones;
+      if (parsed.ghostModelConfig) {
+        importedConfig = parsed.ghostModelConfig;
+      }
+      if (parsed.referenceImageConfig) {
+        importedRefConfig = parsed.referenceImageConfig;
+      }
+    } else {
+      alert("JSON không đúng định dạng Drone Formation!");
+      return false;
+    }
+
+    const positions = [];
+    const colors = [];
+    const particleGroups = [];
+    for (const item of droneData) {
+      if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+        const px = item.x || 0;
+        const py = item.y || 0;
+        const pz = item.z || 0;
+        positions.push(new THREE.Vector3(px, py, pz));
+        if (item.color !== undefined) {
+          colors.push(new THREE.Color(item.color));
+        } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+          colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+        } else {
+          colors.push(new THREE.Color(0xffffff));
+        }
+        const groupName = item.group || item.particleGroup || 'Imported';
+        particleGroups.push(groupName);
+      }
+    }
+
+    if (positions.length > 0) {
+      state.positions = positions;
+      state.colors = colors;
+      state.particleGroups = particleGroups;
+      state.selectedIndices.clear();
+      state.currentFilePath = filePath;
+      state.name = filename.replace('.json', '');
+
+      if (importedConfig) {
+        if (importedConfig.position) {
+          state.ghostModelConfig.position.set(
+            importedConfig.position.x !== undefined ? importedConfig.position.x : 0,
+            importedConfig.position.y !== undefined ? importedConfig.position.y : 20,
+            importedConfig.position.z !== undefined ? importedConfig.position.z : 0
+          );
+        }
+        if (importedConfig.scale !== undefined) state.ghostModelConfig.scale = importedConfig.scale;
+        if (importedConfig.rotationY !== undefined) state.ghostModelConfig.rotationY = importedConfig.rotationY;
+        if (importedConfig.opacity !== undefined) state.ghostModelConfig.opacity = importedConfig.opacity;
+        if (importedConfig.wireframe !== undefined) state.ghostModelConfig.wireframe = importedConfig.wireframe;
+        if (director && typeof director.updateGhostModelTransform === 'function') {
+          director.updateGhostModelTransform();
+        }
+      }
+
+      if (importedRefConfig) {
+        if (importedRefConfig.position) {
+          state.referenceImageConfig.position.set(
+            importedRefConfig.position.x !== undefined ? importedRefConfig.position.x : 0,
+            importedRefConfig.position.y !== undefined ? importedRefConfig.position.y : 20,
+            importedRefConfig.position.z !== undefined ? importedRefConfig.position.z : 0
+          );
+        }
+        if (importedRefConfig.scale !== undefined) state.referenceImageConfig.scale = importedRefConfig.scale;
+        if (importedRefConfig.rotationY !== undefined) state.referenceImageConfig.rotationY = importedRefConfig.rotationY;
+        if (importedRefConfig.opacity !== undefined) state.referenceImageConfig.opacity = importedRefConfig.opacity;
+        if (importedRefConfig.orientation !== undefined) state.referenceImageConfig.orientation = importedRefConfig.orientation;
+        if (director && typeof director.updateReferenceImageTransform === 'function') {
+          director.updateReferenceImageTransform();
+        }
+      }
+
+      if (parsed.bezierControlPoints && Array.isArray(parsed.bezierControlPoints)) {
+        state.bezierControlPoints = parsed.bezierControlPoints.map(p => new THREE.Vector3(
+          p.x !== undefined ? p.x : 0,
+          p.y !== undefined ? p.y : 20,
+          p.z !== undefined ? p.z : 0
+        ));
+      }
+
+      state.saveStateToHistory();
+      state.notify();
+      return true;
+    } else {
+      alert("Không tìm thấy dữ liệu tọa độ drone hợp lệ trong JSON!");
+      return false;
+    }
+  }
+
   // Export JSON
-  document.getElementById('btn-export-json').addEventListener('click', () => {
+  document.getElementById('btn-export-json').addEventListener('click', async () => {
     const drones = [];
     for (let i = 0; i < state.positions.length; i++) {
       const pos = state.positions[i];
@@ -290,158 +391,84 @@ export function setupFormationShapePanel(state, director) {
       });
     }
 
-    const exportObject = drones;
+    const exportObject = {
+      drones,
+      ghostModelConfig: {
+        position: { x: state.ghostModelConfig.position.x, y: state.ghostModelConfig.position.y, z: state.ghostModelConfig.position.z },
+        scale: state.ghostModelConfig.scale,
+        rotationY: state.ghostModelConfig.rotationY,
+        opacity: state.ghostModelConfig.opacity,
+        wireframe: state.ghostModelConfig.wireframe
+      },
+      referenceImageConfig: {
+        url: state.referenceImageConfig.url,
+        fileName: state.referenceImageConfig.fileName,
+        position: { x: state.referenceImageConfig.position.x, y: state.referenceImageConfig.position.y, z: state.referenceImageConfig.position.z },
+        scale: state.referenceImageConfig.scale,
+        rotationY: state.referenceImageConfig.rotationY,
+        opacity: state.referenceImageConfig.opacity,
+        orientation: state.referenceImageConfig.orientation
+      },
+      bezierControlPoints: state.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z }))
+    };
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", state.name + ".json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    const content = JSON.stringify(exportObject, null, 2);
+
+    if (window.electronAPI) {
+      try {
+        const res = await window.electronAPI.saveFileDialog(content, `${state.name}.json`);
+        if (res) {
+          state.currentFilePath = res.filePath;
+          state.name = res.filename.replace('.json', '');
+          alert(`Đã lưu tệp static formation thành công: ${res.filename}`);
+        }
+      } catch (err) {
+        alert("Lỗi khi lưu file qua Electron: " + err.message);
+      }
+    } else {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(content);
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", state.name + ".json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
   });
 
   // Import JSON Trigger
-  document.getElementById('btn-import-json-trigger').addEventListener('click', () => {
-    document.getElementById('ui-formation-json-file').click();
+  document.getElementById('btn-import-json-trigger').addEventListener('click', async () => {
+    if (window.electronAPI) {
+      try {
+        const fileData = await window.electronAPI.openFileDialog();
+        if (fileData) {
+          const { filePath, content, filename } = fileData;
+          const parsed = JSON.parse(content);
+          if (loadFormationFromData(parsed, filename, filePath)) {
+            alert(`Import thành công từ file: ${filename}`);
+          }
+        }
+      } catch (err) {
+        alert("Lỗi khi đọc file qua Electron: " + err.message);
+      }
+    } else {
+      document.getElementById('ui-formation-json-file').click();
+    }
   });
 
-  // Handle file read
+  // Handle file read (Browser fallback)
   document.getElementById('ui-formation-json-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Suggest name based on filename
-    state.name = file.name.replace('.json', '');
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
-        let droneData = [];
-        let importedConfig = null;
-        let importedRefConfig = null;
-
-        // Check if parsed content is old format (direct array) or new format (wrapper object)
-        if (Array.isArray(parsed)) {
-          droneData = parsed;
-        } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
-          droneData = parsed.drones;
-          if (parsed.ghostModelConfig) {
-            importedConfig = parsed.ghostModelConfig;
-          }
-          if (parsed.referenceImageConfig) {
-            importedRefConfig = parsed.referenceImageConfig;
-          }
-        } else {
-          alert("JSON không đúng định dạng Drone Formation!");
-          return;
-        }
-
-        const positions = [];
-        const colors = [];
-        const particleGroups = [];
-        for (const item of droneData) {
-          if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
-            const px = item.x || 0;
-            const py = item.y || 0;
-            const pz = item.z || 0;
-            positions.push(new THREE.Vector3(px, py, pz));
-            if (item.color !== undefined) {
-              colors.push(new THREE.Color(item.color));
-            } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
-              colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
-            } else {
-              colors.push(new THREE.Color(0xffffff));
-            }
-
-            // Restore original group name, fallback to 'Imported'
-            const groupName = item.group || item.particleGroup || 'Imported';
-            particleGroups.push(groupName);
-          }
-        }
-
-        if (positions.length > 0) {
-          state.positions = positions;
-          state.colors = colors;
-          state.particleGroups = particleGroups; // Keep the original groups intact
-          state.selectedIndices.clear();
-
-          // Restore hologram configurations if present in new JSON format
-          if (importedConfig) {
-            if (importedConfig.position) {
-              state.ghostModelConfig.position.set(
-                importedConfig.position.x !== undefined ? importedConfig.position.x : 0,
-                importedConfig.position.y !== undefined ? importedConfig.position.y : 20,
-                importedConfig.position.z !== undefined ? importedConfig.position.z : 0
-              );
-            }
-            if (importedConfig.scale !== undefined) {
-              state.ghostModelConfig.scale = importedConfig.scale;
-            }
-            if (importedConfig.rotationY !== undefined) {
-              state.ghostModelConfig.rotationY = importedConfig.rotationY;
-            }
-            if (importedConfig.opacity !== undefined) {
-              state.ghostModelConfig.opacity = importedConfig.opacity;
-            }
-            if (importedConfig.wireframe !== undefined) {
-              state.ghostModelConfig.wireframe = importedConfig.wireframe;
-            }
-
-            // Immediately update the visual hologram transform in active 3D view
-            if (director && typeof director.updateGhostModelTransform === 'function') {
-              director.updateGhostModelTransform();
-            }
-          }
-
-          // Restore reference image configurations if present in new JSON format
-          if (importedRefConfig) {
-            if (importedRefConfig.position) {
-              state.referenceImageConfig.position.set(
-                importedRefConfig.position.x !== undefined ? importedRefConfig.position.x : 0,
-                importedRefConfig.position.y !== undefined ? importedRefConfig.position.y : 20,
-                importedRefConfig.position.z !== undefined ? importedRefConfig.position.z : 0
-              );
-            }
-            if (importedRefConfig.scale !== undefined) {
-              state.referenceImageConfig.scale = importedRefConfig.scale;
-            }
-            if (importedRefConfig.rotationY !== undefined) {
-              state.referenceImageConfig.rotationY = importedRefConfig.rotationY;
-            }
-            if (importedRefConfig.opacity !== undefined) {
-              state.referenceImageConfig.opacity = importedRefConfig.opacity;
-            }
-            if (importedRefConfig.orientation !== undefined) {
-              state.referenceImageConfig.orientation = importedRefConfig.orientation;
-            }
-
-            // Immediately update visual reference image transform
-            if (director && typeof director.updateReferenceImageTransform === 'function') {
-              director.updateReferenceImageTransform();
-            }
-          }
-
-          // Restore Bezier control points if present in JSON
-          if (parsed.bezierControlPoints && Array.isArray(parsed.bezierControlPoints)) {
-            state.bezierControlPoints = parsed.bezierControlPoints.map(p => new THREE.Vector3(
-              p.x !== undefined ? p.x : 0,
-              p.y !== undefined ? p.y : 20,
-              p.z !== undefined ? p.z : 0
-            ));
-          }
-
-          state.saveStateToHistory();
-          state.notify();
-        } else {
-          alert("Không tìm thấy dữ liệu tọa độ drone hợp lệ trong JSON!");
-        }
+        loadFormationFromData(parsed, file.name);
       } catch (err) {
         alert("Lỗi phân tích cú pháp file JSON!");
-        console.error("Shape Import Error:", err);
       }
-      // Reset input
       e.target.value = '';
     };
     reader.readAsText(file);

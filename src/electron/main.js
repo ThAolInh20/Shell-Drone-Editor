@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -93,6 +93,55 @@ ipcMain.handle('save-sequence', async (event, { filename, content }) => {
     return { success: true, path: filePath };
   } catch (err) {
     console.error('Error saving sequence:', err);
+    throw err;
+  }
+});
+
+// IPC Handlers for native OS Dialogs (Notepad-style Direct Save)
+ipcMain.handle('open-file-dialog', async (event) => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'JSON Files', extensions: ['json'] }]
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      const content = fs.readFileSync(filePath, 'utf8');
+      const filename = path.basename(filePath);
+      return { filePath, content, filename };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error opening file dialog:', err);
+    throw err;
+  }
+});
+
+ipcMain.handle('save-file-dialog', async (event, { content, defaultName }) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: defaultName || 'untitled.json',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }]
+    });
+    if (!result.canceled && result.filePath) {
+      const filePath = result.filePath;
+      fs.writeFileSync(filePath, content, 'utf8');
+      const filename = path.basename(filePath);
+      return { filePath, filename };
+    }
+    return null;
+  } catch (err) {
+    console.error('Error saving file dialog:', err);
+    throw err;
+  }
+});
+
+ipcMain.handle('save-file-absolute', async (event, { filePath, content }) => {
+  try {
+    fs.writeFileSync(filePath, content, 'utf8');
+    return { success: true };
+  } catch (err) {
+    console.error('Error writing absolute file path:', err);
     throw err;
   }
 });
