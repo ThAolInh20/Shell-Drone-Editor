@@ -56,23 +56,27 @@ export class DroneShowSequencer {
                     currentTime = step.holdTime;
                 } else {
                     const prevStep = this.steps[i - 1];
-                    let maxDist = 0;
-                    for (let j = 0; j < Math.min(step.positions.length, prevStep.positions.length); j++) {
-                        const p1 = prevStep.positions[j];
-                        const p2 = step.positions[j];
-                        if (p1 && p2) {
-                            const dx = p1.x - p2.x;
-                            const dy = p1.y - p2.y;
-                            const dz = p1.z - p2.z;
-                            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                            if (dist > maxDist) maxDist = dist;
+
+                    if (step.transitionTime === undefined) {
+                        let maxDist = 0;
+                        for (let j = 0; j < Math.min(step.positions.length, prevStep.positions.length); j++) {
+                            const p1 = prevStep.positions[j];
+                            const p2 = step.positions[j];
+                            if (p1 && p2) {
+                                const dx = p1.x - p2.x;
+                                const dy = p1.y - p2.y;
+                                const dz = p1.z - p2.z;
+                                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                                if (dist > maxDist) maxDist = dist;
+                            }
                         }
+
+                        let flightTime = (maxDist / SPEED) * 1000;
+                        if (flightTime < 1000) flightTime = 1000; // minimum 1s flight time
+                        step.transitionTime = Math.round(flightTime);
                     }
 
-                    let flightTime = (maxDist / SPEED) * 1000;
-                    if (flightTime < 1000) flightTime = 1000; // minimum 1s flight time
-
-                    step.time = prevStep.time + prevStep.holdTime + flightTime;
+                    step.time = prevStep.time + prevStep.holdTime + (step.transitionTime || 1000);
                     currentTime = step.time + step.holdTime;
                 }
             }

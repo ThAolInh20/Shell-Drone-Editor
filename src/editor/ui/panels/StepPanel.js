@@ -6,46 +6,50 @@ export function renderStepPanel() {
         <div class="input-group">
           <label>Mode</label>
           <select id="ui-step-mode" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="transform">🔄 Transform</option>
+            <option value="transform">Transform</option>
             <option value="move">➡ Move Group</option>
           </select>
         </div>
         <div class="input-group" style="margin-top: 10px;">
           <label>Transition Effect</label>
           <select id="ui-step-transition" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">✨ Normal</option>
-            <option value="wave">✨ Wave</option>
-            <option value="swing">✨ Swing</option>
-            <option value="pulse">✨ Pulse</option>
-            <option value="strobe">✨ Strobe</option>
-            <option value="shimmer">✨ Shimmer</option>
+            <option value="none">Normal</option>
+            <option value="wave">Wave</option>
+            <option value="swing">Swing</option>
+            <option value="pulse">Pulse</option>
+            <option value="strobe">Strobe</option>
+            <option value="shimmer">Shimmer</option>
           </select>
         </div>
         <div class="input-group" style="margin-top: 10px;">
           <label>Hold Time (ms)</label>
           <input type="number" id="ui-step-hold-time" step="100" style="width: 120px;" />
         </div>
+        <div class="input-group" style="margin-top: 10px;" id="ui-step-transition-time-container">
+          <label>Transition Time (ms)</label>
+          <input type="number" id="ui-step-transition-time" step="100" style="width: 120px;" />
+        </div>
         <div class="input-group" style="margin-top: 10px;">
           <label>Hold Move Effect</label>
           <select id="ui-step-hold-move-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">🌟 Normal</option>
-            <option value="wave">🌟 Wave (Sóng nhấp nhô)</option>
-            <option value="swing">🌟 Swing (Đung đưa)</option>
-            <option value="pulse">🌟 Pulse (Phập phồng)</option>
-            <option value="orbit">💫 Orbit (Xoay quanh tâm)</option>
-            <option value="spiral">🌀 Spiral (Xoáy ốc quanh tâm)</option>
-            <option value="expand">🛸 Expand (Nở hoa từ tâm)</option>
+            <option value="none">Normal</option>
+            <option value="wave">Wave (Sóng nhấp nhô)</option>
+            <option value="swing">Swing (Đung đưa)</option>
+            <option value="pulse">Pulse (Phập phồng)</option>
+            <option value="orbit">Orbit (Xoay quanh tâm)</option>
+            <option value="spiral">Spiral (Xoáy ốc quanh tâm)</option>
+            <option value="expand">Expand (Nở hoa từ tâm)</option>
           </select>
         </div>
         <div class="input-group" style="margin-top: 10px;">
           <label>Hold Light Effect</label>
           <select id="ui-step-hold-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">💡 Solid (Không đổi)</option>
-            <option value="strobe">⚡ Strobe (Chớp tắt)</option>
-            <option value="shimmer">✨ Shimmer (Lấp lánh)</option>
-            <option value="pulse-color">💥 Pulse Color (Mạch đập)</option>
-            <option value="rainbow">🌈 Rainbow (Cầu vồng)</option>
-            <option value="wave-light">🌊 Wave Light (Sóng sáng)</option>
+            <option value="none">Solid (Không đổi)</option>
+            <option value="strobe">Strobe (Chớp tắt)</option>
+            <option value="shimmer">Shimmer (Lấp lánh)</option>
+            <option value="pulse-color">Pulse Color (Mạch đập)</option>
+            <option value="rainbow">Rainbow (Cầu vồng)</option>
+            <option value="wave-light">Wave Light (Sóng sáng)</option>
           </select>
         </div>
       </div>
@@ -68,6 +72,16 @@ export function setupStepPanel(state) {
     const val = parseInt(e.target.value);
     if (!isNaN(val) && val >= 0) {
       state.steps[state.currentStepIndex].holdTime = val;
+      state.saveCurrentStep();
+      state.recalculateTimes();
+      state.notify();
+    }
+  });
+
+  document.getElementById('ui-step-transition-time')?.addEventListener('change', (e) => {
+    const val = parseInt(e.target.value);
+    if (!isNaN(val) && val >= 0) {
+      state.steps[state.currentStepIndex].transitionTime = val;
       state.saveCurrentStep();
       state.recalculateTimes();
       state.notify();
@@ -98,6 +112,19 @@ export function setupStepPanel(state) {
       if (stepHoldTimeEl && document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
       if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = currentStep.holdMoveEffect || 'none';
       if (stepHoldLightEffEl && document.activeElement !== stepHoldLightEffEl) stepHoldLightEffEl.value = currentStep.holdLightEffect || 'none';
+
+      const stepTransTimeEl = document.getElementById('ui-step-transition-time');
+      const stepTransTimeContainer = document.getElementById('ui-step-transition-time-container');
+      if (stepTransTimeContainer) {
+        if (state.currentStepIndex === 0) {
+          stepTransTimeContainer.style.display = 'none';
+        } else {
+          stepTransTimeContainer.style.display = '';
+          if (stepTransTimeEl && document.activeElement !== stepTransTimeEl) {
+            stepTransTimeEl.value = currentStep.transitionTime !== undefined ? currentStep.transitionTime : 2000;
+          }
+        }
+      }
     }
   });
 }
