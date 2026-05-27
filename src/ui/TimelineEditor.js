@@ -122,7 +122,7 @@ export class TimelineEditor {
 
     const importBtn = document.createElement('button');
     importBtn.textContent = 'Import Sequence';
-    importBtn.style.background = '#1976d2'; F
+    importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
     importBtn.addEventListener('click', () => {
       if (window.electronAPI) {

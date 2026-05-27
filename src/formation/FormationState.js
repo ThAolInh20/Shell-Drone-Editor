@@ -24,6 +24,7 @@ export class FormationState {
     this.clipboard = null;
 
     this.isClickToPlaceActive = false;
+    this.guideMode = 'none'; // 'none', 'hologram', 'reference'
     this.ghostModelConfig = {
       position: new THREE.Vector3(0, 20, 0),
       scale: 1.0,
@@ -80,6 +81,7 @@ export class FormationState {
       showPivotLines: this.showPivotLines,
       isCenterSelected: this.isCenterSelected,
       isClickToPlaceActive: this.isClickToPlaceActive,
+      guideMode: this.guideMode,
       ghostModelConfig: {
         position: { x: this.ghostModelConfig.position.x, y: this.ghostModelConfig.position.y, z: this.ghostModelConfig.position.z },
         scale: this.ghostModelConfig.scale,
@@ -135,6 +137,7 @@ export class FormationState {
     this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
     
     this.isClickToPlaceActive = snapshot.isClickToPlaceActive !== undefined ? snapshot.isClickToPlaceActive : false;
+    this.guideMode = snapshot.guideMode !== undefined ? snapshot.guideMode : 'none';
     if (snapshot.ghostModelConfig) {
       this.ghostModelConfig = {
         position: new THREE.Vector3(snapshot.ghostModelConfig.position.x, snapshot.ghostModelConfig.position.y, snapshot.ghostModelConfig.position.z),

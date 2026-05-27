@@ -94,14 +94,25 @@ export function renderFormationShapePanel() {
     </div>
 
     <div class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
-      <h3>Hologram Guide (Mô hình ảo ảnh 3D)</h3>
-      
+      <h3>Hệ thống Dẫn hướng (Guide System)</h3>
+      <div class="input-group">
+        <label>Chế độ dẫn hướng</label>
+        <select id="ui-guide-mode" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;">
+          <option value="none">Không sử dụng</option>
+          <option value="hologram">Hologram 3D (Model)</option>
+          <option value="reference">Ảnh tham chiếu (2D)</option>
+        </select>
+      </div>
       <!-- Click-to-Place Toggle -->
-      <div style="margin-bottom: 15px;">
+      <div id="ui-click-to-place-container" style="display: none; margin-top: 15px;">
         <button class="btn" id="btn-toggle-click-to-place" style="width: 100%; font-weight: bold; background: #111; color: #00ffff; border: 2px solid #00ffff; box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); transition: all 0.3s ease;">
           🎨 Bút vẽ Drone: TẮT
         </button>
       </div>
+    </div>
+
+    <div id="ui-hologram-section" class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px; display: none;">
+      <h3>Hologram Guide (Mô hình ảo ảnh 3D)</h3>
 
       <!-- File Import -->
       <div class="input-group">
@@ -181,7 +192,7 @@ export function renderFormationShapePanel() {
       <button class="btn" id="btn-clear-ghost" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá Hologram</button>
     </div>
 
-    <div class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+    <div id="ui-ref-image-section" class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px; display: none;">
       <h3>Ảnh tham chiếu 2D (Reference Image)</h3>
       
       <!-- File Import -->
@@ -352,6 +363,14 @@ export function setupFormationShapePanel(state, director) {
         }
       }
 
+      if (parsed.guideMode) {
+        state.guideMode = parsed.guideMode;
+      } else {
+        if (importedConfig) state.guideMode = 'hologram';
+        else if (importedRefConfig && importedRefConfig.url) state.guideMode = 'reference';
+        else state.guideMode = 'none';
+      }
+
       if (parsed.bezierControlPoints && Array.isArray(parsed.bezierControlPoints)) {
         state.bezierControlPoints = parsed.bezierControlPoints.map(p => new THREE.Vector3(
           p.x !== undefined ? p.x : 0,
@@ -393,6 +412,7 @@ export function setupFormationShapePanel(state, director) {
 
     const exportObject = {
       drones,
+      guideMode: state.guideMode,
       ghostModelConfig: {
         position: { x: state.ghostModelConfig.position.x, y: state.ghostModelConfig.position.y, z: state.ghostModelConfig.position.z },
         scale: state.ghostModelConfig.scale,
@@ -718,16 +738,47 @@ export function setupFormationShapePanel(state, director) {
     }
   }
 
+  function syncGuideModeUI() {
+    const dropdown = document.getElementById('ui-guide-mode');
+    if (dropdown) {
+      dropdown.value = state.guideMode;
+    }
+
+    const holoSec = document.getElementById('ui-hologram-section');
+    if (holoSec) {
+      holoSec.style.display = (state.guideMode === 'hologram') ? 'block' : 'none';
+    }
+
+    const refSec = document.getElementById('ui-ref-image-section');
+    if (refSec) {
+      refSec.style.display = (state.guideMode === 'reference') ? 'block' : 'none';
+    }
+
+    const snapContainer = document.getElementById('ui-click-to-place-container');
+    if (snapContainer) {
+      snapContainer.style.display = (state.guideMode !== 'none') ? 'block' : 'none';
+    }
+  }
+
   // Bind initial UI control values
   syncGhostModelUIFromState();
   syncRefImageUIFromState();
   syncBezierUIFromState();
+  syncGuideModeUI();
 
   // Subscribe to state notifications to dynamically sync sliders on Undo/Redo or JSON import
   state.subscribe(() => {
     syncGhostModelUIFromState();
     syncRefImageUIFromState();
     syncBezierUIFromState();
+    syncGuideModeUI();
+  });
+
+  document.getElementById('ui-guide-mode')?.addEventListener('change', (e) => {
+    state.guideMode = e.target.value;
+    syncGuideModeUI();
+    state.saveStateToHistory();
+    state.notify();
   });
 
   // Bezier Edit Toggler & Slider Listeners
