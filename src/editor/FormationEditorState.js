@@ -99,6 +99,7 @@ export class FormationEditorState {
       transitionMode: 'transform',
       transitionEffect: 'none',
       holdTime: 0,
+      transitionTime: 2000, // Default to 2s transition duration
       holdMoveEffect: 'none',
       holdLightEffect: 'none',
       center: this.center.clone()
@@ -128,7 +129,6 @@ export class FormationEditorState {
   }
 
   recalculateTimes() {
-    const SPEED = 30.0; // Faster drone speed (m/s) for quick preview in Editor
     let currentTime = 0;
 
     for (let i = 0; i < this.steps.length; i++) {
@@ -139,21 +139,24 @@ export class FormationEditorState {
       } else {
         const prevStep = this.steps[i - 1];
 
-        // Calculate max distance to find transition duration
-        let maxDist = 0;
-        for (let j = 0; j < Math.min(step.positions.length, prevStep.positions.length); j++) {
-          const p1 = prevStep.positions[j];
-          const p2 = step.positions[j];
-          if (p1 && p2) {
-            const d = p1.distanceTo(p2);
-            if (d > maxDist) maxDist = d;
+        // If step doesn't have transitionTime yet, calculate a default based on distance
+        if (step.transitionTime === undefined) {
+          const SPEED = 30.0; // Faster drone speed (m/s) for legacy calculation
+          let maxDist = 0;
+          for (let j = 0; j < Math.min(step.positions.length, prevStep.positions.length); j++) {
+            const p1 = prevStep.positions[j];
+            const p2 = step.positions[j];
+            if (p1 && p2) {
+              const d = p1.distanceTo(p2);
+              if (d > maxDist) maxDist = d;
+            }
           }
+          let flightTime = (maxDist / SPEED) * 1000;
+          if (flightTime < 1000) flightTime = 1000; // minimum 1s flight time
+          step.transitionTime = Math.round(flightTime);
         }
 
-        let flightTime = (maxDist / SPEED) * 1000;
-        if (flightTime < 1000) flightTime = 1000; // minimum 1s flight time
-
-        step.time = prevStep.time + (prevStep.holdTime || 0) + flightTime;
+        step.time = prevStep.time + (prevStep.holdTime || 0) + (step.transitionTime || 1000);
         currentTime = step.time + (step.holdTime || 0);
       }
     }
@@ -242,6 +245,7 @@ export class FormationEditorState {
           transitionMode: s.transitionMode || 'transform',
           transitionEffect: s.transitionEffect || s.transitionLight || 'none',
           holdTime: s.holdTime || 0,
+          transitionTime: s.transitionTime,
           holdMoveEffect: moveEff || 'none',
           holdLightEffect: lightEff || 'none',
           center: s.center ? new THREE.Vector3(s.center.x, s.center.y, s.center.z) : new THREE.Vector3(0, 20, 0)
@@ -259,6 +263,7 @@ export class FormationEditorState {
         transitionMode: 'transform',
         transitionEffect: 'none',
         holdTime: 0,
+        transitionTime: 2000,
         holdMoveEffect: 'none',
         holdLightEffect: 'none',
         center: data.center ? new THREE.Vector3(data.center.x, data.center.y, data.center.z) : new THREE.Vector3(0, 20, 0)
@@ -298,6 +303,7 @@ export class FormationEditorState {
         transitionMode: step.transitionMode,
         transitionEffect: step.transitionEffect,
         holdTime: step.holdTime || 0,
+        transitionTime: step.transitionTime || 0,
         holdMoveEffect: step.holdMoveEffect || 'none',
         holdLightEffect: step.holdLightEffect || 'none',
         holdEffect: step.holdMoveEffect || 'none', // For backward compatibility
