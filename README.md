@@ -17,8 +17,26 @@ This project is 90% developed using Antigravity, with BMAD contributing to accel
 ## Repository Structure and Deployment Status
 
 The repository follows this branching strategy:
-
-- **Development Source Code:** The entire source code, commit history, and local setup instructions are hosted on the `dev` branch. Please switch to the [`dev`](https://github.com/ThAolInh20/Shell-Drone_3d/tree/dev) branch to view the detailed source code and contribute to the project.
-  
-- **Live Demo (Deployment):** The project is fully deployed. You can view the live demo and experience it directly in your browser at:
+- **Desktop Application (Windows):** To run the firework and drone show editor directly as a Desktop application without setting up a code environment:
+  **[https://github.com/ThAolInh20/Shell-Drone_3d/releases](https://github.com/ThAolInh20/Shell-Drone_3d/releases)**
+- **Web Deployment (Live Demo):** The project is fully deployed. You can view the live demo and experience it directly in your browser at:
   **[https://shell3d.netlify.app/](https://shell3d.netlify.app/)**
+- **Development Source Code:** The entire source code, commit history, and local setup instructions are hosted on the `dev` branch. Please switch to the [`dev`](https://github.com/ThAolInh20/Shell-Drone_3d/tree/dev) branch to view the detailed source code and contribute to the project.
+
+---
+
+## 📥 Download & Installation
+
+### 🚀 1. Pre-built Desktop Application (Via GitHub Releases)
+To run the firework and drone show editor directly as a Desktop application without configuring a local development environment:
+1. Navigate to the **[GitHub Releases](https://github.com/ThAolInh20/Shell-Drone_3d/releases)** page of the repository.
+2. Locate the latest release (tag) and download the appropriate installer for Windows (e.g., `ShellDroneEditor Setup 1.x.x.exe` or the standalone portable `ShellDroneEditor 1.x.x.exe`).
+3. Open the downloaded file to install or launch the application directly.
+
+### 💻 2. Cloning/Downloading Specific Versions (Via Git Tags)
+If you are a developer looking to contribute or compile the project from a specific version (tag):
+* Clone the repository specifying the desired tag name using the `--branch` option:
+  ```bash
+  git clone --branch <tag_name> https://github.com/ThAolInh20/Shell-Drone_3d.git
+  ```
+* Alternatively, visit the **[Tags](https://github.com/ThAolInh20/Shell-Drone_3d/tags)** section on GitHub, select your target version tag, and click **Download ZIP** to download the compressed source code package.
