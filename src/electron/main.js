@@ -2,10 +2,11 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import isDev from 'electron-is-dev';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const isDev = !app.isPackaged;
 
 let mainWindow = null;
 
@@ -49,6 +50,7 @@ function createWindow() {
     },
     title: 'Shell Drone Animation Editor',
     backgroundColor: '#1a1a1a',
+    icon: path.join(__dirname, '../../public/icon.ico'),
   });
 
   // Setup Application Menu with navigation links

@@ -95,7 +95,8 @@ Sau đó, truy cập vào địa chỉ local được hiển thị trên termina
 
 ## 📦 Biên dịch và Đóng gói (Production Build)
 
-Khi muốn biên dịch ứng dụng web để triển khai lên máy chủ tĩnh thông thường:
+### 🌐 A. Đóng gói cho Nền tảng Web (Vite Build)
+Khi muốn biên dịch ứng dụng web thông thường để đưa lên máy chủ hoặc host tĩnh:
 
 - **Biên dịch Dự án:**
   Tối ưu hóa mã nguồn và tạo ra thư mục tĩnh `dist` sẵn sàng cho việc hosting:
@@ -104,7 +105,27 @@ Khi muốn biên dịch ứng dụng web để triển khai lên máy chủ tĩn
   ```
 
 - **Chạy thử Bản biên dịch:**
-  Kiểm tra và xem trước phiên bản đã được biên dịch ngay tại local trước khi đưa lên máy chủ thật:
+  Kiểm tra và xem trước phiên bản đã được biên dịch ngay tại local:
   ```bash
   npm run preview
   ```
+
+---
+
+### 🛸 B. Đóng gói Ứng dụng Desktop (.EXE với Electron)
+Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Desktop chạy độc lập trên Windows (`.exe`):
+
+1. **Chạy lệnh Đóng gói:**
+   Chạy lệnh duy nhất dưới đây để tự động biên dịch mã nguồn qua Vite và đóng gói với `electron-builder`:
+   ```bash
+   npm run electron:build
+   ```
+
+2. **Kết quả đầu ra:**
+   Sau khi hoàn thành, thư mục `dist-electron/` sẽ tự động được tạo ra ở thư mục gốc với các sản phẩm:
+   *   📦 **`ShellDroneEditor 0.0.0.exe`**: Bộ cài đặt phần mềm chuyên nghiệp (NSIS Installer), cho phép tùy chọn thư mục cài đặt và tự động tạo Shortcut trên Desktop.
+   *   ⚡ **`win-unpacked/`**: Bản chạy trực tiếp không cần cài đặt, cực kỳ tiện lợi để khởi chạy và kiểm tra nhanh.
+
+> [!WARNING]
+> Thư mục `dist-electron/` chứa các tệp nhị phân có dung lượng lớn (~100MB) và đã được đưa vào cấu hình `.gitignore` để không bị đẩy lên GitHub. Tuyệt đối không thay đổi cấu hình này để tránh làm quá tải dung lượng repository.
+
