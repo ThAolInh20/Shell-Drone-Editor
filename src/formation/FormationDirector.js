@@ -182,12 +182,12 @@ export class FormationDirector {
     }
 
     // 1. If Click-to-Place Snapping is active
-    if (this.state.isClickToPlaceActive) {
+    if (this.state.isClickToPlaceActive && this.state.guideMode !== 'none') {
       const targets = [];
-      if (this.ghostMeshes.length > 0) {
+      if (this.state.guideMode === 'hologram' && this.ghostMeshes.length > 0) {
         targets.push(...this.ghostMeshes);
       }
-      if (this.refImageMesh) {
+      if (this.state.guideMode === 'reference' && this.refImageMesh) {
         targets.push(this.refImageMesh);
       }
 
@@ -435,6 +435,14 @@ export class FormationDirector {
     
     this.instancedMesh.computeBoundingSphere();
 
+    // Sync guide modes visibility
+    if (this.ghostModel) {
+      this.ghostModel.visible = (this.state.guideMode === 'hologram');
+    }
+    if (this.refImageMesh) {
+      this.refImageMesh.visible = (this.state.guideMode === 'reference');
+    }
+
     // Sync reference image if state changed (e.g., Undo/Redo)
     if (this.refImageMesh && !this.state.referenceImageConfig.url) {
       this.clearReferenceImage();
@@ -649,6 +657,7 @@ export class FormationDirector {
 
       this.ghostModel = wrapper;
       this.sceneManager.instance.add(this.ghostModel);
+      this.ghostModel.visible = (this.state.guideMode === 'hologram');
 
       this.applyHologramMaterial();
       this.updateGhostModelTransform();
@@ -825,6 +834,7 @@ export class FormationDirector {
 
         this.refImageMesh = new THREE.Mesh(geometry, material);
         this.refImageMesh.userData = { isReferenceImage: true, aspect: aspect };
+        this.refImageMesh.visible = (this.state.guideMode === 'reference');
         
         this.sceneManager.instance.add(this.refImageMesh);
         this.updateReferenceImageTransform();
