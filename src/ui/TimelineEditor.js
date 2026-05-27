@@ -19,10 +19,10 @@ export class TimelineEditor {
     this.anchorTime = 0;
     this.autoScrollEnabled = true;
     this.currentFilePath = null;
-    
+
     this.initDOM();
     this.renderTracks();
-    
+
     // Update playhead on animation frame
     this.updateLoop = this.updatePlayhead.bind(this);
     requestAnimationFrame(this.updateLoop);
@@ -43,7 +43,7 @@ export class TimelineEditor {
     this.container.style.zIndex = '1000';
     this.container.style.color = 'white';
     this.container.style.fontFamily = 'sans-serif';
-    
+
     // Block orbit controls when hovering
     this.container.addEventListener('mouseenter', () => window.dispatchEvent(new CustomEvent('timeline:hover', { detail: true })));
     this.container.addEventListener('mouseleave', () => window.dispatchEvent(new CustomEvent('timeline:hover', { detail: false })));
@@ -99,7 +99,7 @@ export class TimelineEditor {
     const playBtn = document.createElement('button');
     playBtn.textContent = 'Play/Pause (Space)';
     playBtn.addEventListener('click', () => this.togglePlay());
-    
+
     this.followBtn = document.createElement('button');
     this.followBtn.textContent = 'Follow: ON';
     this.followBtn.style.background = '#4CAF50';
@@ -109,7 +109,7 @@ export class TimelineEditor {
       this.followBtn.textContent = this.autoScrollEnabled ? 'Follow: ON' : 'Follow: OFF';
       this.followBtn.style.background = this.autoScrollEnabled ? '#4CAF50' : '#f44336';
     });
-    
+
     const addBtn = document.createElement('button');
     addBtn.textContent = '+ Add Sequence';
     addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
@@ -121,8 +121,8 @@ export class TimelineEditor {
     saveBtn.addEventListener('click', () => this.saveSequence());
 
     const importBtn = document.createElement('button');
-    importBtn.textContent = 'Import JSON';
-    importBtn.style.background = '#1976d2';
+    importBtn.textContent = 'Import Sequence';
+    importBtn.style.background = '#1976d2'; F
     importBtn.style.color = 'white';
     importBtn.addEventListener('click', () => {
       if (window.electronAPI) {
@@ -138,16 +138,41 @@ export class TimelineEditor {
     this.fileInput.style.display = 'none';
     this.fileInput.addEventListener('change', (e) => this.importSequence(e));
 
+    this.mediaFileInput = document.createElement('input');
+    this.mediaFileInput.type = 'file';
+    this.mediaFileInput.accept = '.json, .mp3, .wav';
+    this.mediaFileInput.style.display = 'none';
+    this.mediaFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.name.endsWith('.json')) {
+        this.addDroneSequence(this.anchorTime, file);
+      } else if (file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.wav')) {
+        this.addAudioSequence(this.anchorTime, file);
+      } else {
+        alert('Chỉ hỗ trợ file âm thanh (.mp3, .wav) hoặc file Drone Show (.json)');
+      }
+      this.mediaFileInput.value = '';
+    });
+
+    const addFileBtn = document.createElement('button');
+    addFileBtn.textContent = '📁 Add Drone/Audio';
+    addFileBtn.style.background = '#e65100';
+    addFileBtn.style.color = 'white';
+    addFileBtn.addEventListener('click', () => this.mediaFileInput.click());
+
     this.fileSelect = document.createElement('select');
     this.fetchFileList();
 
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
+    toolbar.appendChild(addFileBtn);
     toolbar.appendChild(this.fileSelect);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
     toolbar.appendChild(this.fileInput);
+    toolbar.appendChild(this.mediaFileInput);
 
     leftPanel.appendChild(toolbar);
 
@@ -157,7 +182,7 @@ export class TimelineEditor {
     this.trackContainer.style.position = 'relative';
     this.trackContainer.style.overflowX = 'auto';
     this.trackContainer.style.overflowY = 'auto';
-    
+
     this.trackContainer.addEventListener('wheel', () => {
       if (this.autoScrollEnabled) {
         this.autoScrollEnabled = false;
@@ -165,7 +190,7 @@ export class TimelineEditor {
         this.followBtn.style.background = '#f44336';
       }
     });
-    
+
     this.anchorHead = document.createElement('div');
     this.anchorHead.style.position = 'absolute';
     this.anchorHead.style.top = '0';
@@ -187,7 +212,7 @@ export class TimelineEditor {
     this.playhead.style.zIndex = '50';
     this.playhead.style.pointerEvents = 'none';
     this.trackContainer.appendChild(this.playhead);
-    
+
     // Time ruler
     this.ruler = document.createElement('div');
     this.ruler.style.position = 'absolute';
@@ -216,7 +241,7 @@ export class TimelineEditor {
     this.tracksArea.style.left = '0';
     this.tracksArea.style.width = '10000px';
     this.tracksArea.style.height = '1000px';
-    
+
     // Drag events
     this.tracksArea.addEventListener('mousemove', (e) => this.onDrag(e));
     this.tracksArea.addEventListener('mouseup', (e) => this.onDragEnd(e));
@@ -266,7 +291,7 @@ export class TimelineEditor {
     // Right side: Property Inspector
     const inspectorContainer = document.createElement('div');
     this.container.appendChild(inspectorContainer);
-    
+
     let presetOptions = ['random'];
     if (this.showDirector && this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.shellPresetFactory) {
       presetOptions = this.showDirector.fireworkSystem.shellPresetFactory.getPresetMenuEntries().map(e => e.key);
@@ -305,7 +330,7 @@ export class TimelineEditor {
           this.togglePlay();
         }
       }
-      
+
       // Copy
       if (e.code === 'KeyC' && e.shiftKey && this.visible) {
         if (e.target.tagName !== 'INPUT' && this.inspector && this.inspector.selectedEvent) {
@@ -394,11 +419,11 @@ export class TimelineEditor {
       tick.style.height = '4px';
       tick.style.borderLeft = '1px solid #555';
       tick.style.pointerEvents = 'none';
-      
+
       if (time % 0.5 === 0) {
         tick.style.height = time % 1 === 0 ? '12px' : '7px';
         tick.style.borderLeft = time % 1 === 0 ? '1px solid #999' : '1px solid #777';
-        
+
         const label = document.createElement('span');
         label.textContent = time + 's';
         label.style.position = 'absolute';
@@ -462,7 +487,7 @@ export class TimelineEditor {
   addAudioSequence(time, file) {
     const blobUrl = URL.createObjectURL(file);
     const audio = new Audio(blobUrl);
-    
+
     audio.addEventListener('loadedmetadata', () => {
       const duration = audio.duration;
       const newSeq = {
@@ -481,7 +506,7 @@ export class TimelineEditor {
       // Let showDirector know we loaded a new audio file so it can prep playback if needed
       this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
     });
-    
+
     audio.addEventListener('error', () => {
       alert("Lỗi khi đọc thông tin file âm thanh.");
     });
@@ -493,18 +518,18 @@ export class TimelineEditor {
       try {
         const data = JSON.parse(event.target.result);
         if (!data.droneCount || !data.steps) {
-            throw new Error("Không phải file xuất từ Drone Editor.");
+          throw new Error("Không phải file xuất từ Drone Editor.");
         }
-        
+
         let maxTime = 0;
         data.steps.forEach(step => {
-            if (step.time > maxTime) maxTime = step.time;
+          if (step.time > maxTime) maxTime = step.time;
         });
         const duration = (maxTime / 1000) + 2.0; // 2 seconds buffer
 
         const parsedSteps = data.steps.map(step => ({
-            ...step,
-            positions: step.positions.map(p => new THREE.Vector3(p.x, p.y, p.z))
+          ...step,
+          positions: step.positions.map(p => new THREE.Vector3(p.x, p.y, p.z))
         }));
 
         const newSeq = {
@@ -530,7 +555,7 @@ export class TimelineEditor {
   assignTracks() {
     const audioSequences = [...this.sequences].filter(s => !s._deleted && s.type === 'audio').sort((a, b) => a.time - b.time);
     const otherSequences = [...this.sequences].filter(s => !s._deleted && s.type !== 'audio').sort((a, b) => a.time - b.time);
-    
+
     let audioRows = [];
     audioSequences.forEach(seq => {
       const start = seq.time;
@@ -675,7 +700,7 @@ export class TimelineEditor {
       const dTime = dx / this.pixelsPerSecond;
       let newDuration = Math.max(0.1, this.initialDuration + dTime);
       newDuration = Math.round(newDuration * 10) / 10; // Snap to 0.1s
-      
+
       if (this.resizedEvent.uiDuration !== newDuration) {
         this.resizedEvent.uiDuration = newDuration;
         this.renderTracks();
@@ -686,10 +711,10 @@ export class TimelineEditor {
     if (!this.isDragging || !this.draggedEvent) return;
     const newX = e.clientX - this.tracksArea.getBoundingClientRect().left - this.dragOffsetX;
     let newTime = Math.max(0, newX / this.pixelsPerSecond);
-    
+
     // Snap to 0.1s grid
     newTime = Math.round(newTime * 10) / 10;
-    
+
     if (this.draggedEvent.time !== newTime) {
       this.draggedEvent.time = newTime;
       this.renderTracks();
@@ -711,7 +736,7 @@ export class TimelineEditor {
       const time = this.showDirector.elapsedTime;
       const x = time * this.pixelsPerSecond;
       this.playhead.style.left = x + 'px';
-      
+
       // Auto-scroll
       if (this.autoScrollEnabled) {
         const containerRect = this.trackContainer.getBoundingClientRect();
@@ -733,7 +758,7 @@ export class TimelineEditor {
         const { filePath, content, filename } = fileData;
         const data = JSON.parse(content);
         if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
-        
+
         if (this.sequences.length > 0 && !confirm("Tiến hành import sẽ ghi đè lên các thay đổi chưa được lưu. Bạn có chắc chắn muốn tiếp tục?")) {
           return;
         }
@@ -752,7 +777,7 @@ export class TimelineEditor {
 
   async saveDirectly() {
     this.filename = this.fileSelect.value || 'demoShow.json';
-    
+
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
       const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
@@ -793,7 +818,7 @@ export class TimelineEditor {
   importSequence(e) {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (this.sequences.length > 0 && !confirm("Tiến hành import sẽ ghi đè lên các thay đổi chưa được lưu. Bạn có chắc chắn muốn tiếp tục?")) {
       this.fileInput.value = '';
       return;
@@ -819,7 +844,7 @@ export class TimelineEditor {
 
   async saveSequence() {
     this.filename = this.fileSelect.value || 'demoShow.json';
-    
+
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
       const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
@@ -859,7 +884,7 @@ export class TimelineEditor {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       alert(`Đã tải xuống file ${this.filename}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
     } catch (err) {
       alert('Lỗi khi lưu file: ' + err.message);

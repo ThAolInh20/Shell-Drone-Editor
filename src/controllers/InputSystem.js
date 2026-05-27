@@ -272,7 +272,7 @@ export class InputSystem {
       btnTimeline.style.boxShadow = '0 6px 15px rgba(42, 82, 152, 0.3)';
     });
     btnTimeline.addEventListener('click', () => {
-      window.location.href = '/editor.html';
+      window.location.href = 'editor.html';
     });
 
     const btnStatic = document.createElement('button');
@@ -299,7 +299,7 @@ export class InputSystem {
       btnStatic.style.boxShadow = '0 6px 15px rgba(170, 59, 255, 0.3)';
     });
     btnStatic.addEventListener('click', () => {
-      window.location.href = '/formation.html';
+      window.location.href = 'formation.html';
     });
 
     navButtons.appendChild(btnTimeline);
