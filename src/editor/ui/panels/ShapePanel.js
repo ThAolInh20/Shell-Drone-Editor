@@ -15,7 +15,7 @@ export function renderShapePanel() {
           <option value="cylinder">Cylinder</option>
           <option value="star">Star</option>
           <option value="text">Text / Numbers</option>
-          <option value="json">From JSON File</option>
+          <option value="json">JSON File</option>
         </select>
       </div>
       <div class="input-group" id="ui-json-container" style="display: none; margin-top: 10px;">
@@ -125,28 +125,28 @@ export function setupShapePanel(state, director) {
         const colors = [];
         const particleGroups = [];
         for (const item of droneData) {
-           if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
-              const px = item.x || 0;
-              const py = item.y || 0;
-              const pz = item.z || 0;
-              positions.push(new THREE.Vector3(px, py, pz));
-              if (item.color !== undefined) {
-                 colors.push(new THREE.Color(item.color));
-              } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
-                 colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
-              } else {
-                 colors.push(new THREE.Color(0xffffff));
-              }
-              const gName = item.group || item.particleGroup || 'Imported';
-              particleGroups.push(gName);
-           }
+          if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+            const px = item.x || 0;
+            const py = item.y || 0;
+            const pz = item.z || 0;
+            positions.push(new THREE.Vector3(px, py, pz));
+            if (item.color !== undefined) {
+              colors.push(new THREE.Color(item.color));
+            } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+              colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+            } else {
+              colors.push(new THREE.Color(0xffffff));
+            }
+            const gName = item.group || item.particleGroup || 'Imported';
+            particleGroups.push(gName);
+          }
         }
         if (positions.length > 0) {
-           customShapeData = { positions, colors, particleGroups };
-           document.getElementById('ui-json-status').textContent = `Loaded ${positions.length} points`;
-           document.getElementById('ui-json-status').style.color = '#4CAF50';
+          customShapeData = { positions, colors, particleGroups };
+          document.getElementById('ui-json-status').textContent = `Loaded ${positions.length} points`;
+          document.getElementById('ui-json-status').style.color = '#4CAF50';
         } else {
-           throw new Error("No valid coordinates found");
+          throw new Error("No valid coordinates found");
         }
       } catch (err) {
         customShapeData = null;
@@ -176,8 +176,8 @@ export function setupShapePanel(state, director) {
     const cz = parseFloat(document.getElementById('ui-shape-cz').value) || 0;
 
     if (type === 'json' && !customShapeData) {
-       alert("Please choose a valid JSON file first.");
-       return;
+      alert("Please choose a valid JSON file first.");
+      return;
     }
 
     // Define default params for shapes with base height 0
@@ -204,7 +204,7 @@ export function setupShapePanel(state, director) {
         newPositions = customShapeData.positions.slice(0, count).map(p => p.clone());
         newColors = customShapeData.colors.slice(0, count).map(c => c.clone());
         if (newPositions.length < count) {
-           console.warn("JSON has fewer points than selected. Only updating available points.");
+          console.warn("JSON has fewer points than selected. Only updating available points.");
         }
       } else {
         if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
@@ -240,19 +240,19 @@ export function setupShapePanel(state, director) {
       }
 
       state.updatePositions(updates);
-      
+
       // Update colors and groups if json imported
       if (type === 'json' && newColors) {
-         let j = 0;
-         for (const id of state.selectedIndices) {
-            if (j >= newColors.length) break;
-            state.colors[id].copy(newColors[j]);
-            if (customShapeData.particleGroups && customShapeData.particleGroups[j]) {
-               state.particleGroups[id] = customShapeData.particleGroups[j];
-            }
-            j++;
-         }
-         state.notify(); // Force UI color refresh if selection color changed
+        let j = 0;
+        for (const id of state.selectedIndices) {
+          if (j >= newColors.length) break;
+          state.colors[id].copy(newColors[j]);
+          if (customShapeData.particleGroups && customShapeData.particleGroups[j]) {
+            state.particleGroups[id] = customShapeData.particleGroups[j];
+          }
+          j++;
+        }
+        state.notify(); // Force UI color refresh if selection color changed
       }
       state.saveStateToHistory();
 
@@ -261,15 +261,15 @@ export function setupShapePanel(state, director) {
       let count = parseInt(document.getElementById('ui-count').value) || 100;
       let positions = [];
       let colors = [];
-      
+
       if (type === 'json') {
-         positions = customShapeData.positions.map(p => p.clone());
-         colors = customShapeData.colors.map(c => c.clone());
-         count = positions.length; // Override count
+        positions = customShapeData.positions.map(p => p.clone());
+        colors = customShapeData.colors.map(c => c.clone());
+        count = positions.length; // Override count
       } else {
-         if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-         positions = DroneFormationFactory.createFormation(type, count, params);
-         colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
+        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+        positions = DroneFormationFactory.createFormation(type, count, params);
+        colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
       }
 
       // Offset by target center

@@ -6,9 +6,9 @@ export function renderFilePanel() {
         <label>Format Name</label>
         <input type="text" id="ui-name" value="NewFormat" style="width: 120px;" />
       </div>
-      <button class="btn" id="btn-export">Export JSON</button>
+      <button class="btn" id="btn-export">Export step-formation</button>
       <input type="file" id="file-import" accept=".json" style="display: none;" />
-      <button class="btn btn-secondary" id="btn-import">Import JSON</button>
+      <button class="btn btn-secondary" id="btn-import">Import sFtep-formation</button>
     </div>
   `;
 }
@@ -51,7 +51,7 @@ export function setupFilePanel(state) {
           const data = JSON.parse(content);
           state.loadFormat(data, filePath);
           document.getElementById('ui-name').value = state.name;
-          
+
           const uiCount = document.getElementById('ui-count');
           if (uiCount) uiCount.value = state.droneCount;
           alert(`Import thành công từ file: ${filename}`);
@@ -73,7 +73,7 @@ export function setupFilePanel(state) {
         const data = JSON.parse(event.target.result);
         state.loadFormat(data);
         document.getElementById('ui-name').value = state.name;
-        
+
         const uiCount = document.getElementById('ui-count');
         if (uiCount) uiCount.value = state.droneCount;
       } catch (err) {
