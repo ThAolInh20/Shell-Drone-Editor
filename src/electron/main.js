@@ -50,7 +50,7 @@ function createWindow() {
     },
     title: 'Shell Drone Animation Editor',
     backgroundColor: '#1a1a1a',
-    icon: path.join(__dirname, '../../public/icon.ico'),
+    icon: path.join(__dirname, '../../public/icon2.ico'),
   });
 
   // Setup Application Menu with navigation links
