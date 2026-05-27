@@ -57,42 +57,6 @@ Sau đó, truy cập vào địa chỉ local được hiển thị trên termina
 
 ---
 
-## ⌨️ Bảng Phím Tắt Tiện Ích (Cheat Sheet)
-
-Để tối ưu hóa hiệu suất biên tập và thiết kế các màn trình diễn drone/pháo hoa, hãy sử dụng các phím tắt hệ thống dưới đây:
-
-### 🖥️ Điều hướng Ứng dụng Desktop (Chỉ áp dụng trên Electron)
-*   **`Ctrl + 1`** (Mac: `Cmd + 1`): Chuyển nhanh sang trang **Biên tập Kịch bản Pháo hoa (Timeline Editor)**
-*   **`Ctrl + 2`** (Mac: `Cmd + 2`): Chuyển nhanh sang trang **Biên tập Drone Hoạt cảnh (Animated Drone Editor)**
-*   **`Ctrl + 3`** (Mac: `Cmd + 3`): Chuyển nhanh sang trang **Biên tập Đội hình Drone Tĩnh 3D (Static 3D Formation Editor)**
-*   **`F12`** (hoặc `Ctrl + Shift + I`): Bật/Tắt Chrome Developer Tools để gỡ lỗi (debug)
-*   **`Ctrl + R`** (Mac: `Cmd + R`): Tải lại (Reload) trang hiện tại
-*   **`F11`** (Mac: `Cmd + Ctrl + F`): Bật/Tắt chế độ Toàn màn hình (Fullscreen)
-
-### 🎵 Biên tập Kịch bản Pháo hoa (Timeline Editor)
-*   **`Shift + S`** *(Mới)*: **Lưu trực tiếp** các thay đổi vào file sequence hiện đang mở. Tự động hiển thị hộp thoại **Save As** nếu lưu kịch bản mới.
-*   **`Shift + T`**: Ẩn/Hiện bảng điều khiển dòng thời gian (Timeline Panel) *(chỉ hoạt động khi camera không bị khóa)*.
-*   **`Space` (Phím Cách)**: Phát (Play) / Tạm dừng (Pause) dòng thời gian *(khi bảng timeline hiển thị và không tập trung vào ô nhập liệu)*.
-*   **`Shift + C`** / **`Shift + V`**: Sao chép (Copy) / Dán (Paste) khối sự kiện pháo hoa đang được chọn.
-*   **`Shift + 0`** (hoặc `)`): Thay đổi mức độ thu phóng của timeline *(các mức tỷ lệ: 25px/s, 50px/s, 100px/s, 200px/s)*.
-*   **`Delete`** / **`Backspace`**: Xóa khối sự kiện pháo hoa đang chọn trên dòng thời gian.
-
-### 🛸 Biên tập Drone Hoạt cảnh (`editor.html`)
-*   **`Shift + S`** *(Mới)*: **Lưu trực tiếp** dữ liệu tọa độ và hoạt cảnh của các drone vào file đang chỉnh sửa.
-*   **`Ctrl + Z`** / **`Ctrl + Y`**: Hoàn tác (Undo) / Làm lại (Redo) các thao tác thay đổi tọa độ và màu sắc của drone.
-*   **`Ctrl + D`**: Nhân bản (Duplicate) các thực thể drone đang được chọn.
-*   **`Shift + C`** / **`Shift + V`**: Sao chép / Dán dữ liệu tọa độ của các drone được chọn.
-*   **`Delete`** / **`Backspace`**: Xóa các drone được chọn khỏi tất cả các bước (steps).
-
-### 🎨 Biên tập Đội hình Drone Tĩnh 3D (`formation.html`)
-*   **`Shift + S`** *(Mới)*: **Lưu trực tiếp** tọa độ đội hình drone tĩnh cùng cấu hình đường cong dẫn hướng (Hologram Guide).
-*   **`Ctrl + Z`** / **`Ctrl + Y`**: Hoàn tác (Undo) / Làm lại (Redo) các thay đổi liên quan đến tọa độ, màu sắc và đường cong dẫn hướng.
-*   **`Ctrl + D`**: Nhân bản (Duplicate) drone đang chọn.
-*   **`Shift + C`** / **`Shift + V`**: Sao chép / Dán tọa độ drone đang chọn.
-*   **`Delete`** / **`Backspace`**: Xóa các thực thể drone được chọn.
-
----
-
 ## 📦 Biên dịch và Đóng gói (Production Build)
 
 ### 🌐 A. Đóng gói cho Nền tảng Web (Vite Build)
@@ -111,7 +75,6 @@ Khi muốn biên dịch ứng dụng web thông thường để đưa lên máy 
   ```
 
 ---
-
 ### 🛸 B. Đóng gói Ứng dụng Desktop (.EXE với Electron)
 Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Desktop chạy độc lập trên Windows (`.exe`):
 
