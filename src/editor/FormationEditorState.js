@@ -28,6 +28,10 @@ export class FormationEditorState {
       holdTime: 0,
       holdMoveEffect: 'none',
       holdLightEffect: 'none',
+      holdMoveSpeed: 1.0,
+      holdMoveFreq: 1.0,
+      holdLightSpeed: 1.0,
+      holdLightFreq: 1.0,
       center: new THREE.Vector3(0, 20, 0)
     }];
     this.currentStepIndex = 0;
@@ -40,7 +44,7 @@ export class FormationEditorState {
     // Undo/Redo stack
     this.history = [];
     this.historyIndex = -1;
-    
+
     // Clipboard for copy/paste
     this.clipboard = null;
 
@@ -65,7 +69,7 @@ export class FormationEditorState {
     for (let sIndex = 0; sIndex < this.steps.length; sIndex++) {
       if (sIndex === this.currentStepIndex) continue;
       const step = this.steps[sIndex];
-      
+
       if (!step.effects) step.effects = [];
 
       // If the step has fewer drones, pad it with clones from this.positions
@@ -130,6 +134,10 @@ export class FormationEditorState {
       transitionTime: 2000, // Default to 2s transition duration
       holdMoveEffect: 'none',
       holdLightEffect: 'none',
+      holdMoveSpeed: 1.0,
+      holdMoveFreq: 1.0,
+      holdLightSpeed: 1.0,
+      holdLightFreq: 1.0,
       center: this.center.clone()
     };
 
@@ -252,7 +260,7 @@ export class FormationEditorState {
       this.steps = data.steps.map((s, i) => {
         let moveEff = s.holdMoveEffect;
         let lightEff = s.holdLightEffect;
-        
+
         if (!moveEff && !lightEff && s.holdEffect) {
           if (['strobe', 'shimmer'].includes(s.holdEffect)) {
             moveEff = 'none';
@@ -262,7 +270,7 @@ export class FormationEditorState {
             lightEff = 'none';
           }
         }
-        
+
         return {
           id: 'step_' + i + '_' + Date.now(),
           time: s.time || i * 5000,
@@ -276,6 +284,10 @@ export class FormationEditorState {
           transitionTime: s.transitionTime,
           holdMoveEffect: moveEff || 'none',
           holdLightEffect: lightEff || 'none',
+          holdMoveSpeed: s.holdMoveSpeed !== undefined ? s.holdMoveSpeed : 1.0,
+          holdMoveFreq: s.holdMoveFreq !== undefined ? s.holdMoveFreq : 1.0,
+          holdLightSpeed: s.holdLightSpeed !== undefined ? s.holdLightSpeed : 1.0,
+          holdLightFreq: s.holdLightFreq !== undefined ? s.holdLightFreq : 1.0,
           center: s.center ? new THREE.Vector3(s.center.x, s.center.y, s.center.z) : new THREE.Vector3(0, 20, 0)
         };
       });
@@ -294,6 +306,10 @@ export class FormationEditorState {
         transitionTime: 2000,
         holdMoveEffect: 'none',
         holdLightEffect: 'none',
+        holdMoveSpeed: 1.0,
+        holdMoveFreq: 1.0,
+        holdLightSpeed: 1.0,
+        holdLightFreq: 1.0,
         center: data.center ? new THREE.Vector3(data.center.x, data.center.y, data.center.z) : new THREE.Vector3(0, 20, 0)
       }];
     }
@@ -335,6 +351,10 @@ export class FormationEditorState {
         transitionTime: step.transitionTime || 0,
         holdMoveEffect: step.holdMoveEffect || 'none',
         holdLightEffect: step.holdLightEffect || 'none',
+        holdMoveSpeed: step.holdMoveSpeed !== undefined ? step.holdMoveSpeed : 1.0,
+        holdMoveFreq: step.holdMoveFreq !== undefined ? step.holdMoveFreq : 1.0,
+        holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
+        holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
         holdEffect: step.holdMoveEffect || 'none', // For backward compatibility
         center: step.center ? { x: step.center.x, y: step.center.y, z: step.center.z } : { x: 0, y: 20, z: 0 }
       }))
