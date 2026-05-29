@@ -322,7 +322,9 @@ export function setupShapePanel(state, director) {
       state.positions = [];
       state.particleGroups = [];
       state.colors = [];
+      state.effects = [];
       state.selectedIndices.clear();
+      state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
     }

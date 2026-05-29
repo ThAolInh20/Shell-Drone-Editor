@@ -60,6 +60,33 @@ export class FormationEditorState {
     }
   }
 
+  synchronizeStepDrones() {
+    const targetCount = this.positions.length;
+    for (let sIndex = 0; sIndex < this.steps.length; sIndex++) {
+      if (sIndex === this.currentStepIndex) continue;
+      const step = this.steps[sIndex];
+      
+      if (!step.effects) step.effects = [];
+
+      // If the step has fewer drones, pad it with clones from this.positions
+      if (step.positions.length < targetCount) {
+        for (let i = step.positions.length; i < targetCount; i++) {
+          step.positions.push(this.positions[i].clone());
+          step.colors.push(this.colors[i] ? this.colors[i].clone() : new THREE.Color(0xffffff));
+          step.particleGroups.push(this.particleGroups[i] || 'Default');
+          step.effects.push(this.effects[i] || 'none');
+        }
+      }
+      // If the step has more drones, truncate it to match the active state
+      else if (step.positions.length > targetCount) {
+        step.positions.splice(targetCount);
+        step.colors.splice(targetCount);
+        step.particleGroups.splice(targetCount);
+        step.effects.splice(targetCount);
+      }
+    }
+  }
+
   saveCurrentStep() {
     if (this.currentStepIndex >= 0 && this.currentStepIndex < this.steps.length) {
       this.steps[this.currentStepIndex].positions = this.positions.map(p => p.clone());
@@ -67,6 +94,7 @@ export class FormationEditorState {
       this.steps[this.currentStepIndex].particleGroups = [...this.particleGroups];
       this.steps[this.currentStepIndex].effects = [...this.effects];
       this.steps[this.currentStepIndex].center = this.center.clone();
+      this.synchronizeStepDrones();
       this.recalculateTimes();
     }
   }
@@ -284,6 +312,7 @@ export class FormationEditorState {
     this.effects = [...step.effects];
     this.center = step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0);
 
+    this.synchronizeStepDrones();
     this.saveStateToHistory();
     this.notify();
   }
