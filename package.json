@@ -14,7 +14,7 @@
   "build": {
     "appId": "com.shelldrone.editor",
     "productName": "ShellDroneEditor",
-    "copyright": "Copyright © 2026 Namnp",
+    "copyright": "Copyright © 2026 ThaoLinn20",
     "directories": {
       "output": "dist-electron"
     },
