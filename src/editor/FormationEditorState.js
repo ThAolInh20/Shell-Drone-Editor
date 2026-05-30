@@ -73,6 +73,7 @@ export class FormationEditorState {
         transitionLightEffect: step.transitionLightEffect || 'none',
         transitionLightSpeed: step.transitionLightSpeed !== undefined ? step.transitionLightSpeed : 1.0,
         transitionLightFreq: step.transitionLightFreq !== undefined ? step.transitionLightFreq : 1.0,
+        transitionSparkleColor: step.transitionSparkleColor || '#ffffff',
         holdMoveEffect: step.holdMoveEffect || 'none',
         holdMoveSpeed: step.holdMoveSpeed !== undefined ? step.holdMoveSpeed : 1.0,
         holdMoveFreq: step.holdMoveFreq !== undefined ? step.holdMoveFreq : 1.0,
@@ -80,6 +81,9 @@ export class FormationEditorState {
         holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
         holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
         applyLightEffect: step.applyLightEffect || 'none',
+        landingLightEffect: step.landingLightEffect || 'none',
+        landingLightSpeed: step.landingLightSpeed !== undefined ? step.landingLightSpeed : 1.0,
+        landingLightFreq: step.landingLightFreq !== undefined ? step.landingLightFreq : 1.0,
         center: step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0)
       };
     }
@@ -286,6 +290,7 @@ export class FormationEditorState {
           transitionLightEffect: cfg.transitionLightEffect || 'none',
           transitionLightSpeed: cfg.transitionLightSpeed !== undefined ? cfg.transitionLightSpeed : 1.0,
           transitionLightFreq: cfg.transitionLightFreq !== undefined ? cfg.transitionLightFreq : 1.0,
+          transitionSparkleColor: cfg.transitionSparkleColor || '#ffffff',
           holdMoveEffect: cfg.holdMoveEffect || 'none',
           holdMoveSpeed: cfg.holdMoveSpeed !== undefined ? cfg.holdMoveSpeed : 1.0,
           holdMoveFreq: cfg.holdMoveFreq !== undefined ? cfg.holdMoveFreq : 1.0,
@@ -293,6 +298,9 @@ export class FormationEditorState {
           holdLightSpeed: cfg.holdLightSpeed !== undefined ? cfg.holdLightSpeed : 1.0,
           holdLightFreq: cfg.holdLightFreq !== undefined ? cfg.holdLightFreq : 1.0,
           applyLightEffect: cfg.applyLightEffect || 'none',
+          landingLightEffect: cfg.landingLightEffect || 'none',
+          landingLightSpeed: cfg.landingLightSpeed !== undefined ? cfg.landingLightSpeed : 1.0,
+          landingLightFreq: cfg.landingLightFreq !== undefined ? cfg.landingLightFreq : 1.0,
           center: cfg.center ? cfg.center.clone() : new THREE.Vector3(0, 20, 0)
         };
       }
@@ -479,6 +487,7 @@ export class FormationEditorState {
             transitionLightEffect: cfg.transitionLightEffect || 'none',
             transitionLightSpeed: cfg.transitionLightSpeed !== undefined ? cfg.transitionLightSpeed : 1.0,
             transitionLightFreq: cfg.transitionLightFreq !== undefined ? cfg.transitionLightFreq : 1.0,
+            transitionSparkleColor: cfg.transitionSparkleColor || '#ffffff',
             holdMoveEffect: cfg.holdMoveEffect || 'none',
             holdMoveSpeed: cfg.holdMoveSpeed !== undefined ? cfg.holdMoveSpeed : 1.0,
             holdMoveFreq: cfg.holdMoveFreq !== undefined ? cfg.holdMoveFreq : 1.0,
@@ -486,6 +495,9 @@ export class FormationEditorState {
             holdLightSpeed: cfg.holdLightSpeed !== undefined ? cfg.holdLightSpeed : 1.0,
             holdLightFreq: cfg.holdLightFreq !== undefined ? cfg.holdLightFreq : 1.0,
             applyLightEffect: cfg.applyLightEffect || 'none',
+            landingLightEffect: cfg.landingLightEffect || 'none',
+            landingLightSpeed: cfg.landingLightSpeed !== undefined ? cfg.landingLightSpeed : 1.0,
+            landingLightFreq: cfg.landingLightFreq !== undefined ? cfg.landingLightFreq : 1.0,
             center: cfg.center ? new THREE.Vector3(cfg.center.x, cfg.center.y, cfg.center.z) : new THREE.Vector3(0, 20, 0)
           };
         }
@@ -571,6 +583,7 @@ export class FormationEditorState {
               transitionLightEffect: cfg.transitionLightEffect || 'none',
               transitionLightSpeed: cfg.transitionLightSpeed,
               transitionLightFreq: cfg.transitionLightFreq,
+              transitionSparkleColor: cfg.transitionSparkleColor || '#ffffff',
               holdMoveEffect: cfg.holdMoveEffect,
               holdMoveSpeed: cfg.holdMoveSpeed,
               holdMoveFreq: cfg.holdMoveFreq,
@@ -578,6 +591,9 @@ export class FormationEditorState {
               holdLightSpeed: cfg.holdLightSpeed,
               holdLightFreq: cfg.holdLightFreq,
               applyLightEffect: cfg.applyLightEffect || 'none',
+              landingLightEffect: cfg.landingLightEffect || 'none',
+              landingLightSpeed: cfg.landingLightSpeed !== undefined ? cfg.landingLightSpeed : 1.0,
+              landingLightFreq: cfg.landingLightFreq !== undefined ? cfg.landingLightFreq : 1.0,
               center: { x: cfg.center.x, y: cfg.center.y, z: cfg.center.z }
             };
           }
