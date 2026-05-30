@@ -362,17 +362,24 @@ export class EditorDirector {
 
       let stepA = steps[0];
       let stepB = steps[steps.length - 1];
+      let stepPrev = null;
 
       if (steps.length > 1) {
         for (let s = 0; s < steps.length - 1; s++) {
           if (this.state.playbackTime >= steps[s].time && this.state.playbackTime <= steps[s + 1].time) {
             stepA = steps[s];
             stepB = steps[s + 1];
+            if (s > 0) {
+              stepPrev = steps[s - 1];
+            } else {
+              stepPrev = steps[steps.length - 1]; // Wraps around for seamless loop transition
+            }
             break;
           }
         }
         if (this.state.playbackTime > stepB.time) {
           stepA = stepB;
+          stepPrev = steps[steps.length - 2];
         }
       }
 
@@ -390,6 +397,8 @@ export class EditorDirector {
       } else {
         t = 1;
       }
+
+      const holdProgress = holdTime > 0 ? THREE.MathUtils.clamp((this.state.playbackTime - stepA.time) / holdTime, 0.0, 1.0) : 1.0;
 
       const dummy = new THREE.Object3D();
       const color = new THREE.Color();
@@ -448,11 +457,29 @@ export class EditorDirector {
       };
 
       // Helper function to apply light effects smoothly
-      const getLightEffectColor = (effectType, baseColor, speed, freq, dummyPos, centerPos, fade, index) => {
+      const getLightEffectColor = (effectType, baseColor, speed, freq, dummyPos, centerPos, fade, index, sparkleColor) => {
         const col = baseColor.clone();
         if (effectType === 'none' || !effectType || fade <= 0.001) return col;
 
-        if (effectType === 'strobe') {
+        if (effectType === 'blackout') {
+          return col.setRGB(0, 0, 0);
+        } else if (effectType === 'sparkle-spark') {
+          const flicker = Math.sin(age * 12.0 * speed + (index * 7.3)) * 0.5 + 0.5;
+          const threshold = 1.0 - (freq * 0.3);
+          const isSpark = flicker > threshold;
+          const sparkCol = sparkleColor || new THREE.Color(1, 1, 1);
+          const targetCol = isSpark ? sparkCol.clone() : new THREE.Color(0, 0, 0);
+          return col.lerp(targetCol, fade);
+        } else if (effectType === 'patch-spark') {
+          const patchX = Math.floor(dummyPos.x / 10.0);
+          const patchZ = Math.floor(dummyPos.z / 10.0);
+          const noise = Math.sin(patchX * 12.9898 + patchZ * 78.233 + age * 6.0 * speed) * 0.5 + 0.5;
+          const threshold = 1.0 - (freq * 0.3);
+          const isSpark = noise > threshold;
+          const sparkCol = sparkleColor || new THREE.Color(1, 1, 1);
+          const targetCol = isSpark ? sparkCol.clone() : new THREE.Color(0, 0, 0);
+          return col.lerp(targetCol, fade);
+        } else if (effectType === 'strobe') {
           const p = Math.sin(age * 15.0 * speed + (index * 0.5));
           const factor = p < 0 ? (1.0 - 0.9 * freq) : 1.0;
           const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
@@ -480,36 +507,7 @@ export class EditorDirector {
         return col;
       };
 
-      // Helper function to apply color spreading/distribution style
-      const applyColorSpreading = (effectType, baseColor, dummyPos, centerPos, speed, freq, fade, index) => {
-        const col = baseColor.clone();
-        if (effectType === 'none' || !effectType || fade <= 0.001) return col;
 
-        if (effectType === 'radial') {
-          const dist = dummyPos.distanceTo(centerPos);
-          const wave = Math.sin(dist * 0.2 - age * 5.0 * speed) * 0.5 + 0.5;
-          const baseHSL = {};
-          col.getHSL(baseHSL);
-          const hueShift = (dist * 0.015 * freq) % 1.0;
-          const targetHSLColor = new THREE.Color().setHSL((baseHSL.h + hueShift) % 1.0, baseHSL.s, baseHSL.l);
-          col.lerp(targetHSLColor, fade * 0.8);
-          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.4 + 0.6 * wave, fade * 0.5));
-        } else if (effectType === 'linear-lr') {
-          const relX = dummyPos.x - centerPos.x;
-          const wave = Math.sin(relX * 0.15 - age * 4.0 * speed) * 0.5 + 0.5;
-          const baseHSL = {};
-          col.getHSL(baseHSL);
-          const hueShift = (relX * 0.01 * freq) % 1.0;
-          const targetHSLColor = new THREE.Color().setHSL((baseHSL.h + hueShift) % 1.0, baseHSL.s, baseHSL.l);
-          col.lerp(targetHSLColor, fade * 0.8);
-          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.4 + 0.6 * wave, fade * 0.5));
-        } else if (effectType === 'fade-in') {
-          const breathe = Math.sin(age * 2.5 * speed) * 0.5 + 0.5;
-          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.15 + 0.85 * breathe, fade));
-        }
-
-        return col;
-      };
 
       for (let i = 0; i < count; i++) {
         const group = this.state.particleGroups[i] || 'Default';
@@ -533,46 +531,27 @@ export class EditorDirector {
         const freqMoveB = configB.holdMoveFreq !== undefined ? configB.holdMoveFreq : 1.0;
         const currentMoveFreq = THREE.MathUtils.lerp(freqMoveA, freqMoveB, t);
 
-        // Interpolate Hold Light speed and frequency
-        const speedLightA = configA.holdLightSpeed !== undefined ? configA.holdLightSpeed : 1.0;
-        const speedLightB = configB.holdLightSpeed !== undefined ? configB.holdLightSpeed : 1.0;
-        const currentLightSpeed = THREE.MathUtils.lerp(speedLightA, speedLightB, t);
 
-        const freqLightA = configA.holdLightFreq !== undefined ? configA.holdLightFreq : 1.0;
-        const freqLightB = configB.holdLightFreq !== undefined ? configB.holdLightFreq : 1.0;
-        const currentLightFreq = THREE.MathUtils.lerp(freqLightA, freqLightB, t);
 
-        // Interpolate Transition Move speed and frequency
-        const transMoveSpeedA = configA.transitionMoveSpeed !== undefined ? configA.transitionMoveSpeed : 1.0;
-        const transMoveSpeedB = configB.transitionMoveSpeed !== undefined ? configB.transitionMoveSpeed : 1.0;
-        const currentTransMoveSpeed = THREE.MathUtils.lerp(transMoveSpeedA, transMoveSpeedB, t);
+        // Retrieve transition parameters from the destination step B (transitioning to step B)
+        const currentTransMoveSpeed = configB.transitionMoveSpeed !== undefined ? configB.transitionMoveSpeed : 1.0;
+        const currentTransMoveFreq = configB.transitionMoveFreq !== undefined ? configB.transitionMoveFreq : 1.0;
+        const currentTransLightSpeed = configB.transitionLightSpeed !== undefined ? configB.transitionLightSpeed : 1.0;
+        const currentTransLightFreq = configB.transitionLightFreq !== undefined ? configB.transitionLightFreq : 1.0;
 
-        const transMoveFreqA = configA.transitionMoveFreq !== undefined ? configA.transitionMoveFreq : 1.0;
-        const transMoveFreqB = configB.transitionMoveFreq !== undefined ? configB.transitionMoveFreq : 1.0;
-        const currentTransMoveFreq = THREE.MathUtils.lerp(transMoveFreqA, transMoveFreqB, t);
-
-        // Interpolate Transition Light speed and frequency
-        const transLightSpeedA = configA.transitionLightSpeed !== undefined ? configA.transitionLightSpeed : 1.0;
-        const transLightSpeedB = configB.transitionLightSpeed !== undefined ? configB.transitionLightSpeed : 1.0;
-        const currentTransLightSpeed = THREE.MathUtils.lerp(transLightSpeedA, transLightSpeedB, t);
-
-        const transLightFreqA = configA.transitionLightFreq !== undefined ? configA.transitionLightFreq : 1.0;
-        const transLightFreqB = configB.transitionLightFreq !== undefined ? configB.transitionLightFreq : 1.0;
-        const currentTransLightFreq = THREE.MathUtils.lerp(transLightFreqA, transLightFreqB, t);
-
-        // Apply transition mode & effects
-        const transMoveEff = configA.transitionMoveEffect || 'none';
-        const transLightEff = configA.transitionLightEffect || 'none';
+        // Apply transition mode & effects from the destination step B
+        const transMoveEff = configB.transitionMoveEffect || 'none';
+        const transLightEff = configB.transitionLightEffect || 'none';
         const mode = configB.transitionMode || 'transform';
 
         let basePos = new THREE.Vector3();
 
-        if (transMoveEff === 'arc' && t > 0.01 && t < 0.99) {
+        if (transMoveEff === 'arc' && t > 0.0 && t < 1.0) {
           basePos.lerpVectors(posA, posB, t);
           const dist = posA.distanceTo(posB);
           const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
           basePos.y += arcHeight;
-        } else if (transMoveEff === 'spiral' && t > 0.01 && t < 0.99) {
+        } else if (transMoveEff === 'spiral' && t > 0.0 && t < 1.0) {
           const relA = new THREE.Vector3().subVectors(posA, centerA);
           const relB = new THREE.Vector3().subVectors(posB, centerB);
           const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
@@ -582,7 +561,7 @@ export class EditorDirector {
           const rx = relPos.x * cos - relPos.z * sin;
           const rz = relPos.x * sin + relPos.z * cos;
           basePos.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
-        } else if (transMoveEff === 'wave-delay' && t > 0.01 && t < 0.99) {
+        } else if (transMoveEff === 'wave-delay' && t > 0.0 && t < 1.0) {
           const delay = (i % 10) * 0.04;
           let localT = (t - delay) / (1.0 - 0.36);
           localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
@@ -620,7 +599,7 @@ export class EditorDirector {
 
         // Apply transition movement effect if active (fades in and out during transition)
         const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
-        if (isTransMove && t > 0.01 && t < 0.99) {
+        if (isTransMove && t > 0.0 && t < 1.0) {
           const fadeTrans = Math.sin(t * Math.PI);
           const resTrans = getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i);
           blendedOffset.add(resTrans.offset.clone().multiplyScalar(fadeTrans));
@@ -633,30 +612,67 @@ export class EditorDirector {
         this.instancedMesh.setMatrixAt(i, dummy.matrix);
 
         // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
-        const colA = (configA.colors && configA.colors[i]) ? configA.colors[i] : this.state.colors[i];
-        const colB = (configB.colors && configB.colors[i]) ? configB.colors[i] : colA;
+        const colA = (stepA.colors && stepA.colors[i]) ? stepA.colors[i] : (this.state.colors[i] || new THREE.Color(1, 1, 1));
 
-        const holdLightEffectA = (configA.holdLightEffect && configA.holdLightEffect !== 'none') ? configA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
-        const holdLightEffectB = (configB.holdLightEffect && configB.holdLightEffect !== 'none') ? configB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
+        // Apply Landing Color Effect (transition from black to step color colA) during the hold phase
+        const landingLightEffA = configA.landingLightEffect || 'none';
+        const landingLightSpeed = configA.landingLightSpeed !== undefined ? configA.landingLightSpeed : 1.0;
+        const landingLightFreq = configA.landingLightFreq !== undefined ? configA.landingLightFreq : 1.0;
 
-        // Apply light hold effects with smooth cross-fade
-        const colHoldA = getLightEffectColor(holdLightEffectA, colA, speedLightA, freqLightA, dummy.position, centerA, fadeA, i);
-        const colHoldB = getLightEffectColor(holdLightEffectB, colB, speedLightB, freqLightB, dummy.position, centerB, fadeB, i);
+        if (landingLightEffA === 'none' || landingLightEffA === '') {
+          color.copy(colA);
+        } else {
+          const colPrev = new THREE.Color(0, 0, 0);
+          const progress = THREE.MathUtils.clamp(holdProgress * landingLightSpeed, 0.0, 1.0);
 
-        // Apply dynamic color spreading/gradient distribution
-        const applyLightEffA = configA.applyLightEffect || 'none';
-        const applyLightEffB = configB.applyLightEffect || 'none';
-        const colSpreadA = applyColorSpreading(applyLightEffA, colHoldA, dummy.position, centerA, speedLightA, freqLightA, fadeA, i);
-        const colSpreadB = applyColorSpreading(applyLightEffB, colHoldB, dummy.position, centerB, speedLightB, freqLightB, fadeB, i);
+          if (landingLightEffA === 'radial') {
+            const dist = dummy.position.distanceTo(centerA);
+            const delay = dist * 0.03 * landingLightFreq;
+            const maxDelay = 0.8;
+            const scaledDelay = Math.min(delay, maxDelay);
+            let localT = THREE.MathUtils.clamp((progress * (1.0 + scaledDelay)) - scaledDelay, 0.0, 1.0);
+            localT = localT * localT * (3 - 2 * localT);
+            color.copy(colPrev).lerp(colA, localT);
+          } else if (landingLightEffA === 'linear-lr') {
+            const relX = dummy.position.x - centerA.x;
+            const delay = relX * 0.03 * landingLightFreq;
+            const scaledDelay = THREE.MathUtils.clamp(delay, -0.4, 0.4);
+            let localT = THREE.MathUtils.clamp(progress - scaledDelay, 0.0, 1.0);
+            localT = localT * localT * (3 - 2 * localT);
+            color.copy(colPrev).lerp(colA, localT);
+          } else if (landingLightEffA === 'linear-rl') {
+            const relX = centerA.x - dummy.position.x;
+            const delay = relX * 0.03 * landingLightFreq;
+            const scaledDelay = THREE.MathUtils.clamp(delay, -0.4, 0.4);
+            let localT = THREE.MathUtils.clamp(progress - scaledDelay, 0.0, 1.0);
+            localT = localT * localT * (3 - 2 * localT);
+            color.copy(colPrev).lerp(colA, localT);
+          } else {
+            color.copy(colA);
+          }
+        }
 
-        color.copy(colSpreadA).lerp(colSpreadB, t);
+        // Apply transition light effect if active (Flight Light Eff)
+        // Rule: Only active for 95% of flight transition time, remaining 5% is blackout
+        if (t > 0.0 && t < 1.0) {
+          if (t >= 0.95) {
+            color.setRGB(0, 0, 0);
+          } else {
+            const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'patch-spark', 'blackout'].includes(transLightEff);
+            if (isTransLight) {
+              const normT = t / 0.95;
+              const fadeTrans = Math.sin(normT * Math.PI);
+              const transSparkleColor = new THREE.Color(configA.transitionSparkleColor || '#ffffff');
+              const transCol = getLightEffectColor(transLightEff, color, currentTransLightSpeed, currentTransLightFreq, dummy.position, currentCenter, fadeTrans, i, transSparkleColor);
+              color.copy(transCol);
 
-        // Apply transition light effect if active (fades in and out during transition)
-        const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light'].includes(transLightEff);
-        if (isTransLight && t > 0.01 && t < 0.99) {
-          const fadeTrans = Math.sin(t * Math.PI);
-          const transCol = getLightEffectColor(transLightEff, color, currentTransLightSpeed, currentTransLightFreq, dummy.position, currentCenter, fadeTrans, i);
-          color.copy(transCol);
+              // Smoothly fade out the entire color to black as it approaches t = 0.95 (end of transition light)
+              if (transLightEff !== 'blackout') {
+                const fadeToBlack = Math.cos(normT * Math.PI * 0.5);
+                color.multiplyScalar(fadeToBlack);
+              }
+            }
+          }
         }
 
         this.instancedMesh.setColorAt(i, color);

@@ -55,22 +55,26 @@ export function renderStepPanel() {
         <div class="input-group">
           <label>Flight Light Eff</label>
           <select id="ui-step-trans-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">Normal</option>
-            <option value="strobe">Strobe (Chớp tắt)</option>
-            <option value="shimmer">Shimmer (Lấp lánh)</option>
-            <option value="pulse-color">Pulse Color</option>
-            <option value="rainbow">Rainbow</option>
-            <option value="wave-light">Wave Light</option>
+            <option value="none">Normal (Bình thường)</option>
+            <option value="sparkle-spark">✨ Sparkle (Lấp lánh lung linh)</option>
+            <option value="patch-spark">🌌 Patch Sparkle (Lấp lánh mảng)</option>
+            <option value="blackout">🌑 Blackout (Tối màu / Đen)</option>
+            <option value="rainbow">🌈 Rainbow (Cầu vồng)</option>
+            <option value="strobe">⚡ Strobe (Chớp tắt toàn bộ)</option>
           </select>
         </div>
         <div id="ui-step-trans-light-settings" style="display: none; flex-direction: column; gap: 8px; padding-left: 10px; border-left: 2px solid #3a86ff; margin-bottom: 5px;">
+          <div class="input-group" id="ui-step-trans-light-color-container" style="display: none;">
+            <label style="font-size: 11px; color: #aaa;">Sparkle Col</label>
+            <input type="color" id="ui-step-trans-light-color" value="#ffffff" style="width: 40px; height: 20px; border: none; padding: 0; background: none; cursor: pointer;" />
+          </div>
           <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">Light Speed</label>
+            <label id="lbl-step-trans-light-speed" style="font-size: 11px; color: #aaa;">Light Speed</label>
             <input type="range" id="ui-step-trans-light-speed" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 80px;" />
             <span id="val-step-trans-light-speed" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
           </div>
           <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">Light Freq</label>
+            <label id="lbl-step-trans-light-freq" style="font-size: 11px; color: #aaa;">Light Freq</label>
             <input type="range" id="ui-step-trans-light-freq" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 80px;" />
             <span id="val-step-trans-light-freq" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
           </div>
@@ -105,42 +109,35 @@ export function renderStepPanel() {
           </div>
         </div>
 
-        <!-- Hold Light Effect -->
+        <!-- SECTION 4: LANDING STYLE (GROUP) -->
+        <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #3a86ff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px;">Landing Style</div>
+        
+        <!-- Landing Color Effect -->
         <div class="input-group">
-          <label>Hold Light Eff</label>
-          <select id="ui-step-hold-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">Solid (Không đổi)</option>
-            <option value="strobe">Strobe (Chớp tắt)</option>
-            <option value="shimmer">Shimmer (Lấp lánh)</option>
-            <option value="pulse-color">Pulse Color (Mạch đập)</option>
-            <option value="rainbow">Rainbow (Cầu vồng)</option>
-            <option value="wave-light">Wave Light (Sóng sáng)</option>
+          <label>Landing Color</label>
+          <select id="ui-step-landing-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="none">Instant (Đồng bộ / Đột ngột)</option>
+            <option value="radial">🌌 Radial Ripple (Dần từ tâm)</option>
+            <option value="linear-lr">🌅 Left-to-Right (Trái sang phải)</option>
+            <option value="linear-rl">🌅 Right-to-Left (Phải sang trái)</option>
           </select>
         </div>
-        <div id="ui-step-hold-light-settings" style="display: none; flex-direction: column; gap: 8px; padding-left: 10px; border-left: 2px solid #3a86ff; margin-bottom: 5px;">
+        <div id="ui-step-landing-light-settings" style="display: none; flex-direction: column; gap: 8px; padding-left: 10px; border-left: 2px solid #3a86ff; margin-bottom: 5px;">
           <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">Light Speed</label>
-            <input type="range" id="ui-step-hold-light-speed" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 80px;" />
-            <span id="val-step-hold-light-speed" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
+            <label style="font-size: 11px; color: #aaa;">Landing Speed</label>
+            <input type="range" id="ui-step-landing-light-speed" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 80px;" />
+            <span id="val-step-landing-light-speed" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
           </div>
           <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">Light Freq</label>
-            <input type="range" id="ui-step-hold-light-freq" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 80px;" />
-            <span id="val-step-hold-light-freq" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
+            <label style="font-size: 11px; color: #aaa;">Landing Freq</label>
+            <input type="range" id="ui-step-landing-light-freq" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 80px;" />
+            <span id="val-step-landing-light-freq" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
           </div>
         </div>
 
-        <!-- SECTION 4: COLOR DISTRIBUTION (APPLY LIGHT EFFECT) -->
-        <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #3a86ff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px;">Color Spreading</div>
-        <div class="input-group">
-          <label>Light Style</label>
-          <select id="ui-step-apply-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">Solid (Toàn dải đồng nhất)</option>
-            <option value="radial">🌌 Radial Ripple (Lan tỏa từ tâm)</option>
-            <option value="linear-lr">🌅 Linear L-to-R (Trái qua phải)</option>
-            <option value="fade-in">🔆 Breathing Fade (Sáng dần/Nhịp thở)</option>
-          </select>
-        </div>
+
+
+
 
       </div>
     </div>
@@ -152,17 +149,47 @@ export function setupStepPanel(state) {
     const transMoveEff = document.getElementById('ui-step-trans-move-effect')?.value || 'none';
     const transLightEff = document.getElementById('ui-step-trans-light-effect')?.value || 'none';
     const holdMoveEff = document.getElementById('ui-step-hold-move-effect')?.value || 'none';
-    const holdLightEff = document.getElementById('ui-step-hold-light-effect')?.value || 'none';
+    const landingLightEff = document.getElementById('ui-step-landing-light-effect')?.value || 'none';
 
     const transMoveSettings = document.getElementById('ui-step-trans-move-settings');
     const transLightSettings = document.getElementById('ui-step-trans-light-settings');
     const holdMoveSettings = document.getElementById('ui-step-hold-move-settings');
-    const holdLightSettings = document.getElementById('ui-step-hold-light-settings');
+    const landingLightSettings = document.getElementById('ui-step-landing-light-settings');
 
     if (transMoveSettings) transMoveSettings.style.display = transMoveEff !== 'none' ? 'flex' : 'none';
-    if (transLightSettings) transLightSettings.style.display = transLightEff !== 'none' ? 'flex' : 'none';
+    
+    if (transLightSettings) {
+      transLightSettings.style.display = transLightEff !== 'none' ? 'flex' : 'none';
+      
+      const colorContainer = document.getElementById('ui-step-trans-light-color-container');
+      if (colorContainer) {
+        colorContainer.style.display = ['sparkle-spark', 'patch-spark'].includes(transLightEff) ? 'flex' : 'none';
+      }
+
+      const lblSpeed = document.getElementById('lbl-step-trans-light-speed');
+      const lblFreq = document.getElementById('lbl-step-trans-light-freq');
+      const speedSlider = document.getElementById('ui-step-trans-light-speed');
+      const freqSlider = document.getElementById('ui-step-trans-light-freq');
+
+      if (transLightEff === 'blackout') {
+        if (speedSlider) speedSlider.closest('.input-group').style.display = 'none';
+        if (freqSlider) freqSlider.closest('.input-group').style.display = 'none';
+      } else {
+        if (speedSlider) speedSlider.closest('.input-group').style.display = 'flex';
+        if (freqSlider) freqSlider.closest('.input-group').style.display = 'flex';
+        
+        if (['sparkle-spark', 'patch-spark'].includes(transLightEff)) {
+          if (lblSpeed) lblSpeed.textContent = 'Spark Freq';
+          if (lblFreq) lblFreq.textContent = 'Spark Qty';
+        } else {
+          if (lblSpeed) lblSpeed.textContent = 'Light Speed';
+          if (lblFreq) lblFreq.textContent = 'Light Freq';
+        }
+      }
+    }
+    
     if (holdMoveSettings) holdMoveSettings.style.display = holdMoveEff !== 'none' ? 'flex' : 'none';
-    if (holdLightSettings) holdLightSettings.style.display = holdLightEff !== 'none' ? 'flex' : 'none';
+    if (landingLightSettings) landingLightSettings.style.display = landingLightEff !== 'none' ? 'flex' : 'none';
   };
 
   // Timing (Global)
@@ -223,6 +250,12 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-trans-light-color')?.addEventListener('input', (e) => {
+    state.getGroupConfig(state.activeGroup).transitionSparkleColor = e.target.value;
+    state.saveCurrentStep();
+    state.notify();
+  });
+
   document.getElementById('ui-step-trans-light-speed')?.addEventListener('input', (e) => {
     state.getGroupConfig(state.activeGroup).transitionLightSpeed = parseFloat(e.target.value);
     const span = document.getElementById('val-step-trans-light-speed');
@@ -263,32 +296,26 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
-  document.getElementById('ui-step-hold-light-effect').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).holdLightEffect = e.target.value;
+  // Landing Color Effects
+  document.getElementById('ui-step-landing-light-effect')?.addEventListener('change', (e) => {
+    state.getGroupConfig(state.activeGroup).landingLightEffect = e.target.value;
     state.saveCurrentStep();
     updateSettingsVisibility();
     state.notify();
   });
 
-  document.getElementById('ui-step-hold-light-speed')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).holdLightSpeed = parseFloat(e.target.value);
-    const span = document.getElementById('val-step-hold-light-speed');
+  document.getElementById('ui-step-landing-light-speed')?.addEventListener('input', (e) => {
+    state.getGroupConfig(state.activeGroup).landingLightSpeed = parseFloat(e.target.value);
+    const span = document.getElementById('val-step-landing-light-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
     state.notify();
   });
 
-  document.getElementById('ui-step-hold-light-freq')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).holdLightFreq = parseFloat(e.target.value);
-    const span = document.getElementById('val-step-hold-light-freq');
+  document.getElementById('ui-step-landing-light-freq')?.addEventListener('input', (e) => {
+    state.getGroupConfig(state.activeGroup).landingLightFreq = parseFloat(e.target.value);
+    const span = document.getElementById('val-step-landing-light-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
-    state.saveCurrentStep();
-    state.notify();
-  });
-
-  // Apply Light Spreading Style
-  document.getElementById('ui-step-apply-light-effect').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).applyLightEffect = e.target.value;
     state.saveCurrentStep();
     state.notify();
   });
@@ -307,8 +334,7 @@ export function setupStepPanel(state) {
       const stepTransMoveEffEl = document.getElementById('ui-step-trans-move-effect');
       const stepTransLightEffEl = document.getElementById('ui-step-trans-light-effect');
       const stepHoldMoveEffEl = document.getElementById('ui-step-hold-move-effect');
-      const stepHoldLightEffEl = document.getElementById('ui-step-hold-light-effect');
-      const stepApplyLightEffEl = document.getElementById('ui-step-apply-light-effect');
+      const stepLandingLightEffEl = document.getElementById('ui-step-landing-light-effect');
 
       if (stepHoldTimeEl && document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
 
@@ -327,8 +353,9 @@ export function setupStepPanel(state) {
       if (stepTransMoveEffEl && document.activeElement !== stepTransMoveEffEl) stepTransMoveEffEl.value = activeCfg.transitionMoveEffect || 'none';
       if (stepTransLightEffEl && document.activeElement !== stepTransLightEffEl) stepTransLightEffEl.value = activeCfg.transitionLightEffect || 'none';
       if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = activeCfg.holdMoveEffect || 'none';
-      if (stepHoldLightEffEl && document.activeElement !== stepHoldLightEffEl) stepHoldLightEffEl.value = activeCfg.holdLightEffect || 'none';
-      if (stepApplyLightEffEl && document.activeElement !== stepApplyLightEffEl) stepApplyLightEffEl.value = activeCfg.applyLightEffect || 'none';
+      if (stepLandingLightEffEl && document.activeElement !== stepLandingLightEffEl) {
+        stepLandingLightEffEl.value = activeCfg.landingLightEffect || 'none';
+      }
 
       // Update range inputs
       const stepTransMoveSpeedEl = document.getElementById('ui-step-trans-move-speed');
@@ -365,6 +392,12 @@ export function setupStepPanel(state) {
         if (valTransLightFreqEl) valTransLightFreqEl.textContent = `${transLightFreq.toFixed(1)}x`;
       }
 
+      const stepTransLightColorEl = document.getElementById('ui-step-trans-light-color');
+      const sparkleColor = activeCfg.transitionSparkleColor !== undefined ? activeCfg.transitionSparkleColor : '#ffffff';
+      if (stepTransLightColorEl && document.activeElement !== stepTransLightColorEl) {
+        stepTransLightColorEl.value = sparkleColor;
+      }
+
       const stepHoldMoveSpeedEl = document.getElementById('ui-step-hold-move-speed');
       const stepHoldMoveFreqEl = document.getElementById('ui-step-hold-move-freq');
       const valHoldMoveSpeedEl = document.getElementById('val-step-hold-move-speed');
@@ -382,21 +415,21 @@ export function setupStepPanel(state) {
         if (valHoldMoveFreqEl) valHoldMoveFreqEl.textContent = `${holdMoveFreq.toFixed(1)}x`;
       }
 
-      const stepHoldLightSpeedEl = document.getElementById('ui-step-hold-light-speed');
-      const stepHoldLightFreqEl = document.getElementById('ui-step-hold-light-freq');
-      const valHoldLightSpeedEl = document.getElementById('val-step-hold-light-speed');
-      const valHoldLightFreqEl = document.getElementById('val-step-hold-light-freq');
+      const stepLandingLightSpeedEl = document.getElementById('ui-step-landing-light-speed');
+      const stepLandingLightFreqEl = document.getElementById('ui-step-landing-light-freq');
+      const valLandingLightSpeedEl = document.getElementById('val-step-landing-light-speed');
+      const valLandingLightFreqEl = document.getElementById('val-step-landing-light-freq');
 
-      const holdLightSpeed = activeCfg.holdLightSpeed !== undefined ? activeCfg.holdLightSpeed : 1.0;
-      const holdLightFreq = activeCfg.holdLightFreq !== undefined ? activeCfg.holdLightFreq : 1.0;
+      const landingLightSpeed = activeCfg.landingLightSpeed !== undefined ? activeCfg.landingLightSpeed : 1.0;
+      const landingLightFreq = activeCfg.landingLightFreq !== undefined ? activeCfg.landingLightFreq : 1.0;
 
-      if (stepHoldLightSpeedEl && document.activeElement !== stepHoldLightSpeedEl) {
-        stepHoldLightSpeedEl.value = holdLightSpeed;
-        if (valHoldLightSpeedEl) valHoldLightSpeedEl.textContent = `${holdLightSpeed.toFixed(1)}x`;
+      if (stepLandingLightSpeedEl && document.activeElement !== stepLandingLightSpeedEl) {
+        stepLandingLightSpeedEl.value = landingLightSpeed;
+        if (valLandingLightSpeedEl) valLandingLightSpeedEl.textContent = `${landingLightSpeed.toFixed(1)}x`;
       }
-      if (stepHoldLightFreqEl && document.activeElement !== stepHoldLightFreqEl) {
-        stepHoldLightFreqEl.value = holdLightFreq;
-        if (valHoldLightFreqEl) valHoldLightFreqEl.textContent = `${holdLightFreq.toFixed(1)}x`;
+      if (stepLandingLightFreqEl && document.activeElement !== stepLandingLightFreqEl) {
+        stepLandingLightFreqEl.value = landingLightFreq;
+        if (valLandingLightFreqEl) valLandingLightFreqEl.textContent = `${landingLightFreq.toFixed(1)}x`;
       }
 
       updateSettingsVisibility();
