@@ -342,10 +342,8 @@ export class EditorDirector {
 
     if (this.state.isPlaying && this.instancedMesh) {
       this.state.playbackTime += deltaTime * 1000;
-      const steps = this.state.steps;
-      if (steps.length === 0) return;
-
-      const maxTime = steps[steps.length - 1].time;
+      
+      const maxTime = this.state.getMaxPlaybackTime();
 
       const timeDiv = document.getElementById('playback-time');
       if (timeDiv) {
@@ -355,235 +353,251 @@ export class EditorDirector {
         timeDiv.textContent = `${sec.toString().padStart(2, '0')}:${millis.toString().padStart(3, '0')}`;
       }
 
-      if (this.state.playbackTime >= maxTime && steps.length > 1) {
+      if (this.state.playbackTime >= maxTime) {
         this.state.playbackTime = 0; // Loop playback
       }
 
-      if (steps.length > 1) {
-        let stepA = steps[0];
-        let stepB = steps[steps.length - 1];
+      const steps = this.state.steps;
+      if (!steps || steps.length === 0) return;
 
-        for (let i = 0; i < steps.length - 1; i++) {
-          if (this.state.playbackTime >= steps[i].time && this.state.playbackTime <= steps[i + 1].time) {
-            stepA = steps[i];
-            stepB = steps[i + 1];
+      let stepA = steps[0];
+      let stepB = steps[steps.length - 1];
+
+      if (steps.length > 1) {
+        for (let s = 0; s < steps.length - 1; s++) {
+          if (this.state.playbackTime >= steps[s].time && this.state.playbackTime <= steps[s + 1].time) {
+            stepA = steps[s];
+            stepB = steps[s + 1];
             break;
           }
         }
-
         if (this.state.playbackTime > stepB.time) {
           stepA = stepB;
         }
+      }
 
-        const holdTime = stepA.holdTime || 0;
-        const flightDuration = stepB.time - (stepA.time + holdTime);
-        let t = 0;
+      const holdTime = stepA.holdTime || 0;
+      const flightDuration = stepB.time - (stepA.time + holdTime);
+      let t = 0;
 
-        if (this.state.playbackTime <= stepA.time + holdTime) {
-          t = 0; // Holding
-        } else if (flightDuration > 0) {
-          t = (this.state.playbackTime - (stepA.time + holdTime)) / flightDuration;
-          // Smoothstep for nicer easing
-          t = t * t * (3 - 2 * t);
-          if (t > 1) t = 1;
-        } else {
-          t = 1;
-        }
+      if (this.state.playbackTime <= stepA.time + holdTime) {
+        t = 0; // Holding
+      } else if (flightDuration > 0) {
+        t = (this.state.playbackTime - (stepA.time + holdTime)) / flightDuration;
+        // Smoothstep for nicer easing
+        t = t * t * (3 - 2 * t);
+        if (t > 1) t = 1;
+      } else {
+        t = 1;
+      }
+
+      const dummy = new THREE.Object3D();
+      const color = new THREE.Color();
+      const count = this.state.positions.length;
+      const age = this.state.playbackTime / 1000; // in seconds
+
+      for (let i = 0; i < count; i++) {
+        const group = this.state.particleGroups[i] || 'Default';
+        const configA = this.state.getGroupConfigForStep(group, stepA);
+        const configB = this.state.getGroupConfigForStep(group, stepB);
+
         const defaultCenter = new THREE.Vector3(0, 20, 0);
-        const centerA = stepA.center || defaultCenter;
-        const centerB = stepB.center || defaultCenter;
+        const centerA = configA.center || defaultCenter;
+        const centerB = configB.center || defaultCenter;
         const currentCenter = new THREE.Vector3().lerpVectors(centerA, centerB, t);
 
-        const dummy = new THREE.Object3D();
-        const color = new THREE.Color();
-        const count = this.state.positions.length;
-        const age = this.state.playbackTime / 1000; // in seconds
+        const posA = stepA.positions[i] || this.state.positions[i];
+        const posB = stepB.positions[i] || posA;
 
-        for (let i = 0; i < count; i++) {
-          const posA = stepA.positions[i] || this.state.positions[i];
-          const posB = stepB.positions[i] || posA;
+        // Interpolate Move speed and frequency
+        const speedMoveA = configA.holdMoveSpeed !== undefined ? configA.holdMoveSpeed : 1.0;
+        const speedMoveB = configB.holdMoveSpeed !== undefined ? configB.holdMoveSpeed : 1.0;
+        const currentMoveSpeed = THREE.MathUtils.lerp(speedMoveA, speedMoveB, t);
 
-          // Interpolate Move speed and frequency
-          const speedMoveA = stepA.holdMoveSpeed !== undefined ? stepA.holdMoveSpeed : 1.0;
-          const speedMoveB = stepB.holdMoveSpeed !== undefined ? stepB.holdMoveSpeed : 1.0;
-          const currentMoveSpeed = THREE.MathUtils.lerp(speedMoveA, speedMoveB, t);
+        const freqMoveA = configA.holdMoveFreq !== undefined ? configA.holdMoveFreq : 1.0;
+        const freqMoveB = configB.holdMoveFreq !== undefined ? configB.holdMoveFreq : 1.0;
+        const currentMoveFreq = THREE.MathUtils.lerp(freqMoveA, freqMoveB, t);
 
-          const freqMoveA = stepA.holdMoveFreq !== undefined ? stepA.holdMoveFreq : 1.0;
-          const freqMoveB = stepB.holdMoveFreq !== undefined ? stepB.holdMoveFreq : 1.0;
-          const currentMoveFreq = THREE.MathUtils.lerp(freqMoveA, freqMoveB, t);
+        // Interpolate Light speed and frequency
+        const speedLightA = configA.holdLightSpeed !== undefined ? configA.holdLightSpeed : 1.0;
+        const speedLightB = configB.holdLightSpeed !== undefined ? configB.holdLightSpeed : 1.0;
+        const currentLightSpeed = THREE.MathUtils.lerp(speedLightA, speedLightB, t);
 
-          // Interpolate Light speed and frequency
-          const speedLightA = stepA.holdLightSpeed !== undefined ? stepA.holdLightSpeed : 1.0;
-          const speedLightB = stepB.holdLightSpeed !== undefined ? stepB.holdLightSpeed : 1.0;
-          const currentLightSpeed = THREE.MathUtils.lerp(speedLightA, speedLightB, t);
+        const freqLightA = configA.holdLightFreq !== undefined ? configA.holdLightFreq : 1.0;
+        const freqLightB = configB.holdLightFreq !== undefined ? configB.holdLightFreq : 1.0;
+        const currentLightFreq = THREE.MathUtils.lerp(freqLightA, freqLightB, t);
 
-          const freqLightA = stepA.holdLightFreq !== undefined ? stepA.holdLightFreq : 1.0;
-          const freqLightB = stepB.holdLightFreq !== undefined ? stepB.holdLightFreq : 1.0;
-          const currentLightFreq = THREE.MathUtils.lerp(freqLightA, freqLightB, t);
+        // Apply transition mode & effects
+        const transEff = configA.transitionEffect || 'none';
+        const mode = configB.transitionMode || 'transform';
 
-          // Apply transition mode & effects
-          const transEff = stepA.transitionEffect || 'none';
-          const mode = stepB.transitionMode || 'transform';
-
-          if (transEff === 'arc' && t > 0.01 && t < 0.99) {
-            dummy.position.lerpVectors(posA, posB, t);
-            const dist = posA.distanceTo(posB);
-            const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
-            dummy.position.y += arcHeight;
-          } else if (transEff === 'spiral' && t > 0.01 && t < 0.99) {
+        if (transEff === 'arc' && t > 0.01 && t < 0.99) {
+          dummy.position.lerpVectors(posA, posB, t);
+          const dist = posA.distanceTo(posB);
+          const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
+          dummy.position.y += arcHeight;
+        } else if (transEff === 'spiral' && t > 0.01 && t < 0.99) {
+          const relA = new THREE.Vector3().subVectors(posA, centerA);
+          const relB = new THREE.Vector3().subVectors(posB, centerB);
+          const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
+          const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentMoveSpeed;
+          const cos = Math.cos(spinAngle);
+          const sin = Math.sin(spinAngle);
+          const rx = relPos.x * cos - relPos.z * sin;
+          const rz = relPos.x * sin + relPos.z * cos;
+          dummy.position.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
+        } else if (transEff === 'wave-delay' && t > 0.01 && t < 0.99) {
+          const delay = (i % 10) * 0.04;
+          let localT = (t - delay) / (1.0 - 0.36);
+          localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
+          localT = localT * localT * (3 - 2 * localT);
+          dummy.position.lerpVectors(posA, posB, localT);
+        } else {
+          // Default transition mode (transform vs move)
+          if (mode === 'move') {
             const relA = new THREE.Vector3().subVectors(posA, centerA);
             const relB = new THREE.Vector3().subVectors(posB, centerB);
             const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-            const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentMoveSpeed;
-            const cos = Math.cos(spinAngle);
-            const sin = Math.sin(spinAngle);
-            const rx = relPos.x * cos - relPos.z * sin;
-            const rz = relPos.x * sin + relPos.z * cos;
-            dummy.position.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
-          } else if (transEff === 'wave-delay' && t > 0.01 && t < 0.99) {
-            const delay = (i % 10) * 0.04;
-            let localT = (t - delay) / (1.0 - 0.36);
-            localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
-            localT = localT * localT * (3 - 2 * localT);
-            dummy.position.lerpVectors(posA, posB, localT);
+            dummy.position.addVectors(currentCenter, relPos);
           } else {
-            // Default transition mode (transform vs move)
-            if (mode === 'move') {
-              const relA = new THREE.Vector3().subVectors(posA, centerA);
-              const relB = new THREE.Vector3().subVectors(posB, centerB);
-              const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-              dummy.position.addVectors(currentCenter, relPos);
-            } else {
-              dummy.position.lerpVectors(posA, posB, t);
-            }
+            dummy.position.lerpVectors(posA, posB, t);
           }
-
-          dummy.scale.set(1, 1, 1);
-
-          // Apply mathematical effects
-          const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
-          const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
-
-          // 1. Phân tích Chuyển động (Movement Effect)
-          const holdMoveEffectA = (stepA.holdMoveEffect && stepA.holdMoveEffect !== 'none') ? stepA.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectA) ? droneEffectA : 'none');
-          const holdMoveEffectB = (stepB.holdMoveEffect && stepB.holdMoveEffect !== 'none') ? stepB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
-
-          let currentMoveEffect = 'none';
-          if (t > 0.01 && t < 0.99) {
-            const transEff = stepA.transitionEffect || 'none';
-            currentMoveEffect = ['wave', 'swing', 'pulse'].includes(transEff) ? transEff : 'none';
-          } else if (t <= 0.01) {
-            currentMoveEffect = holdMoveEffectA;
-          } else {
-            currentMoveEffect = holdMoveEffectB;
-          }
-
-          // 2. Phân tích Ánh sáng (Light Effect)
-          const holdLightEffectA = (stepA.holdLightEffect && stepA.holdLightEffect !== 'none') ? stepA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
-          const holdLightEffectB = (stepB.holdLightEffect && stepB.holdLightEffect !== 'none') ? stepB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
-
-          let currentLightEffect = 'none';
-          if (t > 0.01 && t < 0.99) {
-            const transEff = stepA.transitionEffect || 'none';
-            currentLightEffect = ['strobe', 'shimmer'].includes(transEff) ? transEff : 'none';
-          } else if (t <= 0.01) {
-            currentLightEffect = holdLightEffectA;
-          } else {
-            currentLightEffect = holdLightEffectB;
-          }
-
-          // --- ÁP DỤNG HIỆU ỨNG DI CHUYỂN (MOVEMENT EFFECT) ---
-          if (currentMoveEffect === 'wave') {
-            dummy.position.y += Math.sin(age * 3.0 * currentMoveSpeed + (i * 0.1)) * 2.0 * currentMoveFreq;
-          } else if (currentMoveEffect === 'swing') {
-            dummy.position.x += Math.sin(age * 2.0 * currentMoveSpeed + (i * 0.1)) * 2.5 * currentMoveFreq;
-          } else if (currentMoveEffect === 'pulse') {
-            const p = 1.0 + Math.sin(age * Math.PI * 2 * currentMoveSpeed + (i * 0.1)) * 0.5 * currentMoveFreq;
-            dummy.scale.set(p, p, p);
-          } else if (currentMoveEffect === 'orbit' || currentMoveEffect === 'spiral') {
-            const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
-            let angle = age * 0.6 * currentMoveSpeed; // Rotation speed
-            let radiusScale = 1.0;
-
-            if (currentMoveEffect === 'spiral') {
-              const dist = toDrone.length();
-              radiusScale = 1.0 + Math.sin(age * 2.0 * currentMoveSpeed - dist * 0.05) * 0.15 * currentMoveFreq;
-              angle += dist * 0.02 * currentMoveFreq; // Twist spiral
-            }
-
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
-            const rx = toDrone.x * cos - toDrone.z * sin;
-            const rz = toDrone.x * sin + toDrone.z * cos;
-
-            dummy.position.set(
-              currentCenter.x + rx * radiusScale,
-              dummy.position.y, // Maintain current height
-              currentCenter.z + rz * radiusScale
-            );
-          } else if (currentMoveEffect === 'expand') {
-            const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
-            const pulseScale = 1.0 + Math.sin(age * 3.0 * currentMoveSpeed) * 0.2 * currentMoveFreq;
-
-            dummy.position.set(
-              currentCenter.x + toDrone.x * pulseScale,
-              dummy.position.y,
-              currentCenter.z + toDrone.z * pulseScale
-            );
-          }
-
-          dummy.updateMatrix();
-          this.instancedMesh.setMatrixAt(i, dummy.matrix);
-
-          // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
-          const colA = stepA.colors[i] || this.state.colors[i];
-          const colB = stepB.colors[i] || colA;
-          color.copy(colA).lerp(colB, t);
-
-          if (currentLightEffect === 'strobe') {
-            const p = Math.sin(age * 15.0 * currentLightSpeed + (i * 0.5));
-            if (p < 0) color.multiplyScalar(1.0 - 0.9 * currentLightFreq);
-          } else if (currentLightEffect === 'shimmer') {
-            const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * currentLightFreq * Math.sin(age * 10 * currentLightSpeed);
-            color.multiplyScalar(Math.max(0, flicker));
-          } else if (currentLightEffect === 'pulse-color') {
-            const factor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * Math.PI * 2.0 * currentLightSpeed + (i * 0.1));
-            color.multiplyScalar(factor);
-          } else if (currentLightEffect === 'rainbow') {
-            const hue = (age * 0.1 * currentLightSpeed + (i * 0.01 * currentLightFreq)) % 1.0;
-            color.setHSL(hue, 1.0, 0.5);
-          } else if (currentLightEffect === 'wave-light') {
-            const dist = dummy.position.distanceTo(currentCenter);
-            const waveFactor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * 5.0 * currentLightSpeed - dist * 0.2);
-            color.multiplyScalar(waveFactor);
-          }
-
-          this.instancedMesh.setColorAt(i, color);
-        }
-        this.instancedMesh.instanceMatrix.needsUpdate = true;
-        if (this.instancedMesh.instanceColor) {
-          this.instancedMesh.instanceColor.needsUpdate = true;
         }
 
-        // Interpolate and update center + pivot lines during active playback
-        if (this.centerHelper) {
-          this.centerHelper.position.copy(currentCenter);
-          this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
+        dummy.scale.set(1, 1, 1);
 
-          if (this.state.showPivotLines && count > 0) {
-            const linePoints = [];
-            const tempDronePos = new THREE.Vector3();
-            for (let i = 0; i < count; i++) {
-              this.instancedMesh.getMatrixAt(i, dummy.matrix);
-              tempDronePos.setFromMatrixPosition(dummy.matrix);
-              linePoints.push(tempDronePos.clone());
-              linePoints.push(currentCenter.clone());
-            }
-            this.pivotLines.geometry.setFromPoints(linePoints);
-            this.pivotLines.visible = true;
-          } else {
-            this.pivotLines.visible = false;
+        // Apply mathematical effects
+        const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
+        const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
+
+        // 1. Phân tích Chuyển động (Movement Effect)
+        const holdMoveEffectA = (configA.holdMoveEffect && configA.holdMoveEffect !== 'none') ? configA.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectA) ? droneEffectA : 'none');
+        const holdMoveEffectB = (configB.holdMoveEffect && configB.holdMoveEffect !== 'none') ? configB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
+
+        let currentMoveEffect = 'none';
+        if (t > 0.01 && t < 0.99) {
+          const transEff = configA.transitionEffect || 'none';
+          currentMoveEffect = ['wave', 'swing', 'pulse'].includes(transEff) ? transEff : 'none';
+        } else if (t <= 0.01) {
+          currentMoveEffect = holdMoveEffectA;
+        } else {
+          currentMoveEffect = holdMoveEffectB;
+        }
+
+        // 2. Phân tích Ánh sáng (Light Effect)
+        const holdLightEffectA = (configA.holdLightEffect && configA.holdLightEffect !== 'none') ? configA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
+        const holdLightEffectB = (configB.holdLightEffect && configB.holdLightEffect !== 'none') ? configB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
+
+        let currentLightEffect = 'none';
+        if (t > 0.01 && t < 0.99) {
+          const transEff = configA.transitionEffect || 'none';
+          currentLightEffect = ['strobe', 'shimmer'].includes(transEff) ? transEff : 'none';
+        } else if (t <= 0.01) {
+          currentLightEffect = holdLightEffectA;
+        } else {
+          currentLightEffect = holdLightEffectB;
+        }
+
+        // --- ÁP DỤNG HIỆU ỨNG DI CHUYỂN (MOVEMENT EFFECT) ---
+        if (currentMoveEffect === 'wave') {
+          dummy.position.y += Math.sin(age * 3.0 * currentMoveSpeed + (i * 0.1)) * 2.0 * currentMoveFreq;
+        } else if (currentMoveEffect === 'swing') {
+          dummy.position.x += Math.sin(age * 2.0 * currentMoveSpeed + (i * 0.1)) * 2.5 * currentMoveFreq;
+        } else if (currentMoveEffect === 'pulse') {
+          const p = 1.0 + Math.sin(age * Math.PI * 2 * currentMoveSpeed + (i * 0.1)) * 0.5 * currentMoveFreq;
+          dummy.scale.set(p, p, p);
+        } else if (currentMoveEffect === 'orbit' || currentMoveEffect === 'spiral') {
+          const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+          let angle = age * 0.6 * currentMoveSpeed; // Rotation speed
+          let radiusScale = 1.0;
+
+          if (currentMoveEffect === 'spiral') {
+            const dist = toDrone.length();
+            radiusScale = 1.0 + Math.sin(age * 2.0 * currentMoveSpeed - dist * 0.05) * 0.15 * currentMoveFreq;
+            angle += dist * 0.02 * currentMoveFreq; // Twist spiral
           }
+
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const rx = toDrone.x * cos - toDrone.z * sin;
+          const rz = toDrone.x * sin + toDrone.z * cos;
+
+          dummy.position.set(
+            currentCenter.x + rx * radiusScale,
+            dummy.position.y, // Maintain current height
+            currentCenter.z + rz * radiusScale
+          );
+        } else if (currentMoveEffect === 'expand') {
+          const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
+          const pulseScale = 1.0 + Math.sin(age * 3.0 * currentMoveSpeed) * 0.2 * currentMoveFreq;
+
+          dummy.position.set(
+            currentCenter.x + toDrone.x * pulseScale,
+            dummy.position.y,
+            currentCenter.z + toDrone.z * pulseScale
+          );
+        }
+
+        dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(i, dummy.matrix);
+
+        // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
+        const colA = (configA.colors && configA.colors[i]) ? configA.colors[i] : this.state.colors[i];
+        const colB = (configB.colors && configB.colors[i]) ? configB.colors[i] : colA;
+        color.copy(colA).lerp(colB, t);
+
+        if (currentLightEffect === 'strobe') {
+          const p = Math.sin(age * 15.0 * currentLightSpeed + (i * 0.5));
+          if (p < 0) color.multiplyScalar(1.0 - 0.9 * currentLightFreq);
+        } else if (currentLightEffect === 'shimmer') {
+          const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * currentLightFreq * Math.sin(age * 10 * currentLightSpeed);
+          color.multiplyScalar(Math.max(0, flicker));
+        } else if (currentLightEffect === 'pulse-color') {
+          const factor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * Math.PI * 2.0 * currentLightSpeed + (i * 0.1));
+          color.multiplyScalar(factor);
+        } else if (currentLightEffect === 'rainbow') {
+          const hue = (age * 0.1 * currentLightSpeed + (i * 0.01 * currentLightFreq)) % 1.0;
+          color.setHSL(hue, 1.0, 0.5);
+        } else if (currentLightEffect === 'wave-light') {
+          const dist = dummy.position.distanceTo(currentCenter);
+          const waveFactor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * 5.0 * currentLightSpeed - dist * 0.2);
+          color.multiplyScalar(waveFactor);
+        }
+
+        this.instancedMesh.setColorAt(i, color);
+      }
+
+      this.instancedMesh.instanceMatrix.needsUpdate = true;
+      if (this.instancedMesh.instanceColor) {
+        this.instancedMesh.instanceColor.needsUpdate = true;
+      }
+
+      // Interpolate and update center + pivot lines of the active group during active playback
+      if (this.centerHelper) {
+        const activeConfigA = this.state.getGroupConfigForStep(this.state.activeGroup, stepA);
+        const activeConfigB = this.state.getGroupConfigForStep(this.state.activeGroup, stepB);
+        let activeCenter = new THREE.Vector3(0, 20, 0);
+        
+        if (activeConfigA && activeConfigB) {
+          activeCenter.lerpVectors(activeConfigA.center || new THREE.Vector3(0, 20, 0), activeConfigB.center || new THREE.Vector3(0, 20, 0), t);
+        }
+        
+        this.centerHelper.position.copy(activeCenter);
+        this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
+
+        if (this.state.showPivotLines && count > 0) {
+          const linePoints = [];
+          const tempDronePos = new THREE.Vector3();
+          for (let i = 0; i < count; i++) {
+            this.instancedMesh.getMatrixAt(i, dummy.matrix);
+            tempDronePos.setFromMatrixPosition(dummy.matrix);
+            linePoints.push(tempDronePos.clone());
+            linePoints.push(activeCenter.clone());
+          }
+          this.pivotLines.geometry.setFromPoints(linePoints);
+          this.pivotLines.visible = true;
+        } else {
+          this.pivotLines.visible = false;
         }
       }
     }
