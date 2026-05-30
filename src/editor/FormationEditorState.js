@@ -67,13 +67,19 @@ export class FormationEditorState {
       // Lazy initialize group config using step parameters
       step.groupConfigs[groupName] = {
         transitionMode: step.transitionMode || 'transform',
-        transitionEffect: step.transitionEffect || 'none',
+        transitionMoveEffect: step.transitionMoveEffect || step.transitionEffect || 'none',
+        transitionMoveSpeed: step.transitionMoveSpeed !== undefined ? step.transitionMoveSpeed : 1.0,
+        transitionMoveFreq: step.transitionMoveFreq !== undefined ? step.transitionMoveFreq : 1.0,
+        transitionLightEffect: step.transitionLightEffect || 'none',
+        transitionLightSpeed: step.transitionLightSpeed !== undefined ? step.transitionLightSpeed : 1.0,
+        transitionLightFreq: step.transitionLightFreq !== undefined ? step.transitionLightFreq : 1.0,
         holdMoveEffect: step.holdMoveEffect || 'none',
-        holdLightEffect: step.holdLightEffect || 'none',
         holdMoveSpeed: step.holdMoveSpeed !== undefined ? step.holdMoveSpeed : 1.0,
         holdMoveFreq: step.holdMoveFreq !== undefined ? step.holdMoveFreq : 1.0,
+        holdLightEffect: step.holdLightEffect || 'none',
         holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
         holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
+        applyLightEffect: step.applyLightEffect || 'none',
         center: step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0)
       };
     }
@@ -274,13 +280,19 @@ export class FormationEditorState {
         const cfg = activeStep.groupConfigs[gName];
         newGroupConfigs[gName] = {
           transitionMode: cfg.transitionMode || 'transform',
-          transitionEffect: cfg.transitionEffect || 'none',
+          transitionMoveEffect: cfg.transitionMoveEffect || 'none',
+          transitionMoveSpeed: cfg.transitionMoveSpeed !== undefined ? cfg.transitionMoveSpeed : 1.0,
+          transitionMoveFreq: cfg.transitionMoveFreq !== undefined ? cfg.transitionMoveFreq : 1.0,
+          transitionLightEffect: cfg.transitionLightEffect || 'none',
+          transitionLightSpeed: cfg.transitionLightSpeed !== undefined ? cfg.transitionLightSpeed : 1.0,
+          transitionLightFreq: cfg.transitionLightFreq !== undefined ? cfg.transitionLightFreq : 1.0,
           holdMoveEffect: cfg.holdMoveEffect || 'none',
-          holdLightEffect: cfg.holdLightEffect || 'none',
           holdMoveSpeed: cfg.holdMoveSpeed !== undefined ? cfg.holdMoveSpeed : 1.0,
           holdMoveFreq: cfg.holdMoveFreq !== undefined ? cfg.holdMoveFreq : 1.0,
+          holdLightEffect: cfg.holdLightEffect || 'none',
           holdLightSpeed: cfg.holdLightSpeed !== undefined ? cfg.holdLightSpeed : 1.0,
           holdLightFreq: cfg.holdLightFreq !== undefined ? cfg.holdLightFreq : 1.0,
+          applyLightEffect: cfg.applyLightEffect || 'none',
           center: cfg.center ? cfg.center.clone() : new THREE.Vector3(0, 20, 0)
         };
       }
@@ -461,13 +473,19 @@ export class FormationEditorState {
           const cfg = s.groupConfigs[gName];
           groupConfigs[gName] = {
             transitionMode: cfg.transitionMode || 'transform',
-            transitionEffect: cfg.transitionEffect || 'none',
+            transitionMoveEffect: cfg.transitionMoveEffect || cfg.transitionEffect || 'none',
+            transitionMoveSpeed: cfg.transitionMoveSpeed !== undefined ? cfg.transitionMoveSpeed : 1.0,
+            transitionMoveFreq: cfg.transitionMoveFreq !== undefined ? cfg.transitionMoveFreq : 1.0,
+            transitionLightEffect: cfg.transitionLightEffect || 'none',
+            transitionLightSpeed: cfg.transitionLightSpeed !== undefined ? cfg.transitionLightSpeed : 1.0,
+            transitionLightFreq: cfg.transitionLightFreq !== undefined ? cfg.transitionLightFreq : 1.0,
             holdMoveEffect: cfg.holdMoveEffect || 'none',
-            holdLightEffect: cfg.holdLightEffect || 'none',
             holdMoveSpeed: cfg.holdMoveSpeed !== undefined ? cfg.holdMoveSpeed : 1.0,
             holdMoveFreq: cfg.holdMoveFreq !== undefined ? cfg.holdMoveFreq : 1.0,
+            holdLightEffect: cfg.holdLightEffect || 'none',
             holdLightSpeed: cfg.holdLightSpeed !== undefined ? cfg.holdLightSpeed : 1.0,
             holdLightFreq: cfg.holdLightFreq !== undefined ? cfg.holdLightFreq : 1.0,
+            applyLightEffect: cfg.applyLightEffect || 'none',
             center: cfg.center ? new THREE.Vector3(cfg.center.x, cfg.center.y, cfg.center.z) : new THREE.Vector3(0, 20, 0)
           };
         }
@@ -547,13 +565,19 @@ export class FormationEditorState {
             const cfg = step.groupConfigs[gName];
             exportedGroupConfigs[gName] = {
               transitionMode: cfg.transitionMode,
-              transitionEffect: cfg.transitionEffect,
+              transitionMoveEffect: cfg.transitionMoveEffect || 'none',
+              transitionMoveSpeed: cfg.transitionMoveSpeed,
+              transitionMoveFreq: cfg.transitionMoveFreq,
+              transitionLightEffect: cfg.transitionLightEffect || 'none',
+              transitionLightSpeed: cfg.transitionLightSpeed,
+              transitionLightFreq: cfg.transitionLightFreq,
               holdMoveEffect: cfg.holdMoveEffect,
-              holdLightEffect: cfg.holdLightEffect,
               holdMoveSpeed: cfg.holdMoveSpeed,
               holdMoveFreq: cfg.holdMoveFreq,
+              holdLightEffect: cfg.holdLightEffect,
               holdLightSpeed: cfg.holdLightSpeed,
               holdLightFreq: cfg.holdLightFreq,
+              applyLightEffect: cfg.applyLightEffect || 'none',
               center: { x: cfg.center.x, y: cfg.center.y, z: cfg.center.z }
             };
           }
