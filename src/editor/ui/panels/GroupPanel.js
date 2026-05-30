@@ -7,7 +7,7 @@ export function renderGroupPanel() {
         <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;">Ungroup</button>
       </div>
       <button class="btn btn-secondary" id="btn-reset-group" style="margin-bottom: 10px; width: 100%; padding: 6px; font-size: 11px; background-color: #3a86ff; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📍 Reset Group Position / Center</button>
-      <div id="group-list" style="max-height: 150px; overflow-y: auto; background: #222; border: 1px solid #444; border-radius: 4px; padding: 5px;">
+      <div id="group-list" style="max-height: 350px; overflow-y: auto; background: #222; border: 1px solid #444; border-radius: 4px; padding: 5px;">
         <!-- Group items injected here -->
       </div>
     </div>

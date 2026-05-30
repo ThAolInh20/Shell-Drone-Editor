@@ -79,11 +79,10 @@ function makePanelsCollapsible() {
 
     let isCollapsed = false;
 
-    // Collapse some less frequently used panels by default to save space
+    // Collapse some less frequently used panels by default to save space (Keep Groups and Selection expanded!)
     const titleText = h3.textContent.trim().toLowerCase();
     if (
-      titleText.includes('group') ||
-      titleText.includes('selection')
+      titleText.includes('gizmo')
     ) {
       isCollapsed = true;
       contentWrapper.style.display = 'none';

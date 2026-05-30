@@ -267,8 +267,8 @@ export class FormationEditorState {
         this.center.set(0, 20, 0);
       }
 
-      this.selectedIndices.clear(); // Clear selection when changing steps
-      this.isCenterSelected = false;
+       // Keep active selection when switching steps
+       this.isCenterSelected = false;
       this.notify();
     }
   }
