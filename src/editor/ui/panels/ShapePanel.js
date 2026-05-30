@@ -252,6 +252,7 @@ export function setupShapePanel(state, director) {
           }
           j++;
         }
+        state.synchronizeGroupsToAllSteps();
         state.notify(); // Force UI color refresh if selection color changed
       }
       state.saveStateToHistory();

@@ -29,6 +29,7 @@ export function setupGroupPanel(state) {
       const current = state.particleGroups[idx] || 'Default';
       state.particleGroups[idx] = cleanName + '/' + current;
     }
+    state.synchronizeGroupsToAllSteps();
     state.saveStateToHistory();
     state.notify();
   });
@@ -48,6 +49,7 @@ export function setupGroupPanel(state) {
       }
     }
     if (changed) {
+      state.synchronizeGroupsToAllSteps();
       state.saveStateToHistory();
       state.notify();
     }
@@ -88,19 +90,20 @@ export function setupGroupPanel(state) {
                 state.particleGroups[i] = state.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
               }
             }
-            
-            // Update all steps
-            if (state.steps) {
-              for (const step of state.steps) {
-                for (let i = 0; i < step.particleGroups.length; i++) {
-                  if (step.particleGroups[i] === oldGroup) {
-                    step.particleGroups[i] = newGroup;
-                  } else if (step.particleGroups[i] && step.particleGroups[i].startsWith(oldGroup + '/')) {
-                    step.particleGroups[i] = step.particleGroups[i].replace(oldGroup + '/', newGroup + '/');
-                  }
-                }
+
+            // Rename group step properties configurations in all steps (Solution B)
+            for (const step of state.steps) {
+              if (step.groupConfigs && step.groupConfigs[oldGroup]) {
+                step.groupConfigs[newGroup] = step.groupConfigs[oldGroup];
+                delete step.groupConfigs[oldGroup];
               }
             }
+            if (state.activeGroup === oldGroup) {
+              state.activeGroup = newGroup;
+            }
+            
+            // Apply group changes to all steps
+            state.synchronizeGroupsToAllSteps();
             
             state.saveStateToHistory();
             state.notify();

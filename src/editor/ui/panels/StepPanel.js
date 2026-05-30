@@ -94,13 +94,15 @@ export function setupStepPanel(state) {
   };
 
   document.getElementById('ui-step-mode').addEventListener('change', (e) => {
-    state.steps[state.currentStepIndex].transitionMode = e.target.value;
+    state.getGroupConfig(state.activeGroup).transitionMode = e.target.value;
     state.saveCurrentStep();
+    state.notify();
   });
 
   document.getElementById('ui-step-transition').addEventListener('change', (e) => {
-    state.steps[state.currentStepIndex].transitionEffect = e.target.value;
+    state.getGroupConfig(state.activeGroup).transitionEffect = e.target.value;
     state.saveCurrentStep();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-time').addEventListener('change', (e) => {
@@ -124,59 +126,67 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-hold-move-effect').addEventListener('change', (e) => {
-    state.steps[state.currentStepIndex].holdMoveEffect = e.target.value;
+    state.getGroupConfig(state.activeGroup).holdMoveEffect = e.target.value;
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-light-effect').addEventListener('change', (e) => {
-    state.steps[state.currentStepIndex].holdLightEffect = e.target.value;
+    state.getGroupConfig(state.activeGroup).holdLightEffect = e.target.value;
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-move-speed')?.addEventListener('input', (e) => {
-    state.steps[state.currentStepIndex].holdMoveSpeed = parseFloat(e.target.value);
+    state.getGroupConfig(state.activeGroup).holdMoveSpeed = parseFloat(e.target.value);
     const span = document.getElementById('val-step-hold-move-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-move-freq')?.addEventListener('input', (e) => {
-    state.steps[state.currentStepIndex].holdMoveFreq = parseFloat(e.target.value);
+    state.getGroupConfig(state.activeGroup).holdMoveFreq = parseFloat(e.target.value);
     const span = document.getElementById('val-step-hold-move-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-light-speed')?.addEventListener('input', (e) => {
-    state.steps[state.currentStepIndex].holdLightSpeed = parseFloat(e.target.value);
+    state.getGroupConfig(state.activeGroup).holdLightSpeed = parseFloat(e.target.value);
     const span = document.getElementById('val-step-hold-light-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
+    state.notify();
   });
 
   document.getElementById('ui-step-hold-light-freq')?.addEventListener('input', (e) => {
-    state.steps[state.currentStepIndex].holdLightFreq = parseFloat(e.target.value);
+    state.getGroupConfig(state.activeGroup).holdLightFreq = parseFloat(e.target.value);
     const span = document.getElementById('val-step-hold-light-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
+    state.notify();
   });
 
   state.subscribe(() => {
     const currentStep = state.steps[state.currentStepIndex];
     if (currentStep) {
+      const activeCfg = state.getGroupConfig(state.activeGroup);
+
       const stepModeEl = document.getElementById('ui-step-mode');
       const stepTransEl = document.getElementById('ui-step-transition');
       const stepHoldTimeEl = document.getElementById('ui-step-hold-time');
       const stepHoldMoveEffEl = document.getElementById('ui-step-hold-move-effect');
       const stepHoldLightEffEl = document.getElementById('ui-step-hold-light-effect');
 
-      if (stepModeEl && document.activeElement !== stepModeEl) stepModeEl.value = currentStep.transitionMode || 'transform';
-      if (stepTransEl && document.activeElement !== stepTransEl) stepTransEl.value = currentStep.transitionEffect || 'none';
+      if (stepModeEl && document.activeElement !== stepModeEl) stepModeEl.value = activeCfg.transitionMode || 'transform';
+      if (stepTransEl && document.activeElement !== stepTransEl) stepTransEl.value = activeCfg.transitionEffect || 'none';
       if (stepHoldTimeEl && document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
-      if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = currentStep.holdMoveEffect || 'none';
-      if (stepHoldLightEffEl && document.activeElement !== stepHoldLightEffEl) stepHoldLightEffEl.value = currentStep.holdLightEffect || 'none';
+      if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = activeCfg.holdMoveEffect || 'none';
+      if (stepHoldLightEffEl && document.activeElement !== stepHoldLightEffEl) stepHoldLightEffEl.value = activeCfg.holdLightEffect || 'none';
 
       // Update range inputs
       const stepHoldMoveSpeedEl = document.getElementById('ui-step-hold-move-speed');
@@ -189,10 +199,10 @@ export function setupStepPanel(state) {
       const valHoldLightSpeedEl = document.getElementById('val-step-hold-light-speed');
       const valHoldLightFreqEl = document.getElementById('val-step-hold-light-freq');
 
-      const moveSpeed = currentStep.holdMoveSpeed !== undefined ? currentStep.holdMoveSpeed : 1.0;
-      const moveFreq = currentStep.holdMoveFreq !== undefined ? currentStep.holdMoveFreq : 1.0;
-      const lightSpeed = currentStep.holdLightSpeed !== undefined ? currentStep.holdLightSpeed : 1.0;
-      const lightFreq = currentStep.holdLightFreq !== undefined ? currentStep.holdLightFreq : 1.0;
+      const moveSpeed = activeCfg.holdMoveSpeed !== undefined ? activeCfg.holdMoveSpeed : 1.0;
+      const moveFreq = activeCfg.holdMoveFreq !== undefined ? activeCfg.holdMoveFreq : 1.0;
+      const lightSpeed = activeCfg.holdLightSpeed !== undefined ? activeCfg.holdLightSpeed : 1.0;
+      const lightFreq = activeCfg.holdLightFreq !== undefined ? activeCfg.holdLightFreq : 1.0;
 
       if (stepHoldMoveSpeedEl && document.activeElement !== stepHoldMoveSpeedEl) {
         stepHoldMoveSpeedEl.value = moveSpeed;
