@@ -480,6 +480,37 @@ export class EditorDirector {
         return col;
       };
 
+      // Helper function to apply color spreading/distribution style
+      const applyColorSpreading = (effectType, baseColor, dummyPos, centerPos, speed, freq, fade, index) => {
+        const col = baseColor.clone();
+        if (effectType === 'none' || !effectType || fade <= 0.001) return col;
+
+        if (effectType === 'radial') {
+          const dist = dummyPos.distanceTo(centerPos);
+          const wave = Math.sin(dist * 0.2 - age * 5.0 * speed) * 0.5 + 0.5;
+          const baseHSL = {};
+          col.getHSL(baseHSL);
+          const hueShift = (dist * 0.015 * freq) % 1.0;
+          const targetHSLColor = new THREE.Color().setHSL((baseHSL.h + hueShift) % 1.0, baseHSL.s, baseHSL.l);
+          col.lerp(targetHSLColor, fade * 0.8);
+          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.4 + 0.6 * wave, fade * 0.5));
+        } else if (effectType === 'linear-lr') {
+          const relX = dummyPos.x - centerPos.x;
+          const wave = Math.sin(relX * 0.15 - age * 4.0 * speed) * 0.5 + 0.5;
+          const baseHSL = {};
+          col.getHSL(baseHSL);
+          const hueShift = (relX * 0.01 * freq) % 1.0;
+          const targetHSLColor = new THREE.Color().setHSL((baseHSL.h + hueShift) % 1.0, baseHSL.s, baseHSL.l);
+          col.lerp(targetHSLColor, fade * 0.8);
+          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.4 + 0.6 * wave, fade * 0.5));
+        } else if (effectType === 'fade-in') {
+          const breathe = Math.sin(age * 2.5 * speed) * 0.5 + 0.5;
+          col.multiplyScalar(THREE.MathUtils.lerp(1.0, 0.15 + 0.85 * breathe, fade));
+        }
+
+        return col;
+      };
+
       for (let i = 0; i < count; i++) {
         const group = this.state.particleGroups[i] || 'Default';
         const configA = this.state.getGroupConfigForStep(group, stepA);
@@ -493,7 +524,7 @@ export class EditorDirector {
         const posA = stepA.positions[i] || this.state.positions[i];
         const posB = stepB.positions[i] || posA;
 
-        // Interpolate Move speed and frequency
+        // Interpolate Hold Move speed and frequency
         const speedMoveA = configA.holdMoveSpeed !== undefined ? configA.holdMoveSpeed : 1.0;
         const speedMoveB = configB.holdMoveSpeed !== undefined ? configB.holdMoveSpeed : 1.0;
         const currentMoveSpeed = THREE.MathUtils.lerp(speedMoveA, speedMoveB, t);
@@ -502,7 +533,7 @@ export class EditorDirector {
         const freqMoveB = configB.holdMoveFreq !== undefined ? configB.holdMoveFreq : 1.0;
         const currentMoveFreq = THREE.MathUtils.lerp(freqMoveA, freqMoveB, t);
 
-        // Interpolate Light speed and frequency
+        // Interpolate Hold Light speed and frequency
         const speedLightA = configA.holdLightSpeed !== undefined ? configA.holdLightSpeed : 1.0;
         const speedLightB = configB.holdLightSpeed !== undefined ? configB.holdLightSpeed : 1.0;
         const currentLightSpeed = THREE.MathUtils.lerp(speedLightA, speedLightB, t);
@@ -511,28 +542,47 @@ export class EditorDirector {
         const freqLightB = configB.holdLightFreq !== undefined ? configB.holdLightFreq : 1.0;
         const currentLightFreq = THREE.MathUtils.lerp(freqLightA, freqLightB, t);
 
-        // Apply transition mode
-        const transEff = configA.transitionEffect || 'none';
+        // Interpolate Transition Move speed and frequency
+        const transMoveSpeedA = configA.transitionMoveSpeed !== undefined ? configA.transitionMoveSpeed : 1.0;
+        const transMoveSpeedB = configB.transitionMoveSpeed !== undefined ? configB.transitionMoveSpeed : 1.0;
+        const currentTransMoveSpeed = THREE.MathUtils.lerp(transMoveSpeedA, transMoveSpeedB, t);
+
+        const transMoveFreqA = configA.transitionMoveFreq !== undefined ? configA.transitionMoveFreq : 1.0;
+        const transMoveFreqB = configB.transitionMoveFreq !== undefined ? configB.transitionMoveFreq : 1.0;
+        const currentTransMoveFreq = THREE.MathUtils.lerp(transMoveFreqA, transMoveFreqB, t);
+
+        // Interpolate Transition Light speed and frequency
+        const transLightSpeedA = configA.transitionLightSpeed !== undefined ? configA.transitionLightSpeed : 1.0;
+        const transLightSpeedB = configB.transitionLightSpeed !== undefined ? configB.transitionLightSpeed : 1.0;
+        const currentTransLightSpeed = THREE.MathUtils.lerp(transLightSpeedA, transLightSpeedB, t);
+
+        const transLightFreqA = configA.transitionLightFreq !== undefined ? configA.transitionLightFreq : 1.0;
+        const transLightFreqB = configB.transitionLightFreq !== undefined ? configB.transitionLightFreq : 1.0;
+        const currentTransLightFreq = THREE.MathUtils.lerp(transLightFreqA, transLightFreqB, t);
+
+        // Apply transition mode & effects
+        const transMoveEff = configA.transitionMoveEffect || 'none';
+        const transLightEff = configA.transitionLightEffect || 'none';
         const mode = configB.transitionMode || 'transform';
 
         let basePos = new THREE.Vector3();
 
-        if (transEff === 'arc' && t > 0.01 && t < 0.99) {
+        if (transMoveEff === 'arc' && t > 0.01 && t < 0.99) {
           basePos.lerpVectors(posA, posB, t);
           const dist = posA.distanceTo(posB);
           const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
           basePos.y += arcHeight;
-        } else if (transEff === 'spiral' && t > 0.01 && t < 0.99) {
+        } else if (transMoveEff === 'spiral' && t > 0.01 && t < 0.99) {
           const relA = new THREE.Vector3().subVectors(posA, centerA);
           const relB = new THREE.Vector3().subVectors(posB, centerB);
           const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-          const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentMoveSpeed;
+          const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentTransMoveSpeed;
           const cos = Math.cos(spinAngle);
           const sin = Math.sin(spinAngle);
           const rx = relPos.x * cos - relPos.z * sin;
           const rz = relPos.x * sin + relPos.z * cos;
           basePos.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
-        } else if (transEff === 'wave-delay' && t > 0.01 && t < 0.99) {
+        } else if (transMoveEff === 'wave-delay' && t > 0.01 && t < 0.99) {
           const delay = (i % 10) * 0.04;
           let localT = (t - delay) / (1.0 - 0.36);
           localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
@@ -569,10 +619,10 @@ export class EditorDirector {
         let blendedScale = (resA.scaleFactor - 1.0) * fadeA + (resB.scaleFactor - 1.0) * fadeB + 1.0;
 
         // Apply transition movement effect if active (fades in and out during transition)
-        const isTransMove = ['wave', 'swing', 'pulse'].includes(transEff);
+        const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
         if (isTransMove && t > 0.01 && t < 0.99) {
           const fadeTrans = Math.sin(t * Math.PI);
-          const resTrans = getMoveEffectOffset(transEff, basePos, currentCenter, currentMoveSpeed, currentMoveFreq, i);
+          const resTrans = getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i);
           blendedOffset.add(resTrans.offset.clone().multiplyScalar(fadeTrans));
           blendedScale += (resTrans.scaleFactor - 1.0) * fadeTrans;
         }
@@ -589,15 +639,23 @@ export class EditorDirector {
         const holdLightEffectA = (configA.holdLightEffect && configA.holdLightEffect !== 'none') ? configA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
         const holdLightEffectB = (configB.holdLightEffect && configB.holdLightEffect !== 'none') ? configB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
 
+        // Apply light hold effects with smooth cross-fade
         const colHoldA = getLightEffectColor(holdLightEffectA, colA, speedLightA, freqLightA, dummy.position, centerA, fadeA, i);
         const colHoldB = getLightEffectColor(holdLightEffectB, colB, speedLightB, freqLightB, dummy.position, centerB, fadeB, i);
 
-        color.copy(colHoldA).lerp(colHoldB, t);
+        // Apply dynamic color spreading/gradient distribution
+        const applyLightEffA = configA.applyLightEffect || 'none';
+        const applyLightEffB = configB.applyLightEffect || 'none';
+        const colSpreadA = applyColorSpreading(applyLightEffA, colHoldA, dummy.position, centerA, speedLightA, freqLightA, fadeA, i);
+        const colSpreadB = applyColorSpreading(applyLightEffB, colHoldB, dummy.position, centerB, speedLightB, freqLightB, fadeB, i);
 
-        const isTransLight = ['strobe', 'shimmer'].includes(transEff);
+        color.copy(colSpreadA).lerp(colSpreadB, t);
+
+        // Apply transition light effect if active (fades in and out during transition)
+        const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light'].includes(transLightEff);
         if (isTransLight && t > 0.01 && t < 0.99) {
           const fadeTrans = Math.sin(t * Math.PI);
-          const transCol = getLightEffectColor(transEff, color, currentLightSpeed, currentLightFreq, dummy.position, currentCenter, fadeTrans, i);
+          const transCol = getLightEffectColor(transLightEff, color, currentTransLightSpeed, currentTransLightFreq, dummy.position, currentCenter, fadeTrans, i);
           color.copy(transCol);
         }
 
