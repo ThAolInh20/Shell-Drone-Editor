@@ -396,6 +396,90 @@ export class EditorDirector {
       const count = this.state.positions.length;
       const age = this.state.playbackTime / 1000; // in seconds
 
+      const fadeA = 1.0 - t;
+      const fadeB = t;
+
+      // Helper function to calculate the offset and scale factor of a movement effect
+      const getMoveEffectOffset = (effectType, basePos, centerPos, speed, freq, index) => {
+        const offset = new THREE.Vector3();
+        let scaleFactor = 1.0;
+        if (effectType === 'none' || !effectType) return { offset, scaleFactor };
+
+        if (effectType === 'wave') {
+          offset.y = Math.sin(age * 3.0 * speed + (index * 0.1)) * 2.0 * freq;
+        } else if (effectType === 'swing') {
+          offset.x = Math.sin(age * 2.0 * speed + (index * 0.1)) * 2.5 * freq;
+        } else if (effectType === 'pulse') {
+          scaleFactor = 1.0 + Math.sin(age * Math.PI * 2 * speed + (index * 0.1)) * 0.5 * freq;
+        } else if (effectType === 'orbit' || effectType === 'spiral') {
+          const toDrone = new THREE.Vector3().subVectors(basePos, centerPos);
+          let angle = age * 0.6 * speed;
+          let radiusScale = 1.0;
+
+          if (effectType === 'spiral') {
+            const dist = toDrone.length();
+            radiusScale = 1.0 + Math.sin(age * 2.0 * speed - dist * 0.05) * 0.15 * freq;
+            angle += dist * 0.02 * freq;
+          }
+
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const rx = toDrone.x * cos - toDrone.z * sin;
+          const rz = toDrone.x * sin + toDrone.z * cos;
+
+          const rotatedPos = new THREE.Vector3(
+            centerPos.x + rx * radiusScale,
+            basePos.y,
+            centerPos.z + rz * radiusScale
+          );
+          offset.subVectors(rotatedPos, basePos);
+        } else if (effectType === 'expand') {
+          const toDrone = new THREE.Vector3().subVectors(basePos, centerPos);
+          const pulseScale = 1.0 + Math.sin(age * 3.0 * speed) * 0.2 * freq;
+          const expandedPos = new THREE.Vector3(
+            centerPos.x + toDrone.x * pulseScale,
+            basePos.y,
+            centerPos.z + toDrone.z * pulseScale
+          );
+          offset.subVectors(expandedPos, basePos);
+        }
+
+        return { offset, scaleFactor };
+      };
+
+      // Helper function to apply light effects smoothly
+      const getLightEffectColor = (effectType, baseColor, speed, freq, dummyPos, centerPos, fade, index) => {
+        const col = baseColor.clone();
+        if (effectType === 'none' || !effectType || fade <= 0.001) return col;
+
+        if (effectType === 'strobe') {
+          const p = Math.sin(age * 15.0 * speed + (index * 0.5));
+          const factor = p < 0 ? (1.0 - 0.9 * freq) : 1.0;
+          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+          col.multiplyScalar(blendedFactor);
+        } else if (effectType === 'shimmer') {
+          const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * freq * Math.sin(age * 10 * speed);
+          const factor = Math.max(0, flicker);
+          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+          col.multiplyScalar(blendedFactor);
+        } else if (effectType === 'pulse-color') {
+          const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * Math.PI * 2.0 * speed + (index * 0.1));
+          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+          col.multiplyScalar(blendedFactor);
+        } else if (effectType === 'rainbow') {
+          const hue = (age * 0.1 * speed + (index * 0.01 * freq)) % 1.0;
+          const rainbowCol = new THREE.Color().setHSL(hue, 1.0, 0.5);
+          col.lerp(rainbowCol, fade);
+        } else if (effectType === 'wave-light') {
+          const dist = dummyPos.distanceTo(centerPos);
+          const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * 5.0 * speed - dist * 0.2);
+          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+          col.multiplyScalar(blendedFactor);
+        }
+
+        return col;
+      };
+
       for (let i = 0; i < count; i++) {
         const group = this.state.particleGroups[i] || 'Default';
         const configA = this.state.getGroupConfigForStep(group, stepA);
@@ -427,15 +511,17 @@ export class EditorDirector {
         const freqLightB = configB.holdLightFreq !== undefined ? configB.holdLightFreq : 1.0;
         const currentLightFreq = THREE.MathUtils.lerp(freqLightA, freqLightB, t);
 
-        // Apply transition mode & effects
+        // Apply transition mode
         const transEff = configA.transitionEffect || 'none';
         const mode = configB.transitionMode || 'transform';
 
+        let basePos = new THREE.Vector3();
+
         if (transEff === 'arc' && t > 0.01 && t < 0.99) {
-          dummy.position.lerpVectors(posA, posB, t);
+          basePos.lerpVectors(posA, posB, t);
           const dist = posA.distanceTo(posB);
           const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
-          dummy.position.y += arcHeight;
+          basePos.y += arcHeight;
         } else if (transEff === 'spiral' && t > 0.01 && t < 0.99) {
           const relA = new THREE.Vector3().subVectors(posA, centerA);
           const relB = new THREE.Vector3().subVectors(posB, centerB);
@@ -445,123 +531,74 @@ export class EditorDirector {
           const sin = Math.sin(spinAngle);
           const rx = relPos.x * cos - relPos.z * sin;
           const rz = relPos.x * sin + relPos.z * cos;
-          dummy.position.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
+          basePos.set(currentCenter.x + rx, currentCenter.y + relPos.y, currentCenter.z + rz);
         } else if (transEff === 'wave-delay' && t > 0.01 && t < 0.99) {
           const delay = (i % 10) * 0.04;
           let localT = (t - delay) / (1.0 - 0.36);
           localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
           localT = localT * localT * (3 - 2 * localT);
-          dummy.position.lerpVectors(posA, posB, localT);
+          basePos.lerpVectors(posA, posB, localT);
         } else {
           // Default transition mode (transform vs move)
           if (mode === 'move') {
             const relA = new THREE.Vector3().subVectors(posA, centerA);
             const relB = new THREE.Vector3().subVectors(posB, centerB);
             const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-            dummy.position.addVectors(currentCenter, relPos);
+            basePos.addVectors(currentCenter, relPos);
           } else {
-            dummy.position.lerpVectors(posA, posB, t);
+            basePos.lerpVectors(posA, posB, t);
           }
         }
 
-        dummy.scale.set(1, 1, 1);
-
-        // Apply mathematical effects
+        // Apply mathematical effects with smooth transition (fading)
         const droneEffectA = stepA.effects ? (stepA.effects[i] || 'none') : 'none';
         const droneEffectB = stepB.effects ? (stepB.effects[i] || 'none') : 'none';
 
-        // 1. Phân tích Chuyển động (Movement Effect)
         const holdMoveEffectA = (configA.holdMoveEffect && configA.holdMoveEffect !== 'none') ? configA.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectA) ? droneEffectA : 'none');
         const holdMoveEffectB = (configB.holdMoveEffect && configB.holdMoveEffect !== 'none') ? configB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
 
-        let currentMoveEffect = 'none';
-        if (t > 0.01 && t < 0.99) {
-          const transEff = configA.transitionEffect || 'none';
-          currentMoveEffect = ['wave', 'swing', 'pulse'].includes(transEff) ? transEff : 'none';
-        } else if (t <= 0.01) {
-          currentMoveEffect = holdMoveEffectA;
-        } else {
-          currentMoveEffect = holdMoveEffectB;
+        // Calculate blended hold movement offsets
+        const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i);
+        const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i);
+
+        const blendedOffset = new THREE.Vector3().addVectors(
+          resA.offset.clone().multiplyScalar(fadeA),
+          resB.offset.clone().multiplyScalar(fadeB)
+        );
+
+        let blendedScale = (resA.scaleFactor - 1.0) * fadeA + (resB.scaleFactor - 1.0) * fadeB + 1.0;
+
+        // Apply transition movement effect if active (fades in and out during transition)
+        const isTransMove = ['wave', 'swing', 'pulse'].includes(transEff);
+        if (isTransMove && t > 0.01 && t < 0.99) {
+          const fadeTrans = Math.sin(t * Math.PI);
+          const resTrans = getMoveEffectOffset(transEff, basePos, currentCenter, currentMoveSpeed, currentMoveFreq, i);
+          blendedOffset.add(resTrans.offset.clone().multiplyScalar(fadeTrans));
+          blendedScale += (resTrans.scaleFactor - 1.0) * fadeTrans;
         }
 
-        // 2. Phân tích Ánh sáng (Light Effect)
-        const holdLightEffectA = (configA.holdLightEffect && configA.holdLightEffect !== 'none') ? configA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
-        const holdLightEffectB = (configB.holdLightEffect && configB.holdLightEffect !== 'none') ? configB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
-
-        let currentLightEffect = 'none';
-        if (t > 0.01 && t < 0.99) {
-          const transEff = configA.transitionEffect || 'none';
-          currentLightEffect = ['strobe', 'shimmer'].includes(transEff) ? transEff : 'none';
-        } else if (t <= 0.01) {
-          currentLightEffect = holdLightEffectA;
-        } else {
-          currentLightEffect = holdLightEffectB;
-        }
-
-        // --- ÁP DỤNG HIỆU ỨNG DI CHUYỂN (MOVEMENT EFFECT) ---
-        if (currentMoveEffect === 'wave') {
-          dummy.position.y += Math.sin(age * 3.0 * currentMoveSpeed + (i * 0.1)) * 2.0 * currentMoveFreq;
-        } else if (currentMoveEffect === 'swing') {
-          dummy.position.x += Math.sin(age * 2.0 * currentMoveSpeed + (i * 0.1)) * 2.5 * currentMoveFreq;
-        } else if (currentMoveEffect === 'pulse') {
-          const p = 1.0 + Math.sin(age * Math.PI * 2 * currentMoveSpeed + (i * 0.1)) * 0.5 * currentMoveFreq;
-          dummy.scale.set(p, p, p);
-        } else if (currentMoveEffect === 'orbit' || currentMoveEffect === 'spiral') {
-          const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
-          let angle = age * 0.6 * currentMoveSpeed; // Rotation speed
-          let radiusScale = 1.0;
-
-          if (currentMoveEffect === 'spiral') {
-            const dist = toDrone.length();
-            radiusScale = 1.0 + Math.sin(age * 2.0 * currentMoveSpeed - dist * 0.05) * 0.15 * currentMoveFreq;
-            angle += dist * 0.02 * currentMoveFreq; // Twist spiral
-          }
-
-          const cos = Math.cos(angle);
-          const sin = Math.sin(angle);
-          const rx = toDrone.x * cos - toDrone.z * sin;
-          const rz = toDrone.x * sin + toDrone.z * cos;
-
-          dummy.position.set(
-            currentCenter.x + rx * radiusScale,
-            dummy.position.y, // Maintain current height
-            currentCenter.z + rz * radiusScale
-          );
-        } else if (currentMoveEffect === 'expand') {
-          const toDrone = new THREE.Vector3().subVectors(dummy.position, currentCenter);
-          const pulseScale = 1.0 + Math.sin(age * 3.0 * currentMoveSpeed) * 0.2 * currentMoveFreq;
-
-          dummy.position.set(
-            currentCenter.x + toDrone.x * pulseScale,
-            dummy.position.y,
-            currentCenter.z + toDrone.z * pulseScale
-          );
-        }
-
+        dummy.position.addVectors(basePos, blendedOffset);
+        dummy.scale.set(blendedScale, blendedScale, blendedScale);
         dummy.updateMatrix();
         this.instancedMesh.setMatrixAt(i, dummy.matrix);
 
         // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
         const colA = (configA.colors && configA.colors[i]) ? configA.colors[i] : this.state.colors[i];
         const colB = (configB.colors && configB.colors[i]) ? configB.colors[i] : colA;
-        color.copy(colA).lerp(colB, t);
 
-        if (currentLightEffect === 'strobe') {
-          const p = Math.sin(age * 15.0 * currentLightSpeed + (i * 0.5));
-          if (p < 0) color.multiplyScalar(1.0 - 0.9 * currentLightFreq);
-        } else if (currentLightEffect === 'shimmer') {
-          const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * currentLightFreq * Math.sin(age * 10 * currentLightSpeed);
-          color.multiplyScalar(Math.max(0, flicker));
-        } else if (currentLightEffect === 'pulse-color') {
-          const factor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * Math.PI * 2.0 * currentLightSpeed + (i * 0.1));
-          color.multiplyScalar(factor);
-        } else if (currentLightEffect === 'rainbow') {
-          const hue = (age * 0.1 * currentLightSpeed + (i * 0.01 * currentLightFreq)) % 1.0;
-          color.setHSL(hue, 1.0, 0.5);
-        } else if (currentLightEffect === 'wave-light') {
-          const dist = dummy.position.distanceTo(currentCenter);
-          const waveFactor = (1.0 - 0.5 * currentLightFreq) + (0.5 * currentLightFreq) * Math.sin(age * 5.0 * currentLightSpeed - dist * 0.2);
-          color.multiplyScalar(waveFactor);
+        const holdLightEffectA = (configA.holdLightEffect && configA.holdLightEffect !== 'none') ? configA.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectA) ? droneEffectA : 'none');
+        const holdLightEffectB = (configB.holdLightEffect && configB.holdLightEffect !== 'none') ? configB.holdLightEffect : (['strobe', 'shimmer'].includes(droneEffectB) ? droneEffectB : 'none');
+
+        const colHoldA = getLightEffectColor(holdLightEffectA, colA, speedLightA, freqLightA, dummy.position, centerA, fadeA, i);
+        const colHoldB = getLightEffectColor(holdLightEffectB, colB, speedLightB, freqLightB, dummy.position, centerB, fadeB, i);
+
+        color.copy(colHoldA).lerp(colHoldB, t);
+
+        const isTransLight = ['strobe', 'shimmer'].includes(transEff);
+        if (isTransLight && t > 0.01 && t < 0.99) {
+          const fadeTrans = Math.sin(t * Math.PI);
+          const transCol = getLightEffectColor(transEff, color, currentLightSpeed, currentLightFreq, dummy.position, currentCenter, fadeTrans, i);
+          color.copy(transCol);
         }
 
         this.instancedMesh.setColorAt(i, color);
