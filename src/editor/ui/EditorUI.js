@@ -1,5 +1,4 @@
 import { renderFilePanel, setupFilePanel } from './panels/FilePanel.js';
-import { renderShapePanel, setupShapePanel } from './panels/ShapePanel.js';
 import { renderGroupPanel, setupGroupPanel } from './panels/GroupPanel.js';
 import { renderGizmoPanel, setupGizmoPanel } from './panels/GizmoPanel.js';
 import { renderSelectionPanel, setupSelectionPanel } from './panels/SelectionPanel.js';
@@ -14,7 +13,6 @@ export function setupEditorUI(state, director) {
   leftContainer.innerHTML = `
     <h2>Drone Editor</h2>
     ${renderFilePanel()}
-    ${renderShapePanel()}
     ${renderGroupPanel()}
   `;
 
@@ -29,7 +27,6 @@ export function setupEditorUI(state, director) {
 
   // Bind Events & Logic
   setupFilePanel(state);
-  setupShapePanel(state, director);
   setupGroupPanel(state);
   setupGizmoPanel(state, director);
   setupSelectionPanel(state);
