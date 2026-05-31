@@ -344,7 +344,7 @@ export class EditorDirector {
 
     if (this.state.isPlaying && this.instancedMesh) {
       this.state.playbackTime += deltaTime * 1000;
-      
+
       const maxTime = this.state.getMaxPlaybackTime();
 
       const timeDiv = document.getElementById('playback-time');
@@ -690,11 +690,11 @@ export class EditorDirector {
         const activeConfigA = this.state.getGroupConfigForStep(this.state.activeGroup, stepA);
         const activeConfigB = this.state.getGroupConfigForStep(this.state.activeGroup, stepB);
         let activeCenter = new THREE.Vector3(0, 20, 0);
-        
+
         if (activeConfigA && activeConfigB) {
           activeCenter.lerpVectors(activeConfigA.center || new THREE.Vector3(0, 20, 0), activeConfigB.center || new THREE.Vector3(0, 20, 0), t);
         }
-        
+
         this.centerHelper.position.copy(activeCenter);
         this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
 
@@ -786,6 +786,30 @@ export class EditorDirector {
       });
 
       menu.appendChild(item2);
+    }
+
+    // 3D Volume Spawner from Selected Group Option
+    if (selectedArray.length > 0) {
+      const item3 = document.createElement('div');
+      item3.textContent = '🧬 Sinh khối 3D từ nhóm chọn...';
+      item3.style.padding = '8px 15px';
+      item3.style.color = '#ff00ff';
+      item3.style.cursor = 'pointer';
+      item3.style.fontSize = '12px';
+      item3.style.fontWeight = 'bold';
+      item3.style.borderTop = '1px dashed #444';
+      item3.style.transition = 'background 0.2s';
+
+      item3.addEventListener('mouseover', () => item3.style.background = 'rgba(255, 0, 255, 0.2)');
+      item3.addEventListener('mouseout', () => item3.style.background = 'transparent');
+
+      item3.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('viewport-context-menu')?.remove();
+        this.showVolumeSpawnModal(selectedArray);
+      });
+
+      menu.appendChild(item3);
     }
 
     document.body.appendChild(menu);
@@ -999,6 +1023,237 @@ export class EditorDirector {
     document.body.appendChild(overlay);
   }
 
+  showVolumeSpawnModal(selectedIndices) {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0,0,0,0.7)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999';
+
+    // Prevent propagation
+    overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    // Modal
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #ff00ff'; // Neon Magenta theme
+    modal.style.boxShadow = '0 15px 30px rgba(255, 0, 255, 0.2)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '360px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '12px';
+
+    // Title
+    const titleEl = document.createElement('div');
+    titleEl.textContent = '🧬 Sinh khối 3D từ nhóm chọn';
+    titleEl.style.color = '#fff';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '16px';
+    titleEl.style.borderBottom = '1px solid #333';
+    titleEl.style.paddingBottom = '8px';
+    modal.appendChild(titleEl);
+
+    // Form content
+    let formHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Loại khối 3D</label>
+          <select id="modal-vol-type" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;">
+            <option value="cylinder">Trụ xoay tròn (Cylinder)</option>
+            <option value="radial">Xếp vòng tròn cứng (Radial Circle)</option>
+            <option value="cube">Khối tịnh tiến (Cube/Grid)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Số lượng bản sao</label>
+          <input type="number" id="modal-vol-copies" value="5" min="1" max="100" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <!-- Dynamic Cylinder Section -->
+        <div id="section-cylinder" style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Góc xoay tối đa (°)</label>
+            <input type="number" id="modal-vol-angle" value="360" min="1" max="360" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Trụ xoắn Y (Spiral offset)</label>
+            <input type="number" id="modal-vol-spiral" value="0" step="0.5" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+        </div>
+
+        <!-- Dynamic Radial Section -->
+        <div id="section-radial" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Bán kính R (0 = Tự động)</label>
+            <input type="number" id="modal-vol-radius" value="0" min="0" max="500" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Xoay theo vòng tròn</label>
+            <input type="checkbox" id="modal-vol-rotateout" checked style="cursor: pointer;" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Góc xoay tối đa (°)</label>
+            <input type="number" id="modal-vol-radial-angle" value="360" min="1" max="360" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+        </div>
+
+        <!-- Dynamic Cube Section -->
+        <div id="section-cube" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Offset X (m)</label>
+            <input type="number" id="modal-vol-offsetx" value="0" step="0.5" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Offset Y (m)</label>
+            <input type="number" id="modal-vol-offsety" value="5" step="0.5" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 12px; color: #ccc;">Offset Z (m)</label>
+            <input type="number" id="modal-vol-offsetz" value="0" step="0.5" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+          </div>
+        </div>
+      </div>
+    `;
+
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = formHTML;
+    modal.appendChild(formDiv);
+
+    const typeSelect = modal.querySelector('#modal-vol-type');
+    const secCylinder = modal.querySelector('#section-cylinder');
+    const secRadial = modal.querySelector('#section-radial');
+    const secCube = modal.querySelector('#section-cube');
+
+    typeSelect.addEventListener('change', () => {
+      if (typeSelect.value === 'cylinder') {
+        secCylinder.style.display = 'flex';
+        secRadial.style.display = 'none';
+        secCube.style.display = 'none';
+      } else if (typeSelect.value === 'radial') {
+        secCylinder.style.display = 'none';
+        secRadial.style.display = 'flex';
+        secCube.style.display = 'none';
+      } else {
+        secCylinder.style.display = 'none';
+        secRadial.style.display = 'none';
+        secCube.style.display = 'flex';
+      }
+    });
+
+    // Buttons Container
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+    btns.style.marginTop = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Huỷ';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'Sinh ngay';
+    okBtn.style.background = '#ff00ff'; // Neon Magenta
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#fff';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+    okBtn.style.boxShadow = '0 0 10px rgba(255, 0, 255, 0.4)';
+
+    okBtn.addEventListener('click', () => {
+      const volType = typeSelect.value;
+      const copiesCount = parseInt(modal.querySelector('#modal-vol-copies').value, 10) || 5;
+
+      const params = {};
+      if (volType === 'cylinder') {
+        params.maxAngle = parseFloat(modal.querySelector('#modal-vol-angle').value) || 360;
+        params.spiralOffset = parseFloat(modal.querySelector('#modal-vol-spiral').value) || 0;
+      } else if (volType === 'radial') {
+        params.radius = parseFloat(modal.querySelector('#modal-vol-radius').value) || 10;
+        params.rotateOutward = modal.querySelector('#modal-vol-rotateout').checked;
+        params.maxAngle = parseFloat(modal.querySelector('#modal-vol-radial-angle').value) || 360;
+      } else {
+        params.offsetX = parseFloat(modal.querySelector('#modal-vol-offsetx').value) || 0;
+        params.offsetY = parseFloat(modal.querySelector('#modal-vol-offsety').value) || 0;
+        params.offsetZ = parseFloat(modal.querySelector('#modal-vol-offsetz').value) || 0;
+      }
+
+      // Collect source positions and colors from the selected indices
+      const srcPositions = [];
+      const srcColors = [];
+      for (const idx of selectedIndices) {
+        srcPositions.push(this.state.positions[idx]);
+        srcColors.push(this.state.colors[idx]);
+      }
+
+      // Generate the 3D volume
+      const generated = DroneFormationFactory.generateVolumeFromGroup(srcPositions, srcColors, volType, copiesCount, params);
+
+      // Parent/Original group name is preserved
+      const originalGroup = this.state.particleGroups[selectedIndices[0]] || 'Default';
+      const startIndex = this.state.positions.length;
+
+      // Inject into active memory
+      for (let i = 0; i < generated.positions.length; i++) {
+        this.state.positions.push(generated.positions[i]);
+        this.state.colors.push(generated.colors[i]);
+        this.state.particleGroups.push(originalGroup);
+        this.state.effects.push('none');
+      }
+
+      // Inject into all other steps to keep indices aligned across the timeline!
+      for (let sIndex = 0; sIndex < this.state.steps.length; sIndex++) {
+        if (sIndex === this.state.currentStepIndex) continue;
+        const step = this.state.steps[sIndex];
+        for (let i = 0; i < generated.positions.length; i++) {
+          step.positions.push(generated.positions[i].clone());
+          step.colors.push(generated.colors[i].clone());
+          step.particleGroups.push(originalGroup);
+          if (!step.effects) step.effects = [];
+          step.effects.push('none');
+        }
+      }
+
+      // Keep original selection plus new spawned indices inside the same group
+      for (let i = startIndex; i < this.state.positions.length; i++) {
+        this.state.selectedIndices.add(i);
+      }
+
+      this.state.saveCurrentStep();
+      this.state.saveStateToHistory();
+      this.state.notify();
+
+      overlay.remove();
+    });
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
   showFormationShapingModal(hasSelection) {
     // Create overlay
     const overlay = document.createElement('div');
@@ -1125,7 +1380,7 @@ export class EditorDirector {
     const updateModalUI = () => {
       const type = shapeTypeSelect.value;
       textContainer.style.display = type === 'text' ? 'flex' : 'none';
-      
+
       if (type === 'cylinder' || type === 'star') {
         p2Container.style.display = 'flex';
         if (type === 'cylinder') {
