@@ -6,6 +6,7 @@ import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
 import { setupFormationUI } from './ui/FormationUI.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 
 export class FormationDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -121,6 +122,7 @@ export class FormationDirector {
 
   setupEvents() {
     this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.renderer.instance.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
     window.addEventListener('blur', this.onBlur.bind(this));
@@ -903,7 +905,6 @@ export class FormationDirector {
       this.refImageTexture = null;
     }
 
-    // Clean state
     if (this.state.referenceImageConfig.url) {
       if (this.state.referenceImageConfig.url.startsWith('blob:')) {
         URL.revokeObjectURL(this.state.referenceImageConfig.url);
@@ -911,11 +912,542 @@ export class FormationDirector {
       this.state.referenceImageConfig.url = null;
       this.state.referenceImageConfig.fileName = '';
     }
-
+ 
     const statusLabel = document.getElementById('ui-ref-image-status');
     if (statusLabel) {
       statusLabel.textContent = "Chưa tải ảnh nền";
       statusLabel.style.color = "#888";
     }
+  }
+
+  onContextMenu(event) {
+    event.preventDefault();
+
+    // Remove any existing context menu first
+    document.getElementById('viewport-context-menu')?.remove();
+
+    const hasSelection = this.state.selectedIndices.size > 0;
+
+    const menu = document.createElement('div');
+    menu.id = 'viewport-context-menu';
+    menu.style.position = 'fixed';
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+    menu.style.background = '#1e1e1e';
+    menu.style.border = '1px solid #3a86ff';
+    menu.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+    menu.style.borderRadius = '4px';
+    menu.style.padding = '5px 0';
+    menu.style.zIndex = '999999';
+    menu.style.display = 'flex';
+    menu.style.flexDirection = 'column';
+    menu.style.minWidth = '180px';
+
+    // Prevent propagation
+    menu.addEventListener('pointerdown', (e) => e.stopPropagation());
+    menu.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    const item = document.createElement('div');
+    item.textContent = hasSelection ? '✨ Apply Formation Shaping' : '➕ Add Formation Shaping';
+    item.style.padding = '8px 15px';
+    item.style.color = '#fff';
+    item.style.cursor = 'pointer';
+    item.style.fontSize = '12px';
+    item.style.fontWeight = 'bold';
+    item.style.transition = 'background 0.2s';
+
+    item.addEventListener('mouseover', () => item.style.background = 'rgba(58, 134, 255, 0.2)');
+    item.addEventListener('mouseout', () => item.style.background = 'transparent');
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('viewport-context-menu')?.remove();
+      this.showFormationShapingModal(hasSelection);
+    });
+
+    menu.appendChild(item);
+
+    // 2-Drone Anchor Shape Generator Option
+    const selectedArray = Array.from(this.state.selectedIndices);
+    if (selectedArray.length === 2) {
+      const item2 = document.createElement('div');
+      item2.textContent = '🧬 Sinh hình/khối nối 2 drone chọn...';
+      item2.style.padding = '8px 15px';
+      item2.style.color = '#00ffff';
+      item2.style.cursor = 'pointer';
+      item2.style.fontSize = '12px';
+      item2.style.fontWeight = 'bold';
+      item2.style.borderTop = '1px dashed #444';
+      item2.style.transition = 'background 0.2s';
+
+      item2.addEventListener('mouseover', () => item2.style.background = 'rgba(0, 255, 255, 0.2)');
+      item2.addEventListener('mouseout', () => item2.style.background = 'transparent');
+
+      item2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('viewport-context-menu')?.remove();
+        this.showDeformSpawnModal(selectedArray[0], selectedArray[1]);
+      });
+
+      menu.appendChild(item2);
+    }
+
+    document.body.appendChild(menu);
+
+    const dismiss = () => {
+      document.getElementById('viewport-context-menu')?.remove();
+      window.removeEventListener('click', dismiss);
+      window.removeEventListener('contextmenu', dismiss);
+    };
+
+    setTimeout(() => {
+      window.addEventListener('click', dismiss);
+      window.addEventListener('contextmenu', dismiss);
+    }, 50);
+  }
+
+  showDeformSpawnModal(idxA, idxB) {
+    // Gather all existing groups
+    const existingGroups = new Set();
+    for (const g of this.state.particleGroups) {
+      if (g) existingGroups.add(g);
+    }
+
+    const defaultGroupBase = 'Line_Group';
+    const defaultGroupName = this.state.getUniqueGroupNameForPaste(defaultGroupBase, existingGroups);
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+    overlay.style.backdropFilter = 'blur(6px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '999999';
+
+    // Prevent propagation
+    overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+    overlay.addEventListener('click', (e) => e.stopPropagation());
+
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #00ffff';
+    modal.style.boxShadow = '0 15px 30px rgba(0, 255, 255, 0.2)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '360px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '12px';
+
+    // Title
+    const titleEl = document.createElement('div');
+    titleEl.textContent = '🧬 Sinh hình/khối nối 2 drone chọn';
+    titleEl.style.color = '#fff';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '16px';
+    titleEl.style.borderBottom = '1px solid #333';
+    titleEl.style.paddingBottom = '8px';
+    modal.appendChild(titleEl);
+
+    // Form content
+    let formHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Loại hình thể</label>
+          <select id="modal-spawn-shape" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;">
+            <option value="line">Đường nối (Line)</option>
+            <option value="wireframe_box">Khung khối hộp (Wireframe Box)</option>
+            <option value="solid_box">Khối đặc (Solid Box)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Số lượng drone</label>
+          <input type="number" id="modal-spawn-count" value="10" min="2" max="500" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Tên nhóm mới</label>
+          <input type="text" id="modal-spawn-group-name" value="${defaultGroupName}" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Chuyển sắc Gradient</label>
+          <input type="checkbox" id="modal-spawn-gradient" checked style="cursor: pointer;" />
+        </div>
+      </div>
+    `;
+
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = formHTML;
+    modal.appendChild(formDiv);
+
+    // Bind dynamic update to pre-filled group name
+    const shapeSelect = modal.querySelector('#modal-spawn-shape');
+    const groupNameInput = modal.querySelector('#modal-spawn-group-name');
+
+    shapeSelect.addEventListener('change', () => {
+      const type = shapeSelect.value;
+      const base = type === 'line' ? 'Line_Group' : 'Box_Group';
+      groupNameInput.value = this.state.getUniqueGroupNameForPaste(base, existingGroups);
+    });
+
+    // Buttons Container
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+    btns.style.marginTop = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Huỷ';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'Sinh ngay';
+    okBtn.style.background = '#00ffff';
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#111';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+    okBtn.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)';
+
+    okBtn.addEventListener('click', () => {
+      const count = parseInt(modal.querySelector('#modal-spawn-count').value, 10) || 10;
+      const shapeType = shapeSelect.value;
+      const newGroupName = groupNameInput.value.trim() || 'Spawned';
+      const applyGradient = modal.querySelector('#modal-spawn-gradient').checked;
+
+      const posA = this.state.positions[idxA];
+      const posB = this.state.positions[idxB];
+      const colorA = '#' + this.state.colors[idxA].getHexString();
+      const colorB = '#' + this.state.colors[idxB].getHexString();
+
+      // Retrieve generated shapes
+      let generated;
+      if (shapeType === 'line') {
+        generated = DroneFormationFactory.generateLineBetweenPoints(posA, posB, colorA, applyGradient ? colorB : colorA, count);
+      } else {
+        generated = DroneFormationFactory.generateBoxBetweenPoints(posA, posB, colorA, applyGradient ? colorB : colorA, count, shapeType === 'solid_box');
+      }
+
+      const startIndex = this.state.positions.length;
+
+      // Inject into active memory
+      for (let i = 0; i < generated.positions.length; i++) {
+        this.state.positions.push(generated.positions[i]);
+        this.state.colors.push(generated.colors[i]);
+        this.state.particleGroups.push(newGroupName);
+      }
+
+      // Auto-select the newly spawned group
+      this.state.selectedIndices.clear();
+      for (let i = startIndex; i < this.state.positions.length; i++) {
+        this.state.selectedIndices.add(i);
+      }
+
+      // Update Center to midpoint of posA and posB
+      const midpoint = new THREE.Vector3().addVectors(posA, posB).multiplyScalar(0.5);
+      this.state.center.copy(midpoint);
+
+      this.state.saveStateToHistory();
+      this.state.notify();
+
+      overlay.remove();
+    });
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
+  showFormationShapingModal(hasSelection) {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+    overlay.style.backdropFilter = 'blur(6px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '999999';
+
+    // Prevent propagation
+    overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+    overlay.addEventListener('click', (e) => e.stopPropagation());
+
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #3a86ff';
+    modal.style.boxShadow = '0 15px 30px rgba(0,0,0,0.6)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '360px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '12px';
+
+    // Title
+    const titleEl = document.createElement('div');
+    titleEl.textContent = hasSelection ? '✨ Apply Formation Shaping' : '➕ Add Formation Shaping';
+    titleEl.style.color = '#fff';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '16px';
+    titleEl.style.borderBottom = '1px solid #333';
+    titleEl.style.paddingBottom = '8px';
+    modal.appendChild(titleEl);
+
+    // Form content
+    let formHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Shape</label>
+          <select id="modal-shape-type" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="grid">Grid</option>
+            <option value="line">Line (Đường thẳng)</option>
+            <option value="triangle">Triangle (Tam giác)</option>
+            <option value="circle">Circle</option>
+            <option value="sphere">Sphere</option>
+            <option value="cube">Cube</option>
+            <option value="cylinder">Cylinder</option>
+            <option value="star">Star</option>
+            <option value="text">Text / Numbers</option>
+          </select>
+        </div>
+        
+        <div id="modal-text-container" style="display: none; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Text</label>
+          <input type="text" id="modal-shape-text" value="2026" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Fill Mode</label>
+          <select id="modal-shape-fill" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="solid">Solid (Đặc)</option>
+            <option value="outline">Outline (Rỗng)</option>
+          </select>
+        </div>
+
+        ${!hasSelection ? `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Count</label>
+          <input type="number" id="modal-count" value="100" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+        ` : ''}
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Radius/Spacing</label>
+          <input type="number" id="modal-shape-p1" value="15" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div id="modal-p2-container" style="display: none; justify-content: space-between; align-items: center;">
+          <label id="modal-p2-label" style="font-size: 12px; color: #ccc;">Height (Cylinder)</label>
+          <input type="number" id="modal-shape-p2" value="30" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        ${!hasSelection ? `
+        <div style="margin-top: 5px; border-top: 1px solid #333; padding-top: 8px;">
+          <label style="font-weight: bold; font-size: 11px; color: #aaa;">Formation Center (Tâm)</label>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <div style="flex: 1;">
+              <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">X</label>
+              <input type="number" id="modal-shape-cx" value="0" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px; border-radius: 2px;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">Y</label>
+              <input type="number" id="modal-shape-cy" value="20" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px; border-radius: 2px;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">Z</label>
+              <input type="number" id="modal-shape-cz" value="0" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px; border-radius: 2px;" />
+            </div>
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    `;
+
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = formHTML;
+    modal.appendChild(formDiv);
+
+    // Bind reactive show/hide of shape-type fields
+    const shapeTypeSelect = modal.querySelector('#modal-shape-type');
+    const textContainer = modal.querySelector('#modal-text-container');
+    const p2Container = modal.querySelector('#modal-p2-container');
+    const p2Label = modal.querySelector('#modal-p2-label');
+    const p2Input = modal.querySelector('#modal-shape-p2');
+
+    const updateModalUI = () => {
+      const type = shapeTypeSelect.value;
+      textContainer.style.display = type === 'text' ? 'flex' : 'none';
+      
+      if (type === 'cylinder' || type === 'star') {
+        p2Container.style.display = 'flex';
+        if (type === 'cylinder') {
+          if (p2Label) p2Label.textContent = "Height (Cylinder)";
+          if (p2Input && p2Input.value === '5') p2Input.value = '30';
+        } else {
+          if (p2Label) p2Label.textContent = "Star Points (Số cánh)";
+          if (p2Input && (p2Input.value === '30' || p2Input.value === '')) p2Input.value = '5';
+        }
+      } else {
+        p2Container.style.display = 'none';
+      }
+    };
+    shapeTypeSelect.addEventListener('change', updateModalUI);
+    // Initial call
+    updateModalUI();
+
+    // Buttons Container
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+    btns.style.marginTop = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = hasSelection ? 'Apply Shape' : 'Spawn Shape';
+    okBtn.style.background = '#3a86ff';
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#fff';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+
+    okBtn.addEventListener('click', () => {
+      const type = shapeTypeSelect.value;
+      const fill = modal.querySelector('#modal-shape-fill').value;
+      const p1 = parseFloat(modal.querySelector('#modal-shape-p1').value) || 15;
+      const p2Val = parseFloat(modal.querySelector('#modal-shape-p2').value);
+      const p2 = p2Container.style.display !== 'none' ? (isNaN(p2Val) ? (type === 'star' ? 5 : 30) : p2Val) : (type === 'star' ? 5 : 30);
+      const textVal = textContainer.style.display !== 'none' ? modal.querySelector('#modal-shape-text').value : '2026';
+
+      let params = { y: 0, fill: fill };
+      if (type === 'grid') params = { spacing: p1, y: 0, fill };
+      if (type === 'line') params = { spacing: p1, y: 0 };
+      if (type === 'triangle') params = { radius: p1, y: 0, fill };
+      if (type === 'circle') params = { radius: p1, y: 0, fill };
+      if (type === 'sphere') params = { radius: p1, y: 0, fill };
+      if (type === 'cube') params = { spacing: p1, y: 0, fill };
+      if (type === 'cylinder') params = { radius: p1, height: p2, y: 0, fill };
+      if (type === 'star') params = { radius: p1, starPoints: p2, y: 0, fill };
+      if (type === 'text') params = { text: textVal, spacing: p1, y: 0, fill };
+
+      if (hasSelection) {
+        // Apply formation to selected drones
+        const count = this.state.selectedIndices.size;
+        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+        const newPositions = DroneFormationFactory.createFormation(type, count, params);
+
+        // Center calculation
+        const currentCenter = new THREE.Vector3();
+        for (const id of this.state.selectedIndices) {
+          currentCenter.add(this.state.positions[id]);
+        }
+        currentCenter.divideScalar(count);
+
+        const shapeCenter = new THREE.Vector3();
+        for (const pos of newPositions) {
+          shapeCenter.add(pos);
+        }
+        if (newPositions.length > 0) {
+          shapeCenter.divideScalar(newPositions.length);
+        }
+
+        const offset = currentCenter.sub(shapeCenter);
+        const updates = [];
+        let i = 0;
+        for (const id of this.state.selectedIndices) {
+          if (i >= newPositions.length) break;
+          const finalPos = newPositions[i].clone().add(offset);
+          updates.push({ index: id, pos: finalPos });
+          i++;
+        }
+        this.state.updatePositions(updates);
+        this.state.saveStateToHistory();
+      } else {
+        // Spawn new drones in shape
+        const count = parseInt(modal.querySelector('#modal-count').value) || 100;
+        const cx = parseFloat(modal.querySelector('#modal-shape-cx').value) || 0;
+        const cy = parseFloat(modal.querySelector('#modal-shape-cy').value) || 0;
+        const cz = parseFloat(modal.querySelector('#modal-shape-cz').value) || 0;
+
+        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+        const positions = DroneFormationFactory.createFormation(type, count, params);
+        const colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
+
+        const centerOffset = new THREE.Vector3(cx, cy, cz);
+        for (const pos of positions) {
+          pos.add(centerOffset);
+        }
+
+        const startIndex = this.state.positions.length;
+
+        // Inject into active memory
+        for (let i = 0; i < count; i++) {
+          this.state.positions.push(positions[i]);
+          this.state.colors.push(colors[i]);
+          this.state.particleGroups.push(this.state.activeGroup || 'Default');
+        }
+
+        // Select the newly spawned drones
+        this.state.selectedIndices.clear();
+        for (let i = startIndex; i < this.state.positions.length; i++) {
+          this.state.selectedIndices.add(i);
+        }
+
+        this.state.center.set(cx, cy, cz); // Update center
+        this.state.saveStateToHistory();
+        this.state.notify();
+      }
+
+      overlay.remove();
+    });
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
   }
 }

@@ -9,6 +9,8 @@ export function renderShapePanel() {
         <label>Shape</label>
         <select id="ui-shape-type" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
           <option value="grid">Grid</option>
+          <option value="line">Line (Đường thẳng)</option>
+          <option value="triangle">Triangle (Tam giác)</option>
           <option value="circle">Circle</option>
           <option value="sphere">Sphere</option>
           <option value="cube">Cube</option>
@@ -52,7 +54,7 @@ export function renderShapePanel() {
         <input type="number" id="ui-shape-p1" value="15" />
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label>Height (Cylinder)</label>
+        <label id="ui-shape-p2-label">Height (Cylinder)</label>
         <input type="number" id="ui-shape-p2" value="30" />
       </div>
       <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
@@ -82,8 +84,9 @@ export function setupShapePanel(state, director) {
   let customShapeData = null;
 
   document.getElementById('ui-shape-type').addEventListener('change', (e) => {
-    const isText = e.target.value === 'text';
-    const isJson = e.target.value === 'json';
+    const type = e.target.value;
+    const isText = type === 'text';
+    const isJson = type === 'json';
     document.getElementById('ui-text-container').style.display = isText ? 'flex' : 'none';
     const jsonContainer = document.getElementById('ui-json-container');
     if (jsonContainer) jsonContainer.style.display = isJson ? 'flex' : 'none';
@@ -91,12 +94,27 @@ export function setupShapePanel(state, director) {
     // Hide radius and height if json is selected
     const p1Container = document.getElementById('ui-shape-p1').parentElement;
     const p2Container = document.getElementById('ui-shape-p2').parentElement;
+    const p2Label = document.getElementById('ui-shape-p2-label');
+    const p2Input = document.getElementById('ui-shape-p2');
+
     if (isJson) {
       p1Container.style.display = 'none';
       p2Container.style.display = 'none';
     } else {
       p1Container.style.display = 'flex';
-      p2Container.style.display = 'flex';
+      
+      if (type === 'cylinder' || type === 'star') {
+        p2Container.style.display = 'flex';
+        if (type === 'cylinder') {
+          if (p2Label) p2Label.textContent = "Height (Cylinder)";
+          if (p2Input && p2Input.value === '5') p2Input.value = '30';
+        } else {
+          if (p2Label) p2Label.textContent = "Star Points (Số cánh)";
+          if (p2Input && (p2Input.value === '30' || p2Input.value === '')) p2Input.value = '5';
+        }
+      } else {
+        p2Container.style.display = 'none';
+      }
     }
   });
 
@@ -168,7 +186,9 @@ export function setupShapePanel(state, director) {
     const target = document.getElementById('ui-shape-target').value;
     const fill = document.getElementById('ui-shape-fill').value;
     const p1 = parseFloat(document.getElementById('ui-shape-p1').value) || 15;
-    const p2 = parseFloat(document.getElementById('ui-shape-p2').value) || 30;
+    const p2Container = document.getElementById('ui-shape-p2').parentElement;
+    const p2Val = parseFloat(document.getElementById('ui-shape-p2').value);
+    const p2 = p2Container.style.display !== 'none' ? (isNaN(p2Val) ? (type === 'star' ? 5 : 30) : p2Val) : (type === 'star' ? 5 : 30);
     const textVal = document.getElementById('ui-shape-text').value;
 
     const cx = parseFloat(document.getElementById('ui-shape-cx').value) || 0;
@@ -183,11 +203,13 @@ export function setupShapePanel(state, director) {
     // Define default params for shapes with base height 0
     let params = { y: 0, fill: fill };
     if (type === 'grid') params = { spacing: p1, y: 0, fill };
+    if (type === 'line') params = { spacing: p1, y: 0 };
+    if (type === 'triangle') params = { radius: p1, y: 0, fill };
     if (type === 'circle') params = { radius: p1, y: 0, fill };
     if (type === 'sphere') params = { radius: p1, y: 0, fill };
     if (type === 'cube') params = { spacing: p1, y: 0, fill };
     if (type === 'cylinder') params = { radius: p1, height: p2, y: 0, fill };
-    if (type === 'star') params = { radius: p1, y: 0, fill };
+    if (type === 'star') params = { radius: p1, starPoints: p2, y: 0, fill };
     if (type === 'text') params = { text: textVal, spacing: p1, y: 0, fill };
 
     if (target === 'selected') {

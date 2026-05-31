@@ -251,6 +251,22 @@ export class FormationState {
     this.notify();
   }
 
+  getUniqueGroupNameForPaste(originalGroupName, existingGroups) {
+    const baseName = originalGroupName;
+    let candidate = baseName + '_copy';
+    if (!existingGroups.has(candidate)) {
+      return candidate;
+    }
+    let counter = 1;
+    while (true) {
+      candidate = `${baseName}_copy_${counter}`;
+      if (!existingGroups.has(candidate)) {
+        return candidate;
+      }
+      counter++;
+    }
+  }
+
   duplicateSelected() {
     if (this.selectedIndices.size === 0) return;
 
@@ -258,14 +274,27 @@ export class FormationState {
     const startIndex = this.positions.length;
     let i = 0;
 
+    // Gather existing groups
+    const existingGroups = new Set(this.particleGroups);
+
+    // Build a unique copy mapping for each group in the selection
+    const groupMapping = new Map();
+    for (const index of this.selectedIndices) {
+      const group = this.particleGroups[index] || 'Duplicate';
+      if (!groupMapping.has(group)) {
+        groupMapping.set(group, this.getUniqueGroupNameForPaste(group, existingGroups));
+      }
+    }
+
     for (const index of this.selectedIndices) {
       const pos = this.positions[index];
       const col = this.colors[index];
       const group = this.particleGroups[index] || 'Duplicate';
+      const newGroup = groupMapping.get(group);
 
       this.positions.push(new THREE.Vector3(pos.x + 2, pos.y, pos.z + 2));
       this.colors.push(col.clone());
-      this.particleGroups.push(group + '_copy');
+      this.particleGroups.push(newGroup);
 
       newIndices.add(startIndex + i);
       i++;
@@ -299,14 +328,27 @@ export class FormationState {
     const startIndex = this.positions.length;
     let i = 0;
 
+    // Gather existing groups
+    const existingGroups = new Set(this.particleGroups);
+
+    // Build a unique copy mapping for each group in the clipboard
+    const groupMapping = new Map();
+    for (const group of this.clipboard.particleGroups) {
+      const grp = group || 'Pasted';
+      if (!groupMapping.has(grp)) {
+        groupMapping.set(grp, this.getUniqueGroupNameForPaste(grp, existingGroups));
+      }
+    }
+
     for (let c = 0; c < this.clipboard.positions.length; c++) {
       const pos = this.clipboard.positions[c];
       const col = this.clipboard.colors[c];
-      const group = this.clipboard.particleGroups[c];
+      const group = this.clipboard.particleGroups[c] || 'Pasted';
+      const newGroup = groupMapping.get(group);
 
       this.positions.push(new THREE.Vector3(pos.x + 2, pos.y, pos.z + 2));
       this.colors.push(col.clone());
-      this.particleGroups.push(group + '_copy');
+      this.particleGroups.push(newGroup);
 
       newIndices.add(startIndex + i);
       i++;

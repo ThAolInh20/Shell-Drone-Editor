@@ -762,6 +762,32 @@ export class EditorDirector {
     });
 
     menu.appendChild(item);
+
+    // 2-Drone Anchor Shape Generator Option
+    const selectedArray = Array.from(this.state.selectedIndices);
+    if (selectedArray.length === 2) {
+      const item2 = document.createElement('div');
+      item2.textContent = '🧬 Sinh hình/khối nối 2 drone chọn...';
+      item2.style.padding = '8px 15px';
+      item2.style.color = '#00ffff';
+      item2.style.cursor = 'pointer';
+      item2.style.fontSize = '12px';
+      item2.style.fontWeight = 'bold';
+      item2.style.borderTop = '1px dashed #444';
+      item2.style.transition = 'background 0.2s';
+
+      item2.addEventListener('mouseover', () => item2.style.background = 'rgba(0, 255, 255, 0.2)');
+      item2.addEventListener('mouseout', () => item2.style.background = 'transparent');
+
+      item2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('viewport-context-menu')?.remove();
+        this.showDeformSpawnModal(selectedArray[0], selectedArray[1]);
+      });
+
+      menu.appendChild(item2);
+    }
+
     document.body.appendChild(menu);
 
     const dismiss = () => {
@@ -774,6 +800,203 @@ export class EditorDirector {
       window.addEventListener('click', dismiss);
       window.addEventListener('contextmenu', dismiss);
     }, 50);
+  }
+
+  showDeformSpawnModal(idxA, idxB) {
+    // Gather all existing groups
+    const existingGroups = new Set();
+    for (const g of this.state.particleGroups) {
+      if (g) existingGroups.add(g);
+    }
+    for (const step of this.state.steps) {
+      if (step && step.particleGroups) {
+        for (const g of step.particleGroups) {
+          if (g) existingGroups.add(g);
+        }
+      }
+    }
+
+    const defaultGroupBase = 'Line_Group';
+    const defaultGroupName = this.state.getUniqueGroupNameForPaste(defaultGroupBase, existingGroups);
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+    overlay.style.backdropFilter = 'blur(6px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '999999';
+
+    // Prevent propagation
+    overlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+    overlay.addEventListener('mousedown', (e) => e.stopPropagation());
+    overlay.addEventListener('click', (e) => e.stopPropagation());
+
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #00ffff';
+    modal.style.boxShadow = '0 15px 30px rgba(0, 255, 255, 0.2)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '360px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '12px';
+
+    // Title
+    const titleEl = document.createElement('div');
+    titleEl.textContent = '🧬 Sinh hình/khối nối 2 drone chọn';
+    titleEl.style.color = '#fff';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.fontSize = '16px';
+    titleEl.style.borderBottom = '1px solid #333';
+    titleEl.style.paddingBottom = '8px';
+    modal.appendChild(titleEl);
+
+    // Form content
+    let formHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Loại hình thể</label>
+          <select id="modal-spawn-shape" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;">
+            <option value="line">Đường nối (Line)</option>
+            <option value="wireframe_box">Khung khối hộp (Wireframe Box)</option>
+            <option value="solid_box">Khối đặc (Solid Box)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Số lượng drone</label>
+          <input type="number" id="modal-spawn-count" value="10" min="2" max="500" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Tên nhóm mới</label>
+          <input type="text" id="modal-spawn-group-name" value="${defaultGroupName}" style="width: 160px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Chuyển sắc Gradient</label>
+          <input type="checkbox" id="modal-spawn-gradient" checked style="cursor: pointer;" />
+        </div>
+      </div>
+    `;
+
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = formHTML;
+    modal.appendChild(formDiv);
+
+    // Bind dynamic update to pre-filled group name
+    const shapeSelect = modal.querySelector('#modal-spawn-shape');
+    const groupNameInput = modal.querySelector('#modal-spawn-group-name');
+
+    shapeSelect.addEventListener('change', () => {
+      const type = shapeSelect.value;
+      const base = type === 'line' ? 'Line_Group' : 'Box_Group';
+      groupNameInput.value = this.state.getUniqueGroupNameForPaste(base, existingGroups);
+    });
+
+    // Buttons Container
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+    btns.style.marginTop = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Huỷ';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 12px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+    cancelBtn.addEventListener('click', () => overlay.remove());
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = 'Sinh ngay';
+    okBtn.style.background = '#00ffff';
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#111';
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+    okBtn.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)';
+
+    okBtn.addEventListener('click', () => {
+      const count = parseInt(modal.querySelector('#modal-spawn-count').value, 10) || 10;
+      const shapeType = shapeSelect.value;
+      const newGroupName = groupNameInput.value.trim() || 'Spawned';
+      const applyGradient = modal.querySelector('#modal-spawn-gradient').checked;
+
+      const posA = this.state.positions[idxA];
+      const posB = this.state.positions[idxB];
+      const colorA = '#' + this.state.colors[idxA].getHexString();
+      const colorB = '#' + this.state.colors[idxB].getHexString();
+
+      // Retrieve generated shapes
+      let generated;
+      if (shapeType === 'line') {
+        generated = DroneFormationFactory.generateLineBetweenPoints(posA, posB, colorA, applyGradient ? colorB : colorA, count);
+      } else {
+        generated = DroneFormationFactory.generateBoxBetweenPoints(posA, posB, colorA, applyGradient ? colorB : colorA, count, shapeType === 'solid_box');
+      }
+
+      const startIndex = this.state.positions.length;
+
+      // Inject into active memory
+      for (let i = 0; i < generated.positions.length; i++) {
+        this.state.positions.push(generated.positions[i]);
+        this.state.colors.push(generated.colors[i]);
+        this.state.particleGroups.push(newGroupName);
+        this.state.effects.push('none');
+      }
+
+      // Inject into all other steps to keep indices aligned across the timeline!
+      for (let sIndex = 0; sIndex < this.state.steps.length; sIndex++) {
+        if (sIndex === this.state.currentStepIndex) continue;
+        const step = this.state.steps[sIndex];
+        for (let i = 0; i < generated.positions.length; i++) {
+          step.positions.push(generated.positions[i].clone());
+          step.colors.push(generated.colors[i].clone());
+          step.particleGroups.push(newGroupName);
+          if (!step.effects) step.effects = [];
+          step.effects.push('none');
+        }
+      }
+
+      // Auto-select the newly spawned group
+      this.state.selectedIndices.clear();
+      for (let i = startIndex; i < this.state.positions.length; i++) {
+        this.state.selectedIndices.add(i);
+      }
+
+      // Update Center to midpoint
+      const midpoint = new THREE.Vector3().addVectors(posA, posB).multiplyScalar(0.5);
+      this.state.center.copy(midpoint);
+
+      this.state.saveCurrentStep();
+      this.state.saveStateToHistory();
+      this.state.notify();
+
+      overlay.remove();
+    });
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
   }
 
   showFormationShapingModal(hasSelection) {
@@ -825,6 +1048,8 @@ export class EditorDirector {
           <label style="font-size: 12px; color: #ccc;">Shape</label>
           <select id="modal-shape-type" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
             <option value="grid">Grid</option>
+            <option value="line">Line (Đường thẳng)</option>
+            <option value="triangle">Triangle (Tam giác)</option>
             <option value="circle">Circle</option>
             <option value="sphere">Sphere</option>
             <option value="cube">Cube</option>
@@ -860,7 +1085,7 @@ export class EditorDirector {
         </div>
 
         <div id="modal-p2-container" style="display: none; justify-content: space-between; align-items: center;">
-          <label style="font-size: 12px; color: #ccc;">Height (Cylinder)</label>
+          <label id="modal-p2-label" style="font-size: 12px; color: #ccc;">Height (Cylinder)</label>
           <input type="number" id="modal-shape-p2" value="30" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
         </div>
 
@@ -894,11 +1119,25 @@ export class EditorDirector {
     const shapeTypeSelect = modal.querySelector('#modal-shape-type');
     const textContainer = modal.querySelector('#modal-text-container');
     const p2Container = modal.querySelector('#modal-p2-container');
+    const p2Label = modal.querySelector('#modal-p2-label');
+    const p2Input = modal.querySelector('#modal-shape-p2');
 
     const updateModalUI = () => {
       const type = shapeTypeSelect.value;
       textContainer.style.display = type === 'text' ? 'flex' : 'none';
-      p2Container.style.display = type === 'cylinder' ? 'flex' : 'none';
+      
+      if (type === 'cylinder' || type === 'star') {
+        p2Container.style.display = 'flex';
+        if (type === 'cylinder') {
+          if (p2Label) p2Label.textContent = "Height (Cylinder)";
+          if (p2Input && p2Input.value === '5') p2Input.value = '30';
+        } else {
+          if (p2Label) p2Label.textContent = "Star Points (Số cánh)";
+          if (p2Input && (p2Input.value === '30' || p2Input.value === '')) p2Input.value = '5';
+        }
+      } else {
+        p2Container.style.display = 'none';
+      }
     };
     shapeTypeSelect.addEventListener('change', updateModalUI);
     // Initial call
@@ -937,16 +1176,19 @@ export class EditorDirector {
       const type = shapeTypeSelect.value;
       const fill = modal.querySelector('#modal-shape-fill').value;
       const p1 = parseFloat(modal.querySelector('#modal-shape-p1').value) || 15;
-      const p2 = p2Container.style.display !== 'none' ? (parseFloat(modal.querySelector('#modal-shape-p2').value) || 30) : 30;
+      const p2Val = parseFloat(modal.querySelector('#modal-shape-p2').value);
+      const p2 = p2Container.style.display !== 'none' ? (isNaN(p2Val) ? (type === 'star' ? 5 : 30) : p2Val) : (type === 'star' ? 5 : 30);
       const textVal = textContainer.style.display !== 'none' ? modal.querySelector('#modal-shape-text').value : '2026';
 
       let params = { y: 0, fill: fill };
       if (type === 'grid') params = { spacing: p1, y: 0, fill };
+      if (type === 'line') params = { spacing: p1, y: 0 };
+      if (type === 'triangle') params = { radius: p1, y: 0, fill };
       if (type === 'circle') params = { radius: p1, y: 0, fill };
       if (type === 'sphere') params = { radius: p1, y: 0, fill };
       if (type === 'cube') params = { spacing: p1, y: 0, fill };
       if (type === 'cylinder') params = { radius: p1, height: p2, y: 0, fill };
-      if (type === 'star') params = { radius: p1, y: 0, fill };
+      if (type === 'star') params = { radius: p1, starPoints: p2, y: 0, fill };
       if (type === 'text') params = { text: textVal, spacing: p1, y: 0, fill };
 
       if (hasSelection) {

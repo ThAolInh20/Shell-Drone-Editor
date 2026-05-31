@@ -31,6 +31,53 @@ export class DroneFormationFactory {
         return positions;
     }
 
+    static triangle(count, params = {}) {
+        const radius = params.radius || 20;
+        const y = params.y || 20;
+        const fill = params.fill || 'solid';
+        const positions = [];
+        
+        // 3 Vertices of equilateral triangle in XZ plane
+        const v0 = new THREE.Vector2(0, radius);
+        const v1 = new THREE.Vector2(-radius * Math.sqrt(3) / 2, -radius / 2);
+        const v2 = new THREE.Vector2(radius * Math.sqrt(3) / 2, -radius / 2);
+        const vertices = [v0, v1, v2];
+
+        if (fill === 'solid') {
+            const u_phi = 0.6180339887;
+            const v_phi = 0.7548776662;
+            for (let i = 0; i < count; i++) {
+                let r1 = (i * u_phi) % 1;
+                let r2 = (i * v_phi) % 1;
+                if (r1 + r2 > 1) {
+                    r1 = 1 - r1;
+                    r2 = 1 - r2;
+                }
+                const px = v0.x * (1 - r1 - r2) + v1.x * r1 + v2.x * r2;
+                const pz = v0.y * (1 - r1 - r2) + v1.y * r1 + v2.y * r2;
+                positions.push(new THREE.Vector3(px, y, pz));
+            }
+        } else {
+            const edgeLength = v0.distanceTo(v1);
+            const perimeter = edgeLength * 3;
+            
+            for (let i = 0; i < count; i++) {
+                const targetDist = (i / count) * perimeter;
+                const segment = Math.floor(targetDist / edgeLength) % 3;
+                const t = (targetDist % edgeLength) / edgeLength;
+                
+                const start = vertices[segment];
+                const end = vertices[(segment + 1) % 3];
+                
+                const x = start.x + (end.x - start.x) * t;
+                const z = start.y + (end.y - start.y) * t;
+                
+                positions.push(new THREE.Vector3(x, y, z));
+            }
+        }
+        return positions;
+    }
+
     static grid(count, params = {}) {
         const rows = params.rows || Math.ceil(Math.sqrt(count));
         const spacing = params.spacing || 2;
@@ -231,14 +278,16 @@ export class DroneFormationFactory {
 
     static star(count, params = {}) {
         const radius = params.radius || 20;
+        const starPoints = params.starPoints || 5;
         const innerRadius = radius * 0.4;
         const y = params.y || 20;
         const fill = params.fill || 'solid';
         const positions = [];
         
+        const numVertices = starPoints * 2;
         const vertices = [];
-        for (let i = 0; i < 10; i++) {
-            const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        for (let i = 0; i < numVertices; i++) {
+            const angle = (i * Math.PI) / starPoints - Math.PI / 2;
             const r = i % 2 === 0 ? radius : innerRadius;
             vertices.push(new THREE.Vector2(Math.cos(angle) * r, Math.sin(angle) * r));
         }
@@ -247,9 +296,9 @@ export class DroneFormationFactory {
             const u_phi = 0.6180339887;
             const v_phi = 0.7548776662;
             for (let i = 0; i < count; i++) {
-                const triIndex = i % 10;
+                const triIndex = i % numVertices;
                 const v1 = vertices[triIndex];
-                const v2 = vertices[(triIndex + 1) % 10];
+                const v2 = vertices[(triIndex + 1) % numVertices];
                 
                 let r1 = (i * u_phi) % 1;
                 let r2 = (i * v_phi) % 1;
@@ -263,8 +312,8 @@ export class DroneFormationFactory {
             }
         } else {
             let perimeter = 0;
-            for (let i = 0; i < 10; i++) {
-                const next = (i + 1) % 10;
+            for (let i = 0; i < numVertices; i++) {
+                const next = (i + 1) % numVertices;
                 perimeter += vertices[i].distanceTo(vertices[next]);
             }
 
@@ -278,8 +327,8 @@ export class DroneFormationFactory {
                 
                 while (targetDist > currentDist + segmentLength) {
                     currentDist += segmentLength;
-                    vIndex = (vIndex + 1) % 10;
-                    nextVIndex = (vIndex + 1) % 10;
+                    vIndex = (vIndex + 1) % numVertices;
+                    nextVIndex = (vIndex + 1) % numVertices;
                     segmentLength = vertices[vIndex].distanceTo(vertices[nextVIndex]);
                 }
                 
@@ -367,10 +416,168 @@ export class DroneFormationFactory {
         return curve.getSpacedPoints(count - 1);
     }
 
+    static generateLineBetweenPoints(posA, posB, colorA, colorB, count) {
+        const positions = [];
+        const colors = [];
+        
+        const cA = new THREE.Color(colorA);
+        const cB = new THREE.Color(colorB);
+
+        for (let i = 0; i < count; i++) {
+            // Mathematically perfect even spacing: divides the segment into (count + 1) equal intervals
+            const t = (i + 1) / (count + 1);
+            const pos = new THREE.Vector3().lerpVectors(posA, posB, t);
+
+            positions.push(pos);
+            colors.push(new THREE.Color().lerpColors(cA, cB, t));
+        }
+
+        return { positions, colors };
+    }
+
+    static generateBoxBetweenPoints(posA, posB, colorA, colorB, count, isSolid) {
+        const positions = [];
+        const colors = [];
+        
+        const cA = new THREE.Color(colorA);
+        const cB = new THREE.Color(colorB);
+
+        // Opposite diagonal corners
+        const x1 = posA.x, y1 = posA.y, z1 = posA.z;
+        const x2 = posB.x, y2 = posB.y, z2 = posB.z;
+
+        // Bounding box bounds
+        const minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+        const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+        const minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
+
+        if (isSolid) {
+            // Distribute drones evenly using a solid distribution
+            // Low-discrepancy Weyl sequence for solid uniform filling inside the volume
+            const u_phi = 0.6180339887;
+            const v_phi = 0.7548776662;
+            const w_phi = 0.5698402910;
+
+            for (let i = 0; i < count; i++) {
+                // Clamp fractions to keep coordinates strictly away from anchor corners/edges
+                const u = 0.1 + ((i * u_phi) % 1) * 0.8;
+                const v = 0.1 + ((i * v_phi) % 1) * 0.8;
+                const w = 0.1 + ((i * w_phi) % 1) * 0.8;
+
+                const x = minX + u * (maxX - minX);
+                const y = minY + v * (maxY - minY);
+                const z = minZ + w * (maxZ - minZ);
+
+                const pos = new THREE.Vector3(x, y, z);
+                positions.push(pos);
+
+                // Color interpolation based on projection along vector AB
+                const ab = new THREE.Vector3().subVectors(posB, posA);
+                const ap = new THREE.Vector3().subVectors(pos, posA);
+                const abLenSq = ab.lengthSq();
+                const t = abLenSq > 0.001 ? THREE.MathUtils.clamp(ap.dot(ab) / abLenSq, 0, 1) : 0.5;
+
+                colors.push(new THREE.Color().lerpColors(cA, cB, t));
+            }
+        } else {
+            // Wireframe Mode: distribute particles along the 12 edges of the bounding box
+            // 8 corners
+            const corners = [
+                new THREE.Vector3(minX, minY, minZ), // 0
+                new THREE.Vector3(maxX, minY, minZ), // 1
+                new THREE.Vector3(maxX, maxY, minZ), // 2
+                new THREE.Vector3(minX, maxY, minZ), // 3
+                new THREE.Vector3(minX, minY, maxZ), // 4
+                new THREE.Vector3(maxX, minY, maxZ), // 5
+                new THREE.Vector3(maxX, maxY, maxZ), // 6
+                new THREE.Vector3(minX, maxY, maxZ)  // 7
+            ];
+
+            // 12 edges linking corners
+            const edges = [
+                [0, 1], [1, 2], [2, 3], [3, 0], // front face
+                [4, 5], [5, 6], [6, 7], [7, 4], // back face
+                [0, 4], [1, 5], [2, 6], [3, 7]  // connecting edges
+            ];
+
+            const edgeLengths = edges.map(([idx1, idx2]) => corners[idx1].distanceTo(corners[idx2]));
+            
+            // Filter non-degenerate active edges
+            const activeEdges = [];
+            for (let i = 0; i < edges.length; i++) {
+                if (edgeLengths[i] >= 0.01) {
+                    activeEdges.push({
+                        start: corners[edges[i][0]],
+                        end: corners[edges[i][1]],
+                        length: edgeLengths[i]
+                    });
+                }
+            }
+
+            if (activeEdges.length === 0) {
+                // Degenerate box: falls back to simple line spawner
+                const lineData = this.generateLineBetweenPoints(posA, posB, colorA, colorB, count);
+                return lineData;
+            }
+
+            // Distribute count proportionally among active edges
+            const totalLength = activeEdges.reduce((sum, e) => sum + e.length, 0);
+            let allocatedCount = 0;
+            const edgeCounts = activeEdges.map(e => {
+                const fraction = (e.length / totalLength) * count;
+                const base = Math.floor(fraction);
+                allocatedCount += base;
+                return {
+                    edge: e,
+                    base: base,
+                    remainder: fraction - base,
+                    finalCount: base
+                };
+            });
+
+            // Distribute remaining count to largest remainders
+            let remaining = count - allocatedCount;
+            if (remaining > 0) {
+                edgeCounts.sort((a, b) => b.remainder - a.remainder);
+                for (let i = 0; i < remaining; i++) {
+                    edgeCounts[i].finalCount += 1;
+                }
+            }
+
+            // Spawning strictly inside each edge with perfect even spacing
+            for (const item of edgeCounts) {
+                const finalCount = item.finalCount;
+                if (finalCount <= 0) continue;
+
+                const start = item.edge.start;
+                const end = item.edge.end;
+
+                for (let j = 0; j < finalCount; j++) {
+                    // Mathematically perfect even spacing along the edge segment: (j + 1) / (finalCount + 1)
+                    const t = (j + 1) / (finalCount + 1);
+                    const pos = new THREE.Vector3().lerpVectors(start, end, t);
+
+                    positions.push(pos);
+
+                    // Color interpolation based on projection along line AB
+                    const ab = new THREE.Vector3().subVectors(posB, posA);
+                    const ap = new THREE.Vector3().subVectors(pos, posA);
+                    const abLenSq = ab.lengthSq();
+                    const cT = abLenSq > 0.001 ? THREE.MathUtils.clamp(ap.dot(ab) / abLenSq, 0, 1) : 0.5;
+
+                    colors.push(new THREE.Color().lerpColors(cA, cB, cT));
+                }
+            }
+        }
+
+        return { positions, colors };
+    }
+
     static createFormation(type, count, params) {
         let positions;
         switch (type) {
             case 'circle': positions = this.circle(count, params); break;
+            case 'triangle': positions = this.triangle(count, params); break;
             case 'grid': positions = this.grid(count, params); break;
             case 'line': positions = this.line(count, params); break;
             case 'bezier': positions = this.bezier(count, params); break;
