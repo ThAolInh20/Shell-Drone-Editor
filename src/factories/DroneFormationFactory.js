@@ -573,6 +573,129 @@ export class DroneFormationFactory {
         return { positions, colors };
     }
 
+    static generateVolumeFromGroup(srcPositions, srcColors, volumeType, copiesCount, params) {
+        const positions = [];
+        const colors = [];
+
+        if (srcPositions.length === 0 || copiesCount <= 0) {
+            return { positions, colors };
+        }
+
+        // Calculate centroid of the original group
+        const centroid = new THREE.Vector3();
+        for (const p of srcPositions) {
+            centroid.add(p);
+        }
+        centroid.divideScalar(srcPositions.length);
+
+        if (volumeType === 'cylinder') {
+            const maxAngle = params.maxAngle || 360;
+            const spiralOffset = params.spiralOffset || 0;
+
+            for (let c = 1; c <= copiesCount; c++) {
+                // Perfect even spacing angle distribution around Y axis of centroid
+                const angleRad = THREE.MathUtils.degToRad((c / (copiesCount + 1)) * maxAngle);
+                
+                for (let i = 0; i < srcPositions.length; i++) {
+                    const originalPos = srcPositions[i];
+                    
+                    // Relative coordinates to the center of rotation
+                    const relPos = new THREE.Vector3().subVectors(originalPos, centroid);
+                    
+                    // Rotation matrix around Y axis
+                    const rotatedX = relPos.x * Math.cos(angleRad) - relPos.z * Math.sin(angleRad);
+                    const rotatedZ = relPos.x * Math.sin(angleRad) + relPos.z * Math.cos(angleRad);
+                    
+                    const finalPos = new THREE.Vector3(
+                        centroid.x + rotatedX,
+                        originalPos.y + c * spiralOffset,
+                        centroid.z + rotatedZ
+                    );
+
+                    positions.push(finalPos);
+                    colors.push(srcColors[i].clone());
+                }
+            }
+        } else if (volumeType === 'radial') {
+            // Radial Circle Layout: copies arranged along a circle centered at (0, y, 0), keeping shape perfectly rigid
+            const rotCenter = new THREE.Vector3(0, centroid.y, 0);
+            const distToCenter = centroid.distanceTo(rotCenter);
+
+            // Automatically use distance to center if params.radius is 0, undefined, null or empty
+            let radius = params.radius;
+            if (radius === undefined || radius === null || radius === 0 || isNaN(radius)) {
+                radius = distToCenter;
+            }
+
+            // Fallback for groups already at the center of the workspace
+            if (radius < 0.5) {
+                radius = 10;
+            }
+
+            const rotateOutward = params.rotateOutward !== false;
+            const maxAngle = params.maxAngle || 360;
+            const originalAngle = Math.atan2(centroid.z - rotCenter.z, centroid.x - rotCenter.x);
+
+            for (let c = 1; c <= copiesCount; c++) {
+                const angleDiffDeg = (c / (copiesCount + 1)) * maxAngle;
+                const angleDiffRad = THREE.MathUtils.degToRad(angleDiffDeg);
+                const angleRad = originalAngle + angleDiffRad;
+
+                for (let i = 0; i < srcPositions.length; i++) {
+                    const originalPos = srcPositions[i];
+                    const relPos = new THREE.Vector3().subVectors(originalPos, centroid);
+
+                    let finalPos;
+                    if (rotateOutward) {
+                        // Rigid rotation around the workspace center (0, y, 0)
+                        const relToRotCenter = new THREE.Vector3().subVectors(originalPos, rotCenter);
+                        const rotatedX = relToRotCenter.x * Math.cos(angleDiffRad) - relToRotCenter.z * Math.sin(angleDiffRad);
+                        const rotatedZ = relToRotCenter.x * Math.sin(angleDiffRad) + relToRotCenter.z * Math.cos(angleDiffRad);
+                        
+                        finalPos = new THREE.Vector3(
+                            rotCenter.x + rotatedX,
+                            originalPos.y,
+                            rotCenter.z + rotatedZ
+                        );
+                    } else {
+                        // Pure translation along the circle centered at rotCenter with calculated radius
+                        const copyCentroid = new THREE.Vector3(
+                            rotCenter.x + radius * Math.cos(angleRad),
+                            centroid.y,
+                            rotCenter.z + radius * Math.sin(angleRad)
+                        );
+                        finalPos = new THREE.Vector3().addVectors(relPos, copyCentroid);
+                        finalPos.y = originalPos.y; // Keep Y height
+                    }
+
+                    positions.push(finalPos);
+                    colors.push(srcColors[i].clone());
+                }
+            }
+        } else {
+            // Cube / Linear Grid Stack offsets
+            const offsetX = params.offsetX || 0;
+            const offsetY = params.offsetY || 5;
+            const offsetZ = params.offsetZ || 0;
+
+            for (let c = 1; c <= copiesCount; c++) {
+                for (let i = 0; i < srcPositions.length; i++) {
+                    const originalPos = srcPositions[i];
+                    const finalPos = new THREE.Vector3(
+                        originalPos.x + c * offsetX,
+                        originalPos.y + c * offsetY,
+                        originalPos.z + c * offsetZ
+                    );
+
+                    positions.push(finalPos);
+                    colors.push(srcColors[i].clone());
+                }
+            }
+        }
+
+        return { positions, colors };
+    }
+
     static createFormation(type, count, params) {
         let positions;
         switch (type) {
