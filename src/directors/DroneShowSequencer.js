@@ -134,10 +134,11 @@ export class DroneShowSequencer {
 
     getGroupConfigForStep(groupName, step) {
         if (!step) return null;
+        const resolvedName = String(groupName || 'Default').split('/')[0];
         if (!step.groupConfigs) step.groupConfigs = {};
-        if (!step.groupConfigs[groupName]) {
+        if (!step.groupConfigs[resolvedName]) {
             // Lazy initialize group config using step parameters
-            step.groupConfigs[groupName] = {
+            step.groupConfigs[resolvedName] = {
                 transitionMode: step.transitionMode || 'transform',
                 transitionMoveEffect: step.transitionMoveEffect || step.transitionEffect || 'none',
                 transitionMoveSpeed: step.transitionMoveSpeed !== undefined ? step.transitionMoveSpeed : 1.0,
@@ -160,7 +161,7 @@ export class DroneShowSequencer {
             };
         }
         
-        const cfg = step.groupConfigs[groupName];
+        const cfg = step.groupConfigs[resolvedName];
         if (cfg && cfg.center && !(cfg.center instanceof THREE.Vector3)) {
             cfg.center = new THREE.Vector3(cfg.center.x, cfg.center.y, cfg.center.z);
         }
@@ -364,8 +365,9 @@ export class DroneShowSequencer {
 
         for (let i = 0; i < count; i++) {
             const group = (stepA.particleGroups && stepA.particleGroups[i]) || (stepB.particleGroups && stepB.particleGroups[i]) || 'Default';
-            const configA = this.getGroupConfigForStep(group, stepA);
-            const configB = this.getGroupConfigForStep(group, stepB);
+            const parentGroup = group.split('/')[0];
+            const configA = this.getGroupConfigForStep(parentGroup, stepA);
+            const configB = this.getGroupConfigForStep(parentGroup, stepB);
 
             const defaultCenter = new THREE.Vector3(0, 20, 0);
             const centerA = configA.center || defaultCenter;
@@ -438,15 +440,20 @@ export class DroneShowSequencer {
             const holdMoveEffectB = (configB.holdMoveEffect && configB.holdMoveEffect !== 'none') ? configB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
 
             // Calculate blended hold movement offsets
-            const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i);
-            const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i);
+            let blendedOffset = new THREE.Vector3();
+            let blendedScale = 1.0;
 
-            const blendedOffset = new THREE.Vector3().addVectors(
-                resA.offset.clone().multiplyScalar(fadeA),
-                resB.offset.clone().multiplyScalar(fadeB)
-            );
+            if (t === 0.0 || t === 1.0) {
+                const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i);
+                const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i);
 
-            let blendedScale = (resA.scaleFactor - 1.0) * fadeA + (resB.scaleFactor - 1.0) * fadeB + 1.0;
+                blendedOffset.addVectors(
+                    resA.offset.clone().multiplyScalar(fadeA),
+                    resB.offset.clone().multiplyScalar(fadeB)
+                );
+
+                blendedScale = (resA.scaleFactor - 1.0) * fadeA + (resB.scaleFactor - 1.0) * fadeB + 1.0;
+            }
 
             // Apply transition movement effect if active (fades in and out during transition)
             const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);

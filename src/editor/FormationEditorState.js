@@ -43,10 +43,11 @@ export class FormationEditorState extends BaseFormationState {
 
   getGroupConfigForStep(groupName, step) {
     if (!step) return null;
+    const resolvedName = String(groupName || 'Default').split('/')[0];
     if (!step.groupConfigs) step.groupConfigs = {};
-    if (!step.groupConfigs[groupName]) {
+    if (!step.groupConfigs[resolvedName]) {
       // Lazy initialize group config using step parameters
-      step.groupConfigs[groupName] = {
+      step.groupConfigs[resolvedName] = {
         transitionMode: step.transitionMode || 'transform',
         transitionMoveEffect: step.transitionMoveEffect || step.transitionEffect || 'none',
         transitionMoveSpeed: step.transitionMoveSpeed !== undefined ? step.transitionMoveSpeed : 1.0,
@@ -68,7 +69,7 @@ export class FormationEditorState extends BaseFormationState {
         center: step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0)
       };
     }
-    return step.groupConfigs[groupName];
+    return step.groupConfigs[resolvedName];
   }
 
   getGroupConfig(groupName, stepIndex = this.currentStepIndex) {
@@ -456,6 +457,12 @@ export class FormationEditorState extends BaseFormationState {
     this.currentFilePath = filePath;
     this.droneCount = data.droneCount || 0;
     this.activeGroup = data.activeGroup || "Default";
+    this.lineConstraints = data.lineConstraints ? data.lineConstraints.map(lc => ({
+      id: lc.id,
+      anchorA: lc.anchorA,
+      anchorB: lc.anchorB,
+      intermediates: [...lc.intermediates]
+    })) : [];
 
     // Load global steps array
     const parsedSteps = data.steps || [];
@@ -495,6 +502,12 @@ export class FormationEditorState extends BaseFormationState {
       name: this.name,
       droneCount: this.positions.length,
       activeGroup: this.activeGroup,
+      lineConstraints: this.lineConstraints.map(lc => ({
+        id: lc.id,
+        anchorA: lc.anchorA,
+        anchorB: lc.anchorB,
+        intermediates: [...lc.intermediates]
+      })),
       steps: this.steps.map(step => {
         const exportedGroupConfigs = {};
         if (step.groupConfigs) {
@@ -579,6 +592,8 @@ export class FormationEditorState extends BaseFormationState {
         step.effects.splice(index, 1);
       }
     }
+
+    this.adjustConstraintsOnDeletion(sorted);
 
     this.selectedIndices.clear();
     this.saveCurrentStep();

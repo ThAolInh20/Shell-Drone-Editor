@@ -155,7 +155,7 @@ export function setupShapePanel(state, director) {
             } else {
               colors.push(new THREE.Color(0xffffff));
             }
-            const gName = item.group || item.particleGroup || 'Imported';
+            const gName = String(item.group || item.particleGroup || 'Imported');
             particleGroups.push(gName);
           }
         }
@@ -304,11 +304,14 @@ export function setupShapePanel(state, director) {
       const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
       const startIndex = state.positions.length;
 
+      // Determine target group name for the new shape
+      const targetGroupName = (type === 'json' && customShapeData && customShapeData.particleGroups && customShapeData.particleGroups[0]) ? customShapeData.particleGroups[0] : groupName;
+
       // Inject into active memory
       for (let i = 0; i < count; i++) {
         state.positions.push(positions[i]);
         state.colors.push(colors[i]);
-        const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : groupName;
+        const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : targetGroupName;
         state.particleGroups.push(gName);
         state.effects.push('none');
       }
@@ -320,7 +323,7 @@ export function setupShapePanel(state, director) {
         for (let i = 0; i < count; i++) {
           step.positions.push(positions[i].clone());
           step.colors.push(colors[i].clone());
-          const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : groupName;
+          const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : targetGroupName;
           step.particleGroups.push(gName);
           if (!step.effects) step.effects = [];
           step.effects.push('none');
@@ -331,6 +334,13 @@ export function setupShapePanel(state, director) {
       state.selectedIndices.clear();
       for (let i = startIndex; i < state.positions.length; i++) {
         state.selectedIndices.add(i);
+      }
+
+      // Set the active group to the newly spawned group so editing works immediately!
+      if (typeof state.setActiveGroup === 'function') {
+        state.setActiveGroup(targetGroupName);
+      } else {
+        state.activeGroup = targetGroupName;
       }
 
       state.center.set(cx, cy, cz); // Update center

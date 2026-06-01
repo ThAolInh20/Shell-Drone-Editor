@@ -235,7 +235,7 @@ export function setupFormationShapePanel(state, director) {
         } else {
           colors.push(new THREE.Color(0xffffff));
         }
-        const groupName = item.group || item.particleGroup || 'Imported';
+        const groupName = String(item.group || item.particleGroup || 'Imported');
         particleGroups.push(groupName);
       }
     }

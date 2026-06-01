@@ -1193,10 +1193,34 @@ export class FormationDirector {
         this.state.particleGroups.push(newGroupName);
       }
 
+      // Automatically register a persistent line constraint if it is a 2-point line shape
+      if (shapeType === 'line') {
+        const intermediates = [];
+        for (let i = 0; i < generated.positions.length; i++) {
+          intermediates.push(startIndex + i);
+        }
+        if (!this.state.lineConstraints) {
+          this.state.lineConstraints = [];
+        }
+        this.state.lineConstraints.push({
+          id: 'line_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          anchorA: idxA,
+          anchorB: idxB,
+          intermediates: intermediates
+        });
+      }
+
       // Auto-select the newly spawned group
       this.state.selectedIndices.clear();
       for (let i = startIndex; i < this.state.positions.length; i++) {
         this.state.selectedIndices.add(i);
+      }
+
+      // Set the active group to the newly spawned group so editing works immediately!
+      if (typeof this.state.setActiveGroup === 'function') {
+        this.state.setActiveGroup(newGroupName);
+      } else {
+        this.state.activeGroup = newGroupName;
       }
 
       // Update Center to midpoint of posA and posB
@@ -1646,7 +1670,7 @@ export class FormationDirector {
               } else {
                 colors.push(new THREE.Color(0xffffff));
               }
-              const gName = item.group || item.particleGroup || 'Imported';
+              const gName = String(item.group || item.particleGroup || 'Imported');
               particleGroups.push(gName);
             }
           }
@@ -1812,11 +1836,14 @@ export class FormationDirector {
         const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
         const startIndex = this.state.positions.length;
 
+        // Determine target group name for the new shape
+        const targetGroupName = (type === 'json' && particleGroups[0]) ? particleGroups[0] : groupName;
+
         // Inject into active memory
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
           this.state.colors.push(colors[i]);
-          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
           this.state.particleGroups.push(gName);
         }
 
@@ -1824,6 +1851,13 @@ export class FormationDirector {
         this.state.selectedIndices.clear();
         for (let i = startIndex; i < this.state.positions.length; i++) {
           this.state.selectedIndices.add(i);
+        }
+
+        // Set the active group to the newly spawned group so editing works immediately!
+        if (typeof this.state.setActiveGroup === 'function') {
+          this.state.setActiveGroup(targetGroupName);
+        } else {
+          this.state.activeGroup = targetGroupName;
         }
 
         this.state.center.set(cx, cy, cz); // Update center
