@@ -145,6 +145,22 @@ export function renderStepPanel() {
 }
 
 export function setupStepPanel(state) {
+  const getGroupsToUpdate = (state) => {
+    const selectedGroups = new Set();
+    for (const idx of state.selectedIndices) {
+      const g = state.particleGroups[idx];
+      if (g) {
+        const rootGroup = String(g).split('/')[0];
+        selectedGroups.add(rootGroup);
+      }
+    }
+    if (selectedGroups.size > 0) {
+      return Array.from(selectedGroups);
+    }
+    const rootActive = String(state.activeGroup || 'Default').split('/')[0];
+    return [rootActive];
+  };
+
   const updateSettingsVisibility = () => {
     const transMoveEff = document.getElementById('ui-step-trans-move-effect')?.value || 'none';
     const transLightEff = document.getElementById('ui-step-trans-light-effect')?.value || 'none';
@@ -215,20 +231,26 @@ export function setupStepPanel(state) {
 
   // Mode & Transition Effects
   document.getElementById('ui-step-mode').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionMode = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionMode = e.target.value;
+    }
     state.saveCurrentStep();
     state.notify();
   });
 
   document.getElementById('ui-step-trans-move-effect').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionMoveEffect = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionMoveEffect = e.target.value;
+    }
     state.saveCurrentStep();
     updateSettingsVisibility();
     state.notify();
   });
 
   document.getElementById('ui-step-trans-move-speed')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionMoveSpeed = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionMoveSpeed = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-trans-move-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -236,7 +258,9 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-trans-move-freq')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionMoveFreq = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionMoveFreq = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-trans-move-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -244,20 +268,26 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-trans-light-effect').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionLightEffect = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionLightEffect = e.target.value;
+    }
     state.saveCurrentStep();
     updateSettingsVisibility();
     state.notify();
   });
 
   document.getElementById('ui-step-trans-light-color')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionSparkleColor = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionSparkleColor = e.target.value;
+    }
     state.saveCurrentStep();
     state.notify();
   });
 
   document.getElementById('ui-step-trans-light-speed')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionLightSpeed = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionLightSpeed = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-trans-light-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -265,7 +295,9 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-trans-light-freq')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).transitionLightFreq = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionLightFreq = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-trans-light-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -274,14 +306,18 @@ export function setupStepPanel(state) {
 
   // Hold Effects
   document.getElementById('ui-step-hold-move-effect').addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).holdMoveEffect = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).holdMoveEffect = e.target.value;
+    }
     state.saveCurrentStep();
     updateSettingsVisibility();
     state.notify();
   });
 
   document.getElementById('ui-step-hold-move-speed')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).holdMoveSpeed = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).holdMoveSpeed = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-hold-move-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -289,7 +325,9 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-hold-move-freq')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).holdMoveFreq = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).holdMoveFreq = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-hold-move-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -298,14 +336,18 @@ export function setupStepPanel(state) {
 
   // Landing Color Effects
   document.getElementById('ui-step-landing-light-effect')?.addEventListener('change', (e) => {
-    state.getGroupConfig(state.activeGroup).landingLightEffect = e.target.value;
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).landingLightEffect = e.target.value;
+    }
     state.saveCurrentStep();
     updateSettingsVisibility();
     state.notify();
   });
 
   document.getElementById('ui-step-landing-light-speed')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).landingLightSpeed = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).landingLightSpeed = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-landing-light-speed');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -313,7 +355,9 @@ export function setupStepPanel(state) {
   });
 
   document.getElementById('ui-step-landing-light-freq')?.addEventListener('input', (e) => {
-    state.getGroupConfig(state.activeGroup).landingLightFreq = parseFloat(e.target.value);
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).landingLightFreq = parseFloat(e.target.value);
+    }
     const span = document.getElementById('val-step-landing-light-freq');
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
@@ -324,7 +368,8 @@ export function setupStepPanel(state) {
   state.subscribe(() => {
     const currentStep = state.steps[state.currentStepIndex];
     if (currentStep) {
-      const activeCfg = state.getGroupConfig(state.activeGroup);
+      const parentGroup = String(state.activeGroup || 'Default').split('/')[0];
+      const activeCfg = state.getGroupConfig(parentGroup);
 
       const stepHoldTimeEl = document.getElementById('ui-step-hold-time');
       const stepTransTimeEl = document.getElementById('ui-step-transition-time');

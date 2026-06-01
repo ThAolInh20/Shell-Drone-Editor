@@ -410,7 +410,7 @@ export class EditorDirector {
       const flicker = Math.sin(age * 12.0 * speed + (index * 7.3)) * 0.5 + 0.5;
       const threshold = 1.0 - (freq * 0.3);
       const isSpark = flicker > threshold;
-      
+
       const targetCol = this.scratchColor3;
       if (isSpark) {
         if (sparkleColor) targetCol.copy(sparkleColor);
@@ -425,7 +425,7 @@ export class EditorDirector {
       const noise = Math.sin(patchX * 12.9898 + patchZ * 78.233 + age * 6.0 * speed) * 0.5 + 0.5;
       const threshold = 1.0 - (freq * 0.3);
       const isSpark = noise > threshold;
-      
+
       const targetCol = this.scratchColor3;
       if (isSpark) {
         if (sparkleColor) targetCol.copy(sparkleColor);
@@ -533,8 +533,9 @@ export class EditorDirector {
 
       for (let i = 0; i < count; i++) {
         const group = this.state.particleGroups[i] || 'Default';
-        const configA = this.state.getGroupConfigForStep(group, stepA);
-        const configB = this.state.getGroupConfigForStep(group, stepB);
+        const parentGroup = group.split('/')[0];
+        const configA = this.state.getGroupConfigForStep(parentGroup, stepA);
+        const configB = this.state.getGroupConfigForStep(parentGroup, stepB);
 
         const centerA = configA.center || this.defaultCenter;
         const centerB = configB.center || this.defaultCenter;
@@ -606,18 +607,23 @@ export class EditorDirector {
         const holdMoveEffectB = (configB.holdMoveEffect && configB.holdMoveEffect !== 'none') ? configB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
 
         // Calculate blended hold movement offsets
-        const offsetA = this.scratchVec1;
-        const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA);
+        const blendedOffset = this.scratchVec3.set(0, 0, 0);
+        let blendedScale = 1.0;
 
-        const offsetB = this.scratchVec2;
-        const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB);
+        if (t === 0.0 || t === 1.0) {
+          const offsetA = this.scratchVec1;
+          const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA);
 
-        const blendedOffset = this.scratchVec3.addVectors(
-          offsetA.multiplyScalar(fadeA),
-          offsetB.multiplyScalar(fadeB)
-        );
+          const offsetB = this.scratchVec2;
+          const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB);
 
-        let blendedScale = (scaleFactorA - 1.0) * fadeA + (scaleFactorB - 1.0) * fadeB + 1.0;
+          blendedOffset.addVectors(
+            offsetA.multiplyScalar(fadeA),
+            offsetB.multiplyScalar(fadeB)
+          );
+
+          blendedScale = (scaleFactorA - 1.0) * fadeA + (scaleFactorB - 1.0) * fadeB + 1.0;
+        }
 
         // Apply transition movement effect if active (fades in and out during transition)
         const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
@@ -678,7 +684,7 @@ export class EditorDirector {
         // Apply transition light effect if active (Flight Light Eff)
         // Rule: Only active for 95% of flight transition time, remaining 5% is blackout
         if (t > 0.0 && t < 1.0) {
-          if (t >= 0.95) {
+          if (t >= 1) {
             color.setRGB(0, 0, 0);
           } else {
             const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'patch-spark', 'blackout'].includes(transLightEff);
@@ -1012,6 +1018,23 @@ export class EditorDirector {
         this.state.effects.push('none');
       }
 
+      // Automatically register a persistent line constraint if it is a 2-point line shape
+      if (shapeType === 'line') {
+        const intermediates = [];
+        for (let i = 0; i < generated.positions.length; i++) {
+          intermediates.push(startIndex + i);
+        }
+        if (!this.state.lineConstraints) {
+          this.state.lineConstraints = [];
+        }
+        this.state.lineConstraints.push({
+          id: 'line_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          anchorA: idxA,
+          anchorB: idxB,
+          intermediates: intermediates
+        });
+      }
+
       // Inject into all other steps to keep indices aligned across the timeline!
       for (let sIndex = 0; sIndex < this.state.steps.length; sIndex++) {
         if (sIndex === this.state.currentStepIndex) continue;
@@ -1029,6 +1052,13 @@ export class EditorDirector {
       this.state.selectedIndices.clear();
       for (let i = startIndex; i < this.state.positions.length; i++) {
         this.state.selectedIndices.add(i);
+      }
+
+      // Set the active group to the newly spawned group so editing works immediately!
+      if (typeof this.state.setActiveGroup === 'function') {
+        this.state.setActiveGroup(newGroupName);
+      } else {
+        this.state.activeGroup = newGroupName;
       }
 
       // Update Center to midpoint
@@ -1494,7 +1524,7 @@ export class EditorDirector {
               } else {
                 colors.push(new THREE.Color(0xffffff));
               }
-              const gName = item.group || item.particleGroup || 'Imported';
+              const gName = String(item.group || item.particleGroup || 'Imported');
               particleGroups.push(gName);
             }
           }
@@ -1662,11 +1692,14 @@ export class EditorDirector {
         const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
         const startIndex = this.state.positions.length;
 
+        // Determine target group name for the new shape
+        const targetGroupName = (type === 'json' && particleGroups[0]) ? particleGroups[0] : groupName;
+
         // Inject into active memory
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
           this.state.colors.push(colors[i]);
-          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
           this.state.particleGroups.push(gName);
           this.state.effects.push('none');
         }
@@ -1678,7 +1711,7 @@ export class EditorDirector {
           for (let i = 0; i < count; i++) {
             step.positions.push(positions[i].clone());
             step.colors.push(colors[i].clone());
-            const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+            const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
             step.particleGroups.push(gName);
             if (!step.effects) step.effects = [];
             step.effects.push('none');
@@ -1689,6 +1722,13 @@ export class EditorDirector {
         this.state.selectedIndices.clear();
         for (let i = startIndex; i < this.state.positions.length; i++) {
           this.state.selectedIndices.add(i);
+        }
+
+        // Set the active group to the newly spawned group so editing works immediately!
+        if (typeof this.state.setActiveGroup === 'function') {
+          this.state.setActiveGroup(targetGroupName);
+        } else {
+          this.state.activeGroup = targetGroupName;
         }
 
         this.state.center.set(cx, cy, cz); // Update center

@@ -7,6 +7,7 @@ export class BaseFormationState {
     this.positions = []; // Array of THREE.Vector3
     this.colors = []; // Array of THREE.Color
     this.particleGroups = []; // Array of strings matching positions index
+    this.activeGroup = "Default";
 
     this.center = new THREE.Vector3(0, 20, 0);
     this.showCenter = true;
@@ -22,6 +23,8 @@ export class BaseFormationState {
     
     // Clipboard for copy/paste
     this.clipboard = null;
+
+    this.lineConstraints = [];
 
     this.listeners = [];
   }
@@ -63,7 +66,13 @@ export class BaseFormationState {
       center: { x: this.center.x, y: this.center.y, z: this.center.z },
       showCenter: this.showCenter,
       showPivotLines: this.showPivotLines,
-      isCenterSelected: this.isCenterSelected
+      isCenterSelected: this.isCenterSelected,
+      lineConstraints: this.lineConstraints.map(lc => ({
+        id: lc.id,
+        anchorA: lc.anchorA,
+        anchorB: lc.anchorB,
+        intermediates: [...lc.intermediates]
+      }))
     };
   }
 
@@ -92,11 +101,18 @@ export class BaseFormationState {
     this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
     this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
     this.selectedIndices.clear();
+    this.lineConstraints = snapshot.lineConstraints ? snapshot.lineConstraints.map(lc => ({
+      id: lc.id,
+      anchorA: lc.anchorA,
+      anchorB: lc.anchorB,
+      intermediates: [...lc.intermediates]
+    })) : [];
   }
 
   updatePosition(index, newPos) {
     if (this.positions[index]) {
       this.positions[index].copy(newPos);
+      this.updateLineConstraints();
       this.notify();
     }
   }
@@ -107,6 +123,7 @@ export class BaseFormationState {
         this.positions[index].copy(pos);
       }
     }
+    this.updateLineConstraints();
     this.notify();
   }
 
@@ -198,5 +215,53 @@ export class BaseFormationState {
       }
     }
     return Array.from(groups).sort();
+  }
+
+  updateLineConstraints() {
+    let changed = false;
+    for (const lc of this.lineConstraints) {
+      const posA = this.positions[lc.anchorA];
+      const posB = this.positions[lc.anchorB];
+      if (posA && posB) {
+        const count = lc.intermediates.length;
+        for (let i = 0; i < count; i++) {
+          const idx = lc.intermediates[i];
+          if (this.positions[idx]) {
+            const t = (i + 1) / (count + 1);
+            const newPos = new THREE.Vector3().lerpVectors(posA, posB, t);
+            if (this.positions[idx].distanceToSquared(newPos) > 0.0001) {
+              this.positions[idx].copy(newPos);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+    return changed;
+  }
+
+  adjustConstraintsOnDeletion(deletedIndicesSortedDescending) {
+    this.lineConstraints = this.lineConstraints.filter(lc => {
+      // If anchorA or anchorB is deleted, the constraint is invalid
+      if (deletedIndicesSortedDescending.includes(lc.anchorA) || deletedIndicesSortedDescending.includes(lc.anchorB)) {
+        return false;
+      }
+      
+      // Filter out deleted intermediates
+      lc.intermediates = lc.intermediates.filter(idx => !deletedIndicesSortedDescending.includes(idx));
+      
+      // If no intermediates left, the constraint is invalid
+      if (lc.intermediates.length === 0) {
+        return false;
+      }
+      
+      // Adjust remaining indices
+      for (const deletedIdx of deletedIndicesSortedDescending) {
+        if (lc.anchorA > deletedIdx) lc.anchorA--;
+        if (lc.anchorB > deletedIdx) lc.anchorB--;
+        lc.intermediates = lc.intermediates.map(idx => idx > deletedIdx ? idx - 1 : idx);
+      }
+      return true;
+    });
   }
 }

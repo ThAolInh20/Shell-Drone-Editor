@@ -15,6 +15,8 @@ export function renderGroupPanel() {
 }
 
 export function setupGroupPanel(state) {
+  const collapsedGroups = new Set();
+
   document.getElementById('btn-group-selected')?.addEventListener('click', async () => {
     if (state.selectedIndices.size === 0) {
       alert("Select some drones to group.");
@@ -116,14 +118,63 @@ export function setupGroupPanel(state) {
     if (groupList) {
       const groups = state.getUniqueGroups();
       groupList.innerHTML = '';
+
+      // Helper function to check if a group is collapsed by any ancestor
+      const isHidden = (groupPath) => {
+        const parts = groupPath.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          const ancestor = parts.slice(0, i).join('/');
+          if (collapsedGroups.has(ancestor)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
       groups.forEach(g => {
+        // Skip rendering if any parent/ancestor group is collapsed
+        if (isHidden(g)) {
+          return;
+        }
+
         const div = document.createElement('div');
 
         const depth = g.split('/').length - 1;
         const name = g.split('/').pop();
 
+        // Check if this group has children in the groups list
+        const hasChildren = groups.some(otherG => otherG.startsWith(g + '/'));
+
+        // Render arrow icon or matching spacer
+        const toggleSpan = document.createElement('span');
+        toggleSpan.style.display = 'inline-block';
+        toggleSpan.style.width = '12px';
+        toggleSpan.style.marginRight = '5px';
+        toggleSpan.style.textAlign = 'center';
+        toggleSpan.style.userSelect = 'none';
+
+        if (hasChildren) {
+          const isCollapsed = collapsedGroups.has(g);
+          toggleSpan.textContent = isCollapsed ? '▸' : '▾';
+          toggleSpan.style.cursor = 'pointer';
+          toggleSpan.style.color = '#aaa';
+          toggleSpan.addEventListener('click', (e) => {
+            e.stopPropagation(); // Don't trigger selecting the group when collapsing/expanding
+            if (isCollapsed) {
+              collapsedGroups.delete(g);
+            } else {
+              collapsedGroups.add(g);
+            }
+            state.notify();
+          });
+        } else {
+          toggleSpan.textContent = '';
+        }
+
+        div.appendChild(toggleSpan);
+
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = (depth > 0 ? '↳ ' : '') + name;
+        nameSpan.textContent = name;
         nameSpan.title = "Double click to rename group";
         
         nameSpan.ondblclick = async (e) => {
