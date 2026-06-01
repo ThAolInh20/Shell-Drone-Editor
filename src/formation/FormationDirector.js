@@ -14,6 +14,11 @@ export class FormationDirector {
     this.cameraManager = cameraManager;
     this.renderer = renderer;
 
+    // Performance Scratch Variables (GC prevention)
+    this.scratchVec1 = new THREE.Vector3();
+    this.scratchDummy = new THREE.Object3D();
+    this.scratchColor = new THREE.Color();
+
     this.state = new FormationState();
     
     // Editor UI Setup
@@ -408,8 +413,8 @@ export class FormationDirector {
     const positions = this.state.positions;
     this.instancedMesh.count = positions.length;
 
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
+    const dummy = this.scratchDummy;
+    const color = this.scratchColor;
 
     for (let i = 0; i < positions.length; i++) {
       dummy.position.copy(positions[i]);
@@ -458,13 +463,19 @@ export class FormationDirector {
       this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
 
       if (this.state.showPivotLines && positions.length > 0) {
-        const linePoints = [];
+        if (!this._pivotLinePoints) this._pivotLinePoints = [];
+        while (this._pivotLinePoints.length < positions.length * 2) {
+          this._pivotLinePoints.push(new THREE.Vector3());
+        }
         const centerPos = this.state.center;
         for (let i = 0; i < positions.length; i++) {
-          linePoints.push(positions[i].clone());
-          linePoints.push(centerPos.clone());
+          this._pivotLinePoints[i * 2].copy(positions[i]);
+          this._pivotLinePoints[i * 2 + 1].copy(centerPos);
         }
-        this.pivotLines.geometry.setFromPoints(linePoints);
+        if (this._pivotLinePoints.length > positions.length * 2) {
+          this._pivotLinePoints.length = positions.length * 2;
+        }
+        this.pivotLines.geometry.setFromPoints(this._pivotLinePoints);
         this.pivotLines.visible = true;
       } else {
         this.pivotLines.visible = false;
@@ -1478,9 +1489,18 @@ export class FormationDirector {
             <option value="cylinder">Cylinder</option>
             <option value="star">Star</option>
             <option value="text">Text / Numbers</option>
+            <option value="json">JSON File (Tệp tin)</option>
           </select>
         </div>
         
+        <div id="modal-json-container" style="display: none; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Import File</label>
+          <div>
+            <input type="file" id="modal-shape-json-file" accept=".json" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+            <div id="modal-json-status" style="font-size: 10px; color: #888; margin-top: 2px; text-align: right;">No file selected</div>
+          </div>
+        </div>
+
         <div id="modal-text-container" style="display: none; justify-content: space-between; align-items: center;">
           <label style="font-size: 12px; color: #ccc;">Text</label>
           <input type="text" id="modal-shape-text" value="2026" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
@@ -1546,8 +1566,28 @@ export class FormationDirector {
 
     const updateModalUI = () => {
       const type = shapeTypeSelect.value;
+      const isJson = type === 'json';
+
       textContainer.style.display = type === 'text' ? 'flex' : 'none';
-      
+
+      const jsonContainer = modal.querySelector('#modal-json-container');
+      if (jsonContainer) jsonContainer.style.display = isJson ? 'flex' : 'none';
+
+      const p1Input = modal.querySelector('#modal-shape-p1');
+      if (p1Input && p1Input.parentElement) {
+        p1Input.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
+
+      const countInput = modal.querySelector('#modal-count');
+      if (countInput && countInput.parentElement) {
+        countInput.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
+
+      const fillSelect = modal.querySelector('#modal-shape-fill');
+      if (fillSelect && fillSelect.parentElement) {
+        fillSelect.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
+
       if (type === 'cylinder' || type === 'star') {
         p2Container.style.display = 'flex';
         if (type === 'cylinder') {
@@ -1564,6 +1604,72 @@ export class FormationDirector {
     shapeTypeSelect.addEventListener('change', updateModalUI);
     // Initial call
     updateModalUI();
+
+    let customShapeData = null;
+    modal.querySelector('#modal-shape-json-file')?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const statusLabel = modal.querySelector('#modal-json-status');
+      if (!file) {
+        customShapeData = null;
+        if (statusLabel) {
+          statusLabel.textContent = 'No file selected';
+          statusLabel.style.color = '#888';
+        }
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          let droneData = [];
+          if (Array.isArray(parsed)) {
+            droneData = parsed;
+          } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
+            droneData = parsed.drones;
+          } else {
+            throw new Error("JSON must be an array of objects or contain a drones array");
+          }
+
+          const positions = [];
+          const colors = [];
+          const particleGroups = [];
+          for (const item of droneData) {
+            if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+              const px = item.x || 0;
+              const py = item.y || 0;
+              const pz = item.z || 0;
+              positions.push(new THREE.Vector3(px, py, pz));
+              if (item.color !== undefined) {
+                colors.push(new THREE.Color(item.color));
+              } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+                colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+              } else {
+                colors.push(new THREE.Color(0xffffff));
+              }
+              const gName = item.group || item.particleGroup || 'Imported';
+              particleGroups.push(gName);
+            }
+          }
+          if (positions.length > 0) {
+            customShapeData = { positions, colors, particleGroups };
+            if (statusLabel) {
+              statusLabel.textContent = `Loaded ${positions.length} points`;
+              statusLabel.style.color = '#4CAF50';
+            }
+          } else {
+            throw new Error("No valid coordinates found");
+          }
+        } catch (err) {
+          customShapeData = null;
+          if (statusLabel) {
+            statusLabel.textContent = 'Invalid JSON format';
+            statusLabel.style.color = '#ff4d4d';
+          }
+          console.error("Shape Import Error:", err);
+        }
+      };
+      reader.readAsText(file);
+    });
 
     // Buttons Container
     const btns = document.createElement('div');
@@ -1602,6 +1708,11 @@ export class FormationDirector {
       const p2 = p2Container.style.display !== 'none' ? (isNaN(p2Val) ? (type === 'star' ? 5 : 30) : p2Val) : (type === 'star' ? 5 : 30);
       const textVal = textContainer.style.display !== 'none' ? modal.querySelector('#modal-shape-text').value : '2026';
 
+      if (type === 'json' && !customShapeData) {
+        alert("Please choose a valid JSON file first.");
+        return;
+      }
+
       let params = { y: 0, fill: fill };
       if (type === 'grid') params = { spacing: p1, y: 0, fill };
       if (type === 'line') params = { spacing: p1, y: 0 };
@@ -1616,8 +1727,18 @@ export class FormationDirector {
       if (hasSelection) {
         // Apply formation to selected drones
         const count = this.state.selectedIndices.size;
-        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-        const newPositions = DroneFormationFactory.createFormation(type, count, params);
+        let newPositions = [];
+        let newColors = null;
+        let newGroups = null;
+
+        if (type === 'json') {
+          newPositions = customShapeData.positions.slice(0, count).map(p => p.clone());
+          newColors = customShapeData.colors.slice(0, count).map(c => c.clone());
+          newGroups = customShapeData.particleGroups.slice(0, count);
+        } else {
+          if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+          newPositions = DroneFormationFactory.createFormation(type, count, params);
+        }
 
         // Center calculation
         const currentCenter = new THREE.Vector3();
@@ -1644,30 +1765,59 @@ export class FormationDirector {
           i++;
         }
         this.state.updatePositions(updates);
+
+        // Update colors & groups if JSON imported
+        if (type === 'json' && newColors) {
+          let j = 0;
+          for (const id of this.state.selectedIndices) {
+            if (j >= newColors.length) break;
+            this.state.colors[id].copy(newColors[j]);
+            if (newGroups && newGroups[j]) {
+              this.state.particleGroups[id] = newGroups[j];
+            }
+            j++;
+          }
+          this.state.notify(); // Force UI colors refresh
+        }
+
         this.state.saveStateToHistory();
       } else {
         // Spawn new drones in shape
-        const count = parseInt(modal.querySelector('#modal-count').value) || 100;
+        let count = 0;
+        let positions = [];
+        let colors = [];
+        let particleGroups = [];
+
+        if (type === 'json') {
+          positions = customShapeData.positions.map(p => p.clone());
+          colors = customShapeData.colors.map(c => c.clone());
+          particleGroups = customShapeData.particleGroups;
+          count = positions.length;
+        } else {
+          count = parseInt(modal.querySelector('#modal-count').value) || 100;
+          if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+          positions = DroneFormationFactory.createFormation(type, count, params);
+          colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
+        }
+
         const cx = parseFloat(modal.querySelector('#modal-shape-cx').value) || 0;
         const cy = parseFloat(modal.querySelector('#modal-shape-cy').value) || 0;
         const cz = parseFloat(modal.querySelector('#modal-shape-cz').value) || 0;
-
-        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-        const positions = DroneFormationFactory.createFormation(type, count, params);
-        const colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
 
         const centerOffset = new THREE.Vector3(cx, cy, cz);
         for (const pos of positions) {
           pos.add(centerOffset);
         }
 
+        const groupName = `${type.toUpperCase()}_${Math.floor(Math.random() * 1000)}`;
         const startIndex = this.state.positions.length;
 
         // Inject into active memory
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
           this.state.colors.push(colors[i]);
-          this.state.particleGroups.push(this.state.activeGroup || 'Default');
+          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+          this.state.particleGroups.push(gName);
         }
 
         // Select the newly spawned drones

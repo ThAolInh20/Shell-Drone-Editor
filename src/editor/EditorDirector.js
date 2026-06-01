@@ -11,6 +11,20 @@ export class EditorDirector {
     this.cameraManager = cameraManager;
     this.renderer = renderer;
 
+    // Performance Scratch Variables (GC prevention)
+    this.scratchVec1 = new THREE.Vector3();
+    this.scratchVec2 = new THREE.Vector3();
+    this.scratchVec3 = new THREE.Vector3();
+    this.scratchVec4 = new THREE.Vector3();
+    this.scratchVecCenter = new THREE.Vector3();
+    this.scratchVecPosA = new THREE.Vector3();
+    this.scratchVecPosB = new THREE.Vector3();
+    this.scratchColor1 = new THREE.Color();
+    this.scratchColor2 = new THREE.Color();
+    this.scratchColor3 = new THREE.Color();
+    this.scratchDummy = new THREE.Object3D();
+    this.defaultCenter = new THREE.Vector3(0, 20, 0);
+
     this.state = new FormationEditorState();
 
     // Editor UI Setup
@@ -339,6 +353,113 @@ export class EditorDirector {
     }
   }
 
+  getMoveEffectOffset(effectType, basePos, centerPos, speed, freq, index, age, outOffset) {
+    outOffset.set(0, 0, 0);
+    let scaleFactor = 1.0;
+    if (effectType === 'none' || !effectType) return scaleFactor;
+
+    if (effectType === 'wave') {
+      outOffset.y = Math.sin(age * 3.0 * speed + (index * 0.1)) * 2.0 * freq;
+    } else if (effectType === 'swing') {
+      outOffset.x = Math.sin(age * 2.0 * speed + (index * 0.1)) * 2.5 * freq;
+    } else if (effectType === 'pulse') {
+      scaleFactor = 1.0 + Math.sin(age * Math.PI * 2 * speed + (index * 0.1)) * 0.5 * freq;
+    } else if (effectType === 'orbit' || effectType === 'spiral') {
+      const toDrone = this.scratchVec1.subVectors(basePos, centerPos);
+      let angle = age * 0.6 * speed;
+      let radiusScale = 1.0;
+
+      if (effectType === 'spiral') {
+        const dist = toDrone.length();
+        radiusScale = 1.0 + Math.sin(age * 2.0 * speed - dist * 0.05) * 0.15 * freq;
+        angle += dist * 0.02 * freq;
+      }
+
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const rx = toDrone.x * cos - toDrone.z * sin;
+      const rz = toDrone.x * sin + toDrone.z * cos;
+
+      const rotatedPos = this.scratchVec2.set(
+        centerPos.x + rx * radiusScale,
+        basePos.y,
+        centerPos.z + rz * radiusScale
+      );
+      outOffset.subVectors(rotatedPos, basePos);
+    } else if (effectType === 'expand') {
+      const toDrone = this.scratchVec1.subVectors(basePos, centerPos);
+      const pulseScale = 1.0 + Math.sin(age * 3.0 * speed) * 0.2 * freq;
+      const expandedPos = this.scratchVec2.set(
+        centerPos.x + toDrone.x * pulseScale,
+        basePos.y,
+        centerPos.z + toDrone.z * pulseScale
+      );
+      outOffset.subVectors(expandedPos, basePos);
+    }
+
+    return scaleFactor;
+  }
+
+  getLightEffectColor(effectType, baseColor, speed, freq, dummyPos, centerPos, fade, index, sparkleColor, age, outColor) {
+    outColor.copy(baseColor);
+    if (effectType === 'none' || !effectType || fade <= 0.001) return;
+
+    if (effectType === 'blackout') {
+      outColor.setRGB(0, 0, 0);
+    } else if (effectType === 'sparkle-spark') {
+      const flicker = Math.sin(age * 12.0 * speed + (index * 7.3)) * 0.5 + 0.5;
+      const threshold = 1.0 - (freq * 0.3);
+      const isSpark = flicker > threshold;
+      
+      const targetCol = this.scratchColor3;
+      if (isSpark) {
+        if (sparkleColor) targetCol.copy(sparkleColor);
+        else targetCol.setRGB(1, 1, 1);
+      } else {
+        targetCol.setRGB(0, 0, 0);
+      }
+      outColor.lerp(targetCol, fade);
+    } else if (effectType === 'patch-spark') {
+      const patchX = Math.floor(dummyPos.x / 10.0);
+      const patchZ = Math.floor(dummyPos.z / 10.0);
+      const noise = Math.sin(patchX * 12.9898 + patchZ * 78.233 + age * 6.0 * speed) * 0.5 + 0.5;
+      const threshold = 1.0 - (freq * 0.3);
+      const isSpark = noise > threshold;
+      
+      const targetCol = this.scratchColor3;
+      if (isSpark) {
+        if (sparkleColor) targetCol.copy(sparkleColor);
+        else targetCol.setRGB(1, 1, 1);
+      } else {
+        targetCol.setRGB(0, 0, 0);
+      }
+      outColor.lerp(targetCol, fade);
+    } else if (effectType === 'strobe') {
+      const p = Math.sin(age * 15.0 * speed + (index * 0.5));
+      const factor = p < 0 ? (1.0 - 0.9 * freq) : 1.0;
+      const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+      outColor.multiplyScalar(blendedFactor);
+    } else if (effectType === 'shimmer') {
+      const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * freq * Math.sin(age * 10 * speed);
+      const factor = Math.max(0, flicker);
+      const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+      outColor.multiplyScalar(blendedFactor);
+    } else if (effectType === 'pulse-color') {
+      const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * Math.PI * 2.0 * speed + (index * 0.1));
+      const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+      outColor.multiplyScalar(blendedFactor);
+    } else if (effectType === 'rainbow') {
+      const hue = (age * 0.1 * speed + (index * 0.01 * freq)) % 1.0;
+      const rainbowCol = this.scratchColor3.setHSL(hue, 1.0, 0.5);
+      outColor.lerp(rainbowCol, fade);
+    } else if (effectType === 'wave-light') {
+      const dist = dummyPos.distanceTo(centerPos);
+      const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * 5.0 * speed - dist * 0.2);
+      const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
+      outColor.multiplyScalar(blendedFactor);
+    }
+  }
+
   update(deltaTime) {
     this.controls.update();
 
@@ -402,124 +523,22 @@ export class EditorDirector {
 
       const holdProgress = holdTime > 0 ? THREE.MathUtils.clamp((this.state.playbackTime - stepA.time) / holdTime, 0.0, 1.0) : 1.0;
 
-      const dummy = new THREE.Object3D();
-      const color = new THREE.Color();
+      const dummy = this.scratchDummy;
+      const color = this.scratchColor1;
       const count = this.state.positions.length;
       const age = this.state.playbackTime / 1000; // in seconds
 
       const fadeA = 1.0 - t;
       const fadeB = t;
 
-      // Helper function to calculate the offset and scale factor of a movement effect
-      const getMoveEffectOffset = (effectType, basePos, centerPos, speed, freq, index) => {
-        const offset = new THREE.Vector3();
-        let scaleFactor = 1.0;
-        if (effectType === 'none' || !effectType) return { offset, scaleFactor };
-
-        if (effectType === 'wave') {
-          offset.y = Math.sin(age * 3.0 * speed + (index * 0.1)) * 2.0 * freq;
-        } else if (effectType === 'swing') {
-          offset.x = Math.sin(age * 2.0 * speed + (index * 0.1)) * 2.5 * freq;
-        } else if (effectType === 'pulse') {
-          scaleFactor = 1.0 + Math.sin(age * Math.PI * 2 * speed + (index * 0.1)) * 0.5 * freq;
-        } else if (effectType === 'orbit' || effectType === 'spiral') {
-          const toDrone = new THREE.Vector3().subVectors(basePos, centerPos);
-          let angle = age * 0.6 * speed;
-          let radiusScale = 1.0;
-
-          if (effectType === 'spiral') {
-            const dist = toDrone.length();
-            radiusScale = 1.0 + Math.sin(age * 2.0 * speed - dist * 0.05) * 0.15 * freq;
-            angle += dist * 0.02 * freq;
-          }
-
-          const cos = Math.cos(angle);
-          const sin = Math.sin(angle);
-          const rx = toDrone.x * cos - toDrone.z * sin;
-          const rz = toDrone.x * sin + toDrone.z * cos;
-
-          const rotatedPos = new THREE.Vector3(
-            centerPos.x + rx * radiusScale,
-            basePos.y,
-            centerPos.z + rz * radiusScale
-          );
-          offset.subVectors(rotatedPos, basePos);
-        } else if (effectType === 'expand') {
-          const toDrone = new THREE.Vector3().subVectors(basePos, centerPos);
-          const pulseScale = 1.0 + Math.sin(age * 3.0 * speed) * 0.2 * freq;
-          const expandedPos = new THREE.Vector3(
-            centerPos.x + toDrone.x * pulseScale,
-            basePos.y,
-            centerPos.z + toDrone.z * pulseScale
-          );
-          offset.subVectors(expandedPos, basePos);
-        }
-
-        return { offset, scaleFactor };
-      };
-
-      // Helper function to apply light effects smoothly
-      const getLightEffectColor = (effectType, baseColor, speed, freq, dummyPos, centerPos, fade, index, sparkleColor) => {
-        const col = baseColor.clone();
-        if (effectType === 'none' || !effectType || fade <= 0.001) return col;
-
-        if (effectType === 'blackout') {
-          return col.setRGB(0, 0, 0);
-        } else if (effectType === 'sparkle-spark') {
-          const flicker = Math.sin(age * 12.0 * speed + (index * 7.3)) * 0.5 + 0.5;
-          const threshold = 1.0 - (freq * 0.3);
-          const isSpark = flicker > threshold;
-          const sparkCol = sparkleColor || new THREE.Color(1, 1, 1);
-          const targetCol = isSpark ? sparkCol.clone() : new THREE.Color(0, 0, 0);
-          return col.lerp(targetCol, fade);
-        } else if (effectType === 'patch-spark') {
-          const patchX = Math.floor(dummyPos.x / 10.0);
-          const patchZ = Math.floor(dummyPos.z / 10.0);
-          const noise = Math.sin(patchX * 12.9898 + patchZ * 78.233 + age * 6.0 * speed) * 0.5 + 0.5;
-          const threshold = 1.0 - (freq * 0.3);
-          const isSpark = noise > threshold;
-          const sparkCol = sparkleColor || new THREE.Color(1, 1, 1);
-          const targetCol = isSpark ? sparkCol.clone() : new THREE.Color(0, 0, 0);
-          return col.lerp(targetCol, fade);
-        } else if (effectType === 'strobe') {
-          const p = Math.sin(age * 15.0 * speed + (index * 0.5));
-          const factor = p < 0 ? (1.0 - 0.9 * freq) : 1.0;
-          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
-          col.multiplyScalar(blendedFactor);
-        } else if (effectType === 'shimmer') {
-          const flicker = 1.0 + (Math.random() - 0.5) * 0.8 * freq * Math.sin(age * 10 * speed);
-          const factor = Math.max(0, flicker);
-          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
-          col.multiplyScalar(blendedFactor);
-        } else if (effectType === 'pulse-color') {
-          const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * Math.PI * 2.0 * speed + (index * 0.1));
-          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
-          col.multiplyScalar(blendedFactor);
-        } else if (effectType === 'rainbow') {
-          const hue = (age * 0.1 * speed + (index * 0.01 * freq)) % 1.0;
-          const rainbowCol = new THREE.Color().setHSL(hue, 1.0, 0.5);
-          col.lerp(rainbowCol, fade);
-        } else if (effectType === 'wave-light') {
-          const dist = dummyPos.distanceTo(centerPos);
-          const factor = (1.0 - 0.5 * freq) + (0.5 * freq) * Math.sin(age * 5.0 * speed - dist * 0.2);
-          const blendedFactor = THREE.MathUtils.lerp(1.0, factor, fade);
-          col.multiplyScalar(blendedFactor);
-        }
-
-        return col;
-      };
-
-
-
       for (let i = 0; i < count; i++) {
         const group = this.state.particleGroups[i] || 'Default';
         const configA = this.state.getGroupConfigForStep(group, stepA);
         const configB = this.state.getGroupConfigForStep(group, stepB);
 
-        const defaultCenter = new THREE.Vector3(0, 20, 0);
-        const centerA = configA.center || defaultCenter;
-        const centerB = configB.center || defaultCenter;
-        const currentCenter = new THREE.Vector3().lerpVectors(centerA, centerB, t);
+        const centerA = configA.center || this.defaultCenter;
+        const centerB = configB.center || this.defaultCenter;
+        const currentCenter = this.scratchVecCenter.lerpVectors(centerA, centerB, t);
 
         const posA = stepA.positions[i] || this.state.positions[i];
         const posB = stepB.positions[i] || posA;
@@ -533,8 +552,6 @@ export class EditorDirector {
         const freqMoveB = configB.holdMoveFreq !== undefined ? configB.holdMoveFreq : 1.0;
         const currentMoveFreq = THREE.MathUtils.lerp(freqMoveA, freqMoveB, t);
 
-
-
         // Retrieve transition parameters from the destination step B (transitioning to step B)
         const currentTransMoveSpeed = configB.transitionMoveSpeed !== undefined ? configB.transitionMoveSpeed : 1.0;
         const currentTransMoveFreq = configB.transitionMoveFreq !== undefined ? configB.transitionMoveFreq : 1.0;
@@ -546,7 +563,7 @@ export class EditorDirector {
         const transLightEff = configB.transitionLightEffect || 'none';
         const mode = configB.transitionMode || 'transform';
 
-        let basePos = new THREE.Vector3();
+        const basePos = this.scratchVecPosB;
 
         if (transMoveEff === 'arc' && t > 0.0 && t < 1.0) {
           basePos.lerpVectors(posA, posB, t);
@@ -554,9 +571,9 @@ export class EditorDirector {
           const arcHeight = Math.max(8, dist * 0.2) * Math.sin(t * Math.PI);
           basePos.y += arcHeight;
         } else if (transMoveEff === 'spiral' && t > 0.0 && t < 1.0) {
-          const relA = new THREE.Vector3().subVectors(posA, centerA);
-          const relB = new THREE.Vector3().subVectors(posB, centerB);
-          const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
+          const relA = this.scratchVec1.subVectors(posA, centerA);
+          const relB = this.scratchVec2.subVectors(posB, centerB);
+          const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
           const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentTransMoveSpeed;
           const cos = Math.cos(spinAngle);
           const sin = Math.sin(spinAngle);
@@ -572,9 +589,9 @@ export class EditorDirector {
         } else {
           // Default transition mode (transform vs move)
           if (mode === 'move') {
-            const relA = new THREE.Vector3().subVectors(posA, centerA);
-            const relB = new THREE.Vector3().subVectors(posB, centerB);
-            const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
+            const relA = this.scratchVec1.subVectors(posA, centerA);
+            const relB = this.scratchVec2.subVectors(posB, centerB);
+            const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
             basePos.addVectors(currentCenter, relPos);
           } else {
             basePos.lerpVectors(posA, posB, t);
@@ -589,23 +606,27 @@ export class EditorDirector {
         const holdMoveEffectB = (configB.holdMoveEffect && configB.holdMoveEffect !== 'none') ? configB.holdMoveEffect : (['wave', 'swing', 'pulse'].includes(droneEffectB) ? droneEffectB : 'none');
 
         // Calculate blended hold movement offsets
-        const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i);
-        const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i);
+        const offsetA = this.scratchVec1;
+        const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA);
 
-        const blendedOffset = new THREE.Vector3().addVectors(
-          resA.offset.clone().multiplyScalar(fadeA),
-          resB.offset.clone().multiplyScalar(fadeB)
+        const offsetB = this.scratchVec2;
+        const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB);
+
+        const blendedOffset = this.scratchVec3.addVectors(
+          offsetA.multiplyScalar(fadeA),
+          offsetB.multiplyScalar(fadeB)
         );
 
-        let blendedScale = (resA.scaleFactor - 1.0) * fadeA + (resB.scaleFactor - 1.0) * fadeB + 1.0;
+        let blendedScale = (scaleFactorA - 1.0) * fadeA + (scaleFactorB - 1.0) * fadeB + 1.0;
 
         // Apply transition movement effect if active (fades in and out during transition)
         const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
         if (isTransMove && t > 0.0 && t < 1.0) {
           const fadeTrans = Math.sin(t * Math.PI);
-          const resTrans = getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i);
-          blendedOffset.add(resTrans.offset.clone().multiplyScalar(fadeTrans));
-          blendedScale += (resTrans.scaleFactor - 1.0) * fadeTrans;
+          const offsetTrans = this.scratchVec4;
+          const scaleFactorTrans = this.getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i, age, offsetTrans);
+          blendedOffset.add(offsetTrans.multiplyScalar(fadeTrans));
+          blendedScale += (scaleFactorTrans - 1.0) * fadeTrans;
         }
 
         dummy.position.addVectors(basePos, blendedOffset);
@@ -614,7 +635,7 @@ export class EditorDirector {
         this.instancedMesh.setMatrixAt(i, dummy.matrix);
 
         // --- ÁP DỤNG HIỆU ỨNG ÁNH SÁNG (LIGHT EFFECT) ---
-        const colA = (stepA.colors && stepA.colors[i]) ? stepA.colors[i] : (this.state.colors[i] || new THREE.Color(1, 1, 1));
+        const colA = (stepA.colors && stepA.colors[i]) ? stepA.colors[i] : (this.state.colors[i] || this.scratchColor2.setRGB(1, 1, 1));
 
         // Apply Landing Color Effect (transition from black to step color colA) during the hold phase
         const landingLightEffA = configA.landingLightEffect || 'none';
@@ -624,7 +645,7 @@ export class EditorDirector {
         if (landingLightEffA === 'none' || landingLightEffA === '') {
           color.copy(colA);
         } else {
-          const colPrev = new THREE.Color(0, 0, 0);
+          const colPrev = this.scratchColor2.setRGB(0, 0, 0);
           const progress = THREE.MathUtils.clamp(holdProgress * landingLightSpeed, 0.0, 1.0);
 
           if (landingLightEffA === 'radial') {
@@ -664,9 +685,8 @@ export class EditorDirector {
             if (isTransLight) {
               const normT = t / 0.95;
               const fadeTrans = Math.sin(normT * Math.PI);
-              const transSparkleColor = new THREE.Color(configA.transitionSparkleColor || '#ffffff');
-              const transCol = getLightEffectColor(transLightEff, color, currentTransLightSpeed, currentTransLightFreq, dummy.position, currentCenter, fadeTrans, i, transSparkleColor);
-              color.copy(transCol);
+              const transSparkleColor = this.scratchColor2.setStyle(configA.transitionSparkleColor || '#ffffff');
+              this.getLightEffectColor(transLightEff, color, currentTransLightSpeed, currentTransLightFreq, dummy.position, currentCenter, fadeTrans, i, transSparkleColor, age, color);
 
               // Smoothly fade out the entire color to black as it approaches t = 0.95 (end of transition light)
               if (transLightEff !== 'blackout') {
@@ -689,25 +709,31 @@ export class EditorDirector {
       if (this.centerHelper) {
         const activeConfigA = this.state.getGroupConfigForStep(this.state.activeGroup, stepA);
         const activeConfigB = this.state.getGroupConfigForStep(this.state.activeGroup, stepB);
-        let activeCenter = new THREE.Vector3(0, 20, 0);
+        const activeCenter = this.scratchVecCenter.copy(this.defaultCenter);
 
         if (activeConfigA && activeConfigB) {
-          activeCenter.lerpVectors(activeConfigA.center || new THREE.Vector3(0, 20, 0), activeConfigB.center || new THREE.Vector3(0, 20, 0), t);
+          const centerValA = activeConfigA.center || this.defaultCenter;
+          const centerValB = activeConfigB.center || this.defaultCenter;
+          activeCenter.lerpVectors(centerValA, centerValB, t);
         }
 
         this.centerHelper.position.copy(activeCenter);
         this.centerHelper.visible = !!this.state.showCenter && !this.state.isCenterSelected;
 
         if (this.state.showPivotLines && count > 0) {
-          const linePoints = [];
-          const tempDronePos = new THREE.Vector3();
-          for (let i = 0; i < count; i++) {
-            this.instancedMesh.getMatrixAt(i, dummy.matrix);
-            tempDronePos.setFromMatrixPosition(dummy.matrix);
-            linePoints.push(tempDronePos.clone());
-            linePoints.push(activeCenter.clone());
+          if (!this._pivotLinePoints) this._pivotLinePoints = [];
+          while (this._pivotLinePoints.length < count * 2) {
+            this._pivotLinePoints.push(new THREE.Vector3());
           }
-          this.pivotLines.geometry.setFromPoints(linePoints);
+          for (let i = 0; i < count; i++) {
+            this.instancedMesh.getMatrixAt(i, this.scratchDummy.matrix);
+            this._pivotLinePoints[i * 2].setFromMatrixPosition(this.scratchDummy.matrix);
+            this._pivotLinePoints[i * 2 + 1].copy(activeCenter);
+          }
+          if (this._pivotLinePoints.length > count * 2) {
+            this._pivotLinePoints.length = count * 2;
+          }
+          this.pivotLines.geometry.setFromPoints(this._pivotLinePoints);
           this.pivotLines.visible = true;
         } else {
           this.pivotLines.visible = false;
@@ -1311,9 +1337,18 @@ export class EditorDirector {
             <option value="cylinder">Cylinder</option>
             <option value="star">Star</option>
             <option value="text">Text / Numbers</option>
+            <option value="json">JSON File (Tệp tin)</option>
           </select>
         </div>
         
+        <div id="modal-json-container" style="display: none; justify-content: space-between; align-items: center;">
+          <label style="font-size: 12px; color: #ccc;">Import File</label>
+          <div>
+            <input type="file" id="modal-shape-json-file" accept=".json" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
+            <div id="modal-json-status" style="font-size: 10px; color: #888; margin-top: 2px; text-align: right;">No file selected</div>
+          </div>
+        </div>
+
         <div id="modal-text-container" style="display: none; justify-content: space-between; align-items: center;">
           <label style="font-size: 12px; color: #ccc;">Text</label>
           <input type="text" id="modal-shape-text" value="2026" style="width: 150px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; border-radius: 2px;" />
@@ -1379,7 +1414,27 @@ export class EditorDirector {
 
     const updateModalUI = () => {
       const type = shapeTypeSelect.value;
+      const isJson = type === 'json';
+
       textContainer.style.display = type === 'text' ? 'flex' : 'none';
+
+      const jsonContainer = modal.querySelector('#modal-json-container');
+      if (jsonContainer) jsonContainer.style.display = isJson ? 'flex' : 'none';
+
+      const p1Input = modal.querySelector('#modal-shape-p1');
+      if (p1Input && p1Input.parentElement) {
+        p1Input.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
+
+      const countInput = modal.querySelector('#modal-count');
+      if (countInput && countInput.parentElement) {
+        countInput.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
+
+      const fillSelect = modal.querySelector('#modal-shape-fill');
+      if (fillSelect && fillSelect.parentElement) {
+        fillSelect.parentElement.style.display = isJson ? 'none' : 'flex';
+      }
 
       if (type === 'cylinder' || type === 'star') {
         p2Container.style.display = 'flex';
@@ -1397,6 +1452,72 @@ export class EditorDirector {
     shapeTypeSelect.addEventListener('change', updateModalUI);
     // Initial call
     updateModalUI();
+
+    let customShapeData = null;
+    modal.querySelector('#modal-shape-json-file')?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const statusLabel = modal.querySelector('#modal-json-status');
+      if (!file) {
+        customShapeData = null;
+        if (statusLabel) {
+          statusLabel.textContent = 'No file selected';
+          statusLabel.style.color = '#888';
+        }
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          let droneData = [];
+          if (Array.isArray(parsed)) {
+            droneData = parsed;
+          } else if (parsed && parsed.drones && Array.isArray(parsed.drones)) {
+            droneData = parsed.drones;
+          } else {
+            throw new Error("JSON must be an array of objects or contain a drones array");
+          }
+
+          const positions = [];
+          const colors = [];
+          const particleGroups = [];
+          for (const item of droneData) {
+            if (item.x !== undefined || item.y !== undefined || item.z !== undefined) {
+              const px = item.x || 0;
+              const py = item.y || 0;
+              const pz = item.z || 0;
+              positions.push(new THREE.Vector3(px, py, pz));
+              if (item.color !== undefined) {
+                colors.push(new THREE.Color(item.color));
+              } else if (item.r !== undefined && item.g !== undefined && item.b !== undefined) {
+                colors.push(new THREE.Color(`rgb(${item.r}, ${item.g}, ${item.b})`));
+              } else {
+                colors.push(new THREE.Color(0xffffff));
+              }
+              const gName = item.group || item.particleGroup || 'Imported';
+              particleGroups.push(gName);
+            }
+          }
+          if (positions.length > 0) {
+            customShapeData = { positions, colors, particleGroups };
+            if (statusLabel) {
+              statusLabel.textContent = `Loaded ${positions.length} points`;
+              statusLabel.style.color = '#4CAF50';
+            }
+          } else {
+            throw new Error("No valid coordinates found");
+          }
+        } catch (err) {
+          customShapeData = null;
+          if (statusLabel) {
+            statusLabel.textContent = 'Invalid JSON format';
+            statusLabel.style.color = '#ff4d4d';
+          }
+          console.error("Shape Import Error:", err);
+        }
+      };
+      reader.readAsText(file);
+    });
 
     // Buttons Container
     const btns = document.createElement('div');
@@ -1435,6 +1556,11 @@ export class EditorDirector {
       const p2 = p2Container.style.display !== 'none' ? (isNaN(p2Val) ? (type === 'star' ? 5 : 30) : p2Val) : (type === 'star' ? 5 : 30);
       const textVal = textContainer.style.display !== 'none' ? modal.querySelector('#modal-shape-text').value : '2026';
 
+      if (type === 'json' && !customShapeData) {
+        alert("Please choose a valid JSON file first.");
+        return;
+      }
+
       let params = { y: 0, fill: fill };
       if (type === 'grid') params = { spacing: p1, y: 0, fill };
       if (type === 'line') params = { spacing: p1, y: 0 };
@@ -1449,8 +1575,18 @@ export class EditorDirector {
       if (hasSelection) {
         // Apply formation to selected drones
         const count = this.state.selectedIndices.size;
-        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-        const newPositions = DroneFormationFactory.createFormation(type, count, params);
+        let newPositions = [];
+        let newColors = null;
+        let newGroups = null;
+
+        if (type === 'json') {
+          newPositions = customShapeData.positions.slice(0, count).map(p => p.clone());
+          newColors = customShapeData.colors.slice(0, count).map(c => c.clone());
+          newGroups = customShapeData.particleGroups.slice(0, count);
+        } else {
+          if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+          newPositions = DroneFormationFactory.createFormation(type, count, params);
+        }
 
         // Center calculation
         const currentCenter = new THREE.Vector3();
@@ -1477,18 +1613,46 @@ export class EditorDirector {
           i++;
         }
         this.state.updatePositions(updates);
+
+        // Update colors & groups if JSON imported
+        if (type === 'json' && newColors) {
+          let j = 0;
+          for (const id of this.state.selectedIndices) {
+            if (j >= newColors.length) break;
+            this.state.colors[id].copy(newColors[j]);
+            if (newGroups && newGroups[j]) {
+              this.state.particleGroups[id] = newGroups[j];
+            }
+            j++;
+          }
+          this.state.synchronizeGroupsToAllSteps();
+          this.state.notify(); // Force UI colors refresh
+        }
+
         this.state.saveCurrentStep();
         this.state.saveStateToHistory();
       } else {
         // Spawn new drones in shape
-        const count = parseInt(modal.querySelector('#modal-count').value) || 100;
+        let count = 0;
+        let positions = [];
+        let colors = [];
+        let particleGroups = [];
+
+        if (type === 'json') {
+          positions = customShapeData.positions.map(p => p.clone());
+          colors = customShapeData.colors.map(c => c.clone());
+          particleGroups = customShapeData.particleGroups;
+          count = positions.length;
+        } else {
+          count = parseInt(modal.querySelector('#modal-count').value) || 100;
+          if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
+          positions = DroneFormationFactory.createFormation(type, count, params);
+          colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
+        }
+
         const cx = parseFloat(modal.querySelector('#modal-shape-cx').value) || 0;
         const cy = parseFloat(modal.querySelector('#modal-shape-cy').value) || 0;
         const cz = parseFloat(modal.querySelector('#modal-shape-cz').value) || 0;
-
-        if (type === 'grid') params.rows = Math.ceil(Math.sqrt(count));
-        const positions = DroneFormationFactory.createFormation(type, count, params);
-        const colors = new Array(positions.length).fill().map(() => new THREE.Color(0xffffff));
 
         const centerOffset = new THREE.Vector3(cx, cy, cz);
         for (const pos of positions) {
@@ -1502,7 +1666,8 @@ export class EditorDirector {
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
           this.state.colors.push(colors[i]);
-          this.state.particleGroups.push(this.state.activeGroup || 'Default');
+          const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+          this.state.particleGroups.push(gName);
           this.state.effects.push('none');
         }
 
@@ -1513,7 +1678,8 @@ export class EditorDirector {
           for (let i = 0; i < count; i++) {
             step.positions.push(positions[i].clone());
             step.colors.push(colors[i].clone());
-            step.particleGroups.push(this.state.activeGroup || 'Default');
+            const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : (this.state.activeGroup || groupName);
+            step.particleGroups.push(gName);
             if (!step.effects) step.effects = [];
             step.effects.push('none');
           }

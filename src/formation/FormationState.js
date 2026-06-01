@@ -1,30 +1,12 @@
 import * as THREE from 'three';
+import { BaseFormationState } from '../core/BaseFormationState.js';
 
-export class FormationState {
+export class FormationState extends BaseFormationState {
   constructor() {
-    this.name = "NewFormation";
-    this.currentFilePath = null;
-    this.positions = []; // Array of THREE.Vector3
-    this.colors = []; // Array of THREE.Color
-    this.particleGroups = []; // Array of strings matching positions index
-
-    this.center = new THREE.Vector3(0, 20, 0);
-    this.showCenter = true;
-    this.showPivotLines = false;
-    this.isCenterSelected = false;
-
-    // Selection state
-    this.selectedIndices = new Set();
-
-    // Undo/Redo stack
-    this.history = [];
-    this.historyIndex = -1;
-    
-    // Clipboard for copy/paste
-    this.clipboard = null;
-
+    super();
     this.isClickToPlaceActive = false;
     this.guideMode = 'none'; // 'none', 'hologram', 'reference'
+    
     this.ghostModelConfig = {
       position: new THREE.Vector3(0, 20, 0),
       scale: 1.0,
@@ -50,94 +32,38 @@ export class FormationState {
       new THREE.Vector3(30, 20, 0)
     ];
     this.isBezierEditActive = false;
-
-    this.listeners = [];
   }
 
-  subscribe(listener) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+  createHistorySnapshot() {
+    const snapshot = super.createHistorySnapshot();
+    snapshot.isClickToPlaceActive = this.isClickToPlaceActive;
+    snapshot.guideMode = this.guideMode;
+    snapshot.ghostModelConfig = {
+      position: { x: this.ghostModelConfig.position.x, y: this.ghostModelConfig.position.y, z: this.ghostModelConfig.position.z },
+      scale: this.ghostModelConfig.scale,
+      rotationY: this.ghostModelConfig.rotationY,
+      opacity: this.ghostModelConfig.opacity,
+      wireframe: this.ghostModelConfig.wireframe
     };
-  }
-
-  notify() {
-    for (const listener of this.listeners) {
-      listener(this);
-    }
-  }
-
-  saveStateToHistory() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.history = this.history.slice(0, this.historyIndex + 1);
-    }
-
-    const snapshot = {
-      positions: this.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
-      colors: this.colors.map(c => c.getHex()),
-      particleGroups: [...this.particleGroups],
-      center: { x: this.center.x, y: this.center.y, z: this.center.z },
-      showCenter: this.showCenter,
-      showPivotLines: this.showPivotLines,
-      isCenterSelected: this.isCenterSelected,
-      isClickToPlaceActive: this.isClickToPlaceActive,
-      guideMode: this.guideMode,
-      ghostModelConfig: {
-        position: { x: this.ghostModelConfig.position.x, y: this.ghostModelConfig.position.y, z: this.ghostModelConfig.position.z },
-        scale: this.ghostModelConfig.scale,
-        rotationY: this.ghostModelConfig.rotationY,
-        opacity: this.ghostModelConfig.opacity,
-        wireframe: this.ghostModelConfig.wireframe
-      },
-      referenceImageConfig: {
-        url: this.referenceImageConfig.url,
-        fileName: this.referenceImageConfig.fileName,
-        position: { x: this.referenceImageConfig.position.x, y: this.referenceImageConfig.position.y, z: this.referenceImageConfig.position.z },
-        scale: this.referenceImageConfig.scale,
-        rotationY: this.referenceImageConfig.rotationY,
-        opacity: this.referenceImageConfig.opacity,
-        orientation: this.referenceImageConfig.orientation
-      },
-      bezierControlPoints: this.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z })),
-      isBezierEditActive: this.isBezierEditActive
+    snapshot.referenceImageConfig = {
+      url: this.referenceImageConfig.url,
+      fileName: this.referenceImageConfig.fileName,
+      position: { x: this.referenceImageConfig.position.x, y: this.referenceImageConfig.position.y, z: this.referenceImageConfig.position.z },
+      scale: this.referenceImageConfig.scale,
+      rotationY: this.referenceImageConfig.rotationY,
+      opacity: this.referenceImageConfig.opacity,
+      orientation: this.referenceImageConfig.orientation
     };
-
-    this.history.push(snapshot);
-    if (this.history.length > 50) {
-      this.history.shift();
-    } else {
-      this.historyIndex++;
-    }
-    this.notify();
-  }
-
-  undo() {
-    if (this.historyIndex > 0) {
-      this.historyIndex--;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
-      this.notify();
-    }
-  }
-
-  redo() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.historyIndex++;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
-      this.notify();
-    }
+    snapshot.bezierControlPoints = this.bezierControlPoints.map(p => ({ x: p.x, y: p.y, z: p.z }));
+    snapshot.isBezierEditActive = this.isBezierEditActive;
+    return snapshot;
   }
 
   restoreFromSnapshot(snapshot) {
-    this.positions = snapshot.positions.map(p => new THREE.Vector3(p.x, p.y, p.z));
-    this.colors = snapshot.colors ? snapshot.colors.map(c => new THREE.Color(c)) : new Array(this.positions.length).fill().map(() => new THREE.Color(0xffffff));
-    this.particleGroups = snapshot.particleGroups ? [...snapshot.particleGroups] : new Array(this.positions.length).fill('Default');
-    this.center = snapshot.center ? new THREE.Vector3(snapshot.center.x, snapshot.center.y, snapshot.center.z) : new THREE.Vector3(0, 20, 0);
-    this.showCenter = snapshot.showCenter !== undefined ? snapshot.showCenter : true;
-    this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
-    this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
-    
+    super.restoreFromSnapshot(snapshot);
     this.isClickToPlaceActive = snapshot.isClickToPlaceActive !== undefined ? snapshot.isClickToPlaceActive : false;
     this.guideMode = snapshot.guideMode !== undefined ? snapshot.guideMode : 'none';
+    
     if (snapshot.ghostModelConfig) {
       this.ghostModelConfig = {
         position: new THREE.Vector3(snapshot.ghostModelConfig.position.x, snapshot.ghostModelConfig.position.y, snapshot.ghostModelConfig.position.z),
@@ -170,69 +96,6 @@ export class FormationState {
       ];
     }
     this.isBezierEditActive = snapshot.isBezierEditActive !== undefined ? snapshot.isBezierEditActive : false;
-    
-    this.selectedIndices.clear();
-  }
-
-  updatePosition(index, newPos) {
-    if (this.positions[index]) {
-      this.positions[index].copy(newPos);
-      this.notify();
-    }
-  }
-
-  updatePositions(entries) {
-    for (const { index, pos } of entries) {
-      if (this.positions[index]) {
-        this.positions[index].copy(pos);
-      }
-    }
-    this.notify();
-  }
-
-  updateSelectionColor(hex) {
-    if (this.selectedIndices.size === 0) return;
-
-    for (const index of this.selectedIndices) {
-      if (this.colors[index]) {
-        this.colors[index].setHex(hex);
-      }
-    }
-    this.saveStateToHistory();
-    this.notify();
-  }
-
-  selectCenter() {
-    this.selectedIndices.clear();
-    this.isCenterSelected = true;
-    this.notify();
-  }
-
-  deselectCenter() {
-    if (this.isCenterSelected) {
-      this.isCenterSelected = false;
-      this.notify();
-    }
-  }
-
-  select(index, multi = false) {
-    this.isCenterSelected = false; // Deselect Center when selecting drone
-    if (!multi) {
-      this.selectedIndices.clear();
-    }
-    this.selectedIndices.add(index);
-    this.notify();
-  }
-
-  deselect(index) {
-    this.selectedIndices.delete(index);
-    this.notify();
-  }
-
-  clearSelection() {
-    this.selectedIndices.clear();
-    this.isCenterSelected = false;
-    this.notify();
   }
 
   deleteSelected() {
@@ -251,22 +114,6 @@ export class FormationState {
     this.notify();
   }
 
-  getUniqueGroupNameForPaste(originalGroupName, existingGroups) {
-    const baseName = originalGroupName;
-    let candidate = baseName + '_copy';
-    if (!existingGroups.has(candidate)) {
-      return candidate;
-    }
-    let counter = 1;
-    while (true) {
-      candidate = `${baseName}_copy_${counter}`;
-      if (!existingGroups.has(candidate)) {
-        return candidate;
-      }
-      counter++;
-    }
-  }
-
   duplicateSelected() {
     if (this.selectedIndices.size === 0) return;
 
@@ -274,10 +121,7 @@ export class FormationState {
     const startIndex = this.positions.length;
     let i = 0;
 
-    // Gather existing groups
     const existingGroups = new Set(this.particleGroups);
-
-    // Build a unique copy mapping for each group in the selection
     const groupMapping = new Map();
     for (const index of this.selectedIndices) {
       const group = this.particleGroups[index] || 'Duplicate';
@@ -328,10 +172,7 @@ export class FormationState {
     const startIndex = this.positions.length;
     let i = 0;
 
-    // Gather existing groups
     const existingGroups = new Set(this.particleGroups);
-
-    // Build a unique copy mapping for each group in the clipboard
     const groupMapping = new Map();
     for (const group of this.clipboard.particleGroups) {
       const grp = group || 'Pasted';
@@ -357,35 +198,6 @@ export class FormationState {
     this.selectedIndices = newIndices;
     this.saveStateToHistory();
     this.notify();
-  }
-
-  selectGroup(groupName, multi = false) {
-    if (!multi) {
-      this.selectedIndices.clear();
-    }
-
-    const prefix = groupName + '/';
-    for (let i = 0; i < this.particleGroups.length; i++) {
-      if (this.particleGroups[i] === groupName || (this.particleGroups[i] && this.particleGroups[i].startsWith(prefix))) {
-        this.selectedIndices.add(i);
-      }
-    }
-    this.notify();
-  }
-
-  getUniqueGroups() {
-    const groups = new Set();
-    for (const g of this.particleGroups) {
-      if (g) {
-        let currentPath = '';
-        const parts = g.split('/');
-        for (const part of parts) {
-          currentPath += (currentPath ? '/' : '') + part;
-          groups.add(currentPath);
-        }
-      }
-    }
-    return Array.from(groups).sort();
   }
 
   updateBezierControlPoint(index, newPos) {
