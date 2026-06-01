@@ -1,22 +1,15 @@
 import * as THREE from 'three';
+import { BaseFormationState } from '../core/BaseFormationState.js';
 
-export class FormationEditorState {
+export class FormationEditorState extends BaseFormationState {
   constructor() {
+    super();
     this.name = "NewFormat";
-    this.currentFilePath = null;
     this.droneCount = 100;
-    this.positions = []; // Array of THREE.Vector3
-    this.colors = []; // Array of THREE.Color
-    this.particleGroups = []; // Array of strings matching positions index
     this.effects = []; // Array of strings (e.g. 'none', 'wave', 'strobe')
-
-    this.center = new THREE.Vector3(0, 20, 0);
-    this.showCenter = true;
-    this.showPivotLines = false;
-    this.isCenterSelected = false;
-
-    // Timeline state
     this.activeGroup = "Default";
+    
+    // Timeline state
     this.steps = [{
       id: 'step_0',
       time: 0,
@@ -40,18 +33,6 @@ export class FormationEditorState {
     this.currentStepIndex = 0;
     this.isPlaying = false;
     this.playbackTime = 0;
-
-    // Selection state
-    this.selectedIndices = new Set();
-
-    // Undo/Redo stack
-    this.history = [];
-    this.historyIndex = -1;
-
-    // Clipboard for copy/paste
-    this.clipboard = null;
-
-    this.listeners = [];
   }
 
   isDroneInGroup(droneIndex, groupName) {
@@ -141,19 +122,6 @@ export class FormationEditorState {
         step.time = prevStep.time + (prevStep.holdTime || 0) + (step.transitionTime || 1000);
         currentTime = step.time + (step.holdTime || 0);
       }
-    }
-  }
-
-  subscribe(listener) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  notify() {
-    for (const listener of this.listeners) {
-      listener(this);
     }
   }
 
@@ -267,8 +235,7 @@ export class FormationEditorState {
         this.center.set(0, 20, 0);
       }
 
-       // Keep active selection when switching steps
-       this.isCenterSelected = false;
+      this.isCenterSelected = false;
       this.notify();
     }
   }
@@ -384,57 +351,15 @@ export class FormationEditorState {
     }
   }
 
-  saveStateToHistory() {
-    // Drop future history if we're branching
-    if (this.historyIndex < this.history.length - 1) {
-      this.history = this.history.slice(0, this.historyIndex + 1);
-    }
-
-    const snapshot = {
-      positions: this.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
-      colors: this.colors.map(c => c.getHex()),
-      particleGroups: [...this.particleGroups],
-      center: { x: this.center.x, y: this.center.y, z: this.center.z },
-      showCenter: this.showCenter,
-      showPivotLines: this.showPivotLines,
-      isCenterSelected: this.isCenterSelected
-    };
-
-    this.history.push(snapshot);
-    if (this.history.length > 50) { // Limit history size
-      this.history.shift();
-    } else {
-      this.historyIndex++;
-    }
-    this.notify();
-  }
-
-  undo() {
-    if (this.historyIndex > 0) {
-      this.historyIndex--;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
-      this.notify();
-    }
-  }
-
-  redo() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.historyIndex++;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
-      this.notify();
-    }
+  createHistorySnapshot() {
+    const snapshot = super.createHistorySnapshot();
+    snapshot.effects = [...this.effects];
+    return snapshot;
   }
 
   restoreFromSnapshot(snapshot) {
-    this.positions = snapshot.positions.map(p => new THREE.Vector3(p.x, p.y, p.z));
-    this.colors = snapshot.colors ? snapshot.colors.map(c => new THREE.Color(c)) : new Array(this.positions.length).fill().map(() => new THREE.Color(0xffffff));
-    this.particleGroups = snapshot.particleGroups ? [...snapshot.particleGroups] : new Array(this.positions.length).fill('Default');
-    this.center = snapshot.center ? new THREE.Vector3(snapshot.center.x, snapshot.center.y, snapshot.center.z) : new THREE.Vector3(0, 20, 0);
-    this.showCenter = snapshot.showCenter !== undefined ? snapshot.showCenter : true;
-    this.showPivotLines = snapshot.showPivotLines !== undefined ? snapshot.showPivotLines : false;
-    this.isCenterSelected = snapshot.isCenterSelected !== undefined ? snapshot.isCenterSelected : false;
-    // Clear selection on undo/redo to avoid invalid states
-    this.selectedIndices.clear();
+    super.restoreFromSnapshot(snapshot);
+    this.effects = snapshot.effects ? [...snapshot.effects] : new Array(this.positions.length).fill('none');
   }
 
   parseStepsArray(stepsArray) {
@@ -622,66 +547,6 @@ export class FormationEditorState {
     };
   }
 
-  updatePosition(index, newPos) {
-    if (this.positions[index]) {
-      this.positions[index].copy(newPos);
-      this.notify();
-    }
-  }
-
-  updatePositions(entries) {
-    for (const { index, pos } of entries) {
-      if (this.positions[index]) {
-        this.positions[index].copy(pos);
-      }
-    }
-    this.notify();
-  }
-
-  updateSelectionColor(hex) {
-    if (this.selectedIndices.size === 0) return;
-
-    for (const index of this.selectedIndices) {
-      if (this.colors[index]) {
-        this.colors[index].setHex(hex);
-      }
-    }
-    this.saveStateToHistory();
-  }
-
-  selectCenter() {
-    this.selectedIndices.clear();
-    this.isCenterSelected = true;
-    this.notify();
-  }
-
-  deselectCenter() {
-    if (this.isCenterSelected) {
-      this.isCenterSelected = false;
-      this.notify();
-    }
-  }
-
-  select(index, multi = false) {
-    this.isCenterSelected = false;
-    if (!multi) {
-      this.selectedIndices.clear();
-    }
-    this.selectedIndices.add(index);
-    this.notify();
-  }
-
-  deselect(index) {
-    this.selectedIndices.delete(index);
-    this.notify();
-  }
-
-  clearSelection() {
-    this.selectedIndices.clear();
-    this.isCenterSelected = false;
-    this.notify();
-  }
-
   updateSelectionEffect(effectName) {
     if (this.selectedIndices.size === 0) return;
     for (const index of this.selectedIndices) {
@@ -720,22 +585,6 @@ export class FormationEditorState {
     this.saveStateToHistory();
   }
 
-  getUniqueGroupNameForPaste(originalGroupName, existingGroups) {
-    const baseName = originalGroupName;
-    let candidate = baseName + '_copy';
-    if (!existingGroups.has(candidate)) {
-      return candidate;
-    }
-    let counter = 1;
-    while (true) {
-      candidate = `${baseName}_copy_${counter}`;
-      if (!existingGroups.has(candidate)) {
-        return candidate;
-      }
-      counter++;
-    }
-  }
-
   duplicateSelected() {
     if (this.selectedIndices.size === 0) return;
 
@@ -743,7 +592,6 @@ export class FormationEditorState {
     const startIndex = this.positions.length;
     let i = 0;
 
-    // Gather all existing groups across all steps to prevent any clash
     const existingGroups = new Set();
     for (const g of this.particleGroups) {
       if (g) existingGroups.add(g);
@@ -756,7 +604,6 @@ export class FormationEditorState {
       }
     }
 
-    // Build a unique copy mapping for each group in the selection
     const groupMapping = new Map();
     for (const index of this.selectedIndices) {
       const group = this.particleGroups[index] || 'Duplicate';
@@ -840,7 +687,6 @@ export class FormationEditorState {
     const startIndex = this.positions.length;
     let i = 0;
 
-    // Gather all existing groups across all steps to prevent any clash
     const existingGroups = new Set();
     for (const g of this.particleGroups) {
       if (g) existingGroups.add(g);
@@ -853,7 +699,6 @@ export class FormationEditorState {
       }
     }
 
-    // Build a unique copy mapping for each group in the clipboard
     const groupMapping = new Map();
     for (const group of this.clipboard.particleGroups) {
       const grp = group || 'Pasted';
@@ -862,7 +707,6 @@ export class FormationEditorState {
       }
     }
 
-    // Build mappings for all stepData groups as well
     const stepGroupMapping = [];
     for (let sIndex = 0; sIndex < this.steps.length; sIndex++) {
       stepGroupMapping.push(new Map());
