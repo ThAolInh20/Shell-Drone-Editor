@@ -2,9 +2,12 @@ export function renderGroupPanel() {
   return `
     <div class="panel-section">
       <h3>Groups</h3>
-      <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-        <button class="btn btn-secondary" id="btn-group-selected" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;">Group Selected</button>
-        <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;">Ungroup</button>
+      <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
+        <div style="display: flex; gap: 5px;">
+          <button class="btn btn-secondary" id="btn-group-selected" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="Group selected drones with hierarchical nesting">Group (Nested)</button>
+          <button class="btn btn-secondary" id="btn-group-selected-flat" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="Group selected drones into a single flat group">Group (Flat)</button>
+        </div>
+        <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; width: 100%; font-size: 11px;">Ungroup</button>
       </div>
       <button class="btn btn-secondary" id="btn-reset-group" style="margin-bottom: 10px; width: 100%; padding: 6px; font-size: 11px; background-color: #3a86ff; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📍 Reset Group Position / Center</button>
       <div id="group-list" style="max-height: 350px; overflow-y: auto; background: #222; border: 1px solid #444; border-radius: 4px; padding: 5px;">
@@ -31,6 +34,29 @@ export function setupGroupPanel(state) {
     for (const idx of state.selectedIndices) {
       const current = state.particleGroups[idx] || 'Default';
       state.particleGroups[idx] = cleanName + '/' + current;
+    }
+    state.synchronizeGroupsToAllSteps();
+    state.saveStateToHistory();
+    state.notify();
+  });
+
+  document.getElementById('btn-group-selected-flat')?.addEventListener('click', () => {
+    if (state.selectedIndices.size === 0) {
+      alert("Select some drones to group.");
+      return;
+    }
+
+    // Auto-generate unique flat group name
+    const existing = new Set(state.getUniqueGroups());
+    let count = 1;
+    let cleanName = `Group_${count}`;
+    while (existing.has(cleanName)) {
+      count++;
+      cleanName = `Group_${count}`;
+    }
+
+    for (const idx of state.selectedIndices) {
+      state.particleGroups[idx] = cleanName;
     }
     state.synchronizeGroupsToAllSteps();
     state.saveStateToHistory();
@@ -226,6 +252,7 @@ export function setupGroupPanel(state) {
         delBtn.style.fontWeight = 'bold';
         delBtn.style.padding = '0 5px';
         delBtn.style.borderRadius = '3px';
+        delBtn.style.cursor = 'pointer';
         delBtn.addEventListener('mouseover', () => delBtn.style.background = 'rgba(255,0,0,0.2)');
         delBtn.addEventListener('mouseout', () => delBtn.style.background = 'transparent');
 
@@ -238,6 +265,94 @@ export function setupGroupPanel(state) {
         });
 
         div.appendChild(delBtn);
+
+        // Count total drones in this group (and its children)
+        let totalInThisGroup = 0;
+        let dronesInThisGroupIndices = [];
+        const thisPrefix = g + '/';
+        state.particleGroups.forEach((pg, idx) => {
+          if (pg === g || (pg && pg.startsWith(thisPrefix))) {
+            totalInThisGroup++;
+            dronesInThisGroupIndices.push(idx);
+          }
+        });
+
+        // Add Split Group Button (✂️)
+        const splitBtn = document.createElement('span');
+        splitBtn.textContent = '✂️';
+        splitBtn.style.float = 'right';
+        splitBtn.style.marginRight = '8px';
+        splitBtn.style.cursor = 'pointer';
+        splitBtn.style.fontSize = '11px';
+        splitBtn.style.padding = '0 3px';
+        splitBtn.style.borderRadius = '3px';
+        splitBtn.style.transition = 'background 0.2s';
+        splitBtn.title = "Split drones from this group to a new group";
+        splitBtn.addEventListener('mouseover', () => splitBtn.style.background = 'rgba(255,255,255,0.15)');
+        splitBtn.addEventListener('mouseout', () => splitBtn.style.background = 'transparent');
+
+        splitBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          
+          if (totalInThisGroup === 0) {
+            alert("No drones in this group to split.");
+            return;
+          }
+
+          // Auto-generate sibling group name with suffix _split
+          const existing = new Set(state.getUniqueGroups());
+          const parts = g.split('/');
+          const baseLeafName = parts[parts.length - 1];
+          let cleanNewName = `${baseLeafName}_split`;
+          
+          // Reconstruct path to check uniqueness
+          parts[parts.length - 1] = cleanNewName;
+          let candidatePath = parts.join('/');
+          
+          let count = 1;
+          while (existing.has(candidatePath)) {
+            cleanNewName = `${baseLeafName}_split_${count}`;
+            parts[parts.length - 1] = cleanNewName;
+            candidatePath = parts.join('/');
+            count++;
+          }
+          
+          const newGroupPath = candidatePath;
+
+          const countStr = await customPrompt(`Split from "${name}" to "${cleanNewName}". Enter number of drones to split (Max: ${totalInThisGroup}):`, "1");
+          if (countStr === null) return;
+          
+          const splitCount = parseInt(countStr, 10);
+          if (isNaN(splitCount) || splitCount <= 0 || splitCount > totalInThisGroup) {
+            alert(`Invalid count. Please enter a positive number up to ${totalInThisGroup}.`);
+            return;
+          }
+
+          // Take the last K drones from the group indices
+          const dronesToSplit = dronesInThisGroupIndices.slice(-splitCount);
+
+          for (const idx of dronesToSplit) {
+            const currentPg = state.particleGroups[idx];
+            if (currentPg && currentPg.startsWith(g + '/')) {
+              const relativePath = currentPg.substring(g.length); // e.g., '/D'
+              state.particleGroups[idx] = newGroupPath + relativePath;
+            } else {
+              state.particleGroups[idx] = newGroupPath;
+            }
+          }
+
+          // Apply and notify
+          state.synchronizeGroupsToAllSteps();
+          state.saveStateToHistory();
+          state.notify();
+
+          // Auto-select the newly created split group
+          state.selectGroup(newGroupPath, false);
+
+          alert(`Successfully split ${splitCount} drones into group "${newGroupPath}"!`);
+        });
+
+        div.appendChild(splitBtn);
 
         div.style.paddingLeft = `${depth * 15 + 8}px`;
         div.style.paddingTop = '4px';
