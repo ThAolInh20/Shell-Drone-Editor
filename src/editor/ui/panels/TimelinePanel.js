@@ -123,17 +123,65 @@ function renderTimeline(state) {
 
   state.steps.forEach((step, index) => {
     const card = document.createElement('div');
+    card.draggable = true; // Kích hoạt tính năng kéo thả
     card.style.minWidth = '80px';
     card.style.height = '40px';
     card.style.backgroundColor = index === state.currentStepIndex ? '#3498db' : '#333';
     card.style.border = index === state.currentStepIndex ? '2px solid #fff' : '1px solid #444';
     card.style.borderRadius = '4px';
     card.style.padding = '8px';
-    card.style.cursor = 'pointer';
+    card.style.cursor = 'grab';
     card.style.display = 'flex';
     card.style.flexDirection = 'column';
     card.style.justifyContent = 'flex-start';
     card.style.gap = '4px';
+    card.style.transition = 'all 0.2s';
+
+    // Sự kiện kéo thả HTML5
+    card.ondragstart = (e) => {
+      e.dataTransfer.setData('text/plain', index);
+      card.style.opacity = '0.5';
+      card.style.cursor = 'grabbing';
+      card.style.border = '2px dashed #3498db';
+    };
+
+    card.ondragend = () => {
+      card.style.opacity = '1.0';
+      card.style.cursor = 'grab';
+      state.notify();
+    };
+
+    card.ondragover = (e) => {
+      e.preventDefault(); // Cần thiết để cho phép drop
+      card.style.border = '2px solid #2ecc71'; // Màu xanh lá khi rê qua
+    };
+
+    card.ondragleave = () => {
+      card.style.border = index === state.currentStepIndex ? '2px solid #fff' : '1px solid #444';
+    };
+
+    card.ondrop = (e) => {
+      e.preventDefault();
+      const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      if (isNaN(sourceIndex) || sourceIndex === index) return;
+
+      // Di chuyển step trong mảng steps
+      const draggedStep = state.steps[sourceIndex];
+      state.steps.splice(sourceIndex, 1);
+      state.steps.splice(index, 0, draggedStep);
+
+      // Cập nhật lại Step đang chọn hoạt động để không bị mất tiêu điểm
+      if (state.currentStepIndex === sourceIndex) {
+        state.currentStepIndex = index;
+      } else if (state.currentStepIndex > sourceIndex && state.currentStepIndex <= index) {
+        state.currentStepIndex--;
+      } else if (state.currentStepIndex < sourceIndex && state.currentStepIndex >= index) {
+        state.currentStepIndex++;
+      }
+
+      state.recalculateTimes(); // Tính toán lại toàn bộ dòng thời gian (time) của timeline
+      state.notify(); // Cập nhật lại UI và 3D canvas ngay lập tức
+    };
 
     const header = document.createElement('div');
     header.style.display = 'flex';
