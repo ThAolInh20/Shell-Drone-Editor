@@ -684,11 +684,11 @@ export class EditorDirector {
         // Apply transition light effect if active (Flight Light Eff)
         // Rule: Only active for 95% of flight transition time, remaining 5% is blackout
         if (t > 0.0 && t < 1.0) {
-          if (t >= 1) {
-            color.setRGB(0, 0, 0);
-          } else {
-            const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'patch-spark', 'blackout'].includes(transLightEff);
-            if (isTransLight) {
+          const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'patch-spark', 'blackout'].includes(transLightEff);
+          if (isTransLight) {
+            if (t >= 0.95) {
+              color.setRGB(0, 0, 0);
+            } else {
               const normT = t / 0.95;
               const fadeTrans = Math.sin(normT * Math.PI);
               const transSparkleColor = this.scratchColor2.setStyle(configA.transitionSparkleColor || '#ffffff');
@@ -697,7 +697,7 @@ export class EditorDirector {
               // Smoothly fade out the entire color to black as it approaches t = 0.95 (end of transition light)
               if (transLightEff !== 'blackout') {
                 const fadeToBlack = Math.cos(normT * Math.PI * 0.5);
-                color.multiplyScalar(fadeToBlack);
+                color.multiplyScalar(Math.max(0, fadeToBlack));
               }
             }
           }
