@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DroneFormationFactory } from '../../factories/DroneFormationFactory.js';
-import { t } from '../../lang/i18n.js';
+import { t } from '../../config/lang/i18n.js';
 
 
 export function renderFormationShapePanel() {

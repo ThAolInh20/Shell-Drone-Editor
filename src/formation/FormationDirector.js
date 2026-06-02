@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { t } from '../lang/i18n.js';
+import { t } from '../config/lang/i18n.js';
 
 import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
