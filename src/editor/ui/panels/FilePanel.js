@@ -1,4 +1,4 @@
-import { t } from '../../../lang/i18n.js';
+import { t } from '../../../config/lang/i18n.js';
 
 export function renderFilePanel() {
   return `

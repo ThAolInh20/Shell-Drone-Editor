@@ -2,7 +2,7 @@ import { renderFormationShapePanel, setupFormationShapePanel } from './Formation
 import { renderFormationPropertiesPanel, setupFormationPropertiesPanel } from './FormationPropertiesPanel.js';
 import { renderGizmoPanel, setupGizmoPanel } from '../../editor/ui/panels/GizmoPanel.js';
 import { renderGroupPanel, setupGroupPanel } from '../../editor/ui/panels/GroupPanel.js';
-import { t } from '../../lang/i18n.js';
+import { t } from '../../config/lang/i18n.js';
 
 export function setupFormationUI(state, director) {
   const leftContainer = document.getElementById('editor-ui-left');

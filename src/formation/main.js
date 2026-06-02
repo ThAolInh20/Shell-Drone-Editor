@@ -4,7 +4,7 @@ import { SceneManager } from '../core/SceneManager.js';
 import { Renderer } from '../core/Renderer.js';
 import { FormationDirector } from './FormationDirector.js';
 import '../style.css';
-import { setLanguage } from '../lang/i18n.js';
+import { setLanguage } from '../config/lang/i18n.js';
 
 
 // Initialize Core ECS Boilerplate

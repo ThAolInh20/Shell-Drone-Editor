@@ -4,7 +4,7 @@ import { renderGizmoPanel, setupGizmoPanel } from './panels/GizmoPanel.js';
 import { renderSelectionPanel, setupSelectionPanel } from './panels/SelectionPanel.js';
 import { renderStepPanel, setupStepPanel } from './panels/StepPanel.js';
 import { setupTimelinePanel } from './panels/TimelinePanel.js';
-import { t, getLanguage, setLanguage } from './../../lang/i18n.js';
+import { t, getLanguage, setLanguage } from './../../config/lang/i18n.js';
 
 export function setupEditorUI(state, director) {
   const leftContainer = document.getElementById('editor-ui-left');
