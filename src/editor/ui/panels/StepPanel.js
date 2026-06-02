@@ -25,34 +25,13 @@ export function renderStepPanel() {
           <select id="ui-step-mode" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
             <option value="transform">${t('editor.stepPanel.modeTransform')}</option>
             <option value="move">${t('editor.stepPanel.modeMove')}</option>
+            <option value="disperse">${t('editor.stepPanel.modeDisperse')}</option>
+            <option value="vortex">${t('editor.stepPanel.modeVortex')}</option>
+            <option value="cascade">${t('editor.stepPanel.modeCascade')}</option>
+            <option value="helix">${t('editor.stepPanel.modeHelix')}</option>
           </select>
         </div>
-        
-        <!-- Transition Move Effect -->
-        <div class="input-group">
-          <label>${t('editor.stepPanel.flightMoveEff')}</label>
-          <select id="ui-step-trans-move-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">${t('editor.stepPanel.effNone')}</option>
-            <option value="wave">${t('editor.stepPanel.effWave')}</option>
-            <option value="swing">${t('editor.stepPanel.effSwing')}</option>
-            <option value="pulse">${t('editor.stepPanel.effPulse')}</option>
-            <option value="orbit">${t('editor.stepPanel.effOrbit')}</option>
-            <option value="spiral">${t('editor.stepPanel.effSpiral')}</option>
-            <option value="expand">${t('editor.stepPanel.effExpand')}</option>
-          </select>
-        </div>
-        <div id="ui-step-trans-move-settings" style="display: none; flex-direction: column; gap: 8px; padding-left: 10px; border-left: 2px solid #3a86ff; margin-bottom: 5px;">
-          <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">${t('editor.stepPanel.moveSpeed')}</label>
-            <input type="range" id="ui-step-trans-move-speed" min="0.1" max="5.0" step="0.1" value="1.0" style="width: 80px;" />
-            <span id="val-step-trans-move-speed" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
-          </div>
-          <div class="input-group">
-            <label style="font-size: 11px; color: #aaa;">${t('editor.stepPanel.moveFreq')}</label>
-            <input type="range" id="ui-step-trans-move-freq" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 80px;" />
-            <span id="val-step-trans-move-freq" style="font-size: 11px; color: #888; width: 25px; text-align: right;">1.0x</span>
-          </div>
-        </div>
+
 
         <!-- Transition Light Effect -->
         <div class="input-group">
@@ -161,17 +140,13 @@ export function setupStepPanel(state) {
   };
 
   const updateSettingsVisibility = () => {
-    const transMoveEff = document.getElementById('ui-step-trans-move-effect')?.value || 'none';
     const transLightEff = document.getElementById('ui-step-trans-light-effect')?.value || 'none';
     const holdMoveEff = document.getElementById('ui-step-hold-move-effect')?.value || 'none';
     const landingLightEff = document.getElementById('ui-step-landing-light-effect')?.value || 'none';
 
-    const transMoveSettings = document.getElementById('ui-step-trans-move-settings');
     const transLightSettings = document.getElementById('ui-step-trans-light-settings');
     const holdMoveSettings = document.getElementById('ui-step-hold-move-settings');
     const landingLightSettings = document.getElementById('ui-step-landing-light-settings');
-
-    if (transMoveSettings) transMoveSettings.style.display = transMoveEff !== 'none' ? 'flex' : 'none';
     
     if (transLightSettings) {
       transLightSettings.style.display = transLightEff !== 'none' ? 'flex' : 'none';
@@ -238,34 +213,7 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
-  document.getElementById('ui-step-trans-move-effect').addEventListener('change', (e) => {
-    for (const group of getGroupsToUpdate(state)) {
-      state.getGroupConfig(group).transitionMoveEffect = e.target.value;
-    }
-    state.saveCurrentStep();
-    updateSettingsVisibility();
-    state.notify();
-  });
 
-  document.getElementById('ui-step-trans-move-speed')?.addEventListener('input', (e) => {
-    for (const group of getGroupsToUpdate(state)) {
-      state.getGroupConfig(group).transitionMoveSpeed = parseFloat(e.target.value);
-    }
-    const span = document.getElementById('val-step-trans-move-speed');
-    if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
-    state.saveCurrentStep();
-    state.notify();
-  });
-
-  document.getElementById('ui-step-trans-move-freq')?.addEventListener('input', (e) => {
-    for (const group of getGroupsToUpdate(state)) {
-      state.getGroupConfig(group).transitionMoveFreq = parseFloat(e.target.value);
-    }
-    const span = document.getElementById('val-step-trans-move-freq');
-    if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
-    state.saveCurrentStep();
-    state.notify();
-  });
 
   document.getElementById('ui-step-trans-light-effect').addEventListener('change', (e) => {
     for (const group of getGroupsToUpdate(state)) {
@@ -376,7 +324,6 @@ export function setupStepPanel(state) {
       const stepTransTimeContainer = document.getElementById('ui-step-transition-time-container');
 
       const stepModeEl = document.getElementById('ui-step-mode');
-      const stepTransMoveEffEl = document.getElementById('ui-step-trans-move-effect');
       const stepTransLightEffEl = document.getElementById('ui-step-trans-light-effect');
       const stepHoldMoveEffEl = document.getElementById('ui-step-hold-move-effect');
       const stepLandingLightEffEl = document.getElementById('ui-step-landing-light-effect');
@@ -395,29 +342,10 @@ export function setupStepPanel(state) {
       }
 
       if (stepModeEl && document.activeElement !== stepModeEl) stepModeEl.value = activeCfg.transitionMode || 'transform';
-      if (stepTransMoveEffEl && document.activeElement !== stepTransMoveEffEl) stepTransMoveEffEl.value = activeCfg.transitionMoveEffect || 'none';
       if (stepTransLightEffEl && document.activeElement !== stepTransLightEffEl) stepTransLightEffEl.value = activeCfg.transitionLightEffect || 'none';
       if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = activeCfg.holdMoveEffect || 'none';
       if (stepLandingLightEffEl && document.activeElement !== stepLandingLightEffEl) {
         stepLandingLightEffEl.value = activeCfg.landingLightEffect || 'none';
-      }
-
-      // Update range inputs
-      const stepTransMoveSpeedEl = document.getElementById('ui-step-trans-move-speed');
-      const stepTransMoveFreqEl = document.getElementById('ui-step-trans-move-freq');
-      const valTransMoveSpeedEl = document.getElementById('val-step-trans-move-speed');
-      const valTransMoveFreqEl = document.getElementById('val-step-trans-move-freq');
-
-      const transMoveSpeed = activeCfg.transitionMoveSpeed !== undefined ? activeCfg.transitionMoveSpeed : 1.0;
-      const transMoveFreq = activeCfg.transitionMoveFreq !== undefined ? activeCfg.transitionMoveFreq : 1.0;
-
-      if (stepTransMoveSpeedEl && document.activeElement !== stepTransMoveSpeedEl) {
-        stepTransMoveSpeedEl.value = transMoveSpeed;
-        if (valTransMoveSpeedEl) valTransMoveSpeedEl.textContent = `${transMoveSpeed.toFixed(1)}x`;
-      }
-      if (stepTransMoveFreqEl && document.activeElement !== stepTransMoveFreqEl) {
-        stepTransMoveFreqEl.value = transMoveFreq;
-        if (valTransMoveFreqEl) valTransMoveFreqEl.textContent = `${transMoveFreq.toFixed(1)}x`;
       }
 
       const stepTransLightSpeedEl = document.getElementById('ui-step-trans-light-speed');

@@ -421,12 +421,62 @@ export class DroneShowSequencer {
                 localT = localT * localT * (3 - 2 * localT);
                 basePos.lerpVectors(posA, posB, localT);
             } else {
-                // Default transition mode (transform vs move)
+                // Transition modes (transform vs move vs custom)
                 if (mode === 'move') {
                     const relA = new THREE.Vector3().subVectors(posA, centerA);
                     const relB = new THREE.Vector3().subVectors(posB, centerB);
                     const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
                     basePos.addVectors(currentCenter, relPos);
+                } else if (mode === 'disperse') {
+                    basePos.lerpVectors(posA, posB, t);
+                    const toDrone = new THREE.Vector3().subVectors(posA, centerA);
+                    const dist = toDrone.length();
+                    if (dist > 0.001) {
+                        toDrone.divideScalar(dist);
+                    } else {
+                        toDrone.set(Math.sin(i * 1.7), 0, Math.cos(i * 2.3)).normalize();
+                    }
+                    const fadeTrans = Math.sin(t * Math.PI);
+                    const pushStrength = (15.0 + dist * 0.3) * fadeTrans;
+                    const noise = new THREE.Vector3(
+                        Math.sin(i * 4.3) * 3.0,
+                        Math.cos(i * 5.7) * 2.0,
+                        Math.sin(i * 7.1) * 3.0
+                    ).multiplyScalar(fadeTrans);
+                    basePos.addScaledVector(toDrone, pushStrength).add(noise);
+                } else if (mode === 'vortex') {
+                    const relA = new THREE.Vector3().subVectors(posA, centerA);
+                    const relB = new THREE.Vector3().subVectors(posB, centerB);
+                    const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
+                    const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * (i % 2 === 0 ? 1 : -1);
+                    const shrinkFactor = 1.0 - Math.sin(t * Math.PI) * 0.4;
+                    const cos = Math.cos(spinAngle);
+                    const sin = Math.sin(spinAngle);
+                    const rx = relPos.x * cos - relPos.z * sin;
+                    const rz = relPos.x * sin + relPos.z * cos;
+                    basePos.set(
+                        currentCenter.x + rx * shrinkFactor,
+                        currentCenter.y + relPos.y,
+                        currentCenter.z + rz * shrinkFactor
+                    );
+                } else if (mode === 'cascade') {
+                    let maxAy = 1;
+                    for (let j = 0; j < count; j++) {
+                        const p = stepA.positions[j] || posA;
+                        if (p.y > maxAy) maxAy = p.y;
+                    }
+                    const delay = (posA.y / maxAy) * 0.4;
+                    let localT = (t - delay) / (1.0 - delay);
+                    localT = THREE.MathUtils.clamp(localT, 0.0, 1.0);
+                    const easedT = localT * localT * (3 - 2 * localT);
+                    basePos.lerpVectors(posA, posB, easedT);
+                } else if (mode === 'helix') {
+                    basePos.lerpVectors(posA, posB, t);
+                    const fadeTrans = Math.sin(t * Math.PI);
+                    const helixRadius = 8.0 * fadeTrans;
+                    const angle = t * Math.PI * 4.0 * (i % 2 === 0 ? 1 : -1) + (i * 0.1);
+                    basePos.x += Math.cos(angle) * helixRadius;
+                    basePos.z += Math.sin(angle) * helixRadius;
                 } else {
                     basePos.lerpVectors(posA, posB, t);
                 }
