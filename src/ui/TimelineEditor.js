@@ -166,14 +166,18 @@ export class TimelineEditor {
     addFileBtn.style.color = 'white';
     addFileBtn.addEventListener('click', () => this.mediaFileInput.click());
 
-    this.fileSelect = document.createElement('select');
-    this.fetchFileList();
+    this.fileIndicator = document.createElement('span');
+    this.fileIndicator.style.color = '#00ffcc';
+    this.fileIndicator.style.fontSize = '12px';
+    this.fileIndicator.style.fontFamily = 'monospace';
+    this.fileIndicator.style.marginLeft = '10px';
+    this.updateFileIndicator();
 
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
     toolbar.appendChild(addFileBtn);
-    toolbar.appendChild(this.fileSelect);
+    toolbar.appendChild(this.fileIndicator);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
     toolbar.appendChild(this.fileInput);
@@ -377,38 +381,9 @@ export class TimelineEditor {
     });
   }
 
-  async fetchFileList() {
-    try {
-      if (window.electronAPI) {
-        const files = await window.electronAPI.listSequences();
-        this.fileSelect.innerHTML = '';
-        files.forEach(f => {
-          const opt = document.createElement('option');
-          opt.value = f;
-          opt.textContent = f;
-          if (f === this.filename) opt.selected = true;
-          this.fileSelect.appendChild(opt);
-        });
-      } else {
-        const res = await fetch('/api/list-sequences');
-        const data = await res.json();
-        if (data.success) {
-          this.fileSelect.innerHTML = '';
-          data.files.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f;
-            opt.textContent = f;
-            if (f === this.filename) opt.selected = true;
-            this.fileSelect.appendChild(opt);
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Could not fetch file list. Fallback to demoShow.json");
-      const opt = document.createElement('option');
-      opt.value = 'demoShow.json';
-      opt.textContent = 'demoShow.json';
-      this.fileSelect.appendChild(opt);
+  updateFileIndicator() {
+    if (this.fileIndicator) {
+      this.fileIndicator.textContent = this.filename ? `Active: ${this.filename}` : 'Active: demoShow.json';
     }
   }
 
@@ -775,6 +750,7 @@ export class TimelineEditor {
         this.sequences = data;
         this.filename = filename;
         this.currentFilePath = filePath;
+        this.updateFileIndicator();
         this.renderTracks();
         this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
         alert(t('editor.timelinePanel.importSuccess', { filename }));
@@ -786,44 +762,7 @@ export class TimelineEditor {
   }
 
   async saveDirectly() {
-    this.filename = this.fileSelect.value || 'demoShow.json';
-
-    // Cleanup temporary variables
-    const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
-      const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
-      return cleanObj;
-    });
-
-    const content = JSON.stringify(cleanSeqs, null, 2);
-
-    if (window.electronAPI) {
-      if (this.currentFilePath) {
-        try {
-          await window.electronAPI.saveFileAbsolute(this.currentFilePath, content);
-          alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
-        } catch (err) {
-          alert(t('editor.timelinePanel.saveError', { error: err.message }));
-        }
-      }
- else {
-        // Save As
-        try {
-          const res = await window.electronAPI.saveFileDialog(content, this.filename);
-          if (res) {
-            this.currentFilePath = res.filePath;
-            this.filename = res.filename;
-            alert(`Đã lưu kịch bản mới thành công vào: ${res.filename}`);
-            this.fetchFileList();
-          }
-        } catch (err) {
-          alert('Lỗi khi lưu mới file: ' + err.message);
-        }
-      }
-      return;
-    }
-
-    // Fallback to standard saveSequence if not in Electron
-    this.saveSequence();
+    await this.saveSequence();
   }
 
   importSequence(e) {
@@ -842,6 +781,7 @@ export class TimelineEditor {
         if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
         this.sequences = data;
         this.filename = file.name;
+        this.updateFileIndicator();
         this.renderTracks();
         this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
         alert("Import thành công!");
@@ -854,8 +794,6 @@ export class TimelineEditor {
   }
 
   async saveSequence() {
-    this.filename = this.fileSelect.value || 'demoShow.json';
-
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
       const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
@@ -864,18 +802,32 @@ export class TimelineEditor {
 
     const content = JSON.stringify(cleanSeqs, null, 2);
 
-    // If running in Electron, save directly to disk
     if (window.electronAPI) {
-      try {
-        await window.electronAPI.saveSequence(this.filename, content);
-        alert(`Đã lưu kịch bản vào file ${this.filename} thành công!`);
-        this.fetchFileList();
-      } catch (err) {
-        alert('Lỗi khi lưu file qua Electron: ' + err.message);
+      if (this.currentFilePath) {
+        try {
+          await window.electronAPI.saveFileAbsolute(this.currentFilePath, content);
+          alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
+        } catch (err) {
+          alert(t('editor.timelinePanel.saveError', { error: err.message }));
+        }
+      } else {
+        // Save As
+        try {
+          const res = await window.electronAPI.saveFileDialog(content, this.filename || 'demoShow.json');
+          if (res) {
+            this.currentFilePath = res.filePath;
+            this.filename = res.filename;
+            this.updateFileIndicator();
+            alert(`Đã lưu kịch bản mới thành công vào: ${res.filename}`);
+          }
+        } catch (err) {
+          alert('Lỗi khi lưu mới file: ' + err.message);
+        }
       }
       return;
     }
 
+    // Web Fallback
     // Cách 1: Copy vào Clipboard
     try {
       await navigator.clipboard.writeText(content);
@@ -890,13 +842,13 @@ export class TimelineEditor {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = this.filename;
+      a.download = this.filename || 'demoShow.json';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert(`Đã tải xuống file ${this.filename}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
+      alert(`Đã tải xuống file ${this.filename || 'demoShow.json'}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
     } catch (err) {
       alert('Lỗi khi lưu file: ' + err.message);
     }

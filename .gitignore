@@ -30,3 +30,5 @@ _bmad
 public/image/
 dist-electron.zip
 .vite/
+src/config/sequences/
+src/config/sequences/demoShow.json
