@@ -1,54 +1,56 @@
 import * as THREE from 'three';
 import { DroneFormationFactory } from '../../factories/DroneFormationFactory.js';
+import { t } from '../../lang/i18n.js';
+
 
 export function renderFormationShapePanel() {
   return `
     <div class="panel-section">
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <button class="btn" id="btn-export-json" style="background-color: #4CAF50; flex: 1;">Export JSON</button>
-        <button class="btn" id="btn-import-json-trigger" style="background-color: #2196F3; flex: 1;">Import JSON</button>
+        <button class="btn" id="btn-export-json" style="background-color: #4CAF50; flex: 1;">${t('editor.filePanel.exportBtn')}</button>
+        <button class="btn" id="btn-import-json-trigger" style="background-color: #2196F3; flex: 1;">${t('editor.filePanel.importBtn')}</button>
         <input type="file" id="ui-formation-json-file" accept=".json" style="display: none;" />
       </div>
-      <button class="btn" id="btn-clear-all" style="margin-top: 5px; background-color: #d90429; color: white; width: 100%;">Clear All Drones</button>
+      <button class="btn" id="btn-clear-all" style="margin-top: 5px; background-color: #d90429; color: white; width: 100%;">${t('editor.shapePanel.clearAllBtn')}</button>
     </div>
 
     <div class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
-      <h3>Hệ thống Dẫn hướng (Guide System)</h3>
+      <h3>${t('editor.formationPanel.guideSystemTitle')}</h3>
       <div class="input-group">
-        <label>Chế độ dẫn hướng</label>
+        <label>${t('editor.formationPanel.guideModeLabel')}</label>
         <select id="ui-guide-mode" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;">
-          <option value="none">Không sử dụng</option>
-          <option value="hologram">Hologram 3D (Model)</option>
-          <option value="reference">Ảnh tham chiếu (2D)</option>
+          <option value="none">${t('editor.formationPanel.guideModeNone')}</option>
+          <option value="hologram">${t('editor.formationPanel.guideModeHologram')}</option>
+          <option value="reference">${t('editor.formationPanel.guideModeRef')}</option>
         </select>
       </div>
       <!-- Click-to-Place Toggle -->
       <div id="ui-click-to-place-container" style="display: none; margin-top: 15px;">
         <button class="btn" id="btn-toggle-click-to-place" style="width: 100%; font-weight: bold; background: #111; color: #00ffff; border: 2px solid #00ffff; box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); transition: all 0.3s ease;">
-          🎨 Bút vẽ Drone: TẮT
+          ${t('editor.formationPanel.brushToggleOff')}
         </button>
       </div>
     </div>
 
     <div id="ui-hologram-section" class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px; display: none;">
-      <h3>Hologram Guide (Mô hình ảo ảnh 3D)</h3>
+      <h3>${t('editor.formationPanel.hologramTitle')}</h3>
 
       <!-- File Import -->
       <div class="input-group">
-        <label>Import Model (3D)</label>
+        <label>${t('editor.formationPanel.importModelLabel')}</label>
         <input type="file" id="ui-ghost-model-file" accept=".glb,.gltf,.obj" style="width: 100%; font-size: 11px; background: #222; border: 1px solid #444; padding: 4px;" />
       </div>
       <div id="ui-ghost-model-status" style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">
-        Chưa tải mô hình
+        ${t('editor.formationPanel.noModelLoaded')}
       </div>
 
       <!-- Transform Controls -->
       <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
-        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">Hiệu chỉnh mô hình</label>
+        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">${t('editor.formationPanel.adjustModel')}</label>
         
         <!-- Y Height Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Y Offset (Chiều cao)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.heightOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-pos-y" min="-300" max="500" value="20" style="flex: 1;" />
             <span id="ui-ghost-pos-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">20</span>
@@ -57,7 +59,7 @@ export function renderFormationShapePanel() {
 
         <!-- X Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">X Offset (Dịch ngang)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.xOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-pos-x" min="-500" max="500" value="0" style="flex: 1;" />
             <span id="ui-ghost-pos-x-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
@@ -66,7 +68,7 @@ export function renderFormationShapePanel() {
 
         <!-- Z Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Z Offset (Dịch sâu)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.zOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-pos-z" min="-500" max="500" value="0" style="flex: 1;" />
             <span id="ui-ghost-pos-z-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
@@ -75,7 +77,7 @@ export function renderFormationShapePanel() {
 
         <!-- Scale multiplier -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Scale (Tỉ lệ)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.scaleLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-scale" min="0.05" max="50" step="0.05" value="1.0" style="flex: 1;" />
             <span id="ui-ghost-scale-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">1.0</span>
@@ -84,7 +86,7 @@ export function renderFormationShapePanel() {
 
         <!-- Yaw Y rotation -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Rotation Y (Góc xoay)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.rotationYLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-rot-y" min="0" max="360" value="0" style="flex: 1;" />
             <span id="ui-ghost-rot-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0°</span>
@@ -93,7 +95,7 @@ export function renderFormationShapePanel() {
 
         <!-- Opacity -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Opacity (Độ mờ)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.opacityLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ghost-opacity" min="0.05" max="0.8" step="0.05" value="0.15" style="flex: 1;" />
             <span id="ui-ghost-opacity-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0.15</span>
@@ -103,33 +105,33 @@ export function renderFormationShapePanel() {
         <!-- Wireframe Checkbox -->
         <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
           <input type="checkbox" id="ui-ghost-wireframe" checked style="width: auto; margin: 0;" />
-          <label for="ui-ghost-wireframe" style="font-size: 11px; margin: 0; cursor: pointer; user-select: none;">Hiển thị dạng khung lưới (Wireframe)</label>
+          <label for="ui-ghost-wireframe" style="font-size: 11px; margin: 0; cursor: pointer; user-select: none;">${t('editor.formationPanel.wireframeLabel')}</label>
         </div>
       </div>
 
       <!-- Delete Ghost -->
-      <button class="btn" id="btn-clear-ghost" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá Hologram</button>
+      <button class="btn" id="btn-clear-ghost" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">${t('editor.formationPanel.deleteHologram')}</button>
     </div>
 
     <div id="ui-ref-image-section" class="panel-section" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px; display: none;">
-      <h3>Ảnh tham chiếu 2D (Reference Image)</h3>
+      <h3>${t('editor.formationPanel.refImageTitle')}</h3>
       
       <!-- File Import -->
       <div class="input-group">
-        <label>Import Ảnh Nền (2D)</label>
+        <label>${t('editor.formationPanel.importImageLabel')}</label>
         <input type="file" id="ui-ref-image-file" accept="image/*" style="width: 100%; font-size: 11px; background: #222; border: 1px solid #444; padding: 4px;" />
       </div>
       <div id="ui-ref-image-status" style="font-size: 11px; color: #888; margin-top: 4px; font-style: italic;">
-        Chưa tải ảnh nền
+        ${t('editor.formationPanel.noImageLoaded')}
       </div>
 
       <!-- Transform Controls -->
       <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
-        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">Hiệu chỉnh ảnh nền</label>
+        <label style="font-weight: bold; font-size: 12px; color: #00ffff;">${t('editor.formationPanel.adjustRefImage')}</label>
         
         <!-- Y Height Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Y Offset (Chiều cao)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.heightOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-pos-y" min="-300" max="500" value="20" style="flex: 1;" />
             <span id="ui-ref-pos-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">20</span>
@@ -138,7 +140,7 @@ export function renderFormationShapePanel() {
 
         <!-- X Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">X Offset (Dịch ngang)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.xOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-pos-x" min="-500" max="500" value="0" style="flex: 1;" />
             <span id="ui-ref-pos-x-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
@@ -147,7 +149,7 @@ export function renderFormationShapePanel() {
 
         <!-- Z Offset -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Z Offset (Dịch sâu)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.zOffset')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-pos-z" min="-500" max="500" value="0" style="flex: 1;" />
             <span id="ui-ref-pos-z-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0</span>
@@ -156,7 +158,7 @@ export function renderFormationShapePanel() {
 
         <!-- Scale multiplier -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Kích thước (Scale)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.scaleLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-scale" min="1" max="500" step="1" value="40" style="flex: 1;" />
             <span id="ui-ref-scale-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">40</span>
@@ -165,7 +167,7 @@ export function renderFormationShapePanel() {
 
         <!-- Yaw Y rotation -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Góc xoay Y</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.rotationYLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-rot-y" min="0" max="360" value="0" style="flex: 1;" />
             <span id="ui-ref-rot-y-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0°</span>
@@ -174,16 +176,16 @@ export function renderFormationShapePanel() {
 
         <!-- Orientation Dropdown -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Hướng ảnh</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.orientationLabel')}</label>
           <select id="ui-ref-orientation" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 11px;">
-            <option value="horizontal">Nằm ngang (XZ)</option>
-            <option value="vertical">Thẳng đứng (XY)</option>
+            <option value="horizontal">${t('editor.formationPanel.orientationHorizontal')}</option>
+            <option value="vertical">${t('editor.formationPanel.orientationVertical')}</option>
           </select>
         </div>
 
         <!-- Opacity -->
         <div class="input-group" style="margin-top: 8px;">
-          <label style="font-size: 11px;">Opacity (Độ mờ)</label>
+          <label style="font-size: 11px;">${t('editor.formationPanel.opacityLabel')}</label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <input type="range" id="ui-ref-opacity" min="0.05" max="0.9" step="0.05" value="0.35" style="flex: 1;" />
             <span id="ui-ref-opacity-val" style="font-size: 11px; width: 30px; text-align: right; font-family: monospace;">0.35</span>
@@ -192,7 +194,7 @@ export function renderFormationShapePanel() {
       </div>
 
       <!-- Delete Reference Image -->
-      <button class="btn" id="btn-clear-ref-image" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">Xoá ảnh tham chiếu</button>
+      <button class="btn" id="btn-clear-ref-image" style="margin-top: 15px; background-color: #666; color: white; width: 100%; font-size: 12px;">${t('editor.formationPanel.deleteRefImage')}</button>
     </div>
   `;
 }
@@ -215,7 +217,7 @@ export function setupFormationShapePanel(state, director) {
         importedRefConfig = parsed.referenceImageConfig;
       }
     } else {
-      alert("JSON không đúng định dạng Drone Formation!");
+      alert(t('editor.formationPanel.invalidJsonFormat'));
       return false;
     }
 
@@ -302,7 +304,7 @@ export function setupFormationShapePanel(state, director) {
       state.notify();
       return true;
     } else {
-      alert("Không tìm thấy dữ liệu tọa độ drone hợp lệ trong JSON!");
+      alert(t('editor.formationPanel.noValidCoordinates'));
       return false;
     }
   }
@@ -359,7 +361,7 @@ export function setupFormationShapePanel(state, director) {
         if (res) {
           state.currentFilePath = res.filePath;
           state.name = res.filename.replace('.json', '');
-          alert(`Đã lưu tệp static formation thành công: ${res.filename}`);
+          alert(t('editor.formationPanel.exportSuccess', { filename: res.filename }));
         }
       } catch (err) {
         alert("Lỗi khi lưu file qua Electron: " + err.message);
@@ -384,7 +386,7 @@ export function setupFormationShapePanel(state, director) {
           const { filePath, content, filename } = fileData;
           const parsed = JSON.parse(content);
           if (loadFormationFromData(parsed, filename, filePath)) {
-            alert(`Import thành công từ file: ${filename}`);
+            alert(t('editor.formationPanel.importSuccess', { filename }));
           }
         }
       } catch (err) {
@@ -406,7 +408,7 @@ export function setupFormationShapePanel(state, director) {
         const parsed = JSON.parse(event.target.result);
         loadFormationFromData(parsed, file.name);
       } catch (err) {
-        alert("Lỗi phân tích cú pháp file JSON!");
+        alert(t('editor.formationPanel.invalidJsonError'));
       }
       e.target.value = '';
     };
@@ -429,7 +431,7 @@ export function setupFormationShapePanel(state, director) {
         state.isBezierEditActive = true;
         const btn = document.getElementById('btn-toggle-bezier-edit');
         if (btn) {
-          btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: BẬT";
+          btn.textContent = t('editor.formationPanel.bezierEditOn');
           btn.style.background = "#00ffff";
           btn.style.color = "#000";
           btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
@@ -547,7 +549,7 @@ export function setupFormationShapePanel(state, director) {
   const btnClearAllEl = document.getElementById('btn-clear-all');
   if (btnClearAllEl) {
     btnClearAllEl.addEventListener('click', () => {
-      if (confirm("Are you sure you want to clear all drones?")) {
+      if (confirm(t('editor.formationPanel.clearAllConfirm'))) {
         state.positions = [];
         state.colors = [];
         state.particleGroups = [];
@@ -572,12 +574,12 @@ export function setupFormationShapePanel(state, director) {
     const btn = document.getElementById('btn-toggle-click-to-place');
     if (!btn) return;
     if (state.isClickToPlaceActive) {
-      btn.textContent = "🎨 Bút vẽ Drone: ĐANG BẬT";
+      btn.textContent = t('editor.formationPanel.brushToggleOn');
       btn.style.background = "#00ffff";
       btn.style.color = "#111";
       btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
     } else {
-      btn.textContent = "🎨 Bút vẽ Drone: TẮT";
+      btn.textContent = t('editor.formationPanel.brushToggleOff');
       btn.style.background = "#111";
       btn.style.color = "#00ffff";
       btn.style.boxShadow = "0 0 8px rgba(0, 255, 255, 0.3)";
@@ -664,10 +666,10 @@ export function setupFormationShapePanel(state, director) {
     const statusLabel = document.getElementById('ui-ref-image-status');
     if (statusLabel) {
       if (state.referenceImageConfig.fileName) {
-        statusLabel.textContent = `Đã tải: ${state.referenceImageConfig.fileName}`;
+        statusLabel.textContent = t('editor.formationPanel.imageLoaded', { name: state.referenceImageConfig.fileName });
         statusLabel.style.color = "#4CAF50";
       } else {
-        statusLabel.textContent = "Chưa tải ảnh nền";
+        statusLabel.textContent = t('editor.formationPanel.noImageLoaded');
         statusLabel.style.color = "#888";
       }
     }
@@ -745,12 +747,12 @@ export function setupFormationShapePanel(state, director) {
     const btn = document.getElementById('btn-toggle-bezier-edit');
     if (btn) {
       if (state.isBezierEditActive) {
-        btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: BẬT";
+        btn.textContent = t('editor.formationPanel.bezierEditOn');
         btn.style.background = "#00ffff";
         btn.style.color = "#000";
         btn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.8)";
       } else {
-        btn.textContent = "🎨 Vẽ & Kéo Cong Bezier: TẮT";
+        btn.textContent = t('editor.formationPanel.bezierEditOff');
         btn.style.background = "#111";
         btn.style.color = "#00ffff";
         btn.style.boxShadow = "0 0 8px rgba(0, 255, 255, 0.3)";

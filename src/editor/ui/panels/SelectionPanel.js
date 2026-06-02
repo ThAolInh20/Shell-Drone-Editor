@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 
+import { t } from '../../../lang/i18n.js';
+
 export function renderSelectionPanel() {
   return `
     <div class="panel-section">
-      <h3>Selection Info</h3>
+      <h3>${t('editor.selectionPanel.title')}</h3>
       <div id="selection-info" style="font-size: 14px; color: #ccc; margin-bottom: 10px;">
-        0 particles selected
+        ${t('editor.selectionPanel.selectedCount', { count: 0 })}
       </div>
       <div id="coord-inputs" style="display: none;">
         <div class="input-group">
@@ -21,37 +23,37 @@ export function renderSelectionPanel() {
           <input type="number" id="ui-pos-z" step="0.5" />
         </div>
         <div class="input-group" style="margin-top: 10px;">
-          <label>Color</label>
+          <label>${t('editor.selectionPanel.colorLabel')}</label>
           <input type="color" id="ui-color" value="#ffffff" />
         </div>
         <div class="input-group" style="margin-top: 15px;">
-          <label>Effect (Per Drone)</label>
+          <label>${t('editor.selectionPanel.effectLabel')}</label>
           <select id="ui-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-            <option value="none">None</option>
-            <option value="wave">Wave (Vertical)</option>
-            <option value="swing">Swing (Horizontal)</option>
-            <option value="pulse">Pulse (Scale)</option>
-            <option value="strobe">Strobe (Blink)</option>
-            <option value="shimmer">Shimmer (Flicker)</option>
+            <option value="none">${t('editor.selectionPanel.effectNone')}</option>
+            <option value="wave">${t('editor.selectionPanel.effectWave')}</option>
+            <option value="swing">${t('editor.selectionPanel.effectSwing')}</option>
+            <option value="pulse">${t('editor.selectionPanel.effectPulse')}</option>
+            <option value="strobe">${t('editor.selectionPanel.effectStrobe')}</option>
+            <option value="shimmer">${t('editor.selectionPanel.effectShimmer')}</option>
           </select>
         </div>
-        <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white; width: 100%;">Delete Selected</button>
+        <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white; width: 100%;">${t('editor.selectionPanel.deleteBtn')}</button>
       </div>
     </div>
 
     <div class="panel-section" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
-      <h3>Formation Center & Visuals</h3>
+      <h3>${t('editor.selectionPanel.visualsTitle')}</h3>
       <div style="display: flex; gap: 6px; margin-top: 10px; margin-bottom: 15px;">
         <div style="flex: 1;">
-          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">Center X</label>
+          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">${t('editor.selectionPanel.centerX')}</label>
           <input type="number" id="ui-center-x" step="0.5" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
         </div>
         <div style="flex: 1;">
-          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">Center Y</label>
+          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">${t('editor.selectionPanel.centerY')}</label>
           <input type="number" id="ui-center-y" step="0.5" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
         </div>
         <div style="flex: 1;">
-          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">Center Z</label>
+          <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">${t('editor.selectionPanel.centerZ')}</label>
           <input type="number" id="ui-center-z" step="0.5" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 12px;" />
         </div>
       </div>
@@ -59,14 +61,14 @@ export function renderSelectionPanel() {
       <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
           <input type="checkbox" id="ui-show-center" checked style="cursor: pointer;" />
-          Hiển thị Tâm (Show Center)
+          ${t('editor.selectionPanel.showCenterCheckbox')}
         </label>
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
           <input type="checkbox" id="ui-show-pivot-lines" style="cursor: pointer;" />
-          Đường nối tới Tâm (Pivot Lines)
+          ${t('editor.selectionPanel.pivotLinesCheckbox')}
         </label>
       </div>
-      <button class="btn" id="btn-center-to-selection" style="margin-top: 12px; background-color: #2a9d8f; color: white; width: 100%; font-size: 12px; padding: 6px; display: none;">Đặt Tâm vào Nhóm Chọn (Set Center to Selection)</button>
+      <button class="btn" id="btn-center-to-selection" style="margin-top: 12px; background-color: #2a9d8f; color: white; width: 100%; font-size: 12px; padding: 6px; display: none;">${t('editor.selectionPanel.centerToSelectionBtn')}</button>
     </div>
   `;
 }
@@ -117,7 +119,7 @@ export function setupSelectionPanel(state) {
   });
 
   document.getElementById('btn-delete-selected').addEventListener('click', () => {
-    if (confirm(`Delete ${state.selectedIndices.size} selected items?`)) {
+    if (confirm(t('editor.selectionPanel.confirmDelete', { count: state.selectedIndices.size }))) {
       state.deleteSelected();
       state.saveCurrentStep();
     }
@@ -173,7 +175,7 @@ export function setupSelectionPanel(state) {
     const coordInputs = document.getElementById('coord-inputs');
 
     if (selInfo) {
-      selInfo.textContent = `${state.selectedIndices.size} particles selected`;
+      selInfo.textContent = t('editor.selectionPanel.selectedCount', { count: state.selectedIndices.size });
 
       if (state.selectedIndices.size > 0) {
         coordInputs.style.display = 'block';

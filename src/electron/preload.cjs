@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSequence: (filename, content) => ipcRenderer.invoke('save-sequence', { filename, content }),
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   saveFileDialog: (content, defaultName) => ipcRenderer.invoke('save-file-dialog', { content, defaultName }),
-  saveFileAbsolute: (filePath, content) => ipcRenderer.invoke('save-file-absolute', { filePath, content })
+  saveFileAbsolute: (filePath, content) => ipcRenderer.invoke('save-file-absolute', { filePath, content }),
+  onChangeLanguage: (callback) => ipcRenderer.on('change-language', (event, lang) => callback(lang))
 });

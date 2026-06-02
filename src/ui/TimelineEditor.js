@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PropertyInspector } from './PropertyInspector.js';
 import demoShow from '../config/sequences/demoShow.json';
+import { t } from '../lang/i18n.js';
+
 
 export class TimelineEditor {
   constructor(showDirector) {
@@ -97,31 +99,33 @@ export class TimelineEditor {
     toolbar.style.alignItems = 'center';
 
     const playBtn = document.createElement('button');
-    playBtn.textContent = 'Play/Pause (Space)';
+    playBtn.textContent = t('editor.timelinePanel.playBtn');
     playBtn.addEventListener('click', () => this.togglePlay());
 
     this.followBtn = document.createElement('button');
-    this.followBtn.textContent = 'Follow: ON';
+    this.followBtn.textContent = t('editor.timelinePanel.followOn');
     this.followBtn.style.background = '#4CAF50';
     this.followBtn.style.color = 'white';
     this.followBtn.addEventListener('click', () => {
       this.autoScrollEnabled = !this.autoScrollEnabled;
-      this.followBtn.textContent = this.autoScrollEnabled ? 'Follow: ON' : 'Follow: OFF';
+      this.followBtn.textContent = this.autoScrollEnabled ? t('editor.timelinePanel.followOn') : t('editor.timelinePanel.followOff');
       this.followBtn.style.background = this.autoScrollEnabled ? '#4CAF50' : '#f44336';
     });
 
+
     const addBtn = document.createElement('button');
-    addBtn.textContent = '+ Add Sequence';
+    addBtn.textContent = t('editor.timelinePanel.addSequence');
     addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
 
     const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Save';
+    saveBtn.textContent = t('editor.timelinePanel.saveBtn');
     saveBtn.style.background = '#2e7d32';
     saveBtn.style.color = 'white';
     saveBtn.addEventListener('click', () => this.saveSequence());
 
     const importBtn = document.createElement('button');
-    importBtn.textContent = 'Import Sequence';
+    importBtn.textContent = t('editor.timelinePanel.importBtn');
+
     importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
     importBtn.addEventListener('click', () => {
@@ -150,13 +154,14 @@ export class TimelineEditor {
       } else if (file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.wav')) {
         this.addAudioSequence(this.anchorTime, file);
       } else {
-        alert('Chỉ hỗ trợ file âm thanh (.mp3, .wav) hoặc file Drone Show (.json)');
+        alert(t('editor.timelinePanel.audioOnlyAlert'));
       }
       this.mediaFileInput.value = '';
     });
 
     const addFileBtn = document.createElement('button');
-    addFileBtn.textContent = '📁 Add Drone/Audio';
+    addFileBtn.textContent = t('editor.timelinePanel.addDroneAudio');
+
     addFileBtn.style.background = '#e65100';
     addFileBtn.style.color = 'white';
     addFileBtn.addEventListener('click', () => this.mediaFileInput.click());
@@ -461,9 +466,10 @@ export class TimelineEditor {
   seek(time) {
     this.autoScrollEnabled = true;
     if (this.followBtn) {
-      this.followBtn.textContent = 'Follow: ON';
+      this.followBtn.textContent = t('editor.timelinePanel.followOn');
       this.followBtn.style.background = '#4CAF50';
     }
+
     this.sequences = this.sequences.filter(s => !s._deleted);
     this.showDirector.loadScript(this.sequences);
     this.showDirector.seek(time);
@@ -508,7 +514,7 @@ export class TimelineEditor {
     });
 
     audio.addEventListener('error', () => {
-      alert("Lỗi khi đọc thông tin file âm thanh.");
+      alert(t('editor.timelinePanel.audioError'));
     });
   }
 
@@ -518,8 +524,9 @@ export class TimelineEditor {
       try {
         const data = JSON.parse(event.target.result);
         if (!data.droneCount || !data.steps) {
-          throw new Error("Không phải file xuất từ Drone Editor.");
+          throw new Error(t('editor.timelinePanel.notDroneShowJson'));
         }
+
 
         let maxTime = 0;
         data.steps.forEach(step => {
@@ -546,9 +553,10 @@ export class TimelineEditor {
         this.inspector.show(newSeq);
         this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
       } catch (err) {
-        alert("Lỗi khi đọc file Drone JSON: " + err.message);
+        alert(t('editor.timelinePanel.droneShowImportError', { error: err.message }));
       }
     };
+
     reader.readAsText(file);
   }
 
@@ -644,12 +652,13 @@ export class TimelineEditor {
       }
 
       if (seq.type === 'audio') {
-        block.textContent = `🎵 ${seq.name || seq.url || 'Audio'}`;
+        block.textContent = t('editor.timelinePanel.audioBlock', { name: seq.name || seq.url || 'Audio' });
       } else if (seq.type === 'droneshow') {
-        block.textContent = `🛸 ${seq.name || 'Drone Show'} (${seq.droneCount} drones)`;
+        block.textContent = t('editor.timelinePanel.droneBlock', { name: seq.name || 'Drone Show', count: seq.droneCount });
       } else {
-        block.textContent = `${seq.preset || seq.pattern} (${seq.count || 1})`;
+        block.textContent = t('editor.timelinePanel.eventBlock', { preset: seq.preset || seq.pattern, count: seq.count || 1 });
       }
+
 
       block.addEventListener('mousedown', (e) => {
         e.stopPropagation();
@@ -757,9 +766,9 @@ export class TimelineEditor {
       if (fileData) {
         const { filePath, content, filename } = fileData;
         const data = JSON.parse(content);
-        if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
+        if (!Array.isArray(data)) throw new Error(t('editor.filePanel.alertInvalidJson'));
 
-        if (this.sequences.length > 0 && !confirm("Tiến hành import sẽ ghi đè lên các thay đổi chưa được lưu. Bạn có chắc chắn muốn tiếp tục?")) {
+        if (this.sequences.length > 0 && !confirm(t('editor.timelinePanel.importConfirm'))) {
           return;
         }
 
@@ -768,8 +777,9 @@ export class TimelineEditor {
         this.currentFilePath = filePath;
         this.renderTracks();
         this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
-        alert(`Import thành công từ file: ${filename}`);
+        alert(t('editor.timelinePanel.importSuccess', { filename }));
       }
+
     } catch (err) {
       alert("Lỗi khi đọc file qua Electron: " + err.message);
     }
@@ -790,11 +800,12 @@ export class TimelineEditor {
       if (this.currentFilePath) {
         try {
           await window.electronAPI.saveFileAbsolute(this.currentFilePath, content);
-          alert(`Đã lưu kịch bản trực tiếp thành công vào: ${this.filename}`);
+          alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
         } catch (err) {
-          alert('Lỗi khi lưu file trực tiếp: ' + err.message);
+          alert(t('editor.timelinePanel.saveError', { error: err.message }));
         }
-      } else {
+      }
+ else {
         // Save As
         try {
           const res = await window.electronAPI.saveFileDialog(content, this.filename);

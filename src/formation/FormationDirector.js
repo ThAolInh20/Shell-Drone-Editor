@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { t } from '../lang/i18n.js';
+
 import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
 import { setupFormationUI } from './ui/FormationUI.js';
@@ -378,9 +380,9 @@ export class FormationDirector {
       if (this.state.currentFilePath) {
         try {
           await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
-          alert(`Đã lưu đội hình static trực tiếp thành công vào: ${this.state.name}.json`);
+          alert(t('editor.formationPanel.saveSuccessDirect', { filename: this.state.name }));
         } catch (err) {
-          alert("Lỗi khi lưu file trực tiếp: " + err.message);
+          alert(t('editor.formationPanel.saveErrorDirect', { error: err.message }));
         }
       } else {
         // Save As
@@ -389,10 +391,10 @@ export class FormationDirector {
           if (res) {
             this.state.currentFilePath = res.filePath;
             this.state.name = res.filename.replace('.json', '');
-            alert(`Đã lưu đội hình mới thành công: ${res.filename}`);
+            alert(t('editor.formationPanel.saveNewSuccess', { filename: res.filename }));
           }
         } catch (err) {
-          alert("Lỗi khi lưu đội hình mới: " + err.message);
+          alert(t('editor.formationPanel.saveNewError', { error: err.message }));
         }
       }
       return;
@@ -406,7 +408,7 @@ export class FormationDirector {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-    alert(`Đã xuất kịch bản thành file ${this.state.name}.json!`);
+    alert(t('editor.formationPanel.exportSuccessBrowser', { filename: this.state.name }));
   }
 
   updateMeshFromState() {
@@ -635,7 +637,7 @@ export class FormationDirector {
   loadGhostModel(file, callback) {
     const statusLabel = document.getElementById('ui-ghost-model-status');
     if (statusLabel) {
-      statusLabel.textContent = "Đang tải mô hình...";
+      statusLabel.textContent = t('editor.formationPanel.loadingModel');
       statusLabel.style.color = "#00ffff";
     }
 
@@ -689,7 +691,7 @@ export class FormationDirector {
             }
           }
         });
-        statusLabel.textContent = `Đã tải: ${filename} (~${Math.round(polyCount)} polys)`;
+        statusLabel.textContent = t('editor.formationPanel.modelLoaded', { name: `${filename} (~${Math.round(polyCount)} polys)` });
         statusLabel.style.color = "#4CAF50";
       }
 
@@ -700,10 +702,10 @@ export class FormationDirector {
       console.error("Lỗi nạp mô hình Hologram:", error);
       URL.revokeObjectURL(url);
       if (statusLabel) {
-        statusLabel.textContent = "Lỗi tải file!";
+        statusLabel.textContent = t('editor.formationPanel.loadModelError');
         statusLabel.style.color = "#ff4d4d";
       }
-      alert("Lỗi tải file mô hình 3D! Vui lòng kiểm tra lại định dạng file.");
+      alert(t('editor.formationPanel.loadModelErrorAlert'));
     };
 
     if (extension === 'gltf' || extension === 'glb') {
@@ -717,7 +719,7 @@ export class FormationDirector {
         onLoadSuccess(obj);
       }, undefined, onLoadError);
     } else {
-      onLoadError(new Error("Định dạng file không hỗ trợ."));
+      onLoadError(new Error(t('editor.formationPanel.unsupportedFormat')));
     }
   }
 

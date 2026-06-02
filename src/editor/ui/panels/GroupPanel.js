@@ -1,15 +1,17 @@
+import { t } from '../../../lang/i18n.js';
+
 export function renderGroupPanel() {
   return `
     <div class="panel-section">
-      <h3>Groups</h3>
+      <h3>${t('editor.groupsPanel.title')}</h3>
       <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
         <div style="display: flex; gap: 5px;">
-          <button class="btn btn-secondary" id="btn-group-selected" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="Group selected drones with hierarchical nesting">Group (Nested)</button>
-          <button class="btn btn-secondary" id="btn-group-selected-flat" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="Group selected drones into a single flat group">Group (Flat)</button>
+          <button class="btn btn-secondary" id="btn-group-selected" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="${t('editor.groupsPanel.groupNestedTooltip')}">${t('editor.groupsPanel.groupNested')}</button>
+          <button class="btn btn-secondary" id="btn-group-selected-flat" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="${t('editor.groupsPanel.groupFlatTooltip')}">${t('editor.groupsPanel.groupFlat')}</button>
         </div>
-        <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; width: 100%; font-size: 11px;">Ungroup</button>
+        <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; width: 100%; font-size: 11px;">${t('editor.groupsPanel.ungroup')}</button>
       </div>
-      <button class="btn btn-secondary" id="btn-reset-group" style="margin-bottom: 10px; width: 100%; padding: 6px; font-size: 11px; background-color: #3a86ff; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📍 Reset Group Position / Center</button>
+      <button class="btn btn-secondary" id="btn-reset-group" style="margin-bottom: 10px; width: 100%; padding: 6px; font-size: 11px; background-color: #3a86ff; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">${t('editor.groupsPanel.resetGroup')}</button>
       <div id="group-list" style="max-height: 350px; overflow-y: auto; background: #222; border: 1px solid #444; border-radius: 4px; padding: 5px;">
         <!-- Group items injected here -->
       </div>
@@ -22,10 +24,10 @@ export function setupGroupPanel(state) {
 
   document.getElementById('btn-group-selected')?.addEventListener('click', async () => {
     if (state.selectedIndices.size === 0) {
-      alert("Select some drones to group.");
+      alert(t('editor.selectDronesToGroup'));
       return;
     }
-    const parentName = await customPrompt("Enter new Parent Group name:");
+    const parentName = await customPrompt(t('editor.enterParentName'));
     if (!parentName) return;
 
     // Validate parent name to not contain slashes
@@ -42,7 +44,7 @@ export function setupGroupPanel(state) {
 
   document.getElementById('btn-group-selected-flat')?.addEventListener('click', () => {
     if (state.selectedIndices.size === 0) {
-      alert("Select some drones to group.");
+      alert(t('editor.selectDronesToGroup'));
       return;
     }
 
@@ -86,10 +88,10 @@ export function setupGroupPanel(state) {
 
   document.getElementById('btn-reset-group')?.addEventListener('click', async () => {
     const activeGroup = state.activeGroup;
-    const choice = await customChoicePrompt(`Reset Group "${activeGroup}"`, [
-      { label: "📍 Reset group & pivot back to origin (0, 20, 0)", value: "pivot_drones_origin" },
-      { label: "⏮️ Reset drones to Step 1 coordinates", value: "reset_step_0" },
-      { label: "🎯 Reset center pivot only to (0, 20, 0)", value: "pivot_only" }
+    const choice = await customChoicePrompt(t('editor.resetGroupTitle', { name: activeGroup }), [
+      { label: t('editor.resetChoicePivotDronesOrigin'), value: "pivot_drones_origin" },
+      { label: t('editor.resetChoiceResetStep0'), value: "reset_step_0" },
+      { label: t('editor.resetChoicePivotOnly'), value: "pivot_only" }
     ]);
 
     if (!choice) return;
@@ -109,7 +111,7 @@ export function setupGroupPanel(state) {
       state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
-      alert(`Đã đưa nhóm "${activeGroup}" (${count} drones) và tâm xoay về tọa độ gốc (0, 20, 0).`);
+      alert(t('editor.resetAlertPivotDronesOrigin', { name: activeGroup, count }));
     } else if (choice === "reset_step_0") {
       const step0 = state.steps[0];
       if (!step0) return;
@@ -129,13 +131,13 @@ export function setupGroupPanel(state) {
       state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
-      alert(`Đã khôi phục vị trí nhóm "${activeGroup}" (${count} drones) về trạng thái ở Step 1.`);
+      alert(t('editor.resetAlertResetStep0', { name: activeGroup, count }));
     } else if (choice === "pivot_only") {
       state.center.copy(defaultOrigin);
       state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
-      alert(`Đã đưa tâm xoay của nhóm "${activeGroup}" về tọa độ gốc (0, 20, 0).`);
+      alert(t('editor.resetAlertPivotOnly', { name: activeGroup }));
     }
   });
 
@@ -201,11 +203,11 @@ export function setupGroupPanel(state) {
 
         const nameSpan = document.createElement('span');
         nameSpan.textContent = name;
-        nameSpan.title = "Double click to rename group";
+        nameSpan.title = t('editor.doubleClickRename');
         
         nameSpan.ondblclick = async (e) => {
           e.stopPropagation();
-          const newName = await customPrompt(`Rename group "${name}":`, name);
+          const newName = await customPrompt(t('editor.renamePrompt', { name }), name);
           if (newName !== null && newName.trim() !== '') {
             const cleanName = newName.trim().replace(/\//g, '_'); // prevent nesting issues
             const oldGroup = g;
@@ -258,7 +260,7 @@ export function setupGroupPanel(state) {
 
         delBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (confirm(`Are you sure you want to delete group "${name}" and all its drones?`)) {
+          if (confirm(t('editor.confirmDeleteGroup', { name }))) {
             state.selectGroup(g, false);
             state.deleteSelected();
           }
@@ -287,7 +289,7 @@ export function setupGroupPanel(state) {
         splitBtn.style.padding = '0 3px';
         splitBtn.style.borderRadius = '3px';
         splitBtn.style.transition = 'background 0.2s';
-        splitBtn.title = "Split drones from this group to a new group";
+        splitBtn.title = t('editor.splitBtnTitle');
         splitBtn.addEventListener('mouseover', () => splitBtn.style.background = 'rgba(255,255,255,0.15)');
         splitBtn.addEventListener('mouseout', () => splitBtn.style.background = 'transparent');
 
@@ -295,7 +297,7 @@ export function setupGroupPanel(state) {
           e.stopPropagation();
           
           if (totalInThisGroup === 0) {
-            alert("No drones in this group to split.");
+            alert(t('editor.noDronesToSplit'));
             return;
           }
 
@@ -319,12 +321,12 @@ export function setupGroupPanel(state) {
           
           const newGroupPath = candidatePath;
 
-          const countStr = await customPrompt(`Split from "${name}" to "${cleanNewName}". Enter number of drones to split (Max: ${totalInThisGroup}):`, "1");
+          const countStr = await customPrompt(t('editor.splitPrompt', { name, newName: cleanNewName, total: totalInThisGroup }), "1");
           if (countStr === null) return;
           
           const splitCount = parseInt(countStr, 10);
           if (isNaN(splitCount) || splitCount <= 0 || splitCount > totalInThisGroup) {
-            alert(`Invalid count. Please enter a positive number up to ${totalInThisGroup}.`);
+            alert(t('editor.splitInvalidCount', { total: totalInThisGroup }));
             return;
           }
 
@@ -349,7 +351,7 @@ export function setupGroupPanel(state) {
           // Auto-select the newly created split group
           state.selectGroup(newGroupPath, false);
 
-          alert(`Successfully split ${splitCount} drones into group "${newGroupPath}"!`);
+          alert(t('editor.splitSuccess', { count: splitCount, newGroup: newGroupPath }));
         });
 
         div.appendChild(splitBtn);
@@ -482,7 +484,7 @@ function customPrompt(title, defaultValue = "") {
     btns.style.gap = '10px';
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('editor.cancelBtn');
     cancelBtn.style.background = '#333';
     cancelBtn.style.border = '1px solid #555';
     cancelBtn.style.color = '#ccc';
@@ -499,7 +501,7 @@ function customPrompt(title, defaultValue = "") {
     });
 
     const okBtn = document.createElement('button');
-    okBtn.textContent = 'OK';
+    okBtn.textContent = t('editor.okBtn');
     okBtn.style.background = '#3a86ff';
     okBtn.style.border = 'none';
     okBtn.style.color = '#fff';
@@ -621,7 +623,7 @@ function customChoicePrompt(title, options) {
     });
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = t('editor.cancelBtn');
     cancelBtn.style.background = '#333';
     cancelBtn.style.border = '1px solid #555';
     cancelBtn.style.color = '#ccc';
