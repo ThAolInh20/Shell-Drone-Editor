@@ -83,12 +83,3 @@ Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Deskt
    ```bash
    npm run electron:build
    ```
-
-2. **Kết quả đầu ra:**
-   Sau khi hoàn thành, thư mục `dist-electron/` sẽ tự động được tạo ra ở thư mục gốc với các sản phẩm:
-   *   📦 **`ShellDroneEditor 0.0.0.exe`**: Bộ cài đặt phần mềm chuyên nghiệp (NSIS Installer), cho phép tùy chọn thư mục cài đặt và tự động tạo Shortcut trên Desktop.
-   *   ⚡ **`win-unpacked/`**: Bản chạy trực tiếp không cần cài đặt, cực kỳ tiện lợi để khởi chạy và kiểm tra nhanh.
-
-> [!WARNING]
-> Thư mục `dist-electron/` chứa các tệp nhị phân có dung lượng lớn (~100MB) và đã được đưa vào cấu hình `.gitignore` để không bị đẩy lên GitHub. Tuyệt đối không thay đổi cấu hình này để tránh làm quá tải dung lượng repository.
-

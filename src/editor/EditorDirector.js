@@ -1655,7 +1655,6 @@ export class EditorDirector {
             }
             j++;
           }
-          this.state.synchronizeGroupsToAllSteps();
           this.state.notify(); // Force UI colors refresh
         }
 

@@ -37,7 +37,7 @@ export function setupGroupPanel(state) {
       const current = state.particleGroups[idx] || 'Default';
       state.particleGroups[idx] = cleanName + '/' + current;
     }
-    state.synchronizeGroupsToAllSteps();
+    state.saveCurrentStep();
     state.saveStateToHistory();
     state.notify();
   });
@@ -60,7 +60,7 @@ export function setupGroupPanel(state) {
     for (const idx of state.selectedIndices) {
       state.particleGroups[idx] = cleanName;
     }
-    state.synchronizeGroupsToAllSteps();
+    state.saveCurrentStep();
     state.saveStateToHistory();
     state.notify();
   });
@@ -80,7 +80,7 @@ export function setupGroupPanel(state) {
       }
     }
     if (changed) {
-      state.synchronizeGroupsToAllSteps();
+      state.saveCurrentStep();
       state.saveStateToHistory();
       state.notify();
     }
@@ -237,8 +237,8 @@ export function setupGroupPanel(state) {
               state.activeGroup = newGroup;
             }
             
-            // Apply group changes to all steps
-            state.synchronizeGroupsToAllSteps();
+            // Apply group changes to the current step
+            state.saveCurrentStep();
             
             state.saveStateToHistory();
             state.notify();
@@ -344,7 +344,7 @@ export function setupGroupPanel(state) {
           }
 
           // Apply and notify
-          state.synchronizeGroupsToAllSteps();
+          state.saveCurrentStep();
           state.saveStateToHistory();
           state.notify();
 
