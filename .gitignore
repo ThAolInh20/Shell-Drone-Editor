@@ -29,3 +29,4 @@ _bmad
 .agents
 public/image/
 dist-electron.zip
+.vite/
