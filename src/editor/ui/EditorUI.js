@@ -4,6 +4,7 @@ import { renderGizmoPanel, setupGizmoPanel } from './panels/GizmoPanel.js';
 import { renderSelectionPanel, setupSelectionPanel } from './panels/SelectionPanel.js';
 import { renderStepPanel, setupStepPanel } from './panels/StepPanel.js';
 import { setupTimelinePanel } from './panels/TimelinePanel.js';
+import { t, getLanguage, setLanguage } from './../../lang/i18n.js';
 
 export function setupEditorUI(state, director) {
   const leftContainer = document.getElementById('editor-ui-left');
@@ -11,9 +12,9 @@ export function setupEditorUI(state, director) {
   if (!leftContainer || !rightContainer) return;
 
   leftContainer.innerHTML = `
-    <h2>Drone Editor</h2>
+    <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #fff;">${t('editor.title')}</h2>
     <button id="btn-reset-view" class="btn" style="width: 100%; margin-bottom: 15px; background: linear-gradient(135deg, #2575fc 0%, #1a5adf 100%); color: #fff; border: 1px solid #3366ff; font-weight: bold; cursor: pointer; padding: 8px 12px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37, 117, 252, 0.3); font-size: 13px; transition: all 0.2s;">
-      🎥 View from Main (480m)
+      ${t('editor.viewMain')}
     </button>
     ${renderFilePanel()}
     ${renderGroupPanel()}
@@ -24,6 +25,14 @@ export function setupEditorUI(state, director) {
     ${renderSelectionPanel()}
     ${renderStepPanel()}
   `;
+
+  // Bind Native IPC Language Selector Event
+  if (window.electronAPI && window.electronAPI.onChangeLanguage) {
+    window.electronAPI.onChangeLanguage((lang) => {
+      setLanguage(lang);
+      window.location.reload();
+    });
+  }
 
   // Make all sidebar panel-sections collapsible dropdowns
   makePanelsCollapsible();

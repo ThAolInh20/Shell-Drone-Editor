@@ -1,64 +1,63 @@
-import * as THREE from 'three';
-import { DroneFormationFactory } from '../../../factories/DroneFormationFactory.js';
+import { t } from '../../../lang/i18n.js';
 
 export function renderShapePanel() {
   return `
     <div class="panel-section">
-      <h3>Formation Shaping</h3>
+      <h3>${t('editor.shapePanel.title')}</h3>
       <div class="input-group">
-        <label>Shape</label>
+        <label>${t('editor.shapePanel.shapeLabel')}</label>
         <select id="ui-shape-type" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-          <option value="grid">Grid</option>
-          <option value="line">Line (Đường thẳng)</option>
-          <option value="triangle">Triangle (Tam giác)</option>
-          <option value="circle">Circle</option>
-          <option value="sphere">Sphere</option>
-          <option value="cube">Cube</option>
-          <option value="cylinder">Cylinder</option>
-          <option value="star">Star</option>
-          <option value="text">Text / Numbers</option>
-          <option value="json">JSON File</option>
+          <option value="grid">${t('editor.shapePanel.shapeGrid')}</option>
+          <option value="line">${t('editor.shapePanel.shapeLine')}</option>
+          <option value="triangle">${t('editor.shapePanel.shapeTriangle')}</option>
+          <option value="circle">${t('editor.shapePanel.shapeCircle')}</option>
+          <option value="sphere">${t('editor.shapePanel.shapeSphere')}</option>
+          <option value="cube">${t('editor.shapePanel.shapeCube')}</option>
+          <option value="cylinder">${t('editor.shapePanel.shapeCylinder')}</option>
+          <option value="star">${t('editor.shapePanel.shapeStar')}</option>
+          <option value="text">${t('editor.shapePanel.shapeText')}</option>
+          <option value="json">${t('editor.shapePanel.shapeJson')}</option>
         </select>
       </div>
       <div class="input-group" id="ui-json-container" style="display: none; margin-top: 10px;">
-        <label>Import File</label>
+        <label>${t('editor.shapePanel.importFile')}</label>
         <div>
           <input type="file" id="ui-shape-json-file" accept=".json" style="width: 120px;" />
-          <div id="ui-json-status" style="font-size: 11px; color: #888; margin-top: 4px;">No file selected</div>
+          <div id="ui-json-status" style="font-size: 11px; color: #888; margin-top: 4px;">${t('editor.shapePanel.noFileSelected')}</div>
         </div>
       </div>
       <div class="input-group" id="ui-text-container" style="display: none; margin-top: 10px;">
-        <label>Text</label>
+        <label>${t('editor.shapePanel.textLabel')}</label>
         <input type="text" id="ui-shape-text" value="2026" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;" />
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label>Fill Mode</label>
+        <label>${t('editor.shapePanel.fillMode')}</label>
         <select id="ui-shape-fill" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-          <option value="solid">Solid (Đặc)</option>
-          <option value="outline">Outline (Rỗng)</option>
+          <option value="solid">${t('editor.shapePanel.fillSolid')}</option>
+          <option value="outline">${t('editor.shapePanel.fillOutline')}</option>
         </select>
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label>Target</label>
+        <label>${t('editor.shapePanel.targetLabel')}</label>
         <select id="ui-shape-target" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
-          <option value="new">Spawn New Drones</option>
-          <option value="selected">Apply to Selected</option>
+          <option value="new">${t('editor.shapePanel.targetNew')}</option>
+          <option value="selected">${t('editor.shapePanel.targetSelected')}</option>
         </select>
       </div>
       <div class="input-group" id="ui-count-container" style="margin-top: 10px;">
-        <label>Count</label>
+        <label>${t('editor.shapePanel.countLabel')}</label>
         <input type="number" id="ui-count" value="100" />
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label>Radius/Spacing</label>
+        <label>${t('editor.shapePanel.spacingLabel')}</label>
         <input type="number" id="ui-shape-p1" value="15" />
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label id="ui-shape-p2-label">Height (Cylinder)</label>
+        <label id="ui-shape-p2-label">${t('editor.shapePanel.heightLabel')}</label>
         <input type="number" id="ui-shape-p2" value="30" />
       </div>
       <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;">
-        <label style="font-weight: bold; font-size: 12px; color: #aaa;">Formation Center (Tâm)</label>
+        <label style="font-weight: bold; font-size: 12px; color: #aaa;">${t('editor.shapePanel.centerLabel')}</label>
         <div style="display: flex; gap: 6px; margin-top: 6px;">
           <div style="flex: 1;">
             <label style="font-size: 10px; color: #888; display: block; margin-bottom: 2px;">X</label>
@@ -74,8 +73,8 @@ export function renderShapePanel() {
           </div>
         </div>
       </div>
-      <button class="btn btn-secondary" id="btn-apply-shape" style="margin-top: 15px; width: 100%;">Apply Shape</button>
-      <button class="btn" id="btn-clear-all" style="margin-top: 10px; background-color: #d90429; color: white; width: 100%;">Clear All Drones</button>
+      <button class="btn btn-secondary" id="btn-apply-shape" style="margin-top: 15px; width: 100%;">${t('editor.shapePanel.applyBtn')}</button>
+      <button class="btn" id="btn-clear-all" style="margin-top: 10px; background-color: #d90429; color: white; width: 100%;">${t('editor.shapePanel.clearAllBtn')}</button>
     </div>
   `;
 }
@@ -106,10 +105,10 @@ export function setupShapePanel(state, director) {
       if (type === 'cylinder' || type === 'star') {
         p2Container.style.display = 'flex';
         if (type === 'cylinder') {
-          if (p2Label) p2Label.textContent = "Height (Cylinder)";
+          if (p2Label) p2Label.textContent = t('editor.shapePanel.heightLabel');
           if (p2Input && p2Input.value === '5') p2Input.value = '30';
         } else {
-          if (p2Label) p2Label.textContent = "Star Points (Số cánh)";
+          if (p2Label) p2Label.textContent = t('editor.shapePanel.starPointsLabel');
           if (p2Input && (p2Input.value === '30' || p2Input.value === '')) p2Input.value = '5';
         }
       } else {
@@ -122,7 +121,7 @@ export function setupShapePanel(state, director) {
     const file = e.target.files[0];
     if (!file) {
       customShapeData = null;
-      document.getElementById('ui-json-status').textContent = 'No file selected';
+      document.getElementById('ui-json-status').textContent = t('editor.shapePanel.noFileSelected');
       document.getElementById('ui-json-status').style.color = '#888';
       return;
     }
@@ -161,14 +160,14 @@ export function setupShapePanel(state, director) {
         }
         if (positions.length > 0) {
           customShapeData = { positions, colors, particleGroups };
-          document.getElementById('ui-json-status').textContent = `Loaded ${positions.length} points`;
+          document.getElementById('ui-json-status').textContent = t('editor.shapePanel.loadedPoints', { count: positions.length });
           document.getElementById('ui-json-status').style.color = '#4CAF50';
         } else {
           throw new Error("No valid coordinates found");
         }
       } catch (err) {
         customShapeData = null;
-        document.getElementById('ui-json-status').textContent = 'Invalid JSON format';
+        document.getElementById('ui-json-status').textContent = t('editor.shapePanel.invalidJson');
         document.getElementById('ui-json-status').style.color = '#ff4d4d';
         console.error("Shape Import Error:", err);
       }
@@ -196,7 +195,7 @@ export function setupShapePanel(state, director) {
     const cz = parseFloat(document.getElementById('ui-shape-cz').value) || 0;
 
     if (type === 'json' && !customShapeData) {
-      alert("Please choose a valid JSON file first.");
+      alert(t('editor.shapePanel.jsonAlert'));
       return;
     }
 
@@ -214,7 +213,7 @@ export function setupShapePanel(state, director) {
 
     if (target === 'selected') {
       if (state.selectedIndices.size === 0) {
-        alert("Please select some drones first.");
+        alert(t('editor.shapePanel.selectAlert'));
         return;
       }
 
@@ -351,7 +350,7 @@ export function setupShapePanel(state, director) {
   });
 
   document.getElementById('btn-clear-all').addEventListener('click', () => {
-    if (confirm("Are you sure you want to clear all particles?")) {
+    if (confirm(t('editor.shapePanel.confirmClear'))) {
       state.positions = [];
       state.particleGroups = [];
       state.colors = [];

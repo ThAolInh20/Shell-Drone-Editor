@@ -1,4 +1,17 @@
+import { t } from '../../../lang/i18n.js';
+
 export function setupTimelinePanel(state) {
+  // Translate initial UI components
+  const playBtn = document.getElementById('btn-play');
+  if (playBtn) {
+    playBtn.textContent = state.isPlaying ? t('editor.timelinePanel.pauseLabel') : t('editor.timelinePanel.playLabel');
+    playBtn.style.backgroundColor = state.isPlaying ? '#f44336' : '#4CAF50';
+  }
+  const addStepBtn = document.getElementById('btn-add-step');
+  if (addStepBtn) {
+    addStepBtn.textContent = t('editor.timelinePanel.addStepBtn') || 'Add Step +';
+  }
+
   document.getElementById('btn-add-step')?.addEventListener('click', () => {
     state.addStep();
   });
@@ -6,7 +19,7 @@ export function setupTimelinePanel(state) {
   document.getElementById('btn-play')?.addEventListener('click', () => {
     state.isPlaying = !state.isPlaying;
     if (state.isPlaying) {
-      document.getElementById('btn-play').textContent = '⏸ Pause';
+      document.getElementById('btn-play').textContent = t('editor.timelinePanel.pauseLabel');
       document.getElementById('btn-play').style.backgroundColor = '#f44336';
       // If we are at the end, restart
       const maxTime = state.getMaxPlaybackTime();
@@ -14,7 +27,7 @@ export function setupTimelinePanel(state) {
         state.playbackTime = 0;
       }
     } else {
-      document.getElementById('btn-play').textContent = '▶ Play';
+      document.getElementById('btn-play').textContent = t('editor.timelinePanel.playLabel');
       document.getElementById('btn-play').style.backgroundColor = '#4CAF50';
       // Snap to current step when paused
       if (state.steps && state.steps[state.currentStepIndex]) {
@@ -28,7 +41,7 @@ export function setupTimelinePanel(state) {
     let groupSelect = document.getElementById('ui-active-group-timeline');
     if (!groupSelect) {
       const label = document.createElement('label');
-      label.textContent = 'Active Group Properties:';
+      label.textContent = t('editor.timelinePanel.activeGroupLabel');
       label.style.marginLeft = '20px';
       label.style.marginRight = '5px';
       label.style.fontSize = '12px';
@@ -83,7 +96,7 @@ function updateGroupTimelineDropdown(state) {
     groups.forEach(g => {
       const opt = document.createElement('option');
       opt.value = g;
-      opt.textContent = g === 'Default' ? 'Default Group' : `Group: ${g}`;
+      opt.textContent = g === 'Default' ? t('editor.timelinePanel.defaultGroup') : t('editor.timelinePanel.groupLabel', { name: g });
       groupSelect.appendChild(opt);
     });
   }
@@ -100,7 +113,7 @@ function renderTimeline(state) {
 
   if (!state.steps || state.steps.length === 0) {
     const noStepsDiv = document.createElement('div');
-    noStepsDiv.textContent = 'No steps in timeline.';
+    noStepsDiv.textContent = t('editor.timelinePanel.noSteps');
     noStepsDiv.style.color = '#888';
     noStepsDiv.style.fontSize = '12px';
     noStepsDiv.style.padding = '10px';
@@ -129,14 +142,14 @@ function renderTimeline(state) {
     header.style.fontWeight = 'bold';
 
     const title = document.createElement('span');
-    title.textContent = `Step ${index + 1}`;
+    title.textContent = t('editor.timelinePanel.stepLabel', { index: index + 1 });
 
     const delBtn = document.createElement('span');
     delBtn.textContent = '×';
     delBtn.style.color = '#ffcccb';
     delBtn.onclick = (e) => {
       e.stopPropagation();
-      if (confirm(`Delete Step ${index + 1}?`)) {
+      if (confirm(t('editor.timelinePanel.confirmDeleteStep', { index: index + 1 }))) {
         state.removeStep(index);
       }
     };

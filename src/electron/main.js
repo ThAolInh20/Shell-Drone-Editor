@@ -53,47 +53,80 @@ function createWindow() {
     icon: path.join(__dirname, '../../public/icon2.ico'),
   });
 
-  // Setup Application Menu with navigation links
   const menuTemplate = [
     {
       label: 'File',
       submenu: [
-        { role: 'quit', label: 'Thoát' }
+        { role: 'quit', label: 'Quit' }
       ]
     },
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo', label: 'Hoàn tác (Undo)' },
-        { role: 'redo', label: 'Làm lại (Redo)' },
+        { role: 'undo', label: 'Undo' },
+        { role: 'redo', label: 'Redo' },
         { type: 'separator' },
-        { role: 'cut', label: 'Cắt (Cut)' },
-        { role: 'copy', label: 'Sao chép (Copy)' },
-        { role: 'paste', label: 'Dán (Paste)' },
-        { role: 'delete', label: 'Xóa (Delete)' },
+        { role: 'cut', label: 'Cut' },
+        { role: 'copy', label: 'Copy' },
+        { role: 'paste', label: 'Paste' },
+        { role: 'delete', label: 'Delete' },
         { type: 'separator' },
-        { role: 'selectAll', label: 'Chọn tất cả' }
+        { role: 'selectAll', label: 'Select All' }
       ]
     },
     {
       label: 'View',
       submenu: [
-        { role: 'reload', label: 'Tải lại trang' },
-        { role: 'forceReload', label: 'Ép tải lại' },
-        { role: 'toggleDevTools', label: 'Bật/Tắt DevTools' },
+        { role: 'reload', label: 'Reload' },
+        { role: 'forceReload', label: 'Force Reload' },
+        { role: 'toggleDevTools', label: 'Toggle Developer Tools' },
         { type: 'separator' },
-        { role: 'resetZoom', label: 'Kích thước chuẩn' },
-        { role: 'zoomIn', label: 'Phóng to' },
-        { role: 'zoomOut', label: 'Thu nhỏ' },
+        { role: 'resetZoom', label: 'Actual Size' },
+        { role: 'zoomIn', label: 'Zoom In' },
+        { role: 'zoomOut', label: 'Zoom Out' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Toàn màn hình' }
+        { role: 'togglefullscreen', label: 'Toggle Full Screen' },
+        { type: 'separator' },
+        {
+          label: 'Language / Ngôn ngữ',
+          submenu: [
+            {
+              label: 'Tiếng Việt',
+              type: 'radio',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('change-language', 'vi');
+              }
+            },
+            {
+              label: 'English',
+              type: 'radio',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('change-language', 'en');
+              }
+            },
+            {
+              label: '简体中文 (Chinese)',
+              type: 'radio',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('change-language', 'zh');
+              }
+            },
+            {
+              label: '日本語 (Japanese)',
+              type: 'radio',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('change-language', 'ja');
+              }
+            }
+          ]
+        }
       ]
     },
     {
-      label: 'Màn hình biên tập',
+      label: 'Editor Screens',
       submenu: [
         {
-          label: '1. Trình diễn Pháo hoa (Timeline Editor)',
+          label: '1. Fireworks Display (Timeline Editor)',
           accelerator: 'CmdOrCtrl+1',
           click: () => {
             if (mainWindow) {
@@ -108,7 +141,7 @@ function createWindow() {
           }
         },
         {
-          label: '2. Biên tập Drone động (Animated Editor)',
+          label: '2. Advanced Drone Editor (Animated)',
           accelerator: 'CmdOrCtrl+2',
           click: () => {
             if (mainWindow) {
@@ -123,7 +156,7 @@ function createWindow() {
           }
         },
         {
-          label: '3. Thiết kế đội hình tĩnh (Static Editor)',
+          label: '3. Static Formation Designer',
           accelerator: 'CmdOrCtrl+3',
           click: () => {
             if (mainWindow) {
@@ -142,15 +175,15 @@ function createWindow() {
     {
       label: 'Window',
       submenu: [
-        { role: 'minimize', label: 'Thu nhỏ' },
-        { role: 'zoom', label: 'Phóng to cửa sổ' },
+        { role: 'minimize', label: 'Minimize' },
+        { role: 'zoom', label: 'Zoom' },
         ...(process.platform === 'darwin' ? [
           { type: 'separator' },
           { role: 'front' },
           { type: 'separator' },
           { role: 'window' }
         ] : [
-          { role: 'close', label: 'Đóng' }
+          { role: 'close', label: 'Close' }
         ])
       ]
     }
@@ -174,6 +207,7 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
 
 // IPC Handlers for sequences management
 ipcMain.handle('list-sequences', async () => {
@@ -253,6 +287,7 @@ ipcMain.handle('save-file-absolute', async (event, { filePath, content }) => {
     throw err;
   }
 });
+
 
 app.whenReady().then(() => {
   createWindow();

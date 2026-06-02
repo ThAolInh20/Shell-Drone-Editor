@@ -20,6 +20,7 @@ import droneDemoData from '../config/sequences/droneDemo.json';
 import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
+import { setLanguage } from './lang/i18n.js';
 
 // Initialize Core ECS Boilerplate
 const clock = new Clock();
@@ -123,3 +124,11 @@ function animate() {
 
 // Start simulation
 animate();
+
+// Bind Native IPC Language Selector Event
+if (window.electronAPI && window.electronAPI.onChangeLanguage) {
+  window.electronAPI.onChangeLanguage((lang) => {
+    setLanguage(lang);
+    window.location.reload();
+  });
+}

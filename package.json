@@ -1,6 +1,8 @@
 {
   "name": "shell-drone-animation",
-  "version": "1.0.2",
+  "version": "2.0.0",
+  "description": "Shell Drone Animation and Formation Editor",
+  "author": "ThaoLinn20",
   "private": true,
   "type": "module",
   "main": "src/electron/main.js",
@@ -46,7 +48,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Shell Drone Editor"
+      "shortcutName": "Shell Drone Editor",
+      "displayLanguageSelector": true
     }
   },
   "devDependencies": {

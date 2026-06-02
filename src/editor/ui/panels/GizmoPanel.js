@@ -1,33 +1,35 @@
+import { t } from '../../../lang/i18n.js';
+
 export function renderGizmoPanel() {
   return `
     <div class="panel-section">
-      <h3>Gizmo Controls</h3>
+      <h3>${t('editor.gizmoPanel.title')}</h3>
       <div class="gizmo-controls">
-        <button class="gizmo-btn active" data-mode="translate">Move</button>
-        <button class="gizmo-btn" data-mode="rotate">Rotate</button>
-        <button class="gizmo-btn" data-mode="scale">Scale</button>
+        <button class="gizmo-btn active" data-mode="translate">${t('editor.gizmoPanel.move')}</button>
+        <button class="gizmo-btn" data-mode="rotate">${t('editor.gizmoPanel.rotate')}</button>
+        <button class="gizmo-btn" data-mode="scale">${t('editor.gizmoPanel.scale')}</button>
       </div>
 
       <!-- Group Bending & Flattening Deformer Section -->
       <div id="ui-group-deform-section" style="margin-top: 15px; border-top: 1px dashed #444; padding-top: 15px; display: none;">
-        <h4 style="color: #00ffff; font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px;">Group Deformer (Uốn nhóm)</h4>
+        <h4 style="color: #00ffff; font-size: 12px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px;">${t('editor.gizmoPanel.deformerTitle')}</h4>
         
         <button class="btn" id="btn-deform-mode-toggle" style="width: 100%; margin-bottom: 10px; background: #111; color: #00ffff; border: 1.5px solid #00ffff; font-weight: bold; cursor: pointer; padding: 6px 12px; border-radius: 4px; box-shadow: 0 0 8px rgba(0, 255, 255, 0.2); transition: all 0.2s;">
-          📐 Bật Uốn Nhóm: TẮT
+          ${t('editor.gizmoPanel.deformerToggleOff')}
         </button>
 
         <div id="ui-deform-controls-container" style="display: none; flex-direction: column; gap: 8px; margin-top: 5px;">
           <div class="input-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <label style="font-size: 11px; color: #ccc;">Loại biến dạng</label>
+            <label style="font-size: 11px; color: #ccc;">${t('editor.gizmoPanel.deformType')}</label>
             <select id="ui-deform-type" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px; font-size: 11px;">
-              <option value="bend">Uốn cong (Bezier)</option>
-              <option value="straighten">Kéo thẳng (Linear)</option>
+              <option value="bend">${t('editor.gizmoPanel.deformBend')}</option>
+              <option value="straighten">${t('editor.gizmoPanel.deformStraighten')}</option>
             </select>
           </div>
 
           <!-- Flattening Strength Slider -->
           <div class="input-group" id="ui-deform-strength-container" style="display: none; margin-bottom: 5px;">
-            <label style="font-size: 11px; color: #ccc;">Cường độ kéo thẳng</label>
+            <label style="font-size: 11px; color: #ccc;">${t('editor.gizmoPanel.deformStrength')}</label>
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
               <input type="range" id="ui-deform-strength" min="0" max="100" value="100" style="flex: 1;" />
               <span id="ui-deform-strength-val" style="font-size: 11px; width: 32px; text-align: right; font-family: monospace; color: #00ffff;">100%</span>
@@ -35,25 +37,25 @@ export function renderGizmoPanel() {
           </div>
 
           <div style="font-size: 10.5px; color: #888; margin-bottom: 8px; font-style: italic; line-height: 1.3;">
-            Nhấn chuột vào 3 khối cầu Handle (Neon) ngoài Viewport để kéo uốn/giãn nhóm drone!
+            ${t('editor.gizmoPanel.deformHelp')}
           </div>
 
           <div style="display: flex; gap: 6px;">
-            <button class="btn" id="btn-deform-apply" style="flex: 1; background: #4CAF50; color: white; padding: 6px; font-size: 11px; font-weight: bold; margin: 0;">Áp dụng</button>
-            <button class="btn" id="btn-deform-cancel" style="flex: 1; background: #d90429; color: white; padding: 6px; font-size: 11px; font-weight: bold; margin: 0;">Huỷ bỏ</button>
+            <button class="btn" id="btn-deform-apply" style="flex: 1; background: #4CAF50; color: white; padding: 6px; font-size: 11px; font-weight: bold; margin: 0;">${t('editor.gizmoPanel.apply')}</button>
+            <button class="btn" id="btn-deform-cancel" style="flex: 1; background: #d90429; color: white; padding: 6px; font-size: 11px; font-weight: bold; margin: 0;">${t('editor.gizmoPanel.cancel')}</button>
           </div>
         </div>
       </div>
 
       <div style="margin-top: 10px; font-size: 12px; color: #888;">
-        Ctrl+Click to multi-select.
+        ${t('editor.gizmoPanel.multiselectHelp')}
       </div>
       <div style="margin-top: 10px; display: flex; gap: 5px;">
-        <button class="btn btn-secondary" id="btn-undo" style="margin-bottom: 0; padding: 5px;">Undo (Ctrl+Z)</button>
-        <button class="btn btn-secondary" id="btn-redo" style="margin-bottom: 0; padding: 5px;">Redo (Ctrl+Y)</button>
+        <button class="btn btn-secondary" id="btn-undo" style="margin-bottom: 0; padding: 5px;">${t('editor.gizmoPanel.undo')}</button>
+        <button class="btn btn-secondary" id="btn-redo" style="margin-bottom: 0; padding: 5px;">${t('editor.gizmoPanel.redo')}</button>
       </div>
       <label style="display: block; margin-top: 10px; font-size: 14px; cursor: pointer;">
-        <input type="checkbox" id="ui-select-group" checked /> Select Entire Group in Viewport
+        <input type="checkbox" id="ui-select-group" checked /> ${t('editor.gizmoPanel.selectGroupCheckbox')}
       </label>
     </div>
   `;
@@ -89,7 +91,7 @@ export function setupGizmoPanel(state, director) {
     if (!toggleBtn || !container) return;
 
     if (isDeformActive) {
-      toggleBtn.textContent = "📐 Bật Uốn Nhóm: ĐANG BẬT";
+      toggleBtn.textContent = t('editor.gizmoPanel.deformerToggleOn');
       toggleBtn.style.background = "#00ffff";
       toggleBtn.style.color = "#111";
       toggleBtn.style.boxShadow = "0 0 15px rgba(0, 255, 255, 0.6)";
@@ -100,7 +102,7 @@ export function setupGizmoPanel(state, director) {
         strengthContainer.style.display = type === 'straighten' ? 'block' : 'none';
       }
     } else {
-      toggleBtn.textContent = "📐 Bật Uốn Nhóm: TẮT";
+      toggleBtn.textContent = t('editor.gizmoPanel.deformerToggleOff');
       toggleBtn.style.background = "#111";
       toggleBtn.style.color = "#00ffff";
       toggleBtn.style.boxShadow = "0 0 8px rgba(0, 255, 255, 0.2)";

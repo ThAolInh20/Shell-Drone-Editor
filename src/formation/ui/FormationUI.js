@@ -2,6 +2,7 @@ import { renderFormationShapePanel, setupFormationShapePanel } from './Formation
 import { renderFormationPropertiesPanel, setupFormationPropertiesPanel } from './FormationPropertiesPanel.js';
 import { renderGizmoPanel, setupGizmoPanel } from '../../editor/ui/panels/GizmoPanel.js';
 import { renderGroupPanel, setupGroupPanel } from '../../editor/ui/panels/GroupPanel.js';
+import { t } from '../../lang/i18n.js';
 
 export function setupFormationUI(state, director) {
   const leftContainer = document.getElementById('editor-ui-left');
@@ -9,10 +10,10 @@ export function setupFormationUI(state, director) {
   if (!leftContainer || !rightContainer) return;
 
   leftContainer.innerHTML = `
-    <h2>Formation Editor</h2>
-    <p style="color: #888; font-size: 12px; margin-top: -10px;">Static 3D Arrangement</p>
+    <h2>${t('editor.formationPanel.title')}</h2>
+    <p style="color: #888; font-size: 12px; margin-top: -10px;">${t('editor.formationPanel.subtitle')}</p>
     <button id="btn-reset-view" class="btn" style="width: 100%; margin-bottom: 15px; background: linear-gradient(135deg, #2575fc 0%, #1a5adf 100%); color: #fff; border: 1px solid #3366ff; font-weight: bold; cursor: pointer; padding: 8px 12px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(37, 117, 252, 0.3); font-size: 13px; transition: all 0.2s;">
-      🎥 View from Main (480m)
+      ${t('editor.formationPanel.viewMain')}
     </button>
     ${renderFormationShapePanel()}
     ${renderGroupPanel()}
