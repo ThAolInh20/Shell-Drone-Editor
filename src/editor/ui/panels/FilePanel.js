@@ -11,6 +11,8 @@ export function renderFilePanel() {
       <button class="btn" id="btn-export">${t('editor.filePanel.exportBtn')}</button>
       <input type="file" id="file-import" accept=".json" style="display: none;" />
       <button class="btn btn-secondary" id="btn-import">${t('editor.filePanel.importBtn')}</button>
+      <input type="file" id="file-import-append" accept=".json" style="display: none;" />
+      <button class="btn btn-secondary" id="btn-import-append" style="margin-top: 5px;">${t('editor.filePanel.importAppendBtn')}</button>
     </div>
   `;
 }
@@ -81,6 +83,41 @@ export function setupFilePanel(state) {
       } catch (err) {
         alert(t('editor.filePanel.alertInvalidJson'));
       }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('btn-import-append')?.addEventListener('click', async () => {
+    if (window.electronAPI) {
+      try {
+        const fileData = await window.electronAPI.openFileDialog();
+        if (fileData) {
+          const { filePath, content, filename } = fileData;
+          const data = JSON.parse(content);
+          state.appendFormat(data);
+          alert(t('editor.filePanel.alertImportAppendSuccess', { filename }));
+        }
+      } catch (err) {
+        alert(t('editor.filePanel.alertImportError', { error: err.message }));
+      }
+    } else {
+      document.getElementById('file-import-append').click();
+    }
+  });
+
+  document.getElementById('file-import-append')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        state.appendFormat(data);
+        alert(t('editor.filePanel.alertImportAppendSuccess', { filename: file.name }));
+      } catch (err) {
+        alert(t('editor.filePanel.alertInvalidJson'));
+      }
+      e.target.value = '';
     };
     reader.readAsText(file);
   });
