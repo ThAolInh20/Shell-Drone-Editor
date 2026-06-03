@@ -4,7 +4,7 @@ export class PropertyInspector {
     this.onUpdate = onUpdate;
     this.presetOptions = presetOptions;
     this.selectedEvent = null;
-    
+
     this.container.style.position = 'relative';
     this.container.style.width = '320px';
     this.container.style.minWidth = '320px';
@@ -88,7 +88,99 @@ export class PropertyInspector {
       if (field.span === 2) {
         row.style.gridColumn = 'span 2';
       }
-      
+
+      if (field.name === 'color') {
+        row.style.gridColumn = 'span 2';
+        row.style.flexDirection = 'row';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.gap = '10px';
+        row.style.marginTop = '4px';
+        row.style.marginBottom = '4px';
+
+        const leftSide = document.createElement('div');
+        leftSide.style.display = 'flex';
+        leftSide.style.alignItems = 'center';
+        leftSide.style.gap = '6px';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'inspector-use-custom-color';
+        cb.checked = this.selectedEvent.color !== undefined;
+
+        const lbl = document.createElement('label');
+        lbl.htmlFor = 'inspector-use-custom-color';
+        lbl.textContent = 'Custom Color';
+        lbl.style.fontSize = '11px';
+        lbl.style.color = '#aaa';
+        lbl.style.cursor = 'pointer';
+
+        leftSide.appendChild(cb);
+        leftSide.appendChild(lbl);
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.style.border = '1px solid #555';
+        colorInput.style.background = 'none';
+        colorInput.style.padding = '0';
+        colorInput.style.width = '60px';
+        colorInput.style.height = '24px';
+        colorInput.style.cursor = 'pointer';
+        colorInput.style.borderRadius = '4px';
+
+        const COLOR_MAP = {
+          'red': '#ff3333',
+          'gold': '#ffd700',
+          'white': '#ffffff',
+          'blue': '#00bfff',
+          'green': '#00ff00',
+          'purple': '#8a2be2',
+          'pink': '#ff69b4'
+        };
+        let initialHex = '#ffffff';
+        if (this.selectedEvent.color) {
+          const cLower = this.selectedEvent.color.toLowerCase();
+          if (COLOR_MAP[cLower]) {
+            initialHex = COLOR_MAP[cLower];
+          } else if (this.selectedEvent.color.startsWith('#')) {
+            initialHex = this.selectedEvent.color;
+          }
+        }
+        colorInput.value = initialHex;
+        colorInput.disabled = !cb.checked;
+        if (colorInput.disabled) {
+          colorInput.style.opacity = '0.4';
+          colorInput.style.cursor = 'not-allowed';
+        }
+
+        cb.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            colorInput.disabled = false;
+            colorInput.style.opacity = '1';
+            colorInput.style.cursor = 'pointer';
+            this.selectedEvent.color = colorInput.value;
+          } else {
+            colorInput.disabled = true;
+            colorInput.style.opacity = '0.4';
+            colorInput.style.cursor = 'not-allowed';
+            delete this.selectedEvent.color;
+          }
+          this.onUpdate();
+        });
+
+        colorInput.addEventListener('change', (e) => {
+          if (cb.checked) {
+            this.selectedEvent.color = e.target.value;
+            this.onUpdate();
+          }
+        });
+
+        row.appendChild(leftSide);
+        row.appendChild(colorInput);
+        form.appendChild(row);
+        return;
+      }
+
       const label = document.createElement('label');
       label.textContent = field.name;
       label.style.fontSize = '11px';

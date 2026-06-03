@@ -163,11 +163,8 @@ export class CometSystem {
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING || comet.state === CometEntity.STATE.DECAYING) {
         if (comet.preset?.launchTrail !== false) {
-          // Giảm thời gian sống của hạt trail xuống còn 35% để đuôi comet ngắn và sắc nét hơn
-          // Giảm số lượng hạt xuống còn khoảng 2/3 (chỉ sinh 1 hạt mỗi frame thay vì 1-2 hạt)
-          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.35);
-          
-          // Occasional sparks
+          // Giảm thời gian sống của hạt trail xuống còn 25% để đuôi comet ngắn và sắc nét hơn
+          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.25);
           if (Math.random() < 0.15) {
             this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
           }

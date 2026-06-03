@@ -391,7 +391,7 @@ export class FireworkSystem {
         isCoreParticle ? preset : ringPreset
       ).applyQuaternion(burstRotation);
 
-      const useContourMagnitude = !isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star');
+      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -410,8 +410,9 @@ export class FireworkSystem {
         }
         const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * speedVariance;
         baseSpeed = BURST_SPEED * outlineSpeedBand;
-      } else if (particleShape === 'sphere') {
-        baseSpeed = BURST_SPEED * sphereSpeedBand;
+      } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
+        const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash') ? (0.97 + Math.random() * 0.06) : sphereSpeedBand;
+        baseSpeed = BURST_SPEED * speedBand;
       } else {
         baseSpeed = BURST_SPEED * defaultSpeedBand;
       }
@@ -495,7 +496,10 @@ export class FireworkSystem {
       particleCount: burstParticleCount,
       heightProfile,
       preset,
-      effectState: BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount)
+      effectState: {
+        ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount),
+        shapeType: resolvedShape
+      }
     };
 
     if (normalizedEffect === 'ghost') {
@@ -726,7 +730,10 @@ export class FireworkSystem {
       }
 
       if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
-        if (Math.random() < 0.3) { // Giảm xuống 30% số frame để đuôi thanh mảnh và bớt chói hơn
+        const isHalfFlashTentacle = item.points.userData.effectState?.shapeType === 'half-flash' && i >= (particleCount - 4);
+        const isSplitFlashBeam = item.points.userData.effectState?.shapeType === 'split-flash' && i >= (particleCount - 5);
+        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam) ? 1.0 : 0.3;
+        if (Math.random() < spawnChance) {
           const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
           trailColor.multiplyScalar(trailIntensity ?? 0.15); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
           this.trailSystem.spawnTrailParticle(particlePosition, trailColor, trailLife || 0.8); // Kéo dài thời gian tồn tại của đuôi hoặc dùng giá trị tùy chỉnh

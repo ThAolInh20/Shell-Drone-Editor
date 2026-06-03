@@ -17,9 +17,8 @@ export class CometEntity {
     this.preset = preset;
     this.age = 0;
     this.decayTime = 0;
-    this.maxDecayTime = 0.6; // Time to fade out
+    this.maxDecayTime = 0.45; // Time to fade out (reduced from 0.6)
     this.state = CometEntity.STATE.INIT;
-
     this.mesh = new THREE.Group();
 
     if (this.preset?.shellType === 'comet_cluster_notrail') {

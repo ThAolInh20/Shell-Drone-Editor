@@ -151,6 +151,10 @@ export function setupGroupPanel(state) {
         }
 
         const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'space-between';
+        div.style.gap = '8px';
 
         const depth = g.split('/').length - 1;
         const name = g.split('/').pop();
@@ -184,11 +188,22 @@ export function setupGroupPanel(state) {
           toggleSpan.textContent = '';
         }
 
-        div.appendChild(toggleSpan);
+        const leftContent = document.createElement('div');
+        leftContent.style.display = 'flex';
+        leftContent.style.alignItems = 'center';
+        leftContent.style.minWidth = '0';
+        leftContent.style.flex = '1';
+
+        leftContent.appendChild(toggleSpan);
 
         const nameSpan = document.createElement('span');
         nameSpan.textContent = name;
         nameSpan.title = t('editor.doubleClickRename');
+        nameSpan.style.textOverflow = 'ellipsis';
+        nameSpan.style.whiteSpace = 'nowrap';
+        nameSpan.style.overflow = 'hidden';
+        nameSpan.style.minWidth = '0';
+        nameSpan.style.flex = '1';
         
         nameSpan.ondblclick = async (e) => {
           e.stopPropagation();
@@ -230,11 +245,18 @@ export function setupGroupPanel(state) {
           }
         };
         
-        div.appendChild(nameSpan);
+        leftContent.appendChild(nameSpan);
+        div.appendChild(leftContent);
+
+        // Actions container
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.display = 'flex';
+        actionsDiv.style.alignItems = 'center';
+        actionsDiv.style.gap = '6px';
+        actionsDiv.style.flexShrink = '0';
 
         const delBtn = document.createElement('span');
         delBtn.textContent = '×';
-        delBtn.style.float = 'right';
         delBtn.style.color = '#ff4d4d';
         delBtn.style.fontWeight = 'bold';
         delBtn.style.padding = '0 5px';
@@ -251,8 +273,6 @@ export function setupGroupPanel(state) {
           }
         });
 
-        div.appendChild(delBtn);
-
         // Count total drones in this group (and its children)
         let totalInThisGroup = 0;
         let dronesInThisGroupIndices = [];
@@ -267,8 +287,6 @@ export function setupGroupPanel(state) {
         // Add Split Group Button (✂️)
         const splitBtn = document.createElement('span');
         splitBtn.textContent = '✂️';
-        splitBtn.style.float = 'right';
-        splitBtn.style.marginRight = '8px';
         splitBtn.style.cursor = 'pointer';
         splitBtn.style.fontSize = '11px';
         splitBtn.style.padding = '0 3px';
@@ -339,7 +357,9 @@ export function setupGroupPanel(state) {
           await customAlert(t('editor.splitSuccess', { count: splitCount, newGroup: newGroupPath }));
         });
 
-        div.appendChild(splitBtn);
+        actionsDiv.appendChild(splitBtn);
+        actionsDiv.appendChild(delBtn);
+        div.appendChild(actionsDiv);
 
         div.style.paddingLeft = `${depth * 15 + 8}px`;
         div.style.paddingTop = '4px';
@@ -366,7 +386,9 @@ export function setupGroupPanel(state) {
           countSpan.textContent = ` (${selectedInGroup}/${totalInGroup})`;
           countSpan.style.color = selectedInGroup > 0 ? '#4CAF50' : '#888';
           countSpan.style.fontSize = '10px';
-          nameSpan.appendChild(countSpan);
+          countSpan.style.marginLeft = '4px';
+          countSpan.style.flexShrink = '0';
+          leftContent.appendChild(countSpan);
         }
 
         if (selectedInGroup > 0 && selectedInGroup === totalInGroup) {

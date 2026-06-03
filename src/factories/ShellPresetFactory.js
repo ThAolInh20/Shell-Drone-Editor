@@ -17,7 +17,7 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley']);
+    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash']);
     this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -48,7 +48,9 @@ export class ShellPresetFactory {
       { key: 'heart', label: 'Heart' },
       { key: 'star', label: 'Star' },
       { key: 'ghost', label: 'Ghost' },
-      { key: 'falling-comets', label: 'Falling Comets' }
+      { key: 'falling-comets', label: 'Falling Comets' },
+      { key: 'halfFlash', label: 'Half Sphere Flash' },
+      { key: 'splitFlash', label: 'Split Sphere Flash' }
     ];
   }
 
@@ -75,7 +77,9 @@ export class ShellPresetFactory {
     if (roll < 0.975) return this.smileyShell();
     if (roll < 0.985) return this.waveShell();
     if (roll < 0.99) return this.fallingCometsShell();
-    if (roll < 0.995) return this.starShell();
+    if (roll < 0.993) return this.starShell();
+    if (roll < 0.995) return this.halfFlashShell();
+    if (roll < 0.998) return this.splitFlashShell();
     return this.hearthShell();
   }
 
@@ -137,6 +141,10 @@ export class ShellPresetFactory {
         return this.validatePreset(this.ghostShell());
       case 'falling-comets':
         return this.validatePreset(this.fallingCometsShell());
+      case 'halfFlash':
+        return this.validatePreset(this.halfFlashShell());
+      case 'splitFlash':
+        return this.validatePreset(this.splitFlashShell());
       case 'comet_cluster':
         return this.validatePreset(this.cometCluster());
       case 'comet_cluster_notrail':
@@ -583,6 +591,28 @@ export class ShellPresetFactory {
       particleCountMultiplier: 0.8,
       starLife: 2500 + size * 500,
       pistil: false
+    };
+  }
+
+  splitFlashShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'splitFlash',
+      shapeType: 'split-flash',
+      effectType: 'standard',
+      particleCountMultiplier: 2.2,
+      launchTrail: true
+    };
+  }
+
+  halfFlashShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'halfFlash',
+      shapeType: 'half-flash',
+      effectType: 'standard',
+      particleCountMultiplier: 2.1,
+      launchTrail: true
     };
   }
 
