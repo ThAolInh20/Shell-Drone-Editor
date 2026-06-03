@@ -1,4 +1,5 @@
 import { t } from '../../../config/lang/i18n.js';
+import { customAlert } from '../utils/Modal.js';
 
 export function renderShapePanel() {
   return `
@@ -180,7 +181,7 @@ export function setupShapePanel(state, director) {
     document.getElementById('ui-count-container').style.display = isNew ? 'flex' : 'none';
   });
 
-  document.getElementById('btn-apply-shape').addEventListener('click', () => {
+  document.getElementById('btn-apply-shape').addEventListener('click', async () => {
     const type = document.getElementById('ui-shape-type').value;
     const target = document.getElementById('ui-shape-target').value;
     const fill = document.getElementById('ui-shape-fill').value;
@@ -195,7 +196,7 @@ export function setupShapePanel(state, director) {
     const cz = parseFloat(document.getElementById('ui-shape-cz').value) || 0;
 
     if (type === 'json' && !customShapeData) {
-      alert(t('editor.shapePanel.jsonAlert'));
+      await customAlert(t('editor.shapePanel.jsonAlert'));
       return;
     }
 
@@ -213,7 +214,7 @@ export function setupShapePanel(state, director) {
 
     if (target === 'selected') {
       if (state.selectedIndices.size === 0) {
-        alert(t('editor.shapePanel.selectAlert'));
+        await customAlert(t('editor.shapePanel.selectAlert'));
         return;
       }
 
