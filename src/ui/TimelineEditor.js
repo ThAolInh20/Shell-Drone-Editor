@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PropertyInspector } from './PropertyInspector.js';
 import demoShow from '../config/sequences/demoShow.json';
 import { t } from '../config/lang/i18n.js';
+import { globalEventBus } from '../core/EventBus.js';
 
 
 export class TimelineEditor {
@@ -47,8 +48,8 @@ export class TimelineEditor {
     this.container.style.fontFamily = 'sans-serif';
 
     // Block orbit controls when hovering
-    this.container.addEventListener('mouseenter', () => window.dispatchEvent(new CustomEvent('timeline:hover', { detail: true })));
-    this.container.addEventListener('mouseleave', () => window.dispatchEvent(new CustomEvent('timeline:hover', { detail: false })));
+    this.container.addEventListener('mouseenter', () => globalEventBus.emit('timeline:hover', true));
+    this.container.addEventListener('mouseleave', () => globalEventBus.emit('timeline:hover', false));
 
     // Resizer handle for adjusting height
     this.resizer = document.createElement('div');
@@ -423,7 +424,7 @@ export class TimelineEditor {
     if (this.visible && document.pointerLockElement) {
       document.exitPointerLock();
     }
-    window.dispatchEvent(new CustomEvent('timeline:toggle', { detail: this.visible }));
+    globalEventBus.emit('timeline:toggle', this.visible);
   }
 
   togglePlay() {

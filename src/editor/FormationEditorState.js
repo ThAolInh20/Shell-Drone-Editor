@@ -540,8 +540,7 @@ export class FormationEditorState extends BaseFormationState {
     this.recalculateTimes();
 
     this.selectedIndices.clear();
-    this.history = [];
-    this.historyIndex = -1;
+    this.historyManager.clear();
     this.currentStepIndex = 0;
 
     const step = this.steps[0];

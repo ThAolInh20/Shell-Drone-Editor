@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { globalEventBus } from '../core/EventBus.js';
 
 export class SkyLightReactionSystem {
   constructor(sceneManager) {
@@ -6,6 +7,7 @@ export class SkyLightReactionSystem {
     this.scene = sceneManager.instance;
     this.reactions = [];
     this.maxReactions = 8;
+    this.eventSubscriptions = [];
 
     this.baseSkyColor = sceneManager.baseSkyColor.clone();
     this.baseAmbientIntensity = sceneManager.baseAmbientIntensity;
@@ -14,7 +16,15 @@ export class SkyLightReactionSystem {
     this.reusableBurstLight = new THREE.PointLight(0xffffff, 0, 900, 2);
     this.scene.add(this.reusableBurstLight);
 
-    window.addEventListener('firework:burst', (event) => this.onBurst(event.detail));
+    this.eventSubscriptions.push(
+      globalEventBus.on('firework:burst', (detail) => this.onBurst(detail))
+    );
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 
   onBurst(detail = {}) {

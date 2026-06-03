@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { globalEventBus } from '../core/EventBus.js';
 
 const MAX_SMOKE_PUFFS = 420;
 
@@ -10,10 +11,19 @@ export class SmokeSystem {
 
     this.smokeTexture = this.createSmokeTexture();
     this.puffs = [];
+    this.eventSubscriptions = [];
 
-    window.addEventListener('firework:launch', (event) => this.onLaunch(event.detail));
-    window.addEventListener('firework:burst', (event) => this.onBurst(event.detail));
-    window.addEventListener('firework:clear', () => this.clear());
+    this.eventSubscriptions.push(
+      globalEventBus.on('firework:launch', (detail) => this.onLaunch(detail)),
+      globalEventBus.on('firework:burst', (detail) => this.onBurst(detail)),
+      globalEventBus.on('firework:clear', () => this.clear())
+    );
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 
   createSmokeTexture() {
