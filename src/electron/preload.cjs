@@ -8,3 +8,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFileAbsolute: (filePath, content) => ipcRenderer.invoke('save-file-absolute', { filePath, content }),
   onChangeLanguage: (callback) => ipcRenderer.on('change-language', (event, lang) => callback(lang))
 });
+
+// Prevent mouse side buttons (back/forward) from triggering navigation in the browser
+window.addEventListener('mouseup', (e) => {
+  if (e.button === 3 || e.button === 4) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, true);
+
+window.addEventListener('mousedown', (e) => {
+  if (e.button === 3 || e.button === 4) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, true);

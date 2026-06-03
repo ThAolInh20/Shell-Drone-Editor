@@ -32,6 +32,16 @@ export function renderStepPanel() {
           </select>
         </div>
 
+        <!-- Transition Direction -->
+        <div class="input-group" id="ui-step-trans-move-dir-container" style="display: none;">
+          <label>${t('editor.stepPanel.rotationDirection')}</label>
+          <select id="ui-step-trans-move-dir" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="alternate">${t('editor.stepPanel.dirAlternate')}</option>
+            <option value="clockwise">${t('editor.stepPanel.dirClockwise')}</option>
+            <option value="counter">${t('editor.stepPanel.dirCounter')}</option>
+          </select>
+        </div>
+
 
         <!-- Transition Light Effect -->
         <div class="input-group">
@@ -76,6 +86,15 @@ export function renderStepPanel() {
             <option value="orbit">${t('editor.stepPanel.effOrbit')}</option>
             <option value="spiral">${t('editor.stepPanel.effSpiral')}</option>
             <option value="expand">${t('editor.stepPanel.effExpand')}</option>
+          </select>
+        </div>
+
+        <!-- Hold Move Effect Direction -->
+        <div class="input-group" id="ui-step-hold-move-dir-container" style="display: none;">
+          <label>${t('editor.stepPanel.rotationDirection')}</label>
+          <select id="ui-step-hold-move-dir" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
+            <option value="clockwise">${t('editor.stepPanel.dirClockwise')}</option>
+            <option value="counter">${t('editor.stepPanel.dirCounter')}</option>
           </select>
         </div>
         <div id="ui-step-hold-move-settings" style="display: none; flex-direction: column; gap: 8px; padding-left: 10px; border-left: 2px solid #3a86ff; margin-bottom: 5px;">
@@ -181,6 +200,21 @@ export function setupStepPanel(state) {
     
     if (holdMoveSettings) holdMoveSettings.style.display = holdMoveEff !== 'none' ? 'flex' : 'none';
     if (landingLightSettings) landingLightSettings.style.display = landingLightEff !== 'none' ? 'flex' : 'none';
+
+    // Update visibility of rotation direction dropdowns
+    const transMode = document.getElementById('ui-step-mode')?.value || 'transform';
+    const transMoveDirContainer = document.getElementById('ui-step-trans-move-dir-container');
+    if (transMoveDirContainer) {
+      const activeCfg = state.getGroupConfig(String(state.activeGroup || 'Default').split('/')[0]);
+      const transMoveEff = activeCfg ? activeCfg.transitionMoveEffect : 'none';
+      const needsTransDir = ['vortex', 'helix'].includes(transMode) || transMoveEff === 'spiral';
+      transMoveDirContainer.style.display = needsTransDir ? 'flex' : 'none';
+    }
+
+    const holdMoveDirContainer = document.getElementById('ui-step-hold-move-dir-container');
+    if (holdMoveDirContainer) {
+      holdMoveDirContainer.style.display = ['orbit', 'spiral'].includes(holdMoveEff) ? 'flex' : 'none';
+    }
   };
 
   // Timing (Global)
@@ -210,10 +244,17 @@ export function setupStepPanel(state) {
       state.getGroupConfig(group).transitionMode = e.target.value;
     }
     state.saveCurrentStep();
+    updateSettingsVisibility();
     state.notify();
   });
 
-
+  document.getElementById('ui-step-trans-move-dir')?.addEventListener('change', (e) => {
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).transitionMoveDir = e.target.value;
+    }
+    state.saveCurrentStep();
+    state.notify();
+  });
 
   document.getElementById('ui-step-trans-light-effect').addEventListener('change', (e) => {
     for (const group of getGroupsToUpdate(state)) {
@@ -259,6 +300,14 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.notify();
+  });
+
+  document.getElementById('ui-step-hold-move-dir')?.addEventListener('change', (e) => {
+    for (const group of getGroupsToUpdate(state)) {
+      state.getGroupConfig(group).holdMoveDir = e.target.value;
+    }
+    state.saveCurrentStep();
     state.notify();
   });
 
@@ -328,6 +377,9 @@ export function setupStepPanel(state) {
       const stepHoldMoveEffEl = document.getElementById('ui-step-hold-move-effect');
       const stepLandingLightEffEl = document.getElementById('ui-step-landing-light-effect');
 
+      const stepHoldMoveDirEl = document.getElementById('ui-step-hold-move-dir');
+      const stepTransMoveDirEl = document.getElementById('ui-step-trans-move-dir');
+
       if (stepHoldTimeEl && document.activeElement !== stepHoldTimeEl) stepHoldTimeEl.value = currentStep.holdTime || 0;
 
       if (stepTransTimeContainer) {
@@ -346,6 +398,17 @@ export function setupStepPanel(state) {
       if (stepHoldMoveEffEl && document.activeElement !== stepHoldMoveEffEl) stepHoldMoveEffEl.value = activeCfg.holdMoveEffect || 'none';
       if (stepLandingLightEffEl && document.activeElement !== stepLandingLightEffEl) {
         stepLandingLightEffEl.value = activeCfg.landingLightEffect || 'none';
+      }
+
+      // Populate directions
+      const holdMoveDir = activeCfg.holdMoveDir || 'clockwise';
+      const transMoveDir = activeCfg.transitionMoveDir || 'alternate';
+
+      if (stepHoldMoveDirEl && document.activeElement !== stepHoldMoveDirEl) {
+        stepHoldMoveDirEl.value = holdMoveDir;
+      }
+      if (stepTransMoveDirEl && document.activeElement !== stepTransMoveDirEl) {
+        stepTransMoveDirEl.value = transMoveDir;
       }
 
       const stepTransLightSpeedEl = document.getElementById('ui-step-trans-light-speed');

@@ -143,6 +143,7 @@ export class DroneShowSequencer {
                 transitionMoveEffect: step.transitionMoveEffect || step.transitionEffect || 'none',
                 transitionMoveSpeed: step.transitionMoveSpeed !== undefined ? step.transitionMoveSpeed : 1.0,
                 transitionMoveFreq: step.transitionMoveFreq !== undefined ? step.transitionMoveFreq : 1.0,
+                transitionMoveDir: step.transitionMoveDir || 'alternate',
                 transitionLightEffect: step.transitionLightEffect || 'none',
                 transitionLightSpeed: step.transitionLightSpeed !== undefined ? step.transitionLightSpeed : 1.0,
                 transitionLightFreq: step.transitionLightFreq !== undefined ? step.transitionLightFreq : 1.0,
@@ -150,6 +151,7 @@ export class DroneShowSequencer {
                 holdMoveEffect: step.holdMoveEffect || 'none',
                 holdMoveSpeed: step.holdMoveSpeed !== undefined ? step.holdMoveSpeed : 1.0,
                 holdMoveFreq: step.holdMoveFreq !== undefined ? step.holdMoveFreq : 1.0,
+                holdMoveDir: step.holdMoveDir || 'clockwise',
                 holdLightEffect: step.holdLightEffect || 'none',
                 holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
                 holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
@@ -265,7 +267,7 @@ export class DroneShowSequencer {
         const fadeB = t;
 
         // Helper function to calculate the offset and scale factor of a movement effect
-        const getMoveEffectOffset = (effectType, basePos, centerPos, speed, freq, index) => {
+        const getMoveEffectOffset = (effectType, basePos, centerPos, speed, freq, index, direction = 'clockwise') => {
             const offset = new THREE.Vector3();
             let scaleFactor = 1.0;
             if (effectType === 'none' || !effectType) return { offset, scaleFactor };
@@ -278,13 +280,14 @@ export class DroneShowSequencer {
                 scaleFactor = 1.0 + Math.sin(age * Math.PI * 2 * speed + (index * 0.1)) * 0.5 * freq;
             } else if (effectType === 'orbit' || effectType === 'spiral') {
                 const toDrone = new THREE.Vector3().subVectors(basePos, centerPos);
-                let angle = age * 0.6 * speed;
+                const dirMultiplier = direction === 'counter' ? -1 : 1;
+                let angle = age * 0.6 * speed * dirMultiplier;
                 let radiusScale = 1.0;
 
                 if (effectType === 'spiral') {
                     const dist = toDrone.length();
                     radiusScale = 1.0 + Math.sin(age * 2.0 * speed - dist * 0.05) * 0.15 * freq;
-                    angle += dist * 0.02 * freq;
+                    angle += dist * 0.02 * freq * dirMultiplier;
                 }
 
                 const cos = Math.cos(angle);
@@ -408,7 +411,13 @@ export class DroneShowSequencer {
                 const relA = new THREE.Vector3().subVectors(posA, centerA);
                 const relB = new THREE.Vector3().subVectors(posB, centerB);
                 const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-                const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentTransMoveSpeed;
+                
+                const transDir = configB.transitionMoveDir || 'alternate';
+                let dirSign = i % 2 === 0 ? 1 : -1;
+                if (transDir === 'clockwise') dirSign = 1;
+                else if (transDir === 'counter') dirSign = -1;
+                
+                const spinAngle = (1.0 - t) * Math.PI * 2.0 * dirSign * currentTransMoveSpeed;
                 const cos = Math.cos(spinAngle);
                 const sin = Math.sin(spinAngle);
                 const rx = relPos.x * cos - relPos.z * sin;
@@ -448,7 +457,13 @@ export class DroneShowSequencer {
                     const relA = new THREE.Vector3().subVectors(posA, centerA);
                     const relB = new THREE.Vector3().subVectors(posB, centerB);
                     const relPos = new THREE.Vector3().lerpVectors(relA, relB, t);
-                    const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * (i % 2 === 0 ? 1 : -1);
+                    
+                    const transDir = configB.transitionMoveDir || 'alternate';
+                    let dirSign = i % 2 === 0 ? 1 : -1;
+                    if (transDir === 'clockwise') dirSign = 1;
+                    else if (transDir === 'counter') dirSign = -1;
+                    
+                    const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * dirSign;
                     const shrinkFactor = 1.0 - Math.sin(t * Math.PI) * 0.4;
                     const cos = Math.cos(spinAngle);
                     const sin = Math.sin(spinAngle);
@@ -474,7 +489,13 @@ export class DroneShowSequencer {
                     basePos.lerpVectors(posA, posB, t);
                     const fadeTrans = Math.sin(t * Math.PI);
                     const helixRadius = 8.0 * fadeTrans;
-                    const angle = t * Math.PI * 4.0 * (i % 2 === 0 ? 1 : -1) + (i * 0.1);
+                    
+                    const transDir = configB.transitionMoveDir || 'alternate';
+                    let dirSign = i % 2 === 0 ? 1 : -1;
+                    if (transDir === 'clockwise') dirSign = 1;
+                    else if (transDir === 'counter') dirSign = -1;
+                    
+                    const angle = t * Math.PI * 4.0 * dirSign + (i * 0.1);
                     basePos.x += Math.cos(angle) * helixRadius;
                     basePos.z += Math.sin(angle) * helixRadius;
                 } else {
@@ -494,8 +515,8 @@ export class DroneShowSequencer {
             let blendedScale = 1.0;
 
             if (t === 0.0 || t === 1.0) {
-                const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i);
-                const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i);
+                const resA = getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, configA.holdMoveDir || 'clockwise');
+                const resB = getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, configB.holdMoveDir || 'clockwise');
 
                 blendedOffset.addVectors(
                     resA.offset.clone().multiplyScalar(fadeA),
@@ -509,7 +530,7 @@ export class DroneShowSequencer {
             const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
             if (isTransMove && t > 0.0 && t < 1.0) {
                 const fadeTrans = Math.sin(t * Math.PI);
-                const resTrans = getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i);
+                const resTrans = getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i, configB.transitionMoveDir || 'alternate');
                 blendedOffset.add(resTrans.offset.clone().multiplyScalar(fadeTrans));
                 blendedScale += (resTrans.scaleFactor - 1.0) * fadeTrans;
             }

@@ -194,7 +194,11 @@ export default {
       effLandingInstant: "同期一斉降落 (Instant)",
       effLandingRadial: "🌌 同心円波紋 (Radial)",
       effLandingLeftRight: "🌅 左から右へ (Left-to-Right)",
-      effLandingRightLeft: "🌅 右から左へ (Right-to-Left)"
+      effLandingRightLeft: "🌅 右から左へ (Right-to-Left)",
+      rotationDirection: "回転方向",
+      dirAlternate: "交互 (Alternate)",
+      dirClockwise: "時計回り (CW)",
+      dirCounter: "反時計回り (CCW)"
     },
     formationPanel: {
       title: "3D静的フォーメーション設計",

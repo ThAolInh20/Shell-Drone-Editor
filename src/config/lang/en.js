@@ -219,7 +219,11 @@ export default {
       effLandingInstant: "Instant (Đồng bộ / Đột ngột)",
       effLandingRadial: "🌌 Radial Ripple (Dần từ tâm)",
       effLandingLeftRight: "🌅 Left-to-Right (Trái sang phải)",
-      effLandingRightLeft: "🌅 Right-to-Left (Phải sang trái)"
+      effLandingRightLeft: "🌅 Right-to-Left (Phải sang trái)",
+      rotationDirection: "Rotation Direction",
+      dirAlternate: "Alternate",
+      dirClockwise: "Clockwise (CW)",
+      dirCounter: "Counter-Clockwise (CCW)"
     },
     formationPanel: {
       title: "Formation Editor",

@@ -194,7 +194,11 @@ export default {
       effLandingInstant: "同步降落 (Instant)",
       effLandingRadial: "🌌 中心扩散 (Radial)",
       effLandingLeftRight: "🌅 从左到右 (Left-to-Right)",
-      effLandingRightLeft: "🌅 从右到左 (Right-to-Left)"
+      effLandingRightLeft: "🌅 从右到左 (Right-to-Left)",
+      rotationDirection: "旋转方向",
+      dirAlternate: "交替 (Alternate)",
+      dirClockwise: "顺时针 (CW)",
+      dirCounter: "逆时针 (CCW)"
     },
     formationPanel: {
       title: "3D静态编队设计",
