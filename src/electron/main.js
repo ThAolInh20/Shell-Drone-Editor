@@ -206,6 +206,30 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Prevent mouse side buttons (back/forward) from triggering navigation and resetting the page
+  mainWindow.on('app-command', (e, cmd) => {
+    if (cmd === 'browser-backward' || cmd === 'browser-forward') {
+      e.preventDefault();
+    }
+  });
+
+  // Prevent keyboard navigation shortcuts (Alt + Left/Right, CmdOrCtrl + [/]) which some mouse drivers trigger
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      // Prevent Alt + Left Arrow (back) and Alt + Right Arrow (forward)
+      if (input.alt && (input.key === 'ArrowLeft' || input.key === 'ArrowRight')) {
+        event.preventDefault();
+      }
+      // Prevent CmdOrCtrl + [ (back) and CmdOrCtrl + ] (forward)
+      if (input.control && (input.key === '[' || input.key === ']')) {
+        event.preventDefault();
+      }
+      if (input.meta && (input.key === '[' || input.key === ']')) {
+        event.preventDefault();
+      }
+    }
+  });
 }
 
 

@@ -353,7 +353,7 @@ export class EditorDirector {
     }
   }
 
-  getMoveEffectOffset(effectType, basePos, centerPos, speed, freq, index, age, outOffset) {
+  getMoveEffectOffset(effectType, basePos, centerPos, speed, freq, index, age, outOffset, direction = 'clockwise') {
     outOffset.set(0, 0, 0);
     let scaleFactor = 1.0;
     if (effectType === 'none' || !effectType) return scaleFactor;
@@ -366,13 +366,14 @@ export class EditorDirector {
       scaleFactor = 1.0 + Math.sin(age * Math.PI * 2 * speed + (index * 0.1)) * 0.5 * freq;
     } else if (effectType === 'orbit' || effectType === 'spiral') {
       const toDrone = this.scratchVec1.subVectors(basePos, centerPos);
-      let angle = age * 0.6 * speed;
+      const dirMultiplier = direction === 'counter' ? -1 : 1;
+      let angle = age * 0.6 * speed * dirMultiplier;
       let radiusScale = 1.0;
 
       if (effectType === 'spiral') {
         const dist = toDrone.length();
         radiusScale = 1.0 + Math.sin(age * 2.0 * speed - dist * 0.05) * 0.15 * freq;
-        angle += dist * 0.02 * freq;
+        angle += dist * 0.02 * freq * dirMultiplier;
       }
 
       const cos = Math.cos(angle);
@@ -575,7 +576,13 @@ export class EditorDirector {
           const relA = this.scratchVec1.subVectors(posA, centerA);
           const relB = this.scratchVec2.subVectors(posB, centerB);
           const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
-          const spinAngle = (1.0 - t) * Math.PI * 2.0 * (i % 2 === 0 ? 1 : -1) * currentTransMoveSpeed;
+          
+          const transDir = configB.transitionMoveDir || 'alternate';
+          let dirSign = i % 2 === 0 ? 1 : -1;
+          if (transDir === 'clockwise') dirSign = 1;
+          else if (transDir === 'counter') dirSign = -1;
+          
+          const spinAngle = (1.0 - t) * Math.PI * 2.0 * dirSign * currentTransMoveSpeed;
           const cos = Math.cos(spinAngle);
           const sin = Math.sin(spinAngle);
           const rx = relPos.x * cos - relPos.z * sin;
@@ -615,7 +622,13 @@ export class EditorDirector {
             const relA = this.scratchVec1.subVectors(posA, centerA);
             const relB = this.scratchVec2.subVectors(posB, centerB);
             const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
-            const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * (i % 2 === 0 ? 1 : -1);
+            
+            const transDir = configB.transitionMoveDir || 'alternate';
+            let dirSign = i % 2 === 0 ? 1 : -1;
+            if (transDir === 'clockwise') dirSign = 1;
+            else if (transDir === 'counter') dirSign = -1;
+            
+            const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * dirSign;
             const shrinkFactor = 1.0 - Math.sin(t * Math.PI) * 0.4;
             const cos = Math.cos(spinAngle);
             const sin = Math.sin(spinAngle);
@@ -641,7 +654,13 @@ export class EditorDirector {
             basePos.lerpVectors(posA, posB, t);
             const fadeTrans = Math.sin(t * Math.PI);
             const helixRadius = 8.0 * fadeTrans;
-            const angle = t * Math.PI * 4.0 * (i % 2 === 0 ? 1 : -1) + (i * 0.1);
+            
+            const transDir = configB.transitionMoveDir || 'alternate';
+            let dirSign = i % 2 === 0 ? 1 : -1;
+            if (transDir === 'clockwise') dirSign = 1;
+            else if (transDir === 'counter') dirSign = -1;
+            
+            const angle = t * Math.PI * 4.0 * dirSign + (i * 0.1);
             basePos.x += Math.cos(angle) * helixRadius;
             basePos.z += Math.sin(angle) * helixRadius;
           } else {
@@ -662,10 +681,10 @@ export class EditorDirector {
 
         if (t === 0.0 || t === 1.0) {
           const offsetA = this.scratchVec1;
-          const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA);
+          const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA, configA.holdMoveDir || 'clockwise');
 
           const offsetB = this.scratchVec2;
-          const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB);
+          const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB, configB.holdMoveDir || 'clockwise');
 
           blendedOffset.addVectors(
             offsetA.multiplyScalar(fadeA),
@@ -680,7 +699,7 @@ export class EditorDirector {
         if (isTransMove && t > 0.0 && t < 1.0) {
           const fadeTrans = Math.sin(t * Math.PI);
           const offsetTrans = this.scratchVec4;
-          const scaleFactorTrans = this.getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i, age, offsetTrans);
+          const scaleFactorTrans = this.getMoveEffectOffset(transMoveEff, basePos, currentCenter, currentTransMoveSpeed, currentTransMoveFreq, i, age, offsetTrans, configB.transitionMoveDir || 'alternate');
           blendedOffset.add(offsetTrans.multiplyScalar(fadeTrans));
           blendedScale += (scaleFactorTrans - 1.0) * fadeTrans;
         }
