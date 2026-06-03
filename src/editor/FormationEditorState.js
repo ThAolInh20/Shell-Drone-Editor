@@ -800,7 +800,7 @@ export class FormationEditorState extends BaseFormationState {
 
     const prefix = groupName + '/';
     for (let i = 0; i < this.particleGroups.length; i++) {
-      if (this.particleGroups[i] === groupName || this.particleGroups[i].startsWith(prefix)) {
+      if (this.particleGroups[i] === groupName || (this.particleGroups[i] && this.particleGroups[i].startsWith(prefix))) {
         this.selectedIndices.add(i);
       }
     }

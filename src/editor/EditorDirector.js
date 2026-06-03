@@ -533,10 +533,12 @@ export class EditorDirector {
       const fadeB = t;
 
       for (let i = 0; i < count; i++) {
-        const group = this.state.particleGroups[i] || 'Default';
-        const parentGroup = group.split('/')[0];
-        const configA = this.state.getGroupConfigForStep(parentGroup, stepA);
-        const configB = this.state.getGroupConfigForStep(parentGroup, stepB);
+        const groupA = (stepA.particleGroups && stepA.particleGroups[i]) || 'Default';
+        const groupB = (stepB.particleGroups && stepB.particleGroups[i]) || groupA;
+        const parentGroupA = groupA.split('/')[0];
+        const parentGroupB = groupB.split('/')[0];
+        const configA = this.state.getGroupConfigForStep(parentGroupA, stepA);
+        const configB = this.state.getGroupConfigForStep(parentGroupB, stepB);
 
         const centerA = configA.center || this.defaultCenter;
         const centerB = configB.center || this.defaultCenter;

@@ -367,10 +367,12 @@ export class DroneShowSequencer {
         };
 
         for (let i = 0; i < count; i++) {
-            const group = (stepA.particleGroups && stepA.particleGroups[i]) || (stepB.particleGroups && stepB.particleGroups[i]) || 'Default';
-            const parentGroup = group.split('/')[0];
-            const configA = this.getGroupConfigForStep(parentGroup, stepA);
-            const configB = this.getGroupConfigForStep(parentGroup, stepB);
+            const groupA = (stepA.particleGroups && stepA.particleGroups[i]) || 'Default';
+            const groupB = (stepB.particleGroups && stepB.particleGroups[i]) || groupA;
+            const parentGroupA = groupA.split('/')[0];
+            const parentGroupB = groupB.split('/')[0];
+            const configA = this.getGroupConfigForStep(parentGroupA, stepA);
+            const configB = this.getGroupConfigForStep(parentGroupB, stepB);
 
             const defaultCenter = new THREE.Vector3(0, 20, 0);
             const centerA = configA.center || defaultCenter;
