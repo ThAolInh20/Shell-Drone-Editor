@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
+import { globalEventBus } from './EventBus.js';
 
 export class SceneManager {
   constructor() {
@@ -8,6 +9,7 @@ export class SceneManager {
     this.baseFogDensity = 0.002;
     this.baseAmbientIntensity = 0.1;
     this.baseHemisphereIntensity = 0.08;
+    this.eventSubscriptions = [];
 
     // Set a very dark blue/black color for night sky void
     this.instance.background = this.baseSkyColor.clone();
@@ -81,12 +83,20 @@ export class SceneManager {
     this.instance.add(this.launchPadGroup);
     // this.addLaunchPad();
 
-    window.addEventListener('timeline:toggle', (e) => {
-      this.launchPadGroup.visible = e.detail;
-    });
+    this.eventSubscriptions.push(
+      globalEventBus.on('timeline:toggle', (visible) => {
+        this.launchPadGroup.visible = visible;
+      })
+    );
 
     // // Add burst height guide lines
     // this.addBurstHeightGuides();
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 
   addLaunchPad() {

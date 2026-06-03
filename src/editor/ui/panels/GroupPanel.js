@@ -1,24 +1,8 @@
 import { t } from '../../../config/lang/i18n.js';
 import { customPrompt, customChoicePrompt, customAlert } from '../utils/Modal.js';
 
-export function renderGroupPanel() {
-  return `
-    <div class="panel-section">
-      <h3>${t('editor.groupsPanel.title')}</h3>
-      <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
-        <div style="display: flex; gap: 5px;">
-          <button class="btn btn-secondary" id="btn-group-selected" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="${t('editor.groupsPanel.groupNestedTooltip')}">${t('editor.groupsPanel.groupNested')}</button>
-          <button class="btn btn-secondary" id="btn-group-selected-flat" style="margin-bottom: 0; padding: 5px; flex: 1; font-size: 11px;" title="${t('editor.groupsPanel.groupFlatTooltip')}">${t('editor.groupsPanel.groupFlat')}</button>
-        </div>
-        <button class="btn btn-secondary" id="btn-ungroup" style="margin-bottom: 0; padding: 5px; width: 100%; font-size: 11px;">${t('editor.groupsPanel.ungroup')}</button>
-      </div>
-      <button class="btn btn-secondary" id="btn-reset-group" style="margin-bottom: 10px; width: 100%; padding: 6px; font-size: 11px; background-color: #3a86ff; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">${t('editor.groupsPanel.resetGroup')}</button>
-      <div id="group-list" style="max-height: 350px; overflow-y: auto; background: #222; border: 1px solid #444; border-radius: 4px; padding: 5px;">
-        <!-- Group items injected here -->
-      </div>
-    </div>
-  `;
-}
+import { renderGroupPanel } from '../templates/EditorTemplates.js';
+export { renderGroupPanel };
 
 export function setupGroupPanel(state) {
   const collapsedGroups = new Set();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { CometEntity } from '../entities/CometEntity.js';
+import { globalEventBus } from '../core/EventBus.js';
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -21,7 +22,7 @@ export class CometSystem {
   }
 
   emitFireworkEvent(type, detail) {
-    window.dispatchEvent(new CustomEvent(type, { detail }));
+    globalEventBus.emit(type, detail);
   }
 
   launchRandom(preset = null, options = {}) {

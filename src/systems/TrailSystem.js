@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { globalEventBus } from '../core/EventBus.js';
 
 const GRAVITY = -30;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
@@ -8,6 +9,7 @@ export class TrailSystem {
   constructor(scene) {
     this.scene = scene;
     this.trailParticles = [];
+    this.eventSubscriptions = [];
 
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
@@ -58,7 +60,15 @@ export class TrailSystem {
     this.trailPoints.frustumCulled = false;
     this.scene.add(this.trailPoints);
     
-    window.addEventListener('firework:clear', () => this.clear());
+    this.eventSubscriptions.push(
+      globalEventBus.on('firework:clear', () => this.clear())
+    );
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 
   spawnTrailParticle(position, color, lifeMultiplier = 1.0) {

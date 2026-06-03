@@ -1,5 +1,6 @@
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { sequences } from '../config/sequences/index.js';
+import { globalEventBus } from '../core/EventBus.js';
 
 export class InputSystem {
   constructor(camera, domElement, fireworkSystem = null) {
@@ -7,6 +8,7 @@ export class InputSystem {
     this.fireworkSystem = fireworkSystem;
     this.paused = false;
     this.selectedPresetKey = 'random';
+    this.eventSubscriptions = [];
     
     this.sequenceOptions = sequences;
     this.selectedSequenceKey = sequences.length > 0 ? sequences[0].key : null;
@@ -58,22 +60,24 @@ export class InputSystem {
     document.addEventListener('keydown', (event) => this.onKeyDown(event));
     document.addEventListener('keyup', (event) => this.onKeyUp(event));
 
-    window.addEventListener('firework:launch', (event) => {
-      this.status.firework = event.detail.shellType;
-      this.status.effect = event.detail.effectType;
-      this.updateStatusOverlay();
-    });
+    this.eventSubscriptions.push(
+      globalEventBus.on('firework:launch', (detail) => {
+        this.status.firework = detail.shellType;
+        this.status.effect = detail.effectType;
+        this.updateStatusOverlay();
+      }),
 
-    window.addEventListener('firework:burst', (event) => {
-      this.status.firework = event.detail.shellType;
-      this.status.effect = event.detail.effectType;
-      this.updateStatusOverlay();
-    });
+      globalEventBus.on('firework:burst', (detail) => {
+        this.status.firework = detail.shellType;
+        this.status.effect = detail.effectType;
+        this.updateStatusOverlay();
+      }),
 
-    window.addEventListener('firework:diagnostics', (event) => {
-      this.status.diagnostics = event.detail;
-      this.updateStatusOverlay();
-    });
+      globalEventBus.on('firework:diagnostics', (detail) => {
+        this.status.diagnostics = detail;
+        this.updateStatusOverlay();
+      })
+    );
     
     // Instruction overlay
     this.setupInstructions();
@@ -498,5 +502,11 @@ export class InputSystem {
     this.status.moving = moving;
     this.status.direction = moving ? direction : 'idle';
     this.updateStatusOverlay();
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 }

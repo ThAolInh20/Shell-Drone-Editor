@@ -4,6 +4,7 @@ import { ShellEntity } from '../entities/ShellEntity.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
 import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
+import { globalEventBus } from '../core/EventBus.js';
 
 const GRAVITY = -30;
 const BASE_BURST_PARTICLES = 110;
@@ -66,7 +67,7 @@ export class FireworkSystem {
   }
 
   emitFireworkEvent(type, detail) {
-    window.dispatchEvent(new CustomEvent(type, { detail }));
+    globalEventBus.emit(type, detail);
   }
 
   emitDiagnostics() {

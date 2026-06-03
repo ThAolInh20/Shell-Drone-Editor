@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { globalEventBus } from '../core/EventBus.js';
 
 export class AudioSystem {
   constructor(cameraManager) {
@@ -47,14 +48,23 @@ export class AudioSystem {
 
     this._lastSmallBurstTime = 0;
     this._lastCrackleTime = 0;
+    this.eventSubscriptions = [];
 
     this.bindEvents();
   }
 
   bindEvents() {
-    window.addEventListener('firework:launch', (e) => this.handleLaunch(e.detail));
-    window.addEventListener('firework:burst', (e) => this.handleBurst(e.detail));
-    window.addEventListener('firework:crackle', (e) => this.handleCrackle(e.detail));
+    this.eventSubscriptions.push(
+      globalEventBus.on('firework:launch', (detail) => this.handleLaunch(detail)),
+      globalEventBus.on('firework:burst', (detail) => this.handleBurst(detail)),
+      globalEventBus.on('firework:crackle', (detail) => this.handleCrackle(detail))
+    );
+  }
+
+  destroy() {
+    for (const unsubscribe of this.eventSubscriptions) {
+      unsubscribe();
+    }
   }
 
   async preload() {

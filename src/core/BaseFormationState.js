@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { HistoryManager } from './HistoryManager.js';
+import { ConstraintSolver } from './ConstraintSolver.js';
 
 export class BaseFormationState {
   constructor() {
@@ -17,9 +19,8 @@ export class BaseFormationState {
     // Selection state
     this.selectedIndices = new Set();
 
-    // Undo/Redo stack
-    this.history = [];
-    this.historyIndex = -1;
+    // Decoupled Undo/Redo stack manager
+    this.historyManager = new HistoryManager(50);
     
     // Clipboard for copy/paste
     this.clipboard = null;
@@ -43,18 +44,8 @@ export class BaseFormationState {
   }
 
   saveStateToHistory() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.history = this.history.slice(0, this.historyIndex + 1);
-    }
-
     const snapshot = this.createHistorySnapshot();
-
-    this.history.push(snapshot);
-    if (this.history.length > 50) {
-      this.history.shift();
-    } else {
-      this.historyIndex++;
-    }
+    this.historyManager.save(snapshot);
     this.notify();
   }
 
@@ -77,17 +68,17 @@ export class BaseFormationState {
   }
 
   undo() {
-    if (this.historyIndex > 0) {
-      this.historyIndex--;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
+    const snapshot = this.historyManager.undo();
+    if (snapshot) {
+      this.restoreFromSnapshot(snapshot);
       this.notify();
     }
   }
 
   redo() {
-    if (this.historyIndex < this.history.length - 1) {
-      this.historyIndex++;
-      this.restoreFromSnapshot(this.history[this.historyIndex]);
+    const snapshot = this.historyManager.redo();
+    if (snapshot) {
+      this.restoreFromSnapshot(snapshot);
       this.notify();
     }
   }
@@ -218,51 +209,11 @@ export class BaseFormationState {
   }
 
   updateLineConstraints() {
-    let changed = false;
-    for (const lc of this.lineConstraints) {
-      const posA = this.positions[lc.anchorA];
-      const posB = this.positions[lc.anchorB];
-      if (posA && posB) {
-        const count = lc.intermediates.length;
-        for (let i = 0; i < count; i++) {
-          const idx = lc.intermediates[i];
-          if (this.positions[idx]) {
-            const t = (i + 1) / (count + 1);
-            const newPos = new THREE.Vector3().lerpVectors(posA, posB, t);
-            if (this.positions[idx].distanceToSquared(newPos) > 0.0001) {
-              this.positions[idx].copy(newPos);
-              changed = true;
-            }
-          }
-        }
-      }
-    }
-    return changed;
+    return ConstraintSolver.solveLineConstraints(this.positions, this.lineConstraints);
   }
 
   adjustConstraintsOnDeletion(deletedIndicesSortedDescending) {
-    this.lineConstraints = this.lineConstraints.filter(lc => {
-      // If anchorA or anchorB is deleted, the constraint is invalid
-      if (deletedIndicesSortedDescending.includes(lc.anchorA) || deletedIndicesSortedDescending.includes(lc.anchorB)) {
-        return false;
-      }
-      
-      // Filter out deleted intermediates
-      lc.intermediates = lc.intermediates.filter(idx => !deletedIndicesSortedDescending.includes(idx));
-      
-      // If no intermediates left, the constraint is invalid
-      if (lc.intermediates.length === 0) {
-        return false;
-      }
-      
-      // Adjust remaining indices
-      for (const deletedIdx of deletedIndicesSortedDescending) {
-        if (lc.anchorA > deletedIdx) lc.anchorA--;
-        if (lc.anchorB > deletedIdx) lc.anchorB--;
-        lc.intermediates = lc.intermediates.map(idx => idx > deletedIdx ? idx - 1 : idx);
-      }
-      return true;
-    });
+    this.lineConstraints = ConstraintSolver.adjustConstraintsOnDeletion(this.lineConstraints, deletedIndicesSortedDescending);
   }
 
   selectAll() {

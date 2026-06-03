@@ -1,22 +1,8 @@
 import { t } from '../../../config/lang/i18n.js';
 import { customAlert } from '../utils/Modal.js';
 
-export function renderFilePanel() {
-  return `
-    <div class="panel-section">
-      <h3>${t('editor.filePanel.title')}</h3>
-      <div class="input-group">
-        <label>${t('editor.filePanel.formatName')}</label>
-        <input type="text" id="ui-name" value="NewFormat" style="width: 120px;" />
-      </div>
-      <button class="btn" id="btn-export">${t('editor.filePanel.exportBtn')}</button>
-      <input type="file" id="file-import" accept=".json" style="display: none;" />
-      <button class="btn btn-secondary" id="btn-import">${t('editor.filePanel.importBtn')}</button>
-      <input type="file" id="file-import-append" accept=".json" style="display: none;" />
-      <button class="btn btn-secondary" id="btn-import-append" style="margin-top: 5px;">${t('editor.filePanel.importAppendBtn')}</button>
-    </div>
-  `;
-}
+import { renderFilePanel } from '../templates/EditorTemplates.js';
+export { renderFilePanel };
 
 export function setupFilePanel(state) {
   document.getElementById('btn-export').addEventListener('click', async () => {
