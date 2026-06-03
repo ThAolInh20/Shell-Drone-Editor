@@ -215,6 +215,7 @@ export default {
       effExpand: "Expand (Nở hoa)",
       effLightNone: "Normal (Bình thường)",
       effLightSparkle: "✨ Sparkle (Lấp lánh lung linh)",
+      effLightSparkleRandom: "✨ Random Sparkle (Random color sparkles)",
       effLightPatchSparkle: "🌌 Patch Sparkle (Lấp lánh mảng)",
       effLightBlackout: "🌑 Blackout (Tối màu / Đen)",
       effLightRainbow: "🌈 Rainbow (Cầu vồng)",

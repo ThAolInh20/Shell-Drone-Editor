@@ -329,6 +329,18 @@ export class DroneShowSequencer {
                 const sparkCol = sparkleColor || new THREE.Color(1, 1, 1);
                 const targetCol = isSpark ? sparkCol.clone() : new THREE.Color(0, 0, 0);
                 return col.lerp(targetCol, fade);
+            } else if (effectType === 'sparkle-spark-random') {
+                const flicker = Math.sin(age * 12.0 * speed + (index * 7.3)) * 0.5 + 0.5;
+                const threshold = 1.0 - (freq * 0.3);
+                const isSpark = flicker > threshold;
+                let sparkCol;
+                if (isSpark) {
+                    const hue = (Math.abs(Math.sin(index * 12.9898 + Math.floor(age * 3.0 * speed))) * 43758.5453) % 1.0;
+                    sparkCol = new THREE.Color().setHSL(hue, 1.0, 0.5);
+                } else {
+                    sparkCol = new THREE.Color(0, 0, 0);
+                }
+                return col.lerp(sparkCol, fade);
             } else if (effectType === 'patch-spark') {
                 const patchX = Math.floor(dummyPos.x / 10.0);
                 const patchZ = Math.floor(dummyPos.z / 10.0);
@@ -586,7 +598,7 @@ export class DroneShowSequencer {
             // Apply transition light effect if active (Flight Light Eff)
             // Rule: Only active for 95% of flight transition time, remaining 5% is blackout
             if (t > 0.0 && t < 1.0) {
-                const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'patch-spark', 'blackout'].includes(transLightEff);
+                const isTransLight = ['strobe', 'shimmer', 'pulse-color', 'rainbow', 'wave-light', 'sparkle-spark', 'sparkle-spark-random', 'patch-spark', 'blackout'].includes(transLightEff);
                 if (isTransLight) {
                     if (t >= 0.95) {
                         color.setRGB(0, 0, 0);

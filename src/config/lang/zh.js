@@ -190,6 +190,7 @@ export default {
       effExpand: "绽放动效 (Expand)",
       effLightNone: "正常模式",
       effLightSparkle: "✨ 闪耀效果 (Sparkle)",
+      effLightSparkleRandom: "✨ 随机闪耀 (Random Sparkle)",
       effLightPatchSparkle: "🌌 区域闪烁 (Patch)",
       effLightBlackout: "🌑 熄灯模式 (Blackout)",
       effLightRainbow: "🌈 霓虹彩虹 (Rainbow)",

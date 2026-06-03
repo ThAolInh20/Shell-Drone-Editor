@@ -190,6 +190,7 @@ export default {
       effExpand: "拡散拡大 (Expand)",
       effLightNone: "通常モード",
       effLightSparkle: "✨ スパークル効果 (キラキラ)",
+      effLightSparkleRandom: "✨ ランダムスパークル (ランダム色キラキラ)",
       effLightPatchSparkle: "🌌 パッチスパークル (エリア)",
       effLightBlackout: "🌑 消灯モード (Blackout)",
       effLightRainbow: "🌈 虹色グラデーション (Rainbow)",
