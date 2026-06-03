@@ -53,6 +53,7 @@ export function renderStepPanel() {
           <select id="ui-step-trans-light-effect" style="width: 120px; background: #222; color: #fff; border: 1px solid #444; padding: 4px;">
             <option value="none">${t('editor.stepPanel.effLightNone')}</option>
             <option value="sparkle-spark">${t('editor.stepPanel.effLightSparkle')}</option>
+            <option value="sparkle-spark-random">${t('editor.stepPanel.effLightSparkleRandom') || 'Sparkle Random'}</option>
             <option value="patch-spark">${t('editor.stepPanel.effLightPatchSparkle')}</option>
             <option value="blackout">${t('editor.stepPanel.effLightBlackout')}</option>
             <option value="rainbow">${t('editor.stepPanel.effLightRainbow')}</option>
