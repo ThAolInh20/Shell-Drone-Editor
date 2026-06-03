@@ -28,7 +28,8 @@ export class FormationEditorState extends BaseFormationState {
       holdLightSpeed: 1.0,
       holdLightFreq: 1.0,
       center: new THREE.Vector3(0, 20, 0),
-      groupConfigs: {}
+      groupConfigs: {},
+      uiColor: ''
     }];
     this.currentStepIndex = 0;
     this.isPlaying = false;
@@ -296,7 +297,8 @@ export class FormationEditorState extends BaseFormationState {
       holdLightSpeed: 1.0,
       holdLightFreq: 1.0,
       center: this.center.clone(),
-      groupConfigs: newGroupConfigs
+      groupConfigs: newGroupConfigs,
+      uiColor: ''
     };
 
     this.steps.push(newStep);
@@ -304,6 +306,7 @@ export class FormationEditorState extends BaseFormationState {
 
     const newIndex = this.steps.findIndex(s => s.id === newStep.id);
     this.currentStepIndex = newIndex;
+    this.saveStateToHistory();
     this.notify();
   }
 
@@ -319,6 +322,7 @@ export class FormationEditorState extends BaseFormationState {
     this.effects = [...(step.effects || new Array(step.positions.length).fill('none'))];
     this.center = step.center ? step.center.clone() : new THREE.Vector3(0, 20, 0);
     this.recalculateTimes();
+    this.saveStateToHistory();
     this.notify();
   }
 
@@ -359,12 +363,69 @@ export class FormationEditorState extends BaseFormationState {
   createHistorySnapshot() {
     const snapshot = super.createHistorySnapshot();
     snapshot.effects = [...this.effects];
+    snapshot.currentStepIndex = this.currentStepIndex;
+    snapshot.steps = this.steps.map(step => {
+      const exportedGroupConfigs = {};
+      if (step.groupConfigs) {
+        for (const gName in step.groupConfigs) {
+          const cfg = step.groupConfigs[gName];
+          exportedGroupConfigs[gName] = {
+            transitionMode: cfg.transitionMode,
+            transitionMoveEffect: cfg.transitionMoveEffect || 'none',
+            transitionMoveSpeed: cfg.transitionMoveSpeed,
+            transitionMoveFreq: cfg.transitionMoveFreq,
+            transitionMoveDir: cfg.transitionMoveDir || 'alternate',
+            transitionLightEffect: cfg.transitionLightEffect || 'none',
+            transitionLightSpeed: cfg.transitionLightSpeed,
+            transitionLightFreq: cfg.transitionLightFreq,
+            transitionSparkleColor: cfg.transitionSparkleColor || '#ffffff',
+            holdMoveEffect: cfg.holdMoveEffect,
+            holdMoveSpeed: cfg.holdMoveSpeed,
+            holdMoveFreq: cfg.holdMoveFreq,
+            holdMoveDir: cfg.holdMoveDir || 'clockwise',
+            holdLightEffect: cfg.holdLightEffect,
+            holdLightSpeed: cfg.holdLightSpeed,
+            holdLightFreq: cfg.holdLightFreq,
+            applyLightEffect: cfg.applyLightEffect || 'none',
+            landingLightEffect: cfg.landingLightEffect || 'none',
+            landingLightSpeed: cfg.landingLightSpeed !== undefined ? cfg.landingLightSpeed : 1.0,
+            landingLightFreq: cfg.landingLightFreq !== undefined ? cfg.landingLightFreq : 1.0,
+            center: { x: cfg.center.x, y: cfg.center.y, z: cfg.center.z }
+          };
+        }
+      }
+      return {
+        id: step.id,
+        time: step.time,
+        positions: step.positions.map(p => ({ x: p.x, y: p.y, z: p.z })),
+        colors: step.colors.map(c => c.getHex()),
+        particleGroups: [...step.particleGroups],
+        effects: [...step.effects],
+        transitionMode: step.transitionMode || 'transform',
+        transitionEffect: step.transitionEffect || 'none',
+        holdTime: step.holdTime || 0,
+        transitionTime: step.transitionTime || 0,
+        holdMoveEffect: step.holdMoveEffect || 'none',
+        holdLightEffect: step.holdLightEffect || 'none',
+        holdMoveSpeed: step.holdMoveSpeed !== undefined ? step.holdMoveSpeed : 1.0,
+        holdMoveFreq: step.holdMoveFreq !== undefined ? step.holdMoveFreq : 1.0,
+        holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
+        holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
+        center: step.center ? { x: step.center.x, y: step.center.y, z: step.center.z } : { x: 0, y: 20, z: 0 },
+        groupConfigs: exportedGroupConfigs,
+        uiColor: step.uiColor || ''
+      };
+    });
     return snapshot;
   }
 
   restoreFromSnapshot(snapshot) {
     super.restoreFromSnapshot(snapshot);
     this.effects = snapshot.effects ? [...snapshot.effects] : new Array(this.positions.length).fill('none');
+    if (snapshot.steps) {
+      this.steps = this.parseStepsArray(snapshot.steps);
+      this.currentStepIndex = snapshot.currentStepIndex !== undefined ? snapshot.currentStepIndex : 0;
+    }
   }
 
   parseStepsArray(stepsArray) {
@@ -387,7 +448,8 @@ export class FormationEditorState extends BaseFormationState {
         holdLightSpeed: 1.0,
         holdLightFreq: 1.0,
         center: this.center.clone(),
-        groupConfigs: {}
+        groupConfigs: {},
+        uiColor: ''
       }];
     }
     return stepsArray.map((s, i) => {
@@ -436,7 +498,7 @@ export class FormationEditorState extends BaseFormationState {
       }
 
       return {
-        id: 'step_' + i + '_' + Date.now(),
+        id: s.id || ('step_' + i + '_' + Date.now()),
         time: s.time || i * 5000,
         positions: (s.positions || []).map(p => new THREE.Vector3(p.x, p.y, p.z)),
         colors: (s.colors || []).map(c => new THREE.Color(c)),
@@ -453,7 +515,8 @@ export class FormationEditorState extends BaseFormationState {
         holdLightSpeed: s.holdLightSpeed !== undefined ? s.holdLightSpeed : 1.0,
         holdLightFreq: s.holdLightFreq !== undefined ? s.holdLightFreq : 1.0,
         center: s.center ? new THREE.Vector3(s.center.x, s.center.y, s.center.z) : new THREE.Vector3(0, 20, 0),
-        groupConfigs: groupConfigs
+        groupConfigs: groupConfigs,
+        uiColor: s.uiColor || ''
       };
     });
   }
@@ -496,6 +559,36 @@ export class FormationEditorState extends BaseFormationState {
     }
 
     this.synchronizeStepDrones();
+    this.saveStateToHistory();
+    this.notify();
+  }
+
+  generatePleasantHexColor() {
+    const h = Math.floor(Math.random() * 360);
+    const s = 65; // 65%
+    const l = 45; // 45%
+    const a = (s * Math.min(l, 100 - l)) / 100;
+    const f = n => {
+      const k = (n + h / 30) % 12;
+      const color = l / 100 - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+  }
+
+  appendFormat(data) {
+    const parsedSteps = data.steps || [];
+    const newSteps = this.parseStepsArray(parsedSteps);
+
+    // Assign a uniform color to the appended steps
+    const groupColor = this.generatePleasantHexColor();
+    for (const step of newSteps) {
+      step.uiColor = groupColor;
+    }
+
+    this.steps = [...this.steps, ...newSteps];
+    this.synchronizeStepDrones();
+    this.recalculateTimes();
     this.saveStateToHistory();
     this.notify();
   }
@@ -562,7 +655,8 @@ export class FormationEditorState extends BaseFormationState {
           holdLightSpeed: step.holdLightSpeed !== undefined ? step.holdLightSpeed : 1.0,
           holdLightFreq: step.holdLightFreq !== undefined ? step.holdLightFreq : 1.0,
           center: step.center ? { x: step.center.x, y: step.center.y, z: step.center.z } : { x: 0, y: 20, z: 0 },
-          groupConfigs: exportedGroupConfigs
+          groupConfigs: exportedGroupConfigs,
+          uiColor: step.uiColor || ''
         };
       })
     };

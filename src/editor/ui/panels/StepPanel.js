@@ -17,6 +17,10 @@ export function renderStepPanel() {
           <label>${t('editor.stepPanel.transitionTime')}</label>
           <input type="number" id="ui-step-transition-time" step="100" style="width: 120px;" />
         </div>
+        <div class="input-group">
+          <label>${t('editor.stepPanel.uiColor') || 'UI Color'}</label>
+          <input type="color" id="ui-step-color" value="#333333" style="width: 45px; height: 22px; border: 1px solid #444; padding: 0; background: none; cursor: pointer; border-radius: 4px;" />
+        </div>
 
         <!-- SECTION 2: TRANSITION CONFIG (GROUP) -->
         <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #3a86ff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px;">${t('editor.stepPanel.transitionStyle')}</div>
@@ -224,6 +228,7 @@ export function setupStepPanel(state) {
       state.steps[state.currentStepIndex].holdTime = val;
       state.saveCurrentStep();
       state.recalculateTimes();
+      state.saveStateToHistory();
       state.notify();
     }
   });
@@ -234,8 +239,19 @@ export function setupStepPanel(state) {
       state.steps[state.currentStepIndex].transitionTime = val;
       state.saveCurrentStep();
       state.recalculateTimes();
+      state.saveStateToHistory();
       state.notify();
     }
+  });
+
+  document.getElementById('ui-step-color')?.addEventListener('input', (e) => {
+    state.steps[state.currentStepIndex].uiColor = e.target.value;
+    state.notify();
+  });
+
+  document.getElementById('ui-step-color')?.addEventListener('change', (e) => {
+    state.saveCurrentStep();
+    state.saveStateToHistory();
   });
 
   // Mode & Transition Effects
@@ -245,6 +261,7 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -253,6 +270,7 @@ export function setupStepPanel(state) {
       state.getGroupConfig(group).transitionMoveDir = e.target.value;
     }
     state.saveCurrentStep();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -262,6 +280,7 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -271,6 +290,10 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     state.notify();
+  });
+
+  document.getElementById('ui-step-trans-light-color')?.addEventListener('change', (e) => {
+    state.saveStateToHistory();
   });
 
   document.getElementById('ui-step-trans-light-speed')?.addEventListener('input', (e) => {
@@ -283,6 +306,10 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-trans-light-speed')?.addEventListener('change', () => {
+    state.saveStateToHistory();
+  });
+
   document.getElementById('ui-step-trans-light-freq')?.addEventListener('input', (e) => {
     for (const group of getGroupsToUpdate(state)) {
       state.getGroupConfig(group).transitionLightFreq = parseFloat(e.target.value);
@@ -293,6 +320,10 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-trans-light-freq')?.addEventListener('change', () => {
+    state.saveStateToHistory();
+  });
+
   // Hold Effects
   document.getElementById('ui-step-hold-move-effect').addEventListener('change', (e) => {
     for (const group of getGroupsToUpdate(state)) {
@@ -300,6 +331,7 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -308,6 +340,7 @@ export function setupStepPanel(state) {
       state.getGroupConfig(group).holdMoveDir = e.target.value;
     }
     state.saveCurrentStep();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -321,6 +354,10 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-hold-move-speed')?.addEventListener('change', () => {
+    state.saveStateToHistory();
+  });
+
   document.getElementById('ui-step-hold-move-freq')?.addEventListener('input', (e) => {
     for (const group of getGroupsToUpdate(state)) {
       state.getGroupConfig(group).holdMoveFreq = parseFloat(e.target.value);
@@ -331,6 +368,10 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-hold-move-freq')?.addEventListener('change', () => {
+    state.saveStateToHistory();
+  });
+
   // Landing Color Effects
   document.getElementById('ui-step-landing-light-effect')?.addEventListener('change', (e) => {
     for (const group of getGroupsToUpdate(state)) {
@@ -338,6 +379,7 @@ export function setupStepPanel(state) {
     }
     state.saveCurrentStep();
     updateSettingsVisibility();
+    state.saveStateToHistory();
     state.notify();
   });
 
@@ -351,6 +393,10 @@ export function setupStepPanel(state) {
     state.notify();
   });
 
+  document.getElementById('ui-step-landing-light-speed')?.addEventListener('change', () => {
+    state.saveStateToHistory();
+  });
+
   document.getElementById('ui-step-landing-light-freq')?.addEventListener('input', (e) => {
     for (const group of getGroupsToUpdate(state)) {
       state.getGroupConfig(group).landingLightFreq = parseFloat(e.target.value);
@@ -359,6 +405,10 @@ export function setupStepPanel(state) {
     if (span) span.textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
     state.saveCurrentStep();
     state.notify();
+  });
+
+  document.getElementById('ui-step-landing-light-freq')?.addEventListener('change', () => {
+    state.saveStateToHistory();
   });
 
   // UI Subscriptions
@@ -391,6 +441,11 @@ export function setupStepPanel(state) {
             stepTransTimeEl.value = currentStep.transitionTime !== undefined ? currentStep.transitionTime : 2000;
           }
         }
+      }
+
+      const stepColorEl = document.getElementById('ui-step-color');
+      if (stepColorEl && document.activeElement !== stepColorEl) {
+        stepColorEl.value = currentStep.uiColor || '#333333';
       }
 
       if (stepModeEl && document.activeElement !== stepModeEl) stepModeEl.value = activeCfg.transitionMode || 'transform';

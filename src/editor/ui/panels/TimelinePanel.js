@@ -126,8 +126,14 @@ function renderTimeline(state) {
     card.draggable = true; // Kích hoạt tính năng kéo thả
     card.style.minWidth = '80px';
     card.style.height = '40px';
-    card.style.backgroundColor = index === state.currentStepIndex ? '#3498db' : '#333';
+    const defaultColor = index === state.currentStepIndex ? '#3498db' : '#333';
+    card.style.backgroundColor = step.uiColor || defaultColor;
     card.style.border = index === state.currentStepIndex ? '2px solid #fff' : '1px solid #444';
+    if (index === state.currentStepIndex) {
+      card.style.boxShadow = '0 0 8px rgba(255, 255, 255, 0.4)';
+    } else {
+      card.style.boxShadow = 'none';
+    }
     card.style.borderRadius = '4px';
     card.style.padding = '8px';
     card.style.cursor = 'grab';
@@ -180,6 +186,7 @@ function renderTimeline(state) {
       }
 
       state.recalculateTimes(); // Tính toán lại toàn bộ dòng thời gian (time) của timeline
+      state.saveStateToHistory();
       state.notify(); // Cập nhật lại UI và 3D canvas ngay lập tức
     };
 
