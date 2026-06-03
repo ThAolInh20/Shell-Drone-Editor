@@ -4,6 +4,7 @@ import { FormationEditorState } from './FormationEditorState.js';
 import { GizmoSystem } from './systems/GizmoSystem.js';
 import { setupEditorUI } from './ui/EditorUI.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
+import { customAlert } from './ui/utils/Modal.js';
 
 export class EditorDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -260,9 +261,9 @@ export class EditorDirector {
       if (this.state.currentFilePath) {
         try {
           await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
-          alert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
+          await customAlert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
         } catch (err) {
-          alert("Lỗi khi lưu file trực tiếp: " + err.message);
+          await customAlert("Lỗi khi lưu file trực tiếp: " + err.message);
         }
       } else {
         // Save As
@@ -272,10 +273,10 @@ export class EditorDirector {
             this.state.currentFilePath = res.filePath;
             this.state.name = res.filename.replace('.json', '');
             document.getElementById('ui-name').value = this.state.name;
-            alert(`Đã lưu kịch bản mới thành công: ${res.filename}`);
+            await customAlert(`Đã lưu kịch bản mới thành công: ${res.filename}`);
           }
         } catch (err) {
-          alert("Lỗi khi lưu kịch bản mới: " + err.message);
+          await customAlert("Lỗi khi lưu kịch bản mới: " + err.message);
         }
       }
       return;
@@ -289,7 +290,7 @@ export class EditorDirector {
     a.download = `${this.state.name}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    alert(`Đã tải xuống kịch bản ${this.state.name}.json thành công!`);
+    await customAlert(`Đã tải xuống kịch bản ${this.state.name}.json thành công!`);
   }
 
   updateMeshFromState() {
@@ -1662,7 +1663,7 @@ export class EditorDirector {
     okBtn.style.fontSize = '12px';
     okBtn.style.fontWeight = 'bold';
 
-    okBtn.addEventListener('click', () => {
+    okBtn.addEventListener('click', async () => {
       const type = shapeTypeSelect.value;
       const fill = modal.querySelector('#modal-shape-fill').value;
       const p1 = parseFloat(modal.querySelector('#modal-shape-p1').value) || 15;
@@ -1671,7 +1672,7 @@ export class EditorDirector {
       const textVal = textContainer.style.display !== 'none' ? modal.querySelector('#modal-shape-text').value : '2026';
 
       if (type === 'json' && !customShapeData) {
-        alert("Please choose a valid JSON file first.");
+        await customAlert("Please choose a valid JSON file first.");
         return;
       }
 

@@ -1,4 +1,5 @@
 import { t } from '../../../config/lang/i18n.js';
+import { customAlert } from '../utils/Modal.js';
 
 export function renderFilePanel() {
   return `
@@ -30,10 +31,10 @@ export function setupFilePanel(state) {
           state.currentFilePath = res.filePath;
           state.name = res.filename.replace('.json', '');
           document.getElementById('ui-name').value = state.name;
-          alert(t('editor.filePanel.alertExportSuccess', { filename: res.filename }));
+          await customAlert(t('editor.filePanel.alertExportSuccess', { filename: res.filename }));
         }
       } catch (err) {
-        alert(t('editor.filePanel.alertExportError', { error: err.message }));
+        await customAlert(t('editor.filePanel.alertExportError', { error: err.message }));
       }
     } else {
       const blob = new Blob([content], { type: 'application/json' });
@@ -58,10 +59,10 @@ export function setupFilePanel(state) {
 
           const uiCount = document.getElementById('ui-count');
           if (uiCount) uiCount.value = state.droneCount;
-          alert(t('editor.filePanel.alertImportSuccess', { filename }));
+          await customAlert(t('editor.filePanel.alertImportSuccess', { filename }));
         }
       } catch (err) {
-        alert(t('editor.filePanel.alertImportError', { error: err.message }));
+        await customAlert(t('editor.filePanel.alertImportError', { error: err.message }));
       }
     } else {
       document.getElementById('file-import').click();
@@ -72,7 +73,7 @@ export function setupFilePanel(state) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
         state.loadFormat(data);
@@ -81,7 +82,7 @@ export function setupFilePanel(state) {
         const uiCount = document.getElementById('ui-count');
         if (uiCount) uiCount.value = state.droneCount;
       } catch (err) {
-        alert(t('editor.filePanel.alertInvalidJson'));
+        await customAlert(t('editor.filePanel.alertInvalidJson'));
       }
     };
     reader.readAsText(file);
@@ -95,10 +96,10 @@ export function setupFilePanel(state) {
           const { filePath, content, filename } = fileData;
           const data = JSON.parse(content);
           state.appendFormat(data);
-          alert(t('editor.filePanel.alertImportAppendSuccess', { filename }));
+          await customAlert(t('editor.filePanel.alertImportAppendSuccess', { filename }));
         }
       } catch (err) {
-        alert(t('editor.filePanel.alertImportError', { error: err.message }));
+        await customAlert(t('editor.filePanel.alertImportError', { error: err.message }));
       }
     } else {
       document.getElementById('file-import-append').click();
@@ -109,13 +110,13 @@ export function setupFilePanel(state) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
         state.appendFormat(data);
-        alert(t('editor.filePanel.alertImportAppendSuccess', { filename: file.name }));
+        await customAlert(t('editor.filePanel.alertImportAppendSuccess', { filename: file.name }));
       } catch (err) {
-        alert(t('editor.filePanel.alertInvalidJson'));
+        await customAlert(t('editor.filePanel.alertInvalidJson'));
       }
       e.target.value = '';
     };
