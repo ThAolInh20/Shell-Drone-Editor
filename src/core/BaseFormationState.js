@@ -264,4 +264,24 @@ export class BaseFormationState {
       return true;
     });
   }
+
+  selectAll() {
+    this.isCenterSelected = false;
+    this.selectedIndices.clear();
+    for (let i = 0; i < this.positions.length; i++) {
+      this.selectedIndices.add(i);
+    }
+    this.notify();
+  }
+
+  selectMultiple(indices) {
+    this.isCenterSelected = false;
+    this.selectedIndices.clear();
+    for (const idx of indices) {
+      if (idx >= 0 && idx < this.positions.length) {
+        this.selectedIndices.add(idx);
+      }
+    }
+    this.notify();
+  }
 }
