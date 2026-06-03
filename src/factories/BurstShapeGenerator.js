@@ -53,6 +53,10 @@ export class BurstShapeGenerator {
       case 'fish':
       case 'smiley':
         return shellType;
+      case 'half-flash':
+        return 'half-flash';
+      case 'split-flash':
+        return 'split-flash';
       case 'hearth':
         return 'heart';
       default:
@@ -61,6 +65,84 @@ export class BurstShapeGenerator {
   }
 
   static direction(shape, angle, index, count, preset = null) {
+    if (shape === 'split-flash') {
+      const numBeams = 5;
+      const halfCount = Math.max(count - numBeams, 1);
+
+      if (index < halfCount) {
+        // Distribute half of particles to top, half to bottom hemisphere
+        const isTop = index % 2 === 0;
+        const subIndex = Math.floor(index / 2);
+        const subCount = Math.max(Math.floor(halfCount / 2), 1);
+
+        const t = subIndex / subCount;
+        const yOffset = 0.20; // Slightly wider equatorial gap
+        // Use a power function to push particles towards the poles, thinning out density near the equator cut
+        const y = yOffset + Math.pow(t, 0.30) * (1.0 - yOffset);
+
+        const ringRadius = Math.sqrt(Math.max(0, 1 - y * y));
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+        const theta = goldenAngle * index;
+        const jitter = 0.02;
+
+        const finalY = isTop ? y : -y;
+
+        return new THREE.Vector3(
+          Math.cos(theta) * ringRadius + (Math.random() - 0.5) * jitter,
+          finalY + (Math.random() - 0.5) * jitter * 0.7,
+          Math.sin(theta) * ringRadius + (Math.random() - 0.5) * jitter
+        ).normalize();
+      } else {
+        // Exactly 5 equatorial comet beams shooting horizontally outwards (Y = 0)
+        const beamId = index - halfCount;
+        const beamAngle = (beamId / numBeams) * Math.PI * 2;
+
+        const dx = Math.cos(beamAngle);
+        const dz = Math.sin(beamAngle);
+        const dy = 0.0; // Flat equatorial plane
+
+        const dir = new THREE.Vector3(dx, dy, dz).normalize();
+
+        // Slightly higher speed multiplier to make comets cut outwards visibly
+        return dir.multiplyScalar(1.25);
+      }
+    }
+
+    if (shape === 'half-flash') {
+      const numBeams = 4;
+      const halfCount = Math.max(count - numBeams, 1);
+      if (index < halfCount) {
+        // Top hemisphere (Y >= 0)
+        const t = index / halfCount;
+        const y = t;
+        const ringRadius = Math.sqrt(Math.max(0, 1 - y * y));
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+        const theta = goldenAngle * index;
+        const jitter = 0.02; // Smaller jitter for a cleaner dome shape
+
+        return new THREE.Vector3(
+          Math.cos(theta) * ringRadius + (Math.random() - 0.5) * jitter,
+          y + (Math.random() - 0.5) * jitter * 0.7,
+          Math.sin(theta) * ringRadius + (Math.random() - 0.5) * jitter
+        ).normalize();
+      } else {
+        // Exactly 4 tentacles firing downwards (Y < 0)
+        const beamId = index - halfCount;
+        const beamAngle = (beamId / numBeams) * Math.PI * 2;
+
+        // Diagonal downward angle (approx 45 degrees)
+        const dx = Math.cos(beamAngle) * 0.707;
+        const dz = Math.sin(beamAngle) * 0.707;
+        const dy = -0.707;
+
+        // Tentacles move in a straight line (no direction jitter)
+        const dir = new THREE.Vector3(dx, dy, dz).normalize();
+
+        // Standard speed multiplier for the tentacles to extend smoothly
+        return dir.multiplyScalar(1.15);
+      }
+    }
+
     if (shape === 'sphere') {
       const safeCount = Math.max(count, 1);
       const t = (index + 0.5) / safeCount;
