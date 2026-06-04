@@ -32,3 +32,4 @@ dist-electron.zip
 .vite/
 src/config/sequences/
 src/config/sequences/demoShow.json
+public/output/

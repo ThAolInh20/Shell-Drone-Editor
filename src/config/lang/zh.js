@@ -76,6 +76,7 @@ export default {
       effectStrobe: "闪烁 (Strobe)",
       effectShimmer: "微光 (Shimmer)",
       deleteBtn: "删除选中",
+      breakConstraintsBtn: "断开线条关联 / 约束",
       confirmDelete: "确定要删除选中的 {count} 个元素吗？",
       visualsTitle: "旋转中心与辅助显示",
       showCenterCheckbox: "显示中心",

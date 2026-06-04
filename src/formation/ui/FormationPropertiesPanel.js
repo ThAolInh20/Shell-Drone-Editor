@@ -42,6 +42,10 @@ export function setupFormationPropertiesPanel(state) {
     state.updateSelectionColor(hex);
   });
 
+  document.getElementById('btn-break-constraints').addEventListener('click', () => {
+    state.breakLineConstraints();
+  });
+
   document.getElementById('btn-delete-selected').addEventListener('click', () => {
     if (confirm(t('editor.selectionPanel.confirmDelete', { count: state.selectedIndices.size }))) {
       state.deleteSelected();

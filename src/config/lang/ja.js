@@ -76,6 +76,7 @@ export default {
       effectStrobe: "ストロボ (点滅)",
       effectShimmer: "シマー (ちらつき)",
       deleteBtn: "选择削除",
+      breakConstraintsBtn: "ラインの接続解除 / 制約解除",
       confirmDelete: "選択された {count} 个の要素を削除しますか？",
       visualsTitle: "回転中心と補助表示",
       showCenterCheckbox: "中心を表示",

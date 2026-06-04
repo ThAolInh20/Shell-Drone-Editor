@@ -235,4 +235,33 @@ export class BaseFormationState {
     }
     this.notify();
   }
+
+  breakLineConstraints() {
+    const initialCount = this.lineConstraints.length;
+    if (this.selectedIndices.size > 0) {
+      // Filter out any constraints that reference ANY of the selected indices as anchorA, anchorB, or intermediates
+      this.lineConstraints = this.lineConstraints.filter(lc => {
+        if (this.selectedIndices.has(lc.anchorA) || this.selectedIndices.has(lc.anchorB)) {
+          return false;
+        }
+        for (const idx of lc.intermediates) {
+          if (this.selectedIndices.has(idx)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    } else {
+      // If nothing is selected, clear all constraints
+      this.lineConstraints = [];
+    }
+
+    if (this.lineConstraints.length !== initialCount) {
+      if (typeof this.saveCurrentStep === 'function') {
+        this.saveCurrentStep();
+      }
+      this.saveStateToHistory();
+      this.notify();
+    }
+  }
 }
