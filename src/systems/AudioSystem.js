@@ -132,7 +132,37 @@ export class AudioSystem {
     return { delay: 0, scale: baseVolumeMultiplier };
   }
 
-  playSoundBase(type, volumeScale = 1, playbackRateScale = 1, delay = 0) {
+  calculatePan(position) {
+    if (!position || position.x === undefined || !this.cameraManager || !this.cameraManager.instance) {
+      return 0;
+    }
+
+    try {
+      const camera = this.cameraManager.instance;
+      // Chuyển vị trí nổ sang không gian của camera (View Space)
+      const viewPos = new THREE.Vector3(position.x, position.y, position.z);
+      viewPos.applyMatrix4(camera.matrixWorldInverse);
+
+      const depth = -viewPos.z;
+      if (depth <= 0) {
+        // Đối tượng nổ ở phía sau camera, hạn chế pan lớn để giữ tự nhiên
+        return this.clamp(viewPos.x / 100, -0.5, 0.5);
+      }
+
+      // Tính góc lệch ngang so với hướng nhìn trực diện
+      const angle = Math.atan2(viewPos.x, depth);
+      
+      // Camera Perspective mặc định có FOV là 75 độ, nửa góc nhìn ngang khoảng 37.5 độ (0.65 radian)
+      // Chia cho 0.65 để pan đạt tối đa ở rìa màn hình, giới hạn ở mức [-0.85, 0.85]
+      const pan = this.clamp(angle / 0.65, -0.85, 0.85);
+      return pan;
+    } catch (e) {
+      console.warn('AudioSystem: Failed to calculate pan', e);
+      return 0;
+    }
+  }
+
+  playSoundBase(type, volumeScale = 1, playbackRateScale = 1, delay = 0, position = null) {
     const source = this.sources[type];
     if (!source || !source.buffers || source.buffers.length === 0) return;
 
@@ -155,16 +185,20 @@ export class AudioSystem {
       bufferSource.playbackRate.value = scaledPlaybackRate;
       bufferSource.buffer = buffer;
 
-      bufferSource.connect(gainNode);
+      if (this.ctx.createStereoPanner && position) {
+        const pannerNode = this.ctx.createStereoPanner();
+        pannerNode.pan.value = this.calculatePan(position);
+        bufferSource.connect(pannerNode);
+        pannerNode.connect(gainNode);
+      } else {
+        bufferSource.connect(gainNode);
+      }
+
       gainNode.connect(this.ctx.destination);
       bufferSource.start(0);
     };
 
     if (delay > 0) {
-      // Use AudioContext timing for better precision than setTimeout if possible,
-      // but for delayed execution where we just want it to trigger in the future,
-      // setTimeout is fine. Using context.currentTime is better for sync.
-
       const gainNode = this.ctx.createGain();
       gainNode.gain.value = scaledVolume;
 
@@ -172,7 +206,15 @@ export class AudioSystem {
       bufferSource.playbackRate.value = scaledPlaybackRate;
       bufferSource.buffer = buffer;
 
-      bufferSource.connect(gainNode);
+      if (this.ctx.createStereoPanner && position) {
+        const pannerNode = this.ctx.createStereoPanner();
+        pannerNode.pan.value = this.calculatePan(position);
+        bufferSource.connect(pannerNode);
+        pannerNode.connect(gainNode);
+      } else {
+        bufferSource.connect(gainNode);
+      }
+
       gainNode.connect(this.ctx.destination);
 
       // Start scheduling
@@ -185,23 +227,17 @@ export class AudioSystem {
   handleLaunch(detail) {
     const { position } = detail;
     const { delay, scale } = this.calculatePositionalAudioParams(position, 1);
-    // Lift should be played almost immediately, but we can keep 3D delay for realism.
-    // However, usually launch is close to player. If we're at launch pad, it will be immediate.
-    this.playSoundBase('lift', scale, 1, delay);
+    this.playSoundBase('lift', scale, 1, delay, position);
   }
 
   handleBurst(detail) {
-    const { position, intensity, effectType } = detail;
+    const { position, intensity } = detail;
     const { delay, scale } = this.calculatePositionalAudioParams(position, intensity * 2);
 
     // Scale down volume for smaller intensity, but speed up playback
-    // (A scale of 0.5 means faster playback rate)
-    // 2 - scale to increase playback rate when volume is lower (farther or smaller)
     const playbackRateScale = this.clamp(2 - scale, 1, 1.5);
 
-    this.playSoundBase('burst', scale, playbackRateScale, delay);
-
-    // If it's a crackle effect, crackle sound will only play when crackle cloud actually triggers.
+    this.playSoundBase('burst', scale, playbackRateScale, delay, position);
   }
 
   handleCrackle(detail) {
@@ -215,6 +251,6 @@ export class AudioSystem {
     this._lastCrackleTime = now;
 
     const { delay, scale } = this.calculatePositionalAudioParams(position, 0.8);
-    this.playSoundBase('crackle', scale, 1, delay);
+    this.playSoundBase('crackle', scale, 1, delay, position);
   }
 }
