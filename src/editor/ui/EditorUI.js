@@ -59,7 +59,7 @@ export function setupEditorUI(state, director) {
   setupFilePanel(state);
   setupGroupPanel(state);
   setupGizmoPanel(state, director);
-  setupSelectionPanel(state);
+  setupSelectionPanel(state, director);
   setupStepPanel(state);
   setupTimelinePanel(state);
 }

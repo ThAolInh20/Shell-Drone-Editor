@@ -117,6 +117,37 @@ export function renderSelectionPanel() {
           <label>Z</label>
           <input type="number" id="ui-pos-z" step="0.5" />
         </div>
+        
+        <!-- Rotate inputs -->
+        <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #00ffff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; grid-column: span 2;">Rotate (Degrees)</div>
+        <div class="input-group">
+          <label>Rot X</label>
+          <input type="number" id="ui-rot-x" step="1" value="0" />
+        </div>
+        <div class="input-group">
+          <label>Rot Y</label>
+          <input type="number" id="ui-rot-y" step="1" value="0" />
+        </div>
+        <div class="input-group">
+          <label>Rot Z</label>
+          <input type="number" id="ui-rot-z" step="1" value="0" />
+        </div>
+        
+        <!-- Scale inputs -->
+        <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #00ffff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; grid-column: span 2;">Scale (Ratio)</div>
+        <div class="input-group">
+          <label>Scale X</label>
+          <input type="number" id="ui-scale-x" step="0.1" value="1.0" />
+        </div>
+        <div class="input-group">
+          <label>Scale Y</label>
+          <input type="number" id="ui-scale-y" step="0.1" value="1.0" />
+        </div>
+        <div class="input-group">
+          <label>Scale Z</label>
+          <input type="number" id="ui-scale-z" step="0.1" value="1.0" />
+        </div>
+        
         <div class="input-group" style="margin-top: 10px;">
           <label>${t('editor.selectionPanel.colorLabel')}</label>
           <input type="color" id="ui-color" value="#ffffff" />
