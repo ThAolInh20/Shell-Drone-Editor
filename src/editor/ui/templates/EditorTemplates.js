@@ -132,6 +132,7 @@ export function renderSelectionPanel() {
             <option value="shimmer">${t('editor.selectionPanel.effectShimmer')}</option>
           </select>
         </div>
+        <button class="btn" id="btn-break-constraints" style="margin-top: 10px; background-color: #e67e22; color: white; width: 100%;">${t('editor.selectionPanel.breakConstraintsBtn')}</button>
         <button class="btn" id="btn-delete-selected" style="margin-top: 15px; background-color: #ff4d4d; color: white; width: 100%;">${t('editor.selectionPanel.deleteBtn')}</button>
       </div>
     </div>

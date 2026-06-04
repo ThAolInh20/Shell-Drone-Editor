@@ -55,7 +55,21 @@ export class FormationDirector {
     // Raycaster for selection
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
-    
+
+    // Selection Box DOM helper element (visual marquee selection)
+    this.selectionBoxEl = document.createElement('div');
+    this.selectionBoxEl.style.position = 'absolute';
+    this.selectionBoxEl.style.border = '1.5px dashed #3a86ff';
+    this.selectionBoxEl.style.backgroundColor = 'rgba(58, 134, 255, 0.15)';
+    this.selectionBoxEl.style.borderRadius = '2px';
+    this.selectionBoxEl.style.boxShadow = '0 0 8px rgba(58, 134, 255, 0.4)';
+    this.selectionBoxEl.style.pointerEvents = 'none';
+    this.selectionBoxEl.style.zIndex = '99999';
+    this.selectionBoxEl.style.display = 'none';
+    document.body.appendChild(this.selectionBoxEl);
+
+    this.isSelectingBox = false;
+
     this.isCtrlPressed = false;
     this.setupEvents();
 
@@ -152,6 +166,72 @@ export class FormationDirector {
     if (this.gizmoSystem.isHovering()) return; // Don't select if interacting with Gizmo
     if (this.bezierTransformControl && (this.bezierTransformControl.dragging || this.bezierTransformControl.axis !== null)) return;
 
+    if (event.shiftKey) {
+      // Intercept event and prevent OrbitControls camera panning/rotation
+      event.stopImmediatePropagation();
+      this.controls.enabled = false;
+      this.isSelectingBox = true;
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+
+      // Position visual element at start point
+      this.selectionBoxEl.style.left = `${startX}px`;
+      this.selectionBoxEl.style.top = `${startY}px`;
+      this.selectionBoxEl.style.width = '0px';
+      this.selectionBoxEl.style.height = '0px';
+      this.selectionBoxEl.style.display = 'block';
+
+      const onPointerMove = (moveEvent) => {
+        if (!this.isSelectingBox) return;
+        const currentX = moveEvent.clientX;
+        const currentY = moveEvent.clientY;
+
+        const left = Math.min(startX, currentX);
+        const top = Math.min(startY, currentY);
+        const width = Math.abs(currentX - startX);
+        const height = Math.abs(currentY - startY);
+
+        this.selectionBoxEl.style.left = `${left}px`;
+        this.selectionBoxEl.style.top = `${top}px`;
+        this.selectionBoxEl.style.width = `${width}px`;
+        this.selectionBoxEl.style.height = `${height}px`;
+      };
+
+      const onPointerUp = (upEvent) => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+
+        if (!this.isSelectingBox) return;
+        this.isSelectingBox = false;
+        this.selectionBoxEl.style.display = 'none';
+
+        // Re-enable OrbitControls
+        this.controls.enabled = true;
+
+        const endX = upEvent.clientX;
+        const endY = upEvent.clientY;
+
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // If user just clicked (dragged < 5px) with Shift held, treat it as normal click selection (add/remove select)
+        if (dist < 5) {
+          this.handleCanvasClick(upEvent);
+          return;
+        }
+
+        // Perform Box Selection calculation
+        this.performBoxSelection(startX, startY, endX, endY);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      return;
+    }
+
+    // Default drag logic (for OrbitControls and click selection)
     const startX = event.clientX;
     const startY = event.clientY;
 
@@ -169,6 +249,43 @@ export class FormationDirector {
     };
 
     window.addEventListener('pointerup', onPointerUp);
+  }
+
+  performBoxSelection(startX, startY, endX, endY) {
+    const minX = Math.min(startX, endX);
+    const maxX = Math.max(startX, endX);
+    const minY = Math.min(startY, endY);
+    const maxY = Math.max(startY, endY);
+
+    const rect = this.renderer.instance.domElement.getBoundingClientRect();
+    const camera = this.cameraManager.instance;
+    const positions = this.state.positions;
+
+    const selectedList = [];
+
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
+      
+      // Project to camera/view space
+      const viewV = this.scratchVec1.copy(pos).applyMatrix4(camera.matrixWorldInverse);
+      if (viewV.z > 0) {
+        // Behind camera
+        continue;
+      }
+
+      // Project view space to NDC
+      viewV.applyMatrix4(camera.projectionMatrix);
+
+      // Convert NDC to client screen coords
+      const x = rect.left + (viewV.x * 0.5 + 0.5) * rect.width;
+      const y = rect.top + (-viewV.y * 0.5 + 0.5) * rect.height;
+
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+        selectedList.push(i);
+      }
+    }
+
+    this.state.selectMultiple(selectedList);
   }
 
   handleCanvasClick(event) {
@@ -290,7 +407,12 @@ export class FormationDirector {
     const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
     const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
     const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
+    const isA = event.key.toLowerCase() === 'a' || event.code === 'KeyA';
 
+    if ((event.ctrlKey || event.metaKey) && isA) {
+      event.preventDefault();
+      this.state.selectAll();
+    }
     if (event.shiftKey && isS) {
       event.preventDefault();
       this.saveDirectly();
