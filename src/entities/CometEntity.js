@@ -17,7 +17,7 @@ export class CometEntity {
     this.preset = preset;
     this.age = 0;
     this.decayTime = 0;
-    this.maxDecayTime = 0.45; // Time to fade out (reduced from 0.6)
+    this.maxDecayTime = preset?.maxDecayTime ?? 1.4; // Time to fade out (increased from 0.45 to allow falling effect)
     this.state = CometEntity.STATE.INIT;
     this.mesh = new THREE.Group();
 
@@ -109,7 +109,7 @@ export class CometEntity {
 
   update(deltaTime) {
     if (this.state === CometEntity.STATE.DEAD) {
-      return false;
+      return true;
     }
 
     if (this.state === CometEntity.STATE.LAUNCHING) {
@@ -150,5 +150,22 @@ export class CometEntity {
 
   markDead() {
     this.state = CometEntity.STATE.DEAD;
+  }
+
+  dispose() {
+    this.mesh.traverse((child) => {
+      if (child.isMesh || child.isPoints) {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(m => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      }
+    });
   }
 }
