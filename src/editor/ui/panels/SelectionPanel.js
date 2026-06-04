@@ -5,7 +5,7 @@ import { t } from '../../../config/lang/i18n.js';
 import { renderSelectionPanel } from '../templates/EditorTemplates.js';
 export { renderSelectionPanel };
 
-export function setupSelectionPanel(state) {
+export function setupSelectionPanel(state, director) {
   const updatePosFromInput = () => {
     if (state.selectedIndices.size > 0) {
       const x = parseFloat(document.getElementById('ui-pos-x').value) || 0;
@@ -35,9 +35,47 @@ export function setupSelectionPanel(state) {
     }
   };
 
+  const updateTransformFromInputs = () => {
+    if (state.selectedIndices.size > 0 && director && director.gizmoSystem) {
+      const gizmo = director.gizmoSystem;
+      if (!gizmo.proxyGroup) return;
+
+      const rx = THREE.MathUtils.degToRad(parseFloat(document.getElementById('ui-rot-x').value) || 0);
+      const ry = THREE.MathUtils.degToRad(parseFloat(document.getElementById('ui-rot-y').value) || 0);
+      const rz = THREE.MathUtils.degToRad(parseFloat(document.getElementById('ui-rot-z').value) || 0);
+      gizmo.proxyGroup.rotation.set(rx, ry, rz);
+
+      const sx = parseFloat(document.getElementById('ui-scale-x').value) !== undefined && !isNaN(parseFloat(document.getElementById('ui-scale-x').value)) ? parseFloat(document.getElementById('ui-scale-x').value) : 1.0;
+      const sy = parseFloat(document.getElementById('ui-scale-y').value) !== undefined && !isNaN(parseFloat(document.getElementById('ui-scale-y').value)) ? parseFloat(document.getElementById('ui-scale-y').value) : 1.0;
+      const sz = parseFloat(document.getElementById('ui-scale-z').value) !== undefined && !isNaN(parseFloat(document.getElementById('ui-scale-z').value)) ? parseFloat(document.getElementById('ui-scale-z').value) : 1.0;
+      gizmo.proxyGroup.scale.set(sx, sy, sz);
+
+      gizmo.proxyGroup.updateMatrixWorld(true);
+
+      const targetPos = new THREE.Vector3();
+      const updates = [];
+      for (const [id, mesh] of gizmo.proxyMeshes.entries()) {
+        if (id === 'center') continue;
+        mesh.getWorldPosition(targetPos);
+        updates.push({ index: id, pos: targetPos.clone() });
+      }
+
+      state.updatePositions(updates);
+      state.saveCurrentStep();
+      state.saveStateToHistory();
+    }
+  };
+
   document.getElementById('ui-pos-x').addEventListener('change', updatePosFromInput);
   document.getElementById('ui-pos-y').addEventListener('change', updatePosFromInput);
   document.getElementById('ui-pos-z').addEventListener('change', updatePosFromInput);
+
+  document.getElementById('ui-rot-x').addEventListener('change', updateTransformFromInputs);
+  document.getElementById('ui-rot-y').addEventListener('change', updateTransformFromInputs);
+  document.getElementById('ui-rot-z').addEventListener('change', updateTransformFromInputs);
+  document.getElementById('ui-scale-x').addEventListener('change', updateTransformFromInputs);
+  document.getElementById('ui-scale-y').addEventListener('change', updateTransformFromInputs);
+  document.getElementById('ui-scale-z').addEventListener('change', updateTransformFromInputs);
 
   document.getElementById('ui-color').addEventListener('input', (e) => {
     const hex = parseInt(e.target.value.replace('#', '0x'));
@@ -66,7 +104,7 @@ export function setupSelectionPanel(state) {
     const cx = parseFloat(document.getElementById('ui-center-x').value) || 0;
     const cy = parseFloat(document.getElementById('ui-center-y').value) || 0;
     const cz = parseFloat(document.getElementById('ui-center-z').value) || 0;
-    
+
     state.center.set(cx, cy, cz);
     state.saveCurrentStep();
     state.saveStateToHistory();
@@ -150,6 +188,33 @@ export function setupSelectionPanel(state) {
           document.getElementById('ui-effect').value = firstEffect;
         } else {
           document.getElementById('ui-effect').value = 'none';
+        }
+
+        // Sync rotate & scale inputs from gizmo proxyGroup
+        if (director && director.gizmoSystem && director.gizmoSystem.proxyGroup) {
+          const gizmo = director.gizmoSystem;
+          const rot = gizmo.proxyGroup.rotation;
+          const scl = gizmo.proxyGroup.scale;
+
+          if (document.activeElement !== document.getElementById('ui-rot-x')) {
+            document.getElementById('ui-rot-x').value = THREE.MathUtils.radToDeg(rot.x).toFixed(0);
+          }
+          if (document.activeElement !== document.getElementById('ui-rot-y')) {
+            document.getElementById('ui-rot-y').value = THREE.MathUtils.radToDeg(rot.y).toFixed(0);
+          }
+          if (document.activeElement !== document.getElementById('ui-rot-z')) {
+            document.getElementById('ui-rot-z').value = THREE.MathUtils.radToDeg(rot.z).toFixed(0);
+          }
+
+          if (document.activeElement !== document.getElementById('ui-scale-x')) {
+            document.getElementById('ui-scale-x').value = scl.x.toFixed(2);
+          }
+          if (document.activeElement !== document.getElementById('ui-scale-y')) {
+            document.getElementById('ui-scale-y').value = scl.y.toFixed(2);
+          }
+          if (document.activeElement !== document.getElementById('ui-scale-z')) {
+            document.getElementById('ui-scale-z').value = scl.z.toFixed(2);
+          }
         }
       } else {
         coordInputs.style.display = 'none';
