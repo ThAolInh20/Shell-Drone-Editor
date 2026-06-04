@@ -41,6 +41,11 @@ export class PropertyInspector {
       return;
     }
 
+    // Mặc định sectorId là 'center' nếu sự kiện chưa được thiết lập thuộc tính này
+    if (this.selectedEvent.type !== 'audio' && this.selectedEvent.sectorId === undefined) {
+      this.selectedEvent.sectorId = 'center';
+    }
+
     const form = document.createElement('div');
     form.style.display = 'grid';
     form.style.gridTemplateColumns = '1fr 1fr';
@@ -57,23 +62,27 @@ export class PropertyInspector {
     } else {
       fields = [
         { name: 'time', type: 'number', step: '0.1' },
-        { name: 'type', type: 'select', options: ['sequence', 'cometsequence', 'finale'] },
+        { name: 'type', type: 'select', options: ['single', 'sequence', 'cometsequence', 'finale'] },
         { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
         { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
         { name: 'count', type: 'number', step: '1' },
         { name: 'duration', type: 'number', step: '0.1' },
         { name: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] },
+
         { name: 'shellSize', type: 'number', step: '0.1' },
         { name: 'color', type: 'text', span: 2 },
+        { name: 'pistil', type: 'checkbox' },
+        { name: 'instantBurst', type: 'checkbox' },
+        { name: 'strobe', type: 'checkbox' },
+        { name: 'crackle', type: 'checkbox' },
         { name: 'ratioX', type: 'number', step: '0.05' },
         { name: 'ratioY', type: 'number', step: '0.05' },
         { name: 'ratioZ', type: 'number', step: '0.05' },
-        { name: 'instantBurst', type: 'checkbox' },
         { name: 'x1', type: 'number', step: '0.1' },
         { name: 'x2', type: 'number', step: '0.1' },
         { name: 'y1', type: 'number', step: '0.1' },
         { name: 'y2', type: 'number', step: '0.1' },
-        { name: 'pistil', type: 'checkbox', span: 2 },
+
       ];
     }
 
@@ -193,10 +202,10 @@ export class PropertyInspector {
         field.options.forEach(opt => {
           const option = document.createElement('option');
           option.value = opt;
-          option.textContent = opt || 'none';
+          option.textContent = opt || 'random';
           input.appendChild(option);
         });
-        input.value = this.selectedEvent[field.name] || '';
+        input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
       } else if (field.type === 'checkbox') {
         input = document.createElement('input');
         input.type = 'checkbox';
@@ -220,8 +229,12 @@ export class PropertyInspector {
       input.addEventListener('change', (e) => {
         let val = field.type === 'checkbox' ? e.target.checked : e.target.value;
         if (field.type === 'number') val = val === '' ? undefined : parseFloat(val);
-        if (val === '' || val === undefined) {
-          delete this.selectedEvent[field.name];
+        if (val === '' || val === undefined || (field.type === 'checkbox' && !val)) {
+          if (field.name === 'sectorId' && val === '') {
+            this.selectedEvent[field.name] = '';
+          } else {
+            delete this.selectedEvent[field.name];
+          }
         } else {
           this.selectedEvent[field.name] = val;
         }

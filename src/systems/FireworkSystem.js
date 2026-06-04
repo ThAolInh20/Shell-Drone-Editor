@@ -340,7 +340,7 @@ export class FireworkSystem {
     }
 
     const crackleEnabled = Boolean(preset?.crackle);
-    const requestedEffect = crackleEnabled ? 'crackle' : (preset?.effectType ?? resolvedShape);
+    const requestedEffect = preset?.effectType ?? resolvedShape;
     const normalizedEffect = BurstEffectProcessor.normalizeEffectType(requestedEffect);
     if (normalizedEffect !== requestedEffect) {
       this.diagnostics.effectFallbacks += 1;
@@ -497,7 +497,7 @@ export class FireworkSystem {
       heightProfile,
       preset,
       effectState: {
-        ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount),
+        ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount, preset),
         shapeType: resolvedShape
       }
     };
@@ -804,7 +804,37 @@ export class FireworkSystem {
         }
       }
 
-      if (effectType === 'strobe' && baseColors) {
+      if (effectType === 'white-strobe' && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        if (lifeRatio > 0.5) {
+          const timeMs = (item.age + phase) * 1000;
+          // Tần số giảm từ 450ms xuống 150ms (trước đó là 180ms xuống 50ms)
+          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600);
+          const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+          const blink = isBlinking ? 1.0 : 0.05;
+
+          colors[i * 3] = blink;
+          colors[i * 3 + 1] = blink;
+          colors[i * 3 + 2] = blink;
+        } else {
+          colors[i * 3] = baseColors[i * 3];
+          colors[i * 3 + 1] = baseColors[i * 3 + 1];
+          colors[i * 3 + 2] = baseColors[i * 3 + 2];
+        }
+        needsColorUpdate = true;
+      } else if ((effectType === 'glitter-strobe' || effectType === 'falling-comets-glitter') && baseColors) {
+        const phase = item.points.userData.effectState.phase[i];
+        const timeMs = (item.age + phase) * 1000;
+        const strobeFreq = 90; // Nhịp rất nhanh để lấp lánh (90ms/tick)
+        // Đen-Đen-Đen-Trắng -> 3 tick tắt, 1 tick bật -> modulo 4
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
+        const blink = isBlinking ? 1.5 : 0.0; // Trắng sáng chói rồi tắt hẳn về 0
+
+        colors[i * 3] = blink;
+        colors[i * 3 + 1] = blink;
+        colors[i * 3 + 2] = blink;
+        needsColorUpdate = true;
+      } else if ((effectType === 'strobe' || item.points.userData.preset?.strobe) && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         const timeMs = (item.age + phase) * 1000;
         const strobeFreq = 150; // Chớp nhanh hơn để tạo cảm giác lung linh (150ms)
@@ -839,36 +869,6 @@ export class FireworkSystem {
         colors[i * 3] = baseColors[i * 3] * intensity;
         colors[i * 3 + 1] = baseColors[i * 3 + 1] * intensity;
         colors[i * 3 + 2] = baseColors[i * 3 + 2] * intensity;
-        needsColorUpdate = true;
-      } else if (effectType === 'white-strobe' && baseColors) {
-        const phase = item.points.userData.effectState.phase[i];
-        if (lifeRatio > 0.5) {
-          const timeMs = (item.age + phase) * 1000;
-          // Tần số giảm từ 450ms xuống 150ms (trước đó là 180ms xuống 50ms)
-          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600);
-          const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-          const blink = isBlinking ? 1.0 : 0.05;
-
-          colors[i * 3] = blink;
-          colors[i * 3 + 1] = blink;
-          colors[i * 3 + 2] = blink;
-        } else {
-          colors[i * 3] = baseColors[i * 3];
-          colors[i * 3 + 1] = baseColors[i * 3 + 1];
-          colors[i * 3 + 2] = baseColors[i * 3 + 2];
-        }
-        needsColorUpdate = true;
-      } else if ((effectType === 'glitter-strobe' || effectType === 'falling-comets-glitter') && baseColors) {
-        const phase = item.points.userData.effectState.phase[i];
-        const timeMs = (item.age + phase) * 1000;
-        const strobeFreq = 90; // Nhịp rất nhanh để lấp lánh (90ms/tick)
-        // Đen-Đen-Đen-Trắng -> 3 tick tắt, 1 tick bật -> modulo 4
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
-        const blink = isBlinking ? 1.5 : 0.0; // Trắng sáng chói rồi tắt hẳn về 0
-
-        colors[i * 3] = blink;
-        colors[i * 3 + 1] = blink;
-        colors[i * 3 + 2] = blink;
         needsColorUpdate = true;
       }
 

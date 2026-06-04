@@ -306,7 +306,7 @@ export class EditorDirector {
 
     for (let i = 0; i < positions.length; i++) {
       const pos = positions[i];
-      
+
       // Project to camera/view space
       const viewV = this.scratchVec1.copy(pos).applyMatrix4(camera.matrixWorldInverse);
       if (viewV.z > 0) {
@@ -714,12 +714,12 @@ export class EditorDirector {
           const relA = this.scratchVec1.subVectors(posA, centerA);
           const relB = this.scratchVec2.subVectors(posB, centerB);
           const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
-          
+
           const transDir = configB.transitionMoveDir || 'alternate';
           let dirSign = i % 2 === 0 ? 1 : -1;
           if (transDir === 'clockwise') dirSign = 1;
           else if (transDir === 'counter') dirSign = -1;
-          
+
           const spinAngle = (1.0 - t) * Math.PI * 2.0 * dirSign * currentTransMoveSpeed;
           const cos = Math.cos(spinAngle);
           const sin = Math.sin(spinAngle);
@@ -760,12 +760,12 @@ export class EditorDirector {
             const relA = this.scratchVec1.subVectors(posA, centerA);
             const relB = this.scratchVec2.subVectors(posB, centerB);
             const relPos = this.scratchVec3.lerpVectors(relA, relB, t);
-            
+
             const transDir = configB.transitionMoveDir || 'alternate';
             let dirSign = i % 2 === 0 ? 1 : -1;
             if (transDir === 'clockwise') dirSign = 1;
             else if (transDir === 'counter') dirSign = -1;
-            
+
             const spinAngle = Math.sin(t * Math.PI) * Math.PI * 3.0 * dirSign;
             const shrinkFactor = 1.0 - Math.sin(t * Math.PI) * 0.4;
             const cos = Math.cos(spinAngle);
@@ -792,12 +792,12 @@ export class EditorDirector {
             basePos.lerpVectors(posA, posB, t);
             const fadeTrans = Math.sin(t * Math.PI);
             const helixRadius = 8.0 * fadeTrans;
-            
+
             const transDir = configB.transitionMoveDir || 'alternate';
             let dirSign = i % 2 === 0 ? 1 : -1;
             if (transDir === 'clockwise') dirSign = 1;
             else if (transDir === 'counter') dirSign = -1;
-            
+
             const angle = t * Math.PI * 4.0 * dirSign + (i * 0.1);
             basePos.x += Math.cos(angle) * helixRadius;
             basePos.z += Math.sin(angle) * helixRadius;
@@ -817,20 +817,18 @@ export class EditorDirector {
         const blendedOffset = this.scratchVec3.set(0, 0, 0);
         let blendedScale = 1.0;
 
-        if (t === 0.0 || t === 1.0) {
-          const offsetA = this.scratchVec1;
-          const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA, configA.holdMoveDir || 'clockwise');
+        const offsetA = this.scratchVec1;
+        const scaleFactorA = this.getMoveEffectOffset(holdMoveEffectA, posA, centerA, speedMoveA, freqMoveA, i, age, offsetA, configA.holdMoveDir || 'clockwise');
 
-          const offsetB = this.scratchVec2;
-          const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB, configB.holdMoveDir || 'clockwise');
+        const offsetB = this.scratchVec2;
+        const scaleFactorB = this.getMoveEffectOffset(holdMoveEffectB, posB, centerB, speedMoveB, freqMoveB, i, age, offsetB, configB.holdMoveDir || 'clockwise');
 
-          blendedOffset.addVectors(
-            offsetA.multiplyScalar(fadeA),
-            offsetB.multiplyScalar(fadeB)
-          );
+        blendedOffset.addVectors(
+          offsetA.multiplyScalar(fadeA),
+          offsetB.multiplyScalar(fadeB)
+        );
 
-          blendedScale = (scaleFactorA - 1.0) * fadeA + (scaleFactorB - 1.0) * fadeB + 1.0;
-        }
+        blendedScale = (scaleFactorA - 1.0) * fadeA + (scaleFactorB - 1.0) * fadeB + 1.0;
 
         // Apply transition movement effect if active (fades in and out during transition)
         const isTransMove = ['wave', 'swing', 'pulse', 'orbit', 'spiral', 'expand'].includes(transMoveEff);
