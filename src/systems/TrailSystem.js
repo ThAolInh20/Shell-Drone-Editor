@@ -14,11 +14,11 @@ export class TrailSystem {
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
     this.trailMaterial = new THREE.PointsMaterial({
-      size: 12,
+      size: 15,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
-      opacity: 0.84,
+      opacity: 0.95,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
@@ -150,8 +150,9 @@ export class TrailSystem {
       if (particle.age >= particle.life) {
         finishedTrails.push(particle);
       } else {
-        // Tính độ mờ đục (alpha) giảm dần theo thời gian sống của hạt
-        const alpha = Math.max(0, 1.0 - (particle.age / particle.life));
+        // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
+        const lifeRatio = particle.age / particle.life;
+        const alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5));
         positions.push(particle.position.x, particle.position.y, particle.position.z);
         colors.push(particle.color.r, particle.color.g, particle.color.b, alpha);
       }

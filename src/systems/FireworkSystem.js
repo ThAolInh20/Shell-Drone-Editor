@@ -596,6 +596,60 @@ export class FireworkSystem {
       return;
     }
 
+    if (item.shellType === 'bouquetv2') {
+      const clusterCount = 12 + Math.floor(Math.random() * 11); // 12 to 22 child shells
+      const colorMode = item.preset?.colorMode ?? 'parent';
+      
+      for (let i = 0; i < clusterCount; i++) {
+        const colorHex = colorMode === 'random'
+          ? FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]
+          : item.color.getHex();
+        const subColor = new THREE.Color(colorHex);
+
+        const speed = 40 + Math.random() * 35; // Wider spread
+        const angleY = Math.random() * Math.PI / 2.2; 
+        const angleXZ = Math.random() * Math.PI * 2;
+
+        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+        const vy = Math.cos(angleY) * speed + 38; // Upward boost
+
+        const velocity = new THREE.Vector3(vx, vy, vz);
+        const targetHeight = burstPosition.y + 1000;
+
+        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5); 
+        subPreset.color = colorHex;
+        subPreset.shellType = 'floral-child';
+        subPreset.particleCountMultiplier = 0.65; // More glitter particles
+        subPreset.launchTrail = true; // Enable trails for children for maximum sparkles
+
+        const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c2-' + i);
+
+        this.scene.add(subShell.mesh);
+        this.activeFireworks.push(subShell);
+        this.diagnostics.launched += 1;
+      }
+
+      this.scene.remove(item.mesh);
+      item.markBursted?.();
+      finished.push(item);
+
+      const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+      const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
+
+      this.emitFireworkEvent('firework:burst', {
+        shellId: item.shellId,
+        shellType: item.shellType ?? item.shape,
+        shapeType: item.shapeType ?? item.shape,
+        effectType: item.preset?.effectType ?? item.shape,
+        colorHex: item.color.getHex(),
+        position: { x: burstPosition.x, y: burstPosition.y, z: burstPosition.z },
+        intensity: normalizedEnergy,
+        duration: 1.25 + normalizedEnergy * 1.1
+      });
+      return;
+    }
+
     const burst = this.createBurst(burstPosition, item.color, item.shapeType ?? item.shape, item.preset);
     const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
     const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
@@ -732,11 +786,21 @@ export class FireworkSystem {
       if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
         const isHalfFlashTentacle = item.points.userData.effectState?.shapeType === 'half-flash' && i >= (particleCount - 4);
         const isSplitFlashBeam = item.points.userData.effectState?.shapeType === 'split-flash' && i >= (particleCount - 5);
+
+        // Tính toán hệ số suy hao của hạt cha (nếu đã qua điểm bắt đầu tan rã)
+        const parentFade = lifeRatio > BURST_DISSOLVE_START
+          ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
+          : 1.0;
+
         const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam) ? 1.0 : 0.3;
-        if (Math.random() < spawnChance) {
+
+        if (Math.random() < spawnChance * parentFade) {
           const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
-          trailColor.multiplyScalar(trailIntensity ?? 0.15); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
-          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, trailLife || 0.8); // Kéo dài thời gian tồn tại của đuôi hoặc dùng giá trị tùy chỉnh
+          const currentIntensity = (trailIntensity ?? 0.35) * parentFade;
+          trailColor.multiplyScalar(currentIntensity); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
+
+          const currentLife = (trailLife || 0.8) * (0.2 + 0.8 * parentFade);
+          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, currentLife); // Kéo dài thời gian tồn tại của đuôi hoặc dùng giá trị tùy chỉnh
         }
       }
 
