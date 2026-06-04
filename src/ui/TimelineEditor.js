@@ -253,9 +253,8 @@ export class TimelineEditor {
     this.tracksArea.style.height = '1000px';
 
     // Drag events
-    this.tracksArea.addEventListener('mousemove', (e) => this.onDrag(e));
-    this.tracksArea.addEventListener('mouseup', (e) => this.onDragEnd(e));
-    this.tracksArea.addEventListener('mouseleave', (e) => this.onDragEnd(e));
+    window.addEventListener('mousemove', (e) => this.onDrag(e));
+    window.addEventListener('mouseup', (e) => this.onDragEnd(e));
     // Click on empty space to add
     this.tracksArea.addEventListener('dblclick', (e) => {
       if (e.target === this.tracksArea) {
@@ -639,10 +638,10 @@ export class TimelineEditor {
       block.addEventListener('mousedown', (e) => {
         e.stopPropagation();
         this.inspector.show(seq);
-        this.renderTracks(); // to update border
         this.isDragging = true;
         this.draggedEvent = seq;
-        this.dragOffsetX = e.offsetX;
+        this.dragOffsetX = e.clientX - block.getBoundingClientRect().left;
+        this.renderTracks(); // to update border
         block.style.cursor = 'grabbing';
       });
 
