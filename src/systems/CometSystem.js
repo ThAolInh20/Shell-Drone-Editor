@@ -147,9 +147,8 @@ export class CometSystem {
 
   clear() {
     for (const comet of this.activeComets) {
-      if (comet.entity) {
-        comet.entity.dispose();
-      }
+      this.scene.remove(comet.mesh);
+      comet.dispose();
     }
     this.activeComets = [];
   }
@@ -189,6 +188,7 @@ export class CometSystem {
 
       if (isDead) {
         this.scene.remove(comet.mesh);
+        comet.dispose();
         finished.push(comet);
       }
     }
