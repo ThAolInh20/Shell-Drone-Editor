@@ -128,13 +128,26 @@ export class ShowDirector {
 
   executeEvent(evt) {
     switch(evt.type) {
-      case 'single':
+      case 'single': {
+        let overrides = evt.effectOverrides;
+        if (evt.instantBurst !== undefined || evt.shellSize !== undefined || evt.strobe !== undefined || evt.crackle !== undefined || evt.pistil !== undefined) {
+          overrides = { ...(overrides || {}) };
+          if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
+          if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
+          if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
+          if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
+          if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
+        }
         this.fireworkSystem.launchRandom(evt.preset, { 
           ratioX: evt.ratioX, 
           ratioY: evt.ratioY, 
-          ratioZ: evt.ratioZ 
+          ratioZ: evt.ratioZ,
+          sectorId: evt.sectorId,
+          color: evt.color,
+          effectOverrides: overrides
         });
         break;
+      }
       case 'sequence':
         this.sequencer.playPattern(evt.pattern, evt);
         break;

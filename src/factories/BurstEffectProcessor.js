@@ -52,8 +52,9 @@ export class BurstEffectProcessor {
     };
   }
 
-  static initialize(effectType, count) {
+  static initialize(effectType, count, preset = null) {
     const normalizedEffect = this.normalizeEffectType(effectType);
+    const strobeEnabled = Boolean(preset?.strobe);
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -63,7 +64,7 @@ export class BurstEffectProcessor {
       spin[i] = (Math.random() - 0.5) * 3.2;
 
 
-      if (normalizedEffect === 'strobe' || normalizedEffect === 'white-strobe' || normalizedEffect === 'glitter-strobe' || normalizedEffect === 'falling-comets-glitter') {
+      if (strobeEnabled || normalizedEffect === 'strobe' || normalizedEffect === 'white-strobe' || normalizedEffect === 'glitter-strobe' || normalizedEffect === 'falling-comets-glitter') {
         if (i % 12 === 0) currentStrobePhase = Math.random() * Math.PI * 2;
         phase[i] = currentStrobePhase;
       } else {
@@ -81,6 +82,8 @@ export class BurstEffectProcessor {
 
     return {
       effectType: normalizedEffect,
+      strobe: strobeEnabled,
+      crackle: Boolean(preset?.crackle),
       spin,
       phase,
       turbulence,
@@ -190,6 +193,21 @@ export class BurstEffectProcessor {
     } else if (effectType === 'ghost') {
       gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
       velocity.multiplyScalar(0.996);
+    }
+
+    // Apply modular overrides for strobe and crackle on top of other effects
+    if (effectState?.strobe && effectType !== 'strobe' && effectType !== 'white-strobe' && effectType !== 'glitter-strobe') {
+      gravityScale = 0.2;
+      velocity.multiplyScalar(0.996);
+    }
+
+    if (effectState?.crackle && effectType !== 'crackle') {
+      gravityScale = 0.18;
+      const jitter = (effectState.turbulence[index] || 1) * 0.03;
+      velocity.x += (Math.random() - 0.5) * jitter;
+      velocity.y += (Math.random() - 0.5) * jitter * 0.5;
+      velocity.z += (Math.random() - 0.5) * jitter;
+      emitSpark = Math.random() < 0.015 + lifeRatio * 0.03;
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)

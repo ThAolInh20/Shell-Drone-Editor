@@ -80,10 +80,12 @@ export class FireworkSequencer {
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
 
       let overrides = effectOverrides;
-      if (instantBurst !== undefined || shellSize !== undefined) {
+      if (instantBurst !== undefined || shellSize !== undefined || config.strobe !== undefined || config.crackle !== undefined) {
         overrides = { ...(overrides || {}) };
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
         if (shellSize !== undefined) overrides.shellSize = shellSize;
+        if (config.strobe !== undefined) overrides.strobe = config.strobe;
+        if (config.crackle !== undefined) overrides.crackle = config.crackle;
       }
 
       this.activeTasks.push({
@@ -159,11 +161,20 @@ export class FireworkSequencer {
         ratioY = y1 + t * (y2 - y1);
       }
 
+      let overrides = effectOverrides;
+      if (config.instantBurst !== undefined || config.shellSize !== undefined || config.strobe !== undefined || config.crackle !== undefined) {
+        overrides = { ...(overrides || {}) };
+        if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
+        if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
+        if (config.strobe !== undefined) overrides.strobe = config.strobe;
+        if (config.crackle !== undefined) overrides.crackle = config.crackle;
+      }
+
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
         isComet: true,
-        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides }
+        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides: overrides }
       });
     }
   }

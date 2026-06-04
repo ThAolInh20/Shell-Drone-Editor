@@ -192,6 +192,7 @@ export class ShellPresetFactory {
       effectType: 'standard',
       shapeRenderMode: 'filled',
       particleCountMultiplier: 1,
+      strobe: false,
       crackle: false,
       launchTrail: true
     };
@@ -231,7 +232,7 @@ export class ShellPresetFactory {
       pistil: true,
       shellType: 'rumble',
       shapeType: 'sphere',
-      effectType: 'crackle',
+      effectType: 'standard',
       crackle: true,
       half: true
     };
@@ -279,7 +280,8 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'ringV2',
       shapeType: 'ring',
-      effectType: 'strobe',
+      effectType: 'standard',
+      strobe: true,
       shapeRenderMode: 'outline',
       particleCountMultiplier: 1.2,
       outlineThickness: 0.04,
@@ -313,7 +315,7 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'strobe',
       shapeType: 'sphere',
-      effectType: 'strobe',
+      effectType: 'standard',
       strobe: true,
       starLife: 1000 + size * 150,
       particleCountMultiplier: 1.25,
@@ -573,6 +575,7 @@ export class ShellPresetFactory {
       ...preset,
       shapeType: shapeFallback ? 'sphere' : shapeType,
       effectType: effectFallback ? 'standard' : effectType,
+      strobe: Boolean(preset?.strobe),
       crackle: Boolean(preset?.crackle),
       __contract: {
         shapeFallback,
