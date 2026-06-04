@@ -22,6 +22,8 @@ export class TimelineEditor {
     this.anchorTime = 0;
     this.autoScrollEnabled = true;
     this.currentFilePath = null;
+    this.undoStack = [];
+    this.redoStack = [];
 
     this.initDOM();
     this.renderTracks();
@@ -305,21 +307,32 @@ export class TimelineEditor {
     if (this.showDirector && this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.shellPresetFactory) {
       presetOptions = this.showDirector.fireworkSystem.shellPresetFactory.getPresetMenuEntries().map(e => e.key);
     }
-    this.inspector = new PropertyInspector(inspectorContainer, () => this.renderTracks(), presetOptions);
+    this.inspector = new PropertyInspector(
+      inspectorContainer, 
+      (action) => {
+        if (action === 'beforeChange') {
+          this.saveHistoryState();
+        } else {
+          this.renderTracks();
+        }
+      }, 
+      presetOptions
+    );
 
     document.body.appendChild(this.container);
 
     // Global Hotkeys
     window.addEventListener('keydown', (e) => {
-      // Direct Save (Shift + S)
-      if (e.code === 'KeyS' && e.shiftKey && this.visible) {
+      // Direct Save (Ctrl + S)
+      if (e.code === 'KeyS' && e.ctrlKey && this.visible) {
         if (e.target.tagName !== 'INPUT') {
           e.preventDefault();
           this.saveDirectly();
         }
       }
 
-      if (e.code === 'KeyT' && e.shiftKey) {
+      // Toggle Timeline (Ctrl + T)
+      if (e.code === 'KeyT' && e.ctrlKey) {
         e.preventDefault();
         this.toggle();
       }
@@ -340,16 +353,33 @@ export class TimelineEditor {
         }
       }
 
-      // Copy
-      if (e.code === 'KeyC' && e.shiftKey && this.visible) {
+      // Undo (Ctrl + Z)
+      if (e.code === 'KeyZ' && e.ctrlKey && this.visible) {
+        if (e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          this.undo();
+        }
+      }
+
+      // Redo (Ctrl + Y hoặc Ctrl + Shift + Z)
+      if (((e.code === 'KeyY' && e.ctrlKey) || (e.code === 'KeyZ' && e.ctrlKey && e.shiftKey)) && this.visible) {
+        if (e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          this.redo();
+        }
+      }
+
+      // Copy (Ctrl + C)
+      if (e.code === 'KeyC' && e.ctrlKey && this.visible) {
         if (e.target.tagName !== 'INPUT' && this.inspector && this.inspector.selectedEvent) {
           this.clipboardEvent = { ...this.inspector.selectedEvent };
         }
       }
 
-      // Paste
-      if (e.code === 'KeyV' && e.shiftKey && this.visible) {
+      // Paste (Ctrl + V)
+      if (e.code === 'KeyV' && e.ctrlKey && this.visible) {
         if (e.target.tagName !== 'INPUT' && this.clipboardEvent) {
+          this.saveHistoryState();
           const newEvent = { ...this.clipboardEvent };
           if (newEvent.effectOverrides) {
             newEvent.effectOverrides = JSON.parse(JSON.stringify(newEvent.effectOverrides));
@@ -364,6 +394,7 @@ export class TimelineEditor {
       // Delete
       if ((e.code === 'Delete' || e.code === 'Backspace') && this.visible) {
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && this.inspector && this.inspector.selectedEvent) {
+          this.saveHistoryState();
           this.inspector.selectedEvent._deleted = true;
           this.renderTracks();
           this.inspector.hide();
@@ -452,6 +483,7 @@ export class TimelineEditor {
   }
 
   addSequence(time = this.anchorTime) {
+    this.saveHistoryState();
     const newSeq = {
       time: Math.round(time * 10) / 10,
       type: 'sequence',
@@ -470,6 +502,7 @@ export class TimelineEditor {
     const audio = new Audio(blobUrl);
 
     audio.addEventListener('loadedmetadata', () => {
+      this.saveHistoryState();
       const duration = audio.duration;
       const newSeq = {
         time: Math.round(time * 10) / 10,
@@ -497,6 +530,7 @@ export class TimelineEditor {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        this.saveHistoryState();
         const data = JSON.parse(event.target.result);
         if (!data.droneCount || !data.steps) {
           throw new Error(t('editor.timelinePanel.notDroneShowJson'));
@@ -638,6 +672,7 @@ export class TimelineEditor {
       block.addEventListener('mousedown', (e) => {
         e.stopPropagation();
         this.inspector.show(seq);
+        this.saveHistoryState();
         this.isDragging = true;
         this.draggedEvent = seq;
         this.dragOffsetX = e.clientX - block.getBoundingClientRect().left;
@@ -658,6 +693,7 @@ export class TimelineEditor {
       resizeHandle.addEventListener('mousedown', (e) => {
         e.stopPropagation();
         this.inspector.show(seq);
+        this.saveHistoryState();
         this.renderTracks();
         this.isResizing = true;
         this.resizedEvent = seq;
@@ -851,6 +887,54 @@ export class TimelineEditor {
       alert(`Đã tải xuống file ${this.filename || 'demoShow.json'}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
     } catch (err) {
       alert('Lỗi khi lưu file: ' + err.message);
+    }
+  }
+
+  saveHistoryState() {
+    if (this.undoStack.length >= 50) {
+      this.undoStack.shift();
+    }
+    this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
+    this.redoStack = [];
+  }
+
+  undo() {
+    if (!this.undoStack || this.undoStack.length === 0) return;
+
+    this.redoStack.push(JSON.parse(JSON.stringify(this.sequences)));
+    this.sequences = this.undoStack.pop();
+
+    this.renderTracks();
+    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+
+    if (this.inspector && this.inspector.selectedEvent) {
+      const currentSelected = this.inspector.selectedEvent;
+      const found = this.sequences.find(s => s.time === currentSelected.time && s.type === currentSelected.type);
+      if (found && !found._deleted) {
+        this.inspector.show(found);
+      } else {
+        this.inspector.hide();
+      }
+    }
+  }
+
+  redo() {
+    if (!this.redoStack || this.redoStack.length === 0) return;
+
+    this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
+    this.sequences = this.redoStack.pop();
+
+    this.renderTracks();
+    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+
+    if (this.inspector && this.inspector.selectedEvent) {
+      const currentSelected = this.inspector.selectedEvent;
+      const found = this.sequences.find(s => s.time === currentSelected.time && s.type === currentSelected.type);
+      if (found && !found._deleted) {
+        this.inspector.show(found);
+      } else {
+        this.inspector.hide();
+      }
     }
   }
 }

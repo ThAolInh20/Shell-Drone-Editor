@@ -163,6 +163,7 @@ export class PropertyInspector {
         }
 
         cb.addEventListener('change', (e) => {
+          this.onUpdate('beforeChange');
           if (e.target.checked) {
             colorInput.disabled = false;
             colorInput.style.opacity = '1';
@@ -179,6 +180,7 @@ export class PropertyInspector {
 
         colorInput.addEventListener('change', (e) => {
           if (cb.checked) {
+            this.onUpdate('beforeChange');
             this.selectedEvent.color = e.target.value;
             this.onUpdate();
           }
@@ -229,6 +231,7 @@ export class PropertyInspector {
       input.addEventListener('change', (e) => {
         let val = field.type === 'checkbox' ? e.target.checked : e.target.value;
         if (field.type === 'number') val = val === '' ? undefined : parseFloat(val);
+        this.onUpdate('beforeChange');
         if (val === '' || val === undefined || (field.type === 'checkbox' && !val)) {
           if (field.name === 'sectorId' && val === '') {
             this.selectedEvent[field.name] = '';
@@ -261,6 +264,7 @@ export class PropertyInspector {
     deleteBtn.style.padding = '6px';
     deleteBtn.style.cursor = 'pointer';
     deleteBtn.addEventListener('click', () => {
+      this.onUpdate('beforeChange');
       this.selectedEvent._deleted = true;
       this.onUpdate();
       this.hide();
