@@ -118,7 +118,7 @@ export class BurstEffectProcessor {
     let emitSpark = false;
     let spawnTrail = false;
     let trailLife = 0.8;
-    let trailIntensity = 0.15;
+    let trailIntensity = 0.35;
 
     if (effectType === 'flow') {
       gravityScale = 0.08;
@@ -133,7 +133,7 @@ export class BurstEffectProcessor {
       velocity.multiplyScalar(0.998);
       spawnTrail = true;
       trailLife = 0.25; // vệt ngắn cho cá bơi
-      trailIntensity = 0.15; // Giữ nguyên độ sáng mờ mặc định như cũ
+      trailIntensity = 0.3; // Tăng độ sáng cho vệt sáng cá bơi
     } else if (effectType === 'snow') {
       gravityScale = 0.05;
       const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
@@ -181,12 +181,12 @@ export class BurstEffectProcessor {
       gravityScale = 0.25; // Trọng lực bình thường để nó bung ra thành hình cầu
       spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
       trailLife = 0.55; // Rút ngắn đuôi comet rủ xuống
-      trailIntensity = 0.15; // Giảm sáng cực mạnh để không lóa
+      trailIntensity = 0.35; // Tăng sáng cho đuôi comet
     } else if (effectType === 'crysanthemum-trail') {
       gravityScale = 0.3;
       spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet, tuy nhiên nó sẽ mang màu của pháo đó
       trailLife = 0.45; // Rút ngắn đuôi hoa cúc
-      trailIntensity = 0.7; // Cường độ sáng cao hơn để giữ màu sắc thật
+      trailIntensity = 0.9; // Cường độ sáng cao hơn nữa để giữ màu sắc thật
     } else if (effectType === 'ghost') {
       gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
       velocity.multiplyScalar(0.996);
@@ -199,7 +199,7 @@ export class BurstEffectProcessor {
       if (index >= halfCount) {
         spawnTrail = true;
         trailLife = 0.42; // Đuôi râu sứa ngắn hơn một chút cho gọn gàng, mượt mà
-        trailIntensity = 0.65; // Cường độ sáng rực rỡ
+        trailIntensity = 0.85; // Tăng cường độ sáng rực rỡ
       }
     }
 
@@ -210,7 +210,7 @@ export class BurstEffectProcessor {
       if (index >= halfCount) {
         spawnTrail = true;
         trailLife = 0.38; // Đuôi comet cắt ngang sắc nét và ngắn hơn
-        trailIntensity = 0.7; // Độ sáng cao rực rỡ
+        trailIntensity = 0.9; // Tăng độ sáng cao rực rỡ
       }
     }
 

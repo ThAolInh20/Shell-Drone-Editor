@@ -35,6 +35,8 @@ export class ShellPresetFactory {
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet (Cluster)' },
+      { key: 'bouquetV2', label: 'Bouquet V2 (Parent Color)' },
+      { key: 'bouquetV2Multicolor', label: 'Bouquet V2 (Multi Color)' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
       { key: 'cat', label: 'Cat' },
@@ -113,6 +115,10 @@ export class ShellPresetFactory {
         return this.validatePreset(this.floralShell());
       case 'bouquet':
         return this.validatePreset(this.bouquetShell());
+      case 'bouquetV2':
+        return this.validatePreset(this.bouquetV2Shell());
+      case 'bouquetV2Multicolor':
+        return this.validatePreset(this.bouquetV2MulticolorShell());
       case 'rumble':
         return this.validatePreset(this.rumbleShell());
       case 'flower':
@@ -364,6 +370,30 @@ export class ShellPresetFactory {
       shapeType: 'sphere',
       effectType: 'standard',
       shellSize: size
+    };
+  }
+
+  bouquetV2Shell(size = 1) {
+    return {
+      type: 'bouquetv2',
+      shellType: 'bouquetv2',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size,
+      colorMode: 'parent',
+      launchTrail: true
+    };
+  }
+
+  bouquetV2MulticolorShell(size = 1) {
+    return {
+      type: 'bouquetv2',
+      shellType: 'bouquetv2',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size,
+      colorMode: 'random',
+      launchTrail: true
     };
   }
 
