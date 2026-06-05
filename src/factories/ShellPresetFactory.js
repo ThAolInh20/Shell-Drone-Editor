@@ -52,7 +52,8 @@ export class ShellPresetFactory {
       { key: 'ghost', label: 'Ghost' },
       { key: 'falling-comets', label: 'Falling Comets' },
       { key: 'halfFlash', label: 'Half Sphere Flash' },
-      { key: 'splitFlash', label: 'Split Sphere Flash' }
+      { key: 'splitFlash', label: 'Split Sphere Flash' },
+      { key: 'sparkling_comet', label: 'Sparkling Comet (Apex Spark)' }
     ];
   }
 
@@ -155,6 +156,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.cometCluster());
       case 'comet_cluster_notrail':
         return this.validatePreset(this.cometClusterNoTrail());
+      case 'sparkling_comet':
+        return this.validatePreset(this.sparklingComet());
       case 'random':
       default:
         return null;
@@ -537,6 +540,21 @@ export class ShellPresetFactory {
       crackle: false,
       launchTrail: false,
       launchSmoke: true
+    };
+  }
+
+  sparklingComet(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 12 + Math.floor(Math.random() * 5),
+      particleCountMultiplier: 1.2,
+      crackle: false,
+      launchTrail: true,
+      sparkleAtEnd: true,
+      maxDecayTime: 1.8
     };
   }
 

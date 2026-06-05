@@ -160,10 +160,12 @@ export class CometSystem {
       const isDead = comet.update(deltaTime);
 
       // Thicker trails for comets
-      if (comet.state === CometEntity.STATE.LAUNCHING || comet.state === CometEntity.STATE.DECAYING) {
+      if (comet.state === CometEntity.STATE.LAUNCHING) {
         if (comet.preset?.launchTrail !== false) {
-          // Giảm thời gian sống của hạt trail xuống còn 25% để đuôi comet ngắn và sắc nét hơn
-          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 0.25);
+          // vy / 30 chính là thời gian còn lại để đạt đỉnh (trọng lực g = 30)
+          // Nhân thêm 0.85 để hạt tắt trước đỉnh một chút, giúp phần đuôi thu gọn lại gọn gàng khi đạt đỉnh
+          const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
+          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 1.0, true, customLife);
           if (Math.random() < 0.15) {
             this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
           }
@@ -183,6 +185,19 @@ export class CometSystem {
             opacity: 0.12 + Math.random() * 0.08,
             color: new THREE.Color(0x778090)
           });
+        }
+      }
+
+      // Sinh hạt lấp lánh khi gần kết thúc (decaying phase) nếu preset yêu cầu
+      if (comet.state === CometEntity.STATE.DECAYING && comet.preset?.sparkleAtEnd) {
+        const decayRatio = comet.decayTime / comet.maxDecayTime;
+        if (decayRatio > 0.4) {
+          // Tần suất lấp lánh tăng dần theo lũy thừa khi càng về cuối vòng đời
+          const sparkleChance = 0.25 + Math.pow(decayRatio - 0.4, 2) * 0.75;
+          if (Math.random() < sparkleChance) {
+            const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0xffffff : 0xffd700);
+            this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), sparkleColor);
+          }
         }
       }
 

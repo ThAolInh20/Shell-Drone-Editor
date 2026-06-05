@@ -71,7 +71,7 @@ export class TrailSystem {
     }
   }
 
-  spawnTrailParticle(position, color, lifeMultiplier = 1.0) {
+  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -81,11 +81,15 @@ export class TrailSystem {
       )
       : DEFAULT_TRAIL_COLOR.clone();
 
+    const velocity = zeroVelocity
+      ? new THREE.Vector3(0, 0, 0)
+      : new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
+
     const particle = {
       position: position.clone(),
-      velocity: new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5),
+      velocity: velocity,
       color: trailColor,
-      life: (2 + Math.random() * 3) * lifeMultiplier,
+      life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
       age: 0
     };
     this.trailParticles.push(particle);
