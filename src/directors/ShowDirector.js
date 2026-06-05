@@ -138,14 +138,29 @@ export class ShowDirector {
           if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
           if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
         }
-        this.fireworkSystem.launchRandom(evt.preset, { 
-          ratioX: evt.ratioX, 
-          ratioY: evt.ratioY, 
-          ratioZ: evt.ratioZ,
-          sectorId: evt.sectorId,
-          color: evt.color,
-          effectOverrides: overrides
-        });
+
+        const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 
+                      || (typeof evt.preset === 'string' && (evt.preset.startsWith('comet_cluster') || evt.preset.includes('comet')));
+
+        if (isComet && this.sequencer.cometSystem) {
+          this.sequencer.cometSystem.launchRandom(evt.preset, { 
+            ratioX: evt.ratioX, 
+            ratioY: evt.ratioY, 
+            ratioZ: evt.ratioZ,
+            sectorId: evt.sectorId,
+            color: evt.color,
+            effectOverrides: overrides
+          });
+        } else {
+          this.fireworkSystem.launchRandom(evt.preset, { 
+            ratioX: evt.ratioX, 
+            ratioY: evt.ratioY, 
+            ratioZ: evt.ratioZ,
+            sectorId: evt.sectorId,
+            color: evt.color,
+            effectOverrides: overrides
+          });
+        }
         break;
       }
       case 'sequence':
