@@ -109,7 +109,7 @@ export class InputSystem {
     this.instructions.style.fontFamily = 'monospace';
     this.instructions.style.fontSize = '18px';
     this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press SPACE for auto-launch mode<br/><br/>Press ENTER to play Demo Show';
+    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
 
@@ -449,12 +449,6 @@ export class InputSystem {
       case 'ArrowRight':
       case 'KeyD':
         this.keys.right = true;
-        break;
-      case 'Space':
-        if (this.fireworkSystem) {
-          this.fireworkSystem.autoLaunchEnabled = !this.fireworkSystem.autoLaunchEnabled;
-          console.log('Auto launch:', this.fireworkSystem.autoLaunchEnabled ? 'ON' : 'OFF');
-        }
         break;
       case 'Enter':
         if (this.showDirector) {

@@ -124,9 +124,12 @@ export class CometEntity {
         this.state = CometEntity.STATE.DECAYING;
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
-      this.velocity.y += -30 * deltaTime;
+      // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực
+      this.velocity.multiplyScalar(Math.max(0, 1.0 - 8.0 * deltaTime));
       this.mesh.position.addScaledVector(this.velocity, deltaTime);
-      this.updateRotation();
+      if (this.velocity.lengthSq() > 0.01) {
+        this.updateRotation();
+      }
 
       this.decayTime += deltaTime;
       const decayRatio = this.decayTime / this.maxDecayTime;
@@ -134,10 +137,12 @@ export class CometEntity {
       if (decayRatio >= 1.0) {
         this.state = CometEntity.STATE.DEAD;
       } else {
+        // Tốc độ tàn nhanh dần (accelerated fading)
+        const fadeRatio = Math.pow(decayRatio, 2.2);
         // Fade out opacity
-        this.coreMesh.material.opacity = 1.0 - decayRatio;
+        this.coreMesh.material.opacity = 1.0 - fadeRatio;
         // Shrink core
-        const scale = 1.0 - decayRatio * 0.8;
+        const scale = 1.0 - fadeRatio * 0.8;
         if (this.preset?.shellType !== 'comet_cluster_notrail') {
           this.coreMesh.scale.set(0.6 * scale, 1.8 * scale, 0.6 * scale);
         }

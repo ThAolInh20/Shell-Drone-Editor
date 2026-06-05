@@ -77,7 +77,6 @@ export class PropertyInspector {
         { name: 'crackle', type: 'checkbox' },
         { name: 'ratioX', type: 'number', step: '0.05' },
         { name: 'ratioY', type: 'number', step: '0.05' },
-        { name: 'ratioZ', type: 'number', step: '0.05' },
         { name: 'x1', type: 'number', step: '0.1' },
         { name: 'x2', type: 'number', step: '0.1' },
         { name: 'y1', type: 'number', step: '0.1' },
