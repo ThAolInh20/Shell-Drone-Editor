@@ -149,6 +149,15 @@ export class CometEntity {
       }
     }
 
+    // Hiệu ứng strobe (chớp tắt nhấp nháy) cho lõi comet
+    if (this.preset?.strobe && this.state !== CometEntity.STATE.DEAD) {
+      const timeMs = this.age * 1000;
+      const strobeFreq = 120; // Chớp tần suất 120ms
+      this.coreMesh.visible = Math.floor(timeMs / strobeFreq) % 2 === 0;
+    } else {
+      this.coreMesh.visible = true;
+    }
+
     // Return true if it is completely dead so the system can remove it
     return this.state === CometEntity.STATE.DEAD;
   }

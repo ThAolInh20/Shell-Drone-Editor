@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { CometEntity } from '../entities/CometEntity.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -19,6 +20,7 @@ export class CometSystem {
     this.trailSystem = trailSystem;
     this.activeComets = [];
     this.launchZone = LAUNCH_ZONE_CONFIG;
+    this.shellPresetFactory = new ShellPresetFactory();
   }
 
   emitFireworkEvent(type, detail) {
@@ -28,10 +30,18 @@ export class CometSystem {
   launchRandom(preset = null, options = {}) {
     const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color, effectOverrides } = options;
     
+    // Nếu preset là tên key (string), phân giải thành object preset
+    let resolvedPreset = preset;
+    if (typeof preset === 'string') {
+      resolvedPreset = this.shellPresetFactory.createPresetByKey(preset);
+    } else if (preset === null) {
+      resolvedPreset = this.shellPresetFactory.createPresetByKey('comet_cluster');
+    }
+    
     // Áp dụng ghi đè cấu hình hiệu ứng từ sequence
-    let finalPreset = preset;
+    let finalPreset = resolvedPreset;
     if (effectOverrides && typeof effectOverrides === 'object') {
-      finalPreset = { ...(preset || {}), ...effectOverrides };
+      finalPreset = { ...(resolvedPreset || {}), ...effectOverrides };
     }
     
     const clusterCount = finalPreset?.clusterCount ?? 1;
@@ -161,7 +171,8 @@ export class CometSystem {
 
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-        if (comet.preset?.launchTrail !== false) {
+        const isCoreVisible = comet.coreMesh ? comet.coreMesh.visible : true;
+        if (comet.preset?.launchTrail !== false && isCoreVisible) {
           // vy / 30 chính là thời gian còn lại để đạt đỉnh (trọng lực g = 30)
           // Nhân thêm 0.85 để hạt tắt trước đỉnh một chút, giúp phần đuôi thu gọn lại gọn gàng khi đạt đỉnh
           const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
@@ -169,6 +180,18 @@ export class CometSystem {
           if (Math.random() < 0.15) {
             this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
           }
+        }
+
+        // Hiệu ứng crackle (tiếng nổ lách tách) dọc theo đường bay
+        if (comet.preset?.crackle && Math.random() < 0.12) {
+          this.trailSystem.spawnMicroCrackle(comet.mesh.position.clone(), comet.color);
+          this.emitFireworkEvent('firework:crackle', {
+            position: {
+              x: comet.mesh.position.x,
+              y: comet.mesh.position.y,
+              z: comet.mesh.position.z
+            }
+          });
         }
         
         // Thêm hiệu ứng khói ở đuôi
@@ -188,16 +211,30 @@ export class CometSystem {
         }
       }
 
-      // Sinh hạt lấp lánh khi gần kết thúc (decaying phase) nếu preset yêu cầu
-      if (comet.state === CometEntity.STATE.DECAYING && comet.preset?.sparkleAtEnd) {
-        const decayRatio = comet.decayTime / comet.maxDecayTime;
-        if (decayRatio > 0.4) {
-          // Tần suất lấp lánh tăng dần theo lũy thừa khi càng về cuối vòng đời
-          const sparkleChance = 0.25 + Math.pow(decayRatio - 0.4, 2) * 0.75;
-          if (Math.random() < sparkleChance) {
-            const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0xffffff : 0xffd700);
-            this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), sparkleColor);
+      // Sinh hạt lấp lánh khi gần kết thúc (decaying phase) nếu preset yêu cầu hoặc có hiệu ứng crackle
+      if (comet.state === CometEntity.STATE.DECAYING) {
+        if (comet.preset?.sparkleAtEnd) {
+          const decayRatio = comet.decayTime / comet.maxDecayTime;
+          if (decayRatio > 0.4) {
+            // Tần suất lấp lánh tăng dần theo lũy thừa khi càng về cuối vòng đời
+            const sparkleChance = 0.25 + Math.pow(decayRatio - 0.4, 2) * 0.75;
+            if (Math.random() < sparkleChance) {
+              const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0xffffff : 0xffd700);
+              this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), sparkleColor);
+            }
           }
+        }
+
+        // Crackle lách tách khi đang tàn phai ở đỉnh
+        if (comet.preset?.crackle && Math.random() < 0.08) {
+          this.trailSystem.spawnMicroCrackle(comet.mesh.position.clone(), comet.color);
+          this.emitFireworkEvent('firework:crackle', {
+            position: {
+              x: comet.mesh.position.x,
+              y: comet.mesh.position.y,
+              z: comet.mesh.position.z
+            }
+          });
         }
       }
 

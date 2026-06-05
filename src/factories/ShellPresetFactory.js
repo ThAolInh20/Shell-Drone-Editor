@@ -45,6 +45,7 @@ export class ShellPresetFactory {
       { key: 'oval', label: 'Oval' },
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
+      { key: 'fishV2', label: 'Fish V2 (Spherical)' },
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
       { key: 'heart', label: 'Heart' },
@@ -136,6 +137,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.snowShell());
       case 'fish':
         return this.validatePreset(this.fishShell());
+      case 'fishV2':
+        return this.validatePreset(this.fishV2Shell());
       case 'smiley':
         return this.validatePreset(this.smileyShell());
       case 'wave':
@@ -446,6 +449,16 @@ export class ShellPresetFactory {
       ...this.basePreset(size),
       shellType: 'fish',
       shapeType: 'fish',
+      effectType: 'flow',
+      fish: true
+    };
+  }
+
+  fishV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'fishV2',
+      shapeType: 'sphere',
       effectType: 'flow',
       fish: true
     };
