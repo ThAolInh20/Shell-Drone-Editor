@@ -4,7 +4,19 @@ Dự án này là một ứng dụng mô phỏng và biên tập trình diễn p
 
 ---
 
-## 📥 Hướng dẫn Tải và Cài đặt mã nguồn
+## Hướng dẫn Sử dụng Chi tiết (User Guides)
+
+Tài liệu hướng dẫn sử dụng chi tiết cho từng phân hệ được lưu trữ trong thư mục [**`guides/`**](./guides/):
+
+*   [**Tài liệu Mục lục & Phím tắt Chung (README.md)**](./guides/README.md)
+*   [**1. Phân hệ Trình diễn Viewer (show-viewer)**](./guides/show-viewer/README.md) - Cách xem trình phát pháo hoa, drone và chèn âm nhạc.
+*   [**2. Phân hệ Thiết kế Đội hình Tĩnh (static-formation)**](./guides/static-formation/README.md) - Cách tạo hình học drone, dùng Bezier và mô hình Hologram/Ảnh mẫu dẫn hướng.
+*   [**3. Phân hệ Biên tập Hoạt cảnh Động (animated-editor)**](./guides/animated-editor/README.md) - Lên timeline, chỉnh bước chuyển, hiệu ứng ánh sáng LED và uốn nhóm drone.
+
+---
+
+
+## Hướng dẫn Tải và Cài đặt mã nguồn
 
 Bạn có thể tải mã nguồn của dự án này bằng một trong hai cách sau:
 
@@ -23,7 +35,7 @@ cd shell-drone-animation
 
 ---
 
-## 🛠️ Cài đặt Môi trường & Chạy Ứng dụng
+## Cài đặt Môi trường & Chạy Ứng dụng
 
 Dự án yêu cầu **Node.js** phiên bản 18 trở lên. Hãy đảm bảo bạn đã cài đặt Node.js trước khi tiếp tục.
 
@@ -37,17 +49,17 @@ npm install
 
 Bạn có thể chạy ứng dụng theo 2 phương thức khác nhau tùy vào mục đích sử dụng:
 
-#### ⚡ Phương thức A: Chạy dưới dạng Desktop App với Electron (Khuyên dùng 🛸)
+#### Phương thức A: Chạy dưới dạng Desktop App với Electron (Khuyên dùng)
 Phương thức này khởi chạy một ứng dụng Desktop độc lập bằng Electron. Chạy bằng cách này sẽ mở khóa các tính năng native cao cấp:
-*   💾 **Lưu file trực tiếp (`Shift + S`):** Lưu ngay lập tức các chỉnh sửa trực tiếp vào file `.json` nguồn mà **không** cần thông qua hộp thoại tải xuống của trình duyệt (trải nghiệm mượt mà như Notepad chuyên nghiệp).
-*   🗺️ **Thanh Menu Điều Hướng Nhanh:** Chuyển đổi qua lại giữa 3 bộ công cụ biên tập cực kỳ nhanh chóng thông qua menu hệ thống của ứng dụng hoặc phím tắt (`Ctrl + 1`, `Ctrl + 2`, `Ctrl + 3`).
+*   **Lưu file trực tiếp (`Shift + S`):** Lưu ngay lập tức các chỉnh sửa trực tiếp vào file `.json` nguồn mà **không** cần thông qua hộp thoại tải xuống của trình duyệt (trải nghiệm mượt mà như Notepad chuyên nghiệp).
+*   **Thanh Menu Điều Hướng Nhanh:** Chuyển đổi qua lại giữa 3 bộ công cụ biên tập cực kỳ nhanh chóng thông qua menu hệ thống của ứng dụng hoặc phím tắt (`Ctrl + 1`, `Ctrl + 2`, `Ctrl + 3`).
 
 Để chạy ứng dụng ở chế độ Desktop, sử dụng lệnh:
 ```bash
 npm run electron:dev
 ```
 
-#### 🌐 Phương thức B: Chạy trên Trình duyệt Web truyền thống
+#### Phương thức B: Chạy trên Trình duyệt Web truyền thống
 Chạy máy chủ phát triển Vite thông thường bằng lệnh:
 ```bash
 npm run dev
@@ -57,9 +69,9 @@ Sau đó, truy cập vào địa chỉ local được hiển thị trên termina
 
 ---
 
-## 📦 Biên dịch và Đóng gói (Production Build)
+## Biên dịch và Đóng gói (Production Build)
 
-### 🌐 A. Đóng gói cho Nền tảng Web (Vite Build)
+### A. Đóng gói cho Nền tảng Web (Vite Build)
 Khi muốn biên dịch ứng dụng web thông thường để đưa lên máy chủ hoặc host tĩnh:
 
 - **Biên dịch Dự án:**
@@ -75,7 +87,7 @@ Khi muốn biên dịch ứng dụng web thông thường để đưa lên máy 
   ```
 
 ---
-### 🛸 B. Đóng gói Ứng dụng Desktop (.EXE với Electron)
+### B. Đóng gói Ứng dụng Desktop (.EXE với Electron)
 Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Desktop chạy độc lập trên Windows (`.exe`):
 
 1. **Chạy lệnh Đóng gói:**
