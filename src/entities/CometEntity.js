@@ -75,16 +75,25 @@ export class CometEntity {
     } else {
       // Use a slightly vertically elongated core for motion blur feel
       const coreGeometry = new THREE.SphereGeometry(COMET_CORE_SIZE, 8, 8);
+      const isSparkly = Boolean(this.preset?.sparkleAtEnd);
+      const coreColor = color.clone();
+      if (isSparkly) {
+        coreColor.multiplyScalar(0.3);
+      }
       const coreMaterial = new THREE.MeshBasicMaterial({
-        color,
+        color: coreColor,
         transparent: true,
-        opacity: 1,
+        opacity: isSparkly ? 0.85 : 1.0,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        toneMapped: false
+        toneMapped: !isSparkly
       });
       this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
-      this.coreMesh.scale.set(0.6, 1.8, 0.6); // Elongated in Y
+      if (isSparkly) {
+        this.coreMesh.scale.set(0.4, 1.2, 0.4);
+      } else {
+        this.coreMesh.scale.set(0.6, 1.8, 0.6); // Elongated in Y
+      }
       this.mesh.add(this.coreMesh);
     }
 
@@ -144,7 +153,9 @@ export class CometEntity {
         // Shrink core
         const scale = 1.0 - fadeRatio * 0.8;
         if (this.preset?.shellType !== 'comet_cluster_notrail') {
-          this.coreMesh.scale.set(0.6 * scale, 1.8 * scale, 0.6 * scale);
+          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+          this.coreMesh.scale.set(baseScaleX * scale, baseScaleY * scale, baseScaleX * scale);
         }
       }
     }
@@ -155,7 +166,7 @@ export class CometEntity {
       const strobeFreq = 120; // Chớp tần suất 120ms
       this.coreMesh.visible = Math.floor(timeMs / strobeFreq) % 2 === 0;
     } else {
-      this.coreMesh.visible = true;
+      this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING) : true;
     }
 
     // Return true if it is completely dead so the system can remove it

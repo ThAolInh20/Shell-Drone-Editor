@@ -171,13 +171,15 @@ export class CometSystem {
 
       // Thicker trails for comets
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-        const isCoreVisible = comet.coreMesh ? comet.coreMesh.visible : true;
+        const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;
         if (comet.preset?.launchTrail !== false && isCoreVisible) {
           // vy / 30 chính là thời gian còn lại để đạt đỉnh (trọng lực g = 30)
           // Nhân thêm 0.85 để hạt tắt trước đỉnh một chút, giúp phần đuôi thu gọn lại gọn gàng khi đạt đỉnh
           const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
-          this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 1.0, true, customLife);
-          if (Math.random() < 0.15) {
+          if (Math.random() < 0.5) {
+            this.trailSystem.spawnTrailParticle(comet.mesh.position.clone(), comet.color, 1.0, true, customLife, 0.12);
+          }
+          if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
             this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color);
           }
         }
@@ -219,7 +221,7 @@ export class CometSystem {
             // Tần suất lấp lánh tăng dần theo lũy thừa khi càng về cuối vòng đời
             const sparkleChance = 0.25 + Math.pow(decayRatio - 0.4, 2) * 0.75;
             if (Math.random() < sparkleChance) {
-              const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0xffffff : 0xffd700);
+              const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0x666666 : 0x997700);
               this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), sparkleColor);
             }
           }
