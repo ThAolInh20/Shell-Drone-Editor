@@ -14,7 +14,7 @@ export class TrailSystem {
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
     this.trailMaterial = new THREE.PointsMaterial({
-      size: 15,
+      size: 8,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
@@ -71,7 +71,7 @@ export class TrailSystem {
     }
   }
 
-  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null) {
+  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -90,7 +90,8 @@ export class TrailSystem {
       velocity: velocity,
       color: trailColor,
       life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
-      age: 0
+      age: 0,
+      opacity: opacityMultiplier
     };
     this.trailParticles.push(particle);
   }
@@ -100,7 +101,7 @@ export class TrailSystem {
       position: position.clone(),
       // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần)
       velocity: new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
-      color: color.clone().offsetHSL(0, 0.05, 0.18),
+      color: color.clone(),
       // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn
       life: 1.5 + Math.random() * 1.2,
       age: 0
@@ -156,7 +157,7 @@ export class TrailSystem {
       } else {
         // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
         const lifeRatio = particle.age / particle.life;
-        const alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5));
+        const alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5)) * (particle.opacity ?? 1.0);
         positions.push(particle.position.x, particle.position.y, particle.position.z);
         colors.push(particle.color.r, particle.color.g, particle.color.b, alpha);
       }

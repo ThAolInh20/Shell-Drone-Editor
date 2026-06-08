@@ -63,7 +63,16 @@ export class PropertyInspector {
       fields = [
         { name: 'time', type: 'number', step: '0.1' },
         { name: 'type', type: 'select', options: ['single', 'sequence', 'cometsequence', 'finale'] },
-        { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+        { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 }
+      ];
+
+      const isCometPreset = (this.selectedEvent.preset && (this.selectedEvent.preset.type === 'comet_cluster' || this.selectedEvent.preset.type === 'comet')) 
+                         || (typeof this.selectedEvent.preset === 'string' && (this.selectedEvent.preset.startsWith('comet_cluster') || this.selectedEvent.preset.includes('comet')));
+      if (this.selectedEvent.type === 'cometsequence' || (this.selectedEvent.type === 'single' && isCometPreset)) {
+        fields.push({ name: 'angle', type: 'number', step: '1', span: 2 });
+      }
+
+      fields.push(
         { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
         { name: 'count', type: 'number', step: '1' },
         { name: 'duration', type: 'number', step: '0.1' },
@@ -80,9 +89,8 @@ export class PropertyInspector {
         { name: 'x1', type: 'number', step: '0.1' },
         { name: 'x2', type: 'number', step: '0.1' },
         { name: 'y1', type: 'number', step: '0.1' },
-        { name: 'y2', type: 'number', step: '0.1' },
-
-      ];
+        { name: 'y2', type: 'number', step: '0.1' }
+      );
     }
 
     fields.forEach(field => {
@@ -216,7 +224,12 @@ export class PropertyInspector {
         input = document.createElement('input');
         input.type = field.type;
         if (field.step) input.step = field.step;
-        input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+        if (field.name === 'angle') {
+          const rad = this.selectedEvent.angle;
+          input.value = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : '';
+        } else {
+          input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+        }
       }
 
       input.style.padding = '3px';
@@ -238,9 +251,15 @@ export class PropertyInspector {
             delete this.selectedEvent[field.name];
           }
         } else {
-          this.selectedEvent[field.name] = val;
+          if (field.name === 'angle') {
+            const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
+            this.selectedEvent.angle = (offsetDeg * Math.PI) / 180;
+          } else {
+            this.selectedEvent[field.name] = val;
+          }
         }
         this.onUpdate(); // Trigger re-render of timeline
+        this.render(); // Re-render the inspector to display new/hidden fields
       });
 
       if (field.type === 'checkbox') {
