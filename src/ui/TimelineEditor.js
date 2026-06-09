@@ -24,6 +24,8 @@ export class TimelineEditor {
     this.currentFilePath = null;
     this.undoStack = [];
     this.redoStack = [];
+    this.selectedEvents = [];
+    this.clipboardEvents = [];
 
     this.initDOM();
     this.renderTracks();
@@ -243,9 +245,6 @@ export class TimelineEditor {
     });
     this.trackContainer.appendChild(this.ruler);
 
-    // Draw ruler ticks
-    this.renderRuler();
-
     // Tracks area
     this.tracksArea = document.createElement('div');
     this.tracksArea.style.position = 'absolute';
@@ -257,6 +256,15 @@ export class TimelineEditor {
     // Drag events
     window.addEventListener('mousemove', (e) => this.onDrag(e));
     window.addEventListener('mouseup', (e) => this.onDragEnd(e));
+    // Click on empty space to deselect
+    this.tracksArea.addEventListener('mousedown', (e) => {
+      if (e.target === this.tracksArea) {
+        this.selectedEvents = [];
+        this.inspector.hide();
+        this.renderTracks();
+      }
+    });
+
     // Click on empty space to add
     this.tracksArea.addEventListener('dblclick', (e) => {
       if (e.target === this.tracksArea) {
@@ -296,6 +304,10 @@ export class TimelineEditor {
     });
 
     this.trackContainer.appendChild(this.tracksArea);
+
+    // Draw ruler ticks
+    this.renderRuler();
+
     leftPanel.appendChild(this.trackContainer);
     this.container.appendChild(leftPanel);
 
@@ -308,14 +320,14 @@ export class TimelineEditor {
       presetOptions = this.showDirector.fireworkSystem.shellPresetFactory.getPresetMenuEntries().map(e => e.key);
     }
     this.inspector = new PropertyInspector(
-      inspectorContainer, 
+      inspectorContainer,
       (action) => {
         if (action === 'beforeChange') {
           this.saveHistoryState();
         } else {
           this.renderTracks();
         }
-      }, 
+      },
       presetOptions
     );
 
@@ -371,33 +383,55 @@ export class TimelineEditor {
 
       // Copy (Ctrl + C)
       if (e.code === 'KeyC' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT' && this.inspector && this.inspector.selectedEvent) {
-          this.clipboardEvent = { ...this.inspector.selectedEvent };
+        if (e.target.tagName !== 'INPUT' && this.selectedEvents && this.selectedEvents.length > 0) {
+          const minTime = Math.min(...this.selectedEvents.map(s => s.time));
+          this.clipboardEvents = this.selectedEvents.map(s => {
+            const clone = JSON.parse(JSON.stringify(s));
+            delete clone._trackRow;
+            delete clone._deleted;
+            return {
+              event: clone,
+              offset: s.time - minTime
+            };
+          });
         }
       }
 
       // Paste (Ctrl + V)
       if (e.code === 'KeyV' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT' && this.clipboardEvent) {
+        if (e.target.tagName !== 'INPUT' && this.clipboardEvents && this.clipboardEvents.length > 0) {
           this.saveHistoryState();
-          const newEvent = { ...this.clipboardEvent };
-          if (newEvent.effectOverrides) {
-            newEvent.effectOverrides = JSON.parse(JSON.stringify(newEvent.effectOverrides));
+
+          const newPastedEvents = [];
+          this.clipboardEvents.forEach(item => {
+            const newEvent = JSON.parse(JSON.stringify(item.event));
+            newEvent.time = Math.round((this.anchorTime + item.offset) * 10) / 10;
+            this.sequences.push(newEvent);
+            newPastedEvents.push(newEvent);
+          });
+
+          // Set active selection to the newly pasted events
+          this.selectedEvents = newPastedEvents;
+
+          if (newPastedEvents.length > 0) {
+            const primary = newPastedEvents[newPastedEvents.length - 1];
+            this.inspector.show(primary);
           }
-          newEvent.time = Math.round(this.anchorTime * 10) / 10;
-          this.sequences.push(newEvent);
+
           this.renderTracks();
-          this.inspector.show(newEvent);
         }
       }
 
       // Delete
       if ((e.code === 'Delete' || e.code === 'Backspace') && this.visible) {
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && this.inspector && this.inspector.selectedEvent) {
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && this.selectedEvents && this.selectedEvents.length > 0) {
           this.saveHistoryState();
-          this.inspector.selectedEvent._deleted = true;
-          this.renderTracks();
+          this.selectedEvents.forEach(s => {
+            s._deleted = true;
+          });
+          this.selectedEvents = [];
           this.inspector.hide();
+          this.renderTracks();
         }
       }
     });
@@ -420,8 +454,15 @@ export class TimelineEditor {
 
   renderRuler() {
     this.ruler.innerHTML = '';
-    const maxSeconds = 10000 / this.pixelsPerSecond;
-    for (let i = 0; i < maxSeconds; i += 0.1) {
+    const maxSeconds = 600; // 10 minutes limit
+    const totalWidth = maxSeconds * this.pixelsPerSecond;
+    if (this.ruler) this.ruler.style.width = totalWidth + 'px';
+    if (this.tracksArea) this.tracksArea.style.width = totalWidth + 'px';
+
+    const step = this.pixelsPerSecond < 50 ? 0.5 : 0.1;
+    const labelInterval = this.pixelsPerSecond < 50 ? 1.0 : 0.5;
+
+    for (let i = 0; i < maxSeconds; i += step) {
       const time = Math.round(i * 10) / 10;
       const tick = document.createElement('div');
       tick.style.position = 'absolute';
@@ -431,18 +472,25 @@ export class TimelineEditor {
       tick.style.borderLeft = '1px solid #555';
       tick.style.pointerEvents = 'none';
 
-      if (time % 0.5 === 0) {
-        tick.style.height = time % 1 === 0 ? '12px' : '7px';
-        tick.style.borderLeft = time % 1 === 0 ? '1px solid #999' : '1px solid #777';
+      const timeMs = Math.round(time * 10);
+      const labelIntervalMs = Math.round(labelInterval * 10);
+      const isLabelTick = (timeMs % labelIntervalMs === 0);
+      const isHalfSecond = (timeMs % 5 === 0);
 
-        const label = document.createElement('span');
-        label.textContent = time + 's';
-        label.style.position = 'absolute';
-        label.style.left = '2px';
-        label.style.bottom = '2px';
-        label.style.fontSize = '9px';
-        label.style.color = time % 1 === 0 ? '#ddd' : '#888';
-        tick.appendChild(label);
+      if (isHalfSecond || isLabelTick) {
+        tick.style.height = (timeMs % 10 === 0) ? '12px' : '7px';
+        tick.style.borderLeft = (timeMs % 10 === 0) ? '1px solid #999' : '1px solid #777';
+
+        if (isLabelTick) {
+          const label = document.createElement('span');
+          label.textContent = time + 's';
+          label.style.position = 'absolute';
+          label.style.left = '2px';
+          label.style.bottom = '2px';
+          label.style.fontSize = '9px';
+          label.style.color = (timeMs % 10 === 0) ? '#ddd' : '#888';
+          tick.appendChild(label);
+        }
       }
       this.ruler.appendChild(tick);
     }
@@ -518,7 +566,9 @@ export class TimelineEditor {
       this.renderTracks();
       this.inspector.show(newSeq);
       // Let showDirector know we loaded a new audio file so it can prep playback if needed
+      const currentTime = this.showDirector.elapsedTime;
       this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+      this.showDirector.seek(currentTime);
     });
 
     audio.addEventListener('error', () => {
@@ -560,7 +610,9 @@ export class TimelineEditor {
         this.sequences.push(newSeq);
         this.renderTracks();
         this.inspector.show(newSeq);
+        const currentTime = this.showDirector.elapsedTime;
         this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+        this.showDirector.seek(currentTime);
       } catch (err) {
         alert(t('editor.timelinePanel.droneShowImportError', { error: err.message }));
       }
@@ -624,6 +676,9 @@ export class TimelineEditor {
     this.tracksArea.innerHTML = '';
     this.assignTracks();
 
+    // Clean up selectedEvents to remove any deleted or missing sequences
+    this.selectedEvents = this.selectedEvents.filter(s => !s._deleted && this.sequences.includes(s));
+
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
       const startX = seq.time * this.pixelsPerSecond;
@@ -639,7 +694,7 @@ export class TimelineEditor {
       block.style.borderRadius = '4px';
       block.style.cursor = 'grab';
       block.style.boxSizing = 'border-box';
-      block.style.border = this.inspector.selectedEvent === seq ? '2px solid white' : '1px solid rgba(0,0,0,0.5)';
+      block.style.border = this.inspector.selectedEvent === seq ? '2px solid white' : (this.selectedEvents.includes(seq) ? '2px solid #00ffcc' : '1px solid rgba(0,0,0,0.5)');
       block.style.display = 'flex';
       block.style.alignItems = 'center';
       block.style.padding = '0 5px';
@@ -671,10 +726,44 @@ export class TimelineEditor {
 
       block.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        this.inspector.show(seq);
         this.saveHistoryState();
+
+        const isCtrlOrShift = e.ctrlKey || e.shiftKey;
+
+        if (isCtrlOrShift) {
+          if (this.selectedEvents.includes(seq)) {
+            // Remove from selected list
+            this.selectedEvents = this.selectedEvents.filter(s => s !== seq);
+            if (this.inspector.selectedEvent === seq) {
+              if (this.selectedEvents.length > 0) {
+                const newPrimary = this.selectedEvents[this.selectedEvents.length - 1];
+                this.inspector.show(newPrimary);
+              } else {
+                this.inspector.hide();
+              }
+            }
+          } else {
+            // Add to selected list
+            this.selectedEvents.push(seq);
+            this.inspector.show(seq);
+          }
+        } else {
+          // If clicked event is not already selected, clear select list and select this one.
+          // If it IS already selected, keep selection (so we can drag them together).
+          if (!this.selectedEvents.includes(seq)) {
+            this.selectedEvents = [seq];
+          }
+          this.inspector.show(seq);
+        }
+
         this.isDragging = true;
         this.draggedEvent = seq;
+
+        // Save initial positions of all currently selected events so we can drag them together
+        this.selectedEvents.forEach(s => {
+          s.initialTime = s.time;
+        });
+
         this.dragOffsetX = e.clientX - block.getBoundingClientRect().left;
         this.renderTracks(); // to update border
         block.style.cursor = 'grabbing';
@@ -735,10 +824,29 @@ export class TimelineEditor {
     // Snap to 0.1s grid
     newTime = Math.round(newTime * 10) / 10;
 
-    if (this.draggedEvent.time !== newTime) {
-      this.draggedEvent.time = newTime;
+    let dTime = newTime - (this.draggedEvent.initialTime !== undefined ? this.draggedEvent.initialTime : this.draggedEvent.time);
+
+    // Clamp dTime so no selected event goes below time 0
+    if (this.selectedEvents && this.selectedEvents.length > 0) {
+      const minInitialTime = Math.min(...this.selectedEvents.map(s => s.initialTime !== undefined ? s.initialTime : s.time));
+      if (minInitialTime + dTime < 0) {
+        dTime = -minInitialTime;
+      }
+    }
+
+    let changed = false;
+    this.selectedEvents.forEach(s => {
+      const initT = s.initialTime !== undefined ? s.initialTime : s.time;
+      const targetTime = Math.round((initT + dTime) * 10) / 10;
+      if (s.time !== targetTime) {
+        s.time = targetTime;
+        changed = true;
+      }
+    });
+
+    if (changed) {
       this.renderTracks();
-      if (this.inspector.selectedEvent === this.draggedEvent) {
+      if (this.inspector.selectedEvent && this.selectedEvents.includes(this.inspector.selectedEvent)) {
         this.inspector.render();
       }
     }
@@ -749,6 +857,11 @@ export class TimelineEditor {
     this.draggedEvent = null;
     this.isResizing = false;
     this.resizedEvent = null;
+    if (this.selectedEvents) {
+      this.selectedEvents.forEach(s => {
+        delete s.initialTime;
+      });
+    }
   }
 
   updatePlayhead() {
@@ -832,7 +945,7 @@ export class TimelineEditor {
   async saveSequence() {
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
-      const { _trackRow, _deleted, _blobUrl, ...cleanObj } = s;
+      const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
       return cleanObj;
     });
 
@@ -904,8 +1017,11 @@ export class TimelineEditor {
     this.redoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.undoStack.pop();
 
+    const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
     this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.seek(currentTime);
+    this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
 
     if (this.inspector && this.inspector.selectedEvent) {
       const currentSelected = this.inspector.selectedEvent;
@@ -924,8 +1040,11 @@ export class TimelineEditor {
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.redoStack.pop();
 
+    const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
     this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.seek(currentTime);
+    this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
 
     if (this.inspector && this.inspector.selectedEvent) {
       const currentSelected = this.inspector.selectedEvent;
