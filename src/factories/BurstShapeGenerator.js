@@ -52,6 +52,7 @@ export class BurstShapeGenerator {
       case 'cat':
       case 'fish':
       case 'smiley':
+      case 'galaxy':
         return shellType;
       case 'half-flash':
         return 'half-flash';
@@ -65,6 +66,25 @@ export class BurstShapeGenerator {
   }
 
   static direction(shape, angle, index, count, preset = null) {
+    if (shape === 'galaxy') {
+      const numArms = 3;
+      const armId = index % numArms;
+      const safeCount = Math.max(count, 1);
+      const particlesPerArm = Math.max(1, Math.floor(safeCount / numArms));
+      const particleIndex = Math.floor(index / numArms);
+
+      const t = particleIndex / particlesPerArm;
+      const theta = t * Math.PI * 5 + (armId * (Math.PI * 2 / numArms));
+      // Bắt đầu bán kính từ 0.35 và tăng tuyến tính để tránh dồn hạt chói lóa ở tâm
+      const r = 0.35 + 0.65 * t;
+
+      const x = Math.cos(theta) * r;
+      const y = Math.sin(theta) * r;
+      const z = (Math.random() - 0.5) * 0.1 * r;
+
+      return new THREE.Vector3(x, y, z);
+    }
+
     if (shape === 'split-flash') {
       const numBeams = 5;
       const halfCount = Math.max(count - numBeams, 1);

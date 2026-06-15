@@ -109,9 +109,29 @@ Mở [ShellPresetFactory.js](file:///e:/shell-drone-animation/src/factories/Shel
 
 ---
 
-## 🚀 Quy trình 4 bước tạo pháo hoa mới nhanh chóng
+## 🚀 Quy trình 4 pha thiết kế và lập trình pháo hoa mới
 
-1. **Bước 1 (Định hình dáng):** Thiết kế toán học tọa độ 3D và khai báo shape mới trong [BurstShapeGenerator.js](file:///e:/shell-drone-animation/src/factories/BurstShapeGenerator.js). *(Bỏ qua nếu dùng lại hình cầu `sphere` hay hình tròn `ring` có sẵn).*
-2. **Bước 2 (Thiết lập hiệu ứng vật lý):** Khai báo hiệu ứng chuyển động hạt và sinh vệt đuôi (trail) trong [BurstEffectProcessor.js](file:///e:/shell-drone-animation/src/factories/BurstEffectProcessor.js). *(Bỏ qua nếu dùng lại hiệu ứng `standard` hoặc `crackle` có sẵn).*
-3. **Bước 3 (Đăng ký Preset):** Tạo hàm preset mới và đăng ký key hiển thị trong UI tại [ShellPresetFactory.js](file:///e:/shell-drone-animation/src/factories/ShellPresetFactory.js).
-4. **Bước 4 (Kiểm thử):** Khởi chạy local server bằng lệnh `npm run dev`, mở Timeline Editor (bấm `Ctrl + T`), chọn biểu tượng preset mới trong Property Inspector để bắn thử và quan sát chuyển động của pháo hoa.
+Quy trình này tích hợp chặt chẽ việc thảo luận nhóm bằng `/bmad-party-mode` và quy trình lập kế hoạch (Planning Mode) để đảm bảo chất lượng hiệu ứng tốt nhất và đồng thuận cao trước khi sửa code:
+
+### 1. Pha 1: Thảo luận & Khám phá ý tưởng (Discovery)
+- **Hành động:** Luôn khởi đầu bằng cách gọi `/bmad-party-mode` để bắt đầu buổi thảo luận bàn tròn với các Agent chuyên gia (John, Sally, Winston, Amelia).
+- **Mục tiêu:** Cùng thảo luận về ý tưởng nghệ thuật pháo hoa, cách phân bổ hạt, màu sắc chủ đạo, tốc độ di chuyển và các tham số chống chói lóa từ sớm.
+
+### 2. Pha 2: Lập Kế hoạch (Planning)
+- **Hành động:** Tạo hoặc cập nhật tệp `implementation_plan.md` trong thư mục Artifacts của phiên làm việc.
+- **Mục tiêu:** Định hình chi tiết các file code cần sửa đổi và các biểu thức toán học sẽ áp dụng cho hiệu ứng.
+
+### 3. Pha 3: Người dùng xác nhận (User Confirmation)
+- **Hành động:** Gửi kế hoạch và dừng turn để chờ phản hồi xác nhận ("ok" hoặc chỉnh sửa) từ phía người dùng.
+- **Mục tiêu:** Đảm bảo ý tưởng thiết kế khớp hoàn toàn với mong muốn của người dùng trước khi viết code.
+
+### 4. Pha 4: Triển khai mã nguồn (Execution)
+- **Hành động:** Tiến hành lập trình sửa đổi các tệp code nguồn trong pipeline sau khi nhận được sự phê duyệt:
+  - Thiết kế hình học trong [BurstShapeGenerator.js](file:///e:/shell-drone-animation/src/factories/BurstShapeGenerator.js).
+  - Viết logic vật lý hiệu ứng trong [BurstEffectProcessor.js](file:///e:/shell-drone-animation/src/factories/BurstEffectProcessor.js).
+  - Đăng ký preset trong [ShellPresetFactory.js](file:///e:/shell-drone-animation/src/factories/ShellPresetFactory.js).
+  - Tích hợp hệ thống trong [FireworkSystem.js](file:///e:/shell-drone-animation/src/systems/FireworkSystem.js).
+
+
+> [!IMPORTANT]
+> **Lưu ý về tài liệu:** Quy trình thêm pháo hoa mới tập trung hoàn toàn vào việc sửa đổi trực tiếp mã nguồn và cập nhật các tệp lập kế hoạch trong Artifacts. **Tuyệt đối không cần tạo thêm bất kỳ tệp tài liệu `.md` riêng biệt nào trong thư mục code nguồn của dự án** (ví dụ: các file giải thích hiệu ứng dạng `.md`), để tránh làm lộn xộn cấu trúc thư mục của dự án.
