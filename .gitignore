@@ -26,7 +26,6 @@ dist-electron
 .agent
 _bmad
 .github
-.agents
 public/image/
 dist-electron.zip
 .vite/
