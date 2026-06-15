@@ -162,6 +162,8 @@ export default {
       followOff: "Follow: OFF",
       addSequence: "+ Add Sequence",
       addDroneAudio: "📁 Add Drone/Audio",
+      addDroneOpt: "Add Drone/Shell (.json)",
+      addAudioOpt: "Add Audio (.mp3, .wav)",
       importBtn: "Import Sequence",
       saveBtn: "Save",
       audioOnlyAlert: "Only audio files (.mp3, .wav) or Drone Show files (.json) are supported",

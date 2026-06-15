@@ -155,7 +155,7 @@ export class TimelineEditor {
       const file = e.target.files[0];
       if (!file) return;
       if (file.name.endsWith('.json')) {
-        this.addDroneSequence(this.anchorTime, file);
+        this.processJsonFile(this.anchorTime, file);
       } else if (file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.wav')) {
         this.addAudioSequence(this.anchorTime, file);
       } else {
@@ -164,12 +164,74 @@ export class TimelineEditor {
       this.mediaFileInput.value = '';
     });
 
-    const addFileBtn = document.createElement('button');
-    addFileBtn.textContent = t('editor.timelinePanel.addDroneAudio');
+    // Dropdown container for Add Drone/Audio
+    const addFileDropdownContainer = document.createElement('div');
+    addFileDropdownContainer.style.position = 'relative';
+    addFileDropdownContainer.style.display = 'inline-block';
 
+    const addFileBtn = document.createElement('button');
+    addFileBtn.textContent = t('editor.timelinePanel.addDroneAudio') + ' ▾';
     addFileBtn.style.background = '#e65100';
     addFileBtn.style.color = 'white';
-    addFileBtn.addEventListener('click', () => this.mediaFileInput.click());
+
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.style.position = 'absolute';
+    dropdownMenu.style.top = '100%'; // Show below the button
+    dropdownMenu.style.left = '0';
+    dropdownMenu.style.background = '#2a2a2a';
+    dropdownMenu.style.border = '1px solid #555';
+    dropdownMenu.style.borderRadius = '4px';
+    dropdownMenu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.5)';
+    dropdownMenu.style.display = 'none';
+    dropdownMenu.style.flexDirection = 'column';
+    dropdownMenu.style.zIndex = '1005';
+    dropdownMenu.style.minWidth = '180px';
+    dropdownMenu.style.marginTop = '5px';
+
+    const addDroneOpt = document.createElement('div');
+    addDroneOpt.textContent = t('editor.timelinePanel.addDroneOpt');
+    addDroneOpt.style.padding = '10px 14px';
+    addDroneOpt.style.cursor = 'pointer';
+    addDroneOpt.style.fontSize = '12px';
+    addDroneOpt.style.borderBottom = '1px solid #444';
+    addDroneOpt.addEventListener('mouseenter', () => addDroneOpt.style.background = '#3e3e3e');
+    addDroneOpt.addEventListener('mouseleave', () => addDroneOpt.style.background = '');
+    addDroneOpt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownMenu.style.display = 'none';
+      this.mediaFileInput.accept = '.json';
+      this.mediaFileInput.click();
+    });
+
+    const addAudioOpt = document.createElement('div');
+    addAudioOpt.textContent = t('editor.timelinePanel.addAudioOpt');
+    addAudioOpt.style.padding = '10px 14px';
+    addAudioOpt.style.cursor = 'pointer';
+    addAudioOpt.style.fontSize = '12px';
+    addAudioOpt.addEventListener('mouseenter', () => addAudioOpt.style.background = '#3e3e3e');
+    addAudioOpt.addEventListener('mouseleave', () => addAudioOpt.style.background = '');
+    addAudioOpt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownMenu.style.display = 'none';
+      this.mediaFileInput.accept = '.mp3, .wav, audio/*';
+      this.mediaFileInput.click();
+    });
+
+    dropdownMenu.appendChild(addDroneOpt);
+    dropdownMenu.appendChild(addAudioOpt);
+
+    addFileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = dropdownMenu.style.display === 'flex';
+      dropdownMenu.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    document.addEventListener('click', () => {
+      dropdownMenu.style.display = 'none';
+    });
+
+    addFileDropdownContainer.appendChild(addFileBtn);
+    addFileDropdownContainer.appendChild(dropdownMenu);
 
     this.fileIndicator = document.createElement('span');
     this.fileIndicator.style.color = '#00ffcc';
@@ -181,7 +243,7 @@ export class TimelineEditor {
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
-    toolbar.appendChild(addFileBtn);
+    toolbar.appendChild(addFileDropdownContainer);
     toolbar.appendChild(this.fileIndicator);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
@@ -296,7 +358,7 @@ export class TimelineEditor {
         } else if (file.name.endsWith('.json')) {
           const rect = this.tracksArea.getBoundingClientRect();
           const time = Math.max(0, (e.clientX - rect.left) / this.pixelsPerSecond);
-          this.addDroneSequence(time, file);
+          this.processJsonFile(time, file);
         } else {
           alert('Chỉ hỗ trợ file âm thanh (.mp3, .wav) hoặc file Drone Show (.json)');
         }
@@ -577,48 +639,85 @@ export class TimelineEditor {
   }
 
   addDroneSequence(time, file) {
+    this.processJsonFile(time, file);
+  }
+
+  processJsonFile(time, file) {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        this.saveHistoryState();
         const data = JSON.parse(event.target.result);
-        if (!data.droneCount || !data.steps) {
-          throw new Error(t('editor.timelinePanel.notDroneShowJson'));
+        if (Array.isArray(data)) {
+          this.appendSequenceArray(time, data, file.name);
+        } else if (data.droneCount && data.steps) {
+          this.processDroneShowData(time, data, file.name);
+        } else {
+          alert("File JSON không hợp lệ: Không phải kịch bản show (mảng) hoặc file Drone Show (.droneCount và .steps).");
         }
-
-
-        let maxTime = 0;
-        data.steps.forEach(step => {
-          if (step.time > maxTime) maxTime = step.time;
-        });
-        const duration = (maxTime / 1000) + 2.0; // 2 seconds buffer
-
-        const parsedSteps = data.steps.map(step => ({
-          ...step,
-          positions: step.positions.map(p => new THREE.Vector3(p.x, p.y, p.z))
-        }));
-
-        const newSeq = {
-          time: Math.round(time * 10) / 10,
-          type: 'droneshow',
-          name: data.name || file.name,
-          duration: duration,
-          uiDuration: duration,
-          droneCount: data.droneCount,
-          steps: parsedSteps
-        };
-        this.sequences.push(newSeq);
-        this.renderTracks();
-        this.inspector.show(newSeq);
-        const currentTime = this.showDirector.elapsedTime;
-        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
-        this.showDirector.seek(currentTime);
       } catch (err) {
-        alert(t('editor.timelinePanel.droneShowImportError', { error: err.message }));
+        alert("Lỗi khi đọc file JSON: " + err.message);
       }
     };
-
     reader.readAsText(file);
+  }
+
+  processDroneShowData(time, data, fileName) {
+    this.saveHistoryState();
+    let maxTime = 0;
+    data.steps.forEach(step => {
+      if (step.time > maxTime) maxTime = step.time;
+    });
+    const duration = (maxTime / 1000) + 2.0; // 2 seconds buffer
+
+    const parsedSteps = data.steps.map(step => ({
+      ...step,
+      positions: step.positions.map(p => new THREE.Vector3(p.x, p.y, p.z))
+    }));
+
+    const newSeq = {
+      time: Math.round(time * 10) / 10,
+      type: 'droneshow',
+      name: data.name || fileName,
+      duration: duration,
+      uiDuration: duration,
+      droneCount: data.droneCount,
+      steps: parsedSteps
+    };
+    this.sequences.push(newSeq);
+    this.renderTracks();
+    this.inspector.show(newSeq);
+    const currentTime = this.showDirector.elapsedTime;
+    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.seek(currentTime);
+  }
+
+  appendSequenceArray(time, data, fileName) {
+    this.saveHistoryState();
+    if (data.length === 0) return;
+
+    // Tìm thời gian nhỏ nhất trong kịch bản import để làm mốc offset
+    const minTime = Math.min(...data.map(s => s.time || 0));
+
+    // Thêm các sự kiện mới với thời gian dịch chuyển tương đối
+    const newEvents = data.map(s => {
+      const clone = JSON.parse(JSON.stringify(s));
+      clone.time = Math.round((time + ((clone.time || 0) - minTime)) * 10) / 10;
+      return clone;
+    });
+
+    this.sequences.push(...newEvents);
+    this.renderTracks();
+
+    // Tự động chọn các event vừa import
+    this.selectedEvents = newEvents;
+    if (newEvents.length > 0) {
+      this.inspector.show(newEvents[newEvents.length - 1]);
+    }
+
+    const currentTime = this.showDirector.elapsedTime;
+    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.seek(currentTime);
+    alert(`Đã chèn nối tiếp kịch bản "${fileName}" thành công tại ${time.toFixed(1)}s!`);
   }
 
   assignTracks() {
@@ -928,6 +1027,7 @@ export class TimelineEditor {
       try {
         const data = JSON.parse(event.target.result);
         if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
+
         this.sequences = data;
         this.filename = file.name;
         this.updateFileIndicator();
