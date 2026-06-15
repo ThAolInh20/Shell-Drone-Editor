@@ -17,8 +17,8 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail']);
+    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'galaxy-spin']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
@@ -54,7 +54,8 @@ export class ShellPresetFactory {
       { key: 'falling-comets', label: 'Falling Comets' },
       { key: 'halfFlash', label: 'Half Sphere Flash' },
       { key: 'splitFlash', label: 'Split Sphere Flash' },
-      { key: 'sparkling_comet', label: 'Sparkling Comet (Apex Spark)' }
+      { key: 'sparkling_comet', label: 'Sparkling Comet (Apex Spark)' },
+      { key: 'galaxy', label: 'Spiral Galaxy' }
     ];
   }
 
@@ -161,6 +162,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.cometClusterNoTrail());
       case 'sparkling_comet':
         return this.validatePreset(this.sparklingComet());
+      case 'galaxy':
+        return this.validatePreset(this.galaxyShell());
       case 'random':
       default:
         return null;
@@ -697,5 +700,23 @@ export class ShellPresetFactory {
 
   whiteOrGold() {
     return Math.random() < 0.5 ? COLOR.White : COLOR.Gold;
+  }
+
+  galaxyShell(size = 1) {
+    const color = Math.random() < 0.5 ? 0x7fffd4 : 0x00bfff;
+    return {
+      ...this.basePreset(size),
+      shellType: 'galaxy',
+      shapeType: 'galaxy',
+      effectType: 'galaxy-spin',
+      color,
+      secondColor: 0xffd700,
+      strobe: false,
+      pistil: false, // Tắt nhụy giữa để tránh dồn hạt chói sáng
+      glitter: 'light',
+      glitterColor: 0xffd700,
+      particleCountMultiplier: 0.85, // Giảm thêm số lượng hạt
+      shellSize: size
+    };
   }
 }

@@ -1,5 +1,5 @@
 ---
-name: update-structure-map
+name: ds_update-structure-map
 description: 'Automatically rescan src and overwrite STRUCTURE.md using the exact rules and output format in docs/Structure-project.md. Use when you need real-time architecture map updates, module interface diffs, relationship graph updates, and anti-pattern tracking.'
 argument-hint: 'Optional scope: src subfolder (default: src)'
 user-invocable: true
@@ -58,6 +58,6 @@ Rescan current source code and overwrite `STRUCTURE.md` at project root so archi
 2. Compact change summary after update (for example: newly added modules, new dependency edges, newly observed anti-patterns).
 
 ## Example Prompts
-- `/update-structure-map`
-- `/update-structure-map src/systems`
-- `Run update-structure-map and refresh STRUCTURE.md from current src.`
+- `/ds_update-structure-map`
+- `/ds_update-structure-map src/systems`
+- `Run ds_update-structure-map and refresh STRUCTURE.md from current src.`

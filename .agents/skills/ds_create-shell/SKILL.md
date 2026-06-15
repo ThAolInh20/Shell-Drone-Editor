@@ -1,5 +1,5 @@
 ---
-name: create-shell
+name: ds_create-shell
 description: Hướng dẫn nhà phát triển và AI cách tìm kiếm file, sửa đổi và tạo mới pháo hoa (presets, shapes, effects) trong hệ thống pháo hoa 3D.
 ---
 

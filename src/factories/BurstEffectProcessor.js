@@ -16,7 +16,8 @@ export class BurstEffectProcessor {
     'falling-comets',
     'falling-comets-glitter',
     'crysanthemum-trail',
-    'ghost'
+    'ghost',
+    'galaxy-spin'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -193,6 +194,20 @@ export class BurstEffectProcessor {
     } else if (effectType === 'ghost') {
       gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
       velocity.multiplyScalar(0.996);
+    } else if (effectType === 'galaxy-spin') {
+      gravityScale = 0.05; // Cực kỳ nhẹ để giữ dáng xoắn ốc
+      const spinSpeed = 2.5 * (1.0 - lifeRatio); // Chậm dần theo thời gian
+      const angleChange = spinSpeed * deltaTime;
+      const cos = Math.cos(angleChange);
+      const sin = Math.sin(angleChange);
+      const oldX = velocity.x;
+      const oldY = velocity.y;
+      velocity.x = oldX * cos - oldY * sin;
+      velocity.y = oldX * sin + oldY * cos;
+      velocity.multiplyScalar(0.992); // Ma sát không khí
+      spawnTrail = true;
+      trailLife = 0.35;
+      trailIntensity = 0.4;
     }
 
     // Apply modular overrides for strobe and crackle on top of other effects
