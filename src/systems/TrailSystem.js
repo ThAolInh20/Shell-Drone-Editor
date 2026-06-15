@@ -59,7 +59,7 @@ export class TrailSystem {
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
     this.trailPoints.frustumCulled = false;
     this.scene.add(this.trailPoints);
-    
+
     this.eventSubscriptions.push(
       globalEventBus.on('firework:clear', () => this.clear())
     );
@@ -110,7 +110,7 @@ export class TrailSystem {
   }
 
   spawnMicroCrackle(position, baseColor) {
-    const crackleCount = 6 + Math.floor(Math.random() * 4); // 6 to 9 particles
+    const crackleCount = 15 + Math.floor(Math.random() * 6); // Tăng lên 10-15 hạt để tạo khối cầu sphere rõ nét hơn
 
     for (let i = 0; i < crackleCount; i++) {
       const u = Math.random();
@@ -124,15 +124,17 @@ export class TrailSystem {
         Math.cos(phi)
       );
 
-      const speed = (0.6 + Math.random() * 0.4) * 18;
+      // Tốc độ bung vừa phải để giữ cấu trúc sphere mini đẹp mắt
+      const speed = (0.5 + Math.random() * 0.5) * 14;
 
-      const sparkColor = CRACKLE_SPARK_COLOR.clone();
+      // Sử dụng màu sắc gốc của hạt pháo chính thay vì màu vàng mặc định
+      const sparkColor = baseColor ? baseColor.clone() : CRACKLE_SPARK_COLOR.clone();
 
       this.trailParticles.push({
         position: position.clone(),
         velocity: direction.multiplyScalar(speed),
         color: sparkColor,
-        life: 1.0 + Math.random() * 0.5,
+        life: 0.8 + Math.random() * 0.4, // Giảm thời gian sống (0.6s - 1.0s) giúp vụ nổ mini tan nhanh chớp nhoáng
         age: 0
       });
     }
