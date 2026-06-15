@@ -136,6 +136,8 @@ export default {
       followOff: "カメラ追随: OFF",
       addSequence: "+ イベント追加",
       addDroneAudio: "📁 ドローン/音声ファイル追加",
+      addDroneOpt: "ドローン/シェル追加 (.json)",
+      addAudioOpt: "音声追加 (.mp3, .wav)",
       importBtn: "シナリオ読み込み",
       saveBtn: "保存",
       audioOnlyAlert: "音声ファイル (.mp3, .wav) またはドローンデータファイル (.json) のみサポートされています",

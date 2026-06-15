@@ -136,6 +136,8 @@ export default {
       followOff: "相机跟随：关闭",
       addSequence: "+ 添加动作",
       addDroneAudio: "📁 添加无人机/音频",
+      addDroneOpt: "添加无人机/烟花 (.json)",
+      addAudioOpt: "添加音频 (.mp3, .wav)",
       importBtn: "导入剧本",
       saveBtn: "保存",
       audioOnlyAlert: "仅支持音频文件 (.mp3, .wav) 或无人机数据文件 (.json)",

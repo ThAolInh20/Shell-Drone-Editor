@@ -162,6 +162,8 @@ export default {
       followOff: "Theo dõi: TẮT",
       addSequence: "+ Thêm sự kiện",
       addDroneAudio: "📁 Thêm Drone/Audio",
+      addDroneOpt: "Thêm Drone/Shell (.json)",
+      addAudioOpt: "Thêm Audio (.mp3, .wav)",
       importBtn: "Nhập kịch bản",
       saveBtn: "Lưu",
       audioOnlyAlert: "Chỉ hỗ trợ file âm thanh (.mp3, .wav) hoặc file Drone Show (.json)",
