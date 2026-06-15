@@ -19,8 +19,6 @@ This project is 90% developed using Antigravity, with BMAD contributing to accel
 The repository follows this branching strategy:
 - **Desktop Application (Windows):** To run the firework and drone show editor directly as a Desktop application without setting up a code environment:
   **[https://github.com/ThAolInh20/Shell-Drone_3d/releases](https://github.com/ThAolInh20/Shell-Drone_3d/releases)**
-- **Web Deployment (Live Demo):** The project is fully deployed. You can view the live demo and experience it directly in your browser at:
-  **[https://shell3d.netlify.app/](https://shell3d.netlify.app/)**
 - **Development Source Code:** The entire source code, commit history, and local setup instructions are hosted on the `dev` branch. Please switch to the [`dev`](https://github.com/ThAolInh20/Shell-Drone_3d/tree/dev) branch to view the detailed source code and contribute to the project.
 
 ---
