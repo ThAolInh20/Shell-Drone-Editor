@@ -155,7 +155,7 @@ export class BurstEffectProcessor {
       velocity.x += (Math.random() - 0.5) * jitter;
       velocity.y += (Math.random() - 0.5) * jitter * 0.5;
       velocity.z += (Math.random() - 0.5) * jitter;
-      emitSpark = Math.random() < 0.015 + lifeRatio * 0.03;
+      emitSpark = false; // Tắt tia lửa bay tự do dọc đường
     } else if (effectType === 'wave') {
       gravityScale = 0.22;
       velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
@@ -227,7 +227,7 @@ export class BurstEffectProcessor {
       velocity.x += (Math.random() - 0.5) * jitter;
       velocity.y += (Math.random() - 0.5) * jitter * 0.5;
       velocity.z += (Math.random() - 0.5) * jitter;
-      emitSpark = Math.random() < 0.015 + lifeRatio * 0.03;
+      emitSpark = false; // Tắt tia lửa bay tự do dọc đường
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)
