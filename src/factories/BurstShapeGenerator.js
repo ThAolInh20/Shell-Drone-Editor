@@ -75,8 +75,8 @@ export class BurstShapeGenerator {
 
       const t = particleIndex / particlesPerArm;
       const theta = t * Math.PI * 5 + (armId * (Math.PI * 2 / numArms));
-      // Bắt đầu bán kính từ 0.35 và tăng tuyến tính để tránh dồn hạt chói lóa ở tâm
-      const r = 0.35 + 0.65 * t;
+      // Bắt đầu bán kính từ 0.5 và tăng tuyến tính để giãn rộng tâm tránh chói lóa dồn tụ
+      const r = 0.5 + 0.5 * t;
 
       const x = Math.cos(theta) * r;
       const y = Math.sin(theta) * r;
