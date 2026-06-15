@@ -23,15 +23,15 @@ The repository follows this branching strategy:
 
 ---
 
-## 📥 Download & Installation
+## Download & Installation
 
-### 🚀 1. Pre-built Desktop Application (Via GitHub Releases)
+### 1. Pre-built Desktop Application (Via GitHub Releases)
 To run the firework and drone show editor directly as a Desktop application without configuring a local development environment:
 1. Navigate to the **[GitHub Releases](https://github.com/ThAolInh20/Shell-Drone_3d/releases)** page of the repository.
 2. Locate the latest release (tag) and download the appropriate installer for Windows (e.g., `ShellDroneEditor Setup 1.x.x.exe` or the standalone portable `ShellDroneEditor 1.x.x.exe`).
 3. Open the downloaded file to install or launch the application directly.
 
-### 💻 2. Cloning/Downloading Specific Versions (Via Git Tags)
+### 2. Cloning/Downloading Specific Versions (Via Git Tags)
 If you are a developer looking to contribute or compile the project from a specific version (tag):
 * Clone the repository specifying the desired tag name using the `--branch` option:
   ```bash
