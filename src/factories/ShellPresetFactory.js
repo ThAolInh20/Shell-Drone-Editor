@@ -703,7 +703,7 @@ export class ShellPresetFactory {
   }
 
   galaxyShell(size = 1) {
-    const color = Math.random() < 0.5 ? 0x7fffd4 : 0x00bfff;
+    const color = Math.random() < 0.5 ? 0x00b4d8 : 0x00a896; // Tông xanh lam ngọc dịu nhẹ hơn tránh chói
     return {
       ...this.basePreset(size),
       shellType: 'galaxy',
@@ -715,7 +715,7 @@ export class ShellPresetFactory {
       pistil: false, // Tắt nhụy giữa để tránh dồn hạt chói sáng
       glitter: 'light',
       glitterColor: 0xffd700,
-      particleCountMultiplier: 0.85, // Giảm thêm số lượng hạt
+      particleCountMultiplier: 0.65, // Giảm thêm số lượng hạt từ 0.85 xuống 0.65
       shellSize: size
     };
   }

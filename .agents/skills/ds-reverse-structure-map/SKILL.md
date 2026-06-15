@@ -1,5 +1,5 @@
 ---
-name: ds_reverse-structure-map
+name: ds-reverse-structure-map
 description: 'Reconstruct a codebase\'s logical architecture from imports, call flow, and data flow instead of folder layout. Use when mapping messy projects, documenting real module boundaries, or generating STRUCTURE.md from source analysis.'
 argument-hint: 'Which folder should be analyzed (default: src)?'
 user-invocable: true
@@ -87,6 +87,6 @@ Produce a `STRUCTURE.md` that reflects the real logical architecture of a codeba
 - Function and method summaries are concise and business-focused.
 
 ## Suggested Prompt Invocations
-- `/ds_reverse-structure-map src`
-- `/ds_reverse-structure-map src/systems`
-- `Use ds_reverse-structure-map to generate STRUCTURE.md for this project.`
+- `/ds-reverse-structure-map src`
+- `/ds-reverse-structure-map src/systems`
+- `Use ds-reverse-structure-map to generate STRUCTURE.md for this project.`

@@ -111,6 +111,11 @@ export class BurstEffectProcessor {
       return Math.max(0, Math.min(1, baseOpacity * softness));
     }
 
+    if (normalizedEffect === 'galaxy-spin') {
+      // Giảm bớt opacity cơ bản để hạt chính không bị chói lóa
+      return Math.max(0, Math.min(1, baseOpacity * 0.72));
+    }
+
     return baseOpacity;
   }
 
@@ -206,8 +211,8 @@ export class BurstEffectProcessor {
       velocity.y = oldX * sin + oldY * cos;
       velocity.multiplyScalar(0.992); // Ma sát không khí
       spawnTrail = true;
-      trailLife = 0.35;
-      trailIntensity = 0.4;
+      trailLife = 0.24; // Rút ngắn vệt từ 0.35 xuống 0.24 để giảm dồn ứ hạt sáng
+      trailIntensity = 0.22; // Giảm độ sáng của vệt từ 0.4 xuống 0.22
     }
 
     // Apply modular overrides for strobe and crackle on top of other effects
