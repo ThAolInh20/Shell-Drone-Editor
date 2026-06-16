@@ -570,7 +570,8 @@ export class ShellPresetFactory {
       crackle: false,
       launchTrail: true,
       sparkleAtEnd: true,
-      maxDecayTime: 1.8
+      maxDecayTime: 1.8,
+      strobe: true
     };
   }
 
