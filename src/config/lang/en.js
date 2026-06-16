@@ -161,7 +161,7 @@ export default {
       followOn: "Follow: ON",
       followOff: "Follow: OFF",
       addSequence: "+ Add Sequence",
-      addDroneAudio: "📁 Add Drone/Audio",
+      addDroneAudio: "📁 Add Drone/Shell/Audio",
       addDroneOpt: "Add Drone/Shell (.json)",
       addAudioOpt: "Add Audio (.mp3, .wav)",
       importBtn: "Import Sequence",
