@@ -71,7 +71,7 @@ export class TrailSystem {
     }
   }
 
-  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0) {
+  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0, strobe = false) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -91,12 +91,13 @@ export class TrailSystem {
       color: trailColor,
       life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
       age: 0,
-      opacity: opacityMultiplier
+      opacity: opacityMultiplier,
+      strobe: strobe
     };
     this.trailParticles.push(particle);
   }
 
-  spawnEffectSpark(position, color) {
+  spawnEffectSpark(position, color, strobe = false) {
     const spark = {
       position: position.clone(),
       // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần)
@@ -104,7 +105,8 @@ export class TrailSystem {
       color: color.clone(),
       // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn
       life: 1.5 + Math.random() * 1.2,
-      age: 0
+      age: 0,
+      strobe: strobe
     };
     this.trailParticles.push(spark);
   }
@@ -159,9 +161,28 @@ export class TrailSystem {
       } else {
         // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
         const lifeRatio = particle.age / particle.life;
-        const alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5)) * (particle.opacity ?? 1.0);
+        let alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5)) * (particle.opacity ?? 1.0);
+        let r = particle.color.r;
+        let g = particle.color.g;
+        let b = particle.color.b;
+
+        // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
+        if (particle.strobe) {
+          const timeMs = particle.age * 1000;
+          const strobeFreq = 120; // Tần số lấp lánh (ms)
+          const isBlinking = Math.floor(timeMs / strobeFreq) % 2 === 0;
+          if (!isBlinking) {
+            alpha = 0.0;
+          } else {
+            // Khi sáng lên thì lấp lánh bằng ánh sáng trắng
+            r = 1.0;
+            g = 1.0;
+            b = 1.0;
+          }
+        }
+
         positions.push(particle.position.x, particle.position.y, particle.position.z);
-        colors.push(particle.color.r, particle.color.g, particle.color.b, alpha);
+        colors.push(r, g, b, alpha);
       }
     }
     this.trailParticles = this.trailParticles.filter(p => !finishedTrails.includes(p));

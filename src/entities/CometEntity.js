@@ -17,9 +17,12 @@ export class CometEntity {
     this.preset = preset;
     this.age = 0;
     this.decayTime = 0;
-    this.maxDecayTime = preset?.maxDecayTime ?? 1.4; // Time to fade out (increased from 0.45 to allow falling effect)
+    this.maxDecayTime = preset?.maxDecayTime ?? 1.4;
     this.state = CometEntity.STATE.INIT;
     this.mesh = new THREE.Group();
+    this.coreColor = color.clone();
+    this.initialVy = velocity.y;
+    this.launchY = position.y;
 
     if (this.preset?.shellType === 'comet_cluster_notrail') {
       const geometry = new THREE.BufferGeometry();
@@ -76,12 +79,11 @@ export class CometEntity {
       // Use a slightly vertically elongated core for motion blur feel
       const coreGeometry = new THREE.SphereGeometry(COMET_CORE_SIZE, 8, 8);
       const isSparkly = Boolean(this.preset?.sparkleAtEnd);
-      const coreColor = color.clone();
       if (isSparkly) {
-        coreColor.multiplyScalar(0.3);
+        this.coreColor.multiplyScalar(0.3);
       }
       const coreMaterial = new THREE.MeshBasicMaterial({
-        color: coreColor,
+        color: this.coreColor,
         transparent: true,
         opacity: isSparkly ? 0.85 : 1.0,
         depthWrite: false,
@@ -160,13 +162,28 @@ export class CometEntity {
       }
     }
 
-    // Hiệu ứng strobe (chớp tắt nhấp nháy) cho lõi comet
-    if (this.preset?.strobe && this.state !== CometEntity.STATE.DEAD) {
+    const H_max = this.initialVy ? (this.initialVy * this.initialVy) / 60 : 0;
+    const currentHeight = this.mesh.position.y - (this.launchY ?? 0);
+    const heightRatio = H_max > 0 ? (currentHeight / H_max) : 0;
+
+    const isStrobeActive = this.preset?.strobe && 
+                           this.state === CometEntity.STATE.LAUNCHING && 
+                           heightRatio >= 0.5;
+
+    // Hiệu ứng strobe (chớp tắt nhấp nháy) bằng ánh sáng trắng cho lõi comet khi đạt 50% độ cao trên đường bay
+    if (isStrobeActive) {
       const timeMs = this.age * 1000;
       const strobeFreq = 120; // Chớp tần suất 120ms
-      this.coreMesh.visible = Math.floor(timeMs / strobeFreq) % 2 === 0;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 2 === 0;
+      this.coreMesh.visible = isBlinking;
+      if (isBlinking && this.coreMesh.material && this.coreMesh.material.color) {
+        this.coreMesh.material.color.setRGB(1.0, 1.0, 1.0);
+      }
     } else {
       this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING) : true;
+      if (this.coreMesh.material && this.coreMesh.material.color) {
+        this.coreMesh.material.color.copy(this.coreColor);
+      }
     }
 
     // Return true if it is completely dead so the system can remove it
