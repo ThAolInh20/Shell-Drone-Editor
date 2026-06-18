@@ -274,6 +274,14 @@ export class TimelineEditor {
       }
     });
 
+    let scrollTimeout;
+    this.trackContainer.addEventListener('scroll', () => {
+      if (scrollTimeout) cancelAnimationFrame(scrollTimeout);
+      scrollTimeout = requestAnimationFrame(() => {
+        this.updateRulerTicks();
+      });
+    });
+
     this.anchorHead = document.createElement('div');
     this.anchorHead.style.position = 'absolute';
     this.anchorHead.style.top = '0';
@@ -522,26 +530,39 @@ export class TimelineEditor {
   }
 
   renderRuler() {
-    this.ruler.innerHTML = '';
     const maxSeconds = 600; // 10 minutes limit
     const totalWidth = maxSeconds * this.pixelsPerSecond;
     if (this.ruler) this.ruler.style.width = totalWidth + 'px';
     if (this.tracksArea) this.tracksArea.style.width = totalWidth + 'px';
 
+    this.updateRulerTicks();
+  }
+
+  updateRulerTicks() {
+    if (!this.ruler) return;
+    this.ruler.innerHTML = '';
+
+    const scrollLeft = this.trackContainer.scrollLeft;
+    const viewportWidth = this.trackContainer.clientWidth || window.innerWidth;
+    
+    // Thêm biên (margin) 2 giây trước và sau viewport để cuộn mượt
+    const startTime = Math.max(0, Math.floor(scrollLeft / this.pixelsPerSecond) - 2);
+    const endTime = Math.min(600, Math.ceil((scrollLeft + viewportWidth) / this.pixelsPerSecond) + 2);
+
     const step = this.pixelsPerSecond < 50 ? 0.5 : 0.1;
     const labelInterval = this.pixelsPerSecond < 50 ? 1.0 : 0.5;
 
-    for (let i = 0; i < maxSeconds; i += step) {
-      const time = Math.round(i * 10) / 10;
+    for (let time = startTime; time <= endTime; time += step) {
+      const roundedTime = Math.round(time * 10) / 10;
       const tick = document.createElement('div');
       tick.style.position = 'absolute';
-      tick.style.left = (time * this.pixelsPerSecond) + 'px';
+      tick.style.left = (roundedTime * this.pixelsPerSecond) + 'px';
       tick.style.bottom = '0';
       tick.style.height = '4px';
       tick.style.borderLeft = '1px solid #555';
       tick.style.pointerEvents = 'none';
 
-      const timeMs = Math.round(time * 10);
+      const timeMs = Math.round(roundedTime * 10);
       const labelIntervalMs = Math.round(labelInterval * 10);
       const isLabelTick = (timeMs % labelIntervalMs === 0);
       const isHalfSecond = (timeMs % 5 === 0);
@@ -552,7 +573,7 @@ export class TimelineEditor {
 
         if (isLabelTick) {
           const label = document.createElement('span');
-          label.textContent = time + 's';
+          label.textContent = roundedTime + 's';
           label.style.position = 'absolute';
           label.style.left = '2px';
           label.style.bottom = '2px';
@@ -973,7 +994,7 @@ export class TimelineEditor {
     if (changed) {
       this.renderTracks();
       if (this.inspector.selectedEvent && this.selectedEvents.includes(this.inspector.selectedEvent)) {
-        this.inspector.render();
+        this.inspector.updateValues();
       }
     }
   }

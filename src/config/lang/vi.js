@@ -365,6 +365,10 @@ export default {
         green: "Xanh lá",
         purple: "Tím",
         pink: "Hồng"
+      },
+      help: {
+        geometryOffsetsTooltip: "Bấm để xem hướng dẫn",
+        geometryOffsets: "value: 0 -> 1"
       }
     }
   }

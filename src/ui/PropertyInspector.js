@@ -7,6 +7,7 @@ export class PropertyInspector {
     this.presetOptions = presetOptions;
     this.selectedEvent = null;
     this.collapsedGroups = {}; // Keep track of open/closed states
+    this.showHelpState = {}; // Keep track of help banner visibility states
 
     this.container.style.position = 'relative';
     this.container.style.width = '320px';
@@ -150,7 +151,38 @@ export class PropertyInspector {
       const header = document.createElement('div');
       const isCollapsed = this.collapsedGroups[group.groupKey] === true;
       header.className = `inspector-accordion-header ${!isCollapsed ? 'active' : ''}`;
-      header.innerHTML = `<span>${t(`editor.inspector.groups.${group.groupKey}`)}</span><span>${isCollapsed ? '▶' : '▼'}</span>`;
+      
+      const titleWrapper = document.createElement('div');
+      titleWrapper.style.display = 'flex';
+      titleWrapper.style.alignItems = 'center';
+      titleWrapper.style.gap = '6px';
+
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = t(`editor.inspector.groups.${group.groupKey}`);
+      titleWrapper.appendChild(titleSpan);
+
+      if (group.groupKey === 'geometryOffsets') {
+        const helpIcon = document.createElement('span');
+        helpIcon.className = 'inspector-help-icon';
+        helpIcon.textContent = '❓';
+        helpIcon.title = t('editor.inspector.help.geometryOffsetsTooltip') || 'Help';
+        
+        helpIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showHelpState[group.groupKey] = !this.showHelpState[group.groupKey];
+          if (this.showHelpState[group.groupKey]) {
+            this.collapsedGroups[group.groupKey] = false;
+          }
+          this.render();
+        });
+        titleWrapper.appendChild(helpIcon);
+      }
+
+      const arrowSpan = document.createElement('span');
+      arrowSpan.textContent = isCollapsed ? '▶' : '▼';
+
+      header.appendChild(titleWrapper);
+      header.appendChild(arrowSpan);
       
       header.addEventListener('click', () => {
         this.collapsedGroups[group.groupKey] = !isCollapsed;
@@ -158,6 +190,13 @@ export class PropertyInspector {
       });
 
       accordion.appendChild(header);
+
+      if (group.groupKey === 'geometryOffsets' && this.showHelpState[group.groupKey]) {
+        const helpBanner = document.createElement('div');
+        helpBanner.className = 'inspector-help-banner';
+        helpBanner.textContent = t('editor.inspector.help.geometryOffsets');
+        accordion.appendChild(helpBanner);
+      }
 
       if (!isCollapsed) {
         const content = document.createElement('div');
@@ -210,6 +249,7 @@ export class PropertyInspector {
     if (field.type === 'select') {
       input = document.createElement('select');
       input.className = 'inspector-input';
+      input.dataset.fieldName = field.name;
       field.options.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt;
@@ -223,6 +263,7 @@ export class PropertyInspector {
     } else {
       input = document.createElement('input');
       input.className = 'inspector-input';
+      input.dataset.fieldName = field.name;
       input.type = field.type;
       if (field.step) input.step = field.step;
       input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
@@ -276,6 +317,7 @@ export class PropertyInspector {
     const input = document.createElement('input');
     input.className = 'inspector-checkbox';
     input.type = 'checkbox';
+    input.dataset.fieldName = field.name;
     input.checked = !!this.selectedEvent[field.name];
 
     input.addEventListener('change', (e) => {
@@ -458,9 +500,9 @@ export class PropertyInspector {
         const maxLimitRad = 80 * Math.PI / 180;
         deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
 
-        this.onUpdate('beforeChange');
+        this.triggerUpdate('beforeChange');
         this.selectedEvent.angle = deflectionRad;
-        this.onUpdate();
+        this.triggerUpdate();
 
         dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI/2}rad)`;
         angleInput.value = Math.round(90 - (deflectionRad * 180 / Math.PI));
@@ -474,6 +516,7 @@ export class PropertyInspector {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
         this.isEditing = false;
+        this.onUpdate(); // Final sync on release
       };
 
       window.addEventListener('pointermove', onPointerMove);
@@ -506,5 +549,45 @@ export class PropertyInspector {
     container.appendChild(dial);
     container.appendChild(angleInput);
     parent.appendChild(container);
+  }
+
+  updateValues() {
+    if (!this.selectedEvent) return;
+
+    // Cập nhật các text, number và select inputs
+    const inputs = this.container.querySelectorAll('.inspector-input');
+    inputs.forEach(input => {
+      const fieldName = input.dataset.fieldName;
+      if (fieldName && this.selectedEvent[fieldName] !== undefined) {
+        const currentVal = this.selectedEvent[fieldName];
+        if (input.value != currentVal && document.activeElement !== input) {
+          input.value = currentVal;
+        }
+      }
+    });
+
+    // Cập nhật các checkboxes
+    const checkboxes = this.container.querySelectorAll('.inspector-checkbox');
+    checkboxes.forEach(cb => {
+      const fieldName = cb.dataset.fieldName;
+      if (fieldName) {
+        const currentVal = !!this.selectedEvent[fieldName];
+        if (cb.checked !== currentVal) {
+          cb.checked = currentVal;
+        }
+      }
+    });
+
+    // Cập nhật Angle Dial nếu hiển thị
+    const angleInput = this.container.querySelector('.angle-dial-container input');
+    const dialLine = this.container.querySelector('.angle-dial-line');
+    if (angleInput && dialLine && this.selectedEvent.angle !== undefined) {
+      const rad = this.selectedEvent.angle;
+      const currentDegVal = 90 - Math.round(rad * 180 / Math.PI);
+      if (angleInput.value != currentDegVal && document.activeElement !== angleInput) {
+        angleInput.value = currentDegVal;
+        dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI/2}rad)`;
+      }
+    }
   }
 }
