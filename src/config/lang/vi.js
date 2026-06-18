@@ -339,6 +339,8 @@ export default {
           "sweep-right": "Quét sang phải",
           "sweep-arc-left": "Quét vòng cung trái",
           "sweep-arc-right": "Quét vòng cung phải",
+          "sweep-arc-out-left": "Quét vòng cung tỏa trái",
+          "sweep-arc-out-right": "Quét vòng cung tỏa phải",
           converge: "Hội tụ",
           diverge: "Phân kỳ",
           zigzag: "Zic-zac",

@@ -32,8 +32,8 @@ export class FireworkSequencer {
       let ratioX = 0.5;
       let ratioY = 0.5;
       let ratioZ = 0.5;
-
       const delay = progress * duration;
+      const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
 
       switch (pattern) {
         case 'sweep-left': // Right to left
@@ -55,15 +55,23 @@ export class FireworkSequencer {
           break;
         case 'fan': // Arching from left to right, middle is highest
           ratioX = progress;
-          ratioY = Math.sin(progress * Math.PI) * 0.6 + 0.4;
+          ratioY = 0.4 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.4);
           break;
         case 'sweep-arc-right':
           ratioX = progress;
-          ratioY = Math.sin(progress * Math.PI) * 0.5 + 0.35;
+          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
           break;
         case 'sweep-arc-left':
           ratioX = 1.0 - progress;
-          ratioY = Math.sin(progress * Math.PI) * 0.5 + 0.35;
+          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          break;
+        case 'sweep-arc-out-right':
+          ratioX = progress;
+          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          break;
+        case 'sweep-arc-out-left':
+          ratioX = 1.0 - progress;
+          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
           break;
         case 'random':
           ratioX = Math.random();
@@ -79,10 +87,18 @@ export class FireworkSequencer {
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        const t = pattern === 'random' ? ratioY : progress;
+        let t = progress;
+        if (pattern === 'random') {
+          t = ratioY;
+        } else if (pattern.startsWith('sweep-arc') || pattern === 'fan') {
+          t = Math.sin(progress * Math.PI);
+        }
         ratioY = y1 + t * (y2 - y1);
       } else if (config.ratioY !== undefined) {
-        ratioY = config.ratioY;
+        const hasSinRatioY = pattern.startsWith('sweep-arc') || pattern === 'fan';
+        if (!hasSinRatioY) {
+          ratioY = config.ratioY;
+        }
       }
 
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
@@ -115,6 +131,7 @@ export class FireworkSequencer {
       let delay = progress * duration;
       let angleOffset = 0;
       let ratioX = config.ratioX !== undefined ? config.ratioX : 0.5;
+      const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.7;
       let ratioY = config.ratioY !== undefined ? config.ratioY : 0.5;
       let ratioZ = config.ratioZ !== undefined ? config.ratioZ : 0.5;
 
@@ -152,13 +169,23 @@ export class FireworkSequencer {
           break;
         case 'sweep-arc-right':
           ratioX = progress;
-          ratioY = Math.sin(progress * Math.PI) * 0.4 + 0.3;
+          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
           angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           break;
         case 'sweep-arc-left':
           ratioX = 1.0 - progress;
-          ratioY = Math.sin(progress * Math.PI) * 0.4 + 0.3;
+          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
           angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
+          break;
+        case 'sweep-arc-out-right':
+          ratioX = progress;
+          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
+          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
+          break;
+        case 'sweep-arc-out-left':
+          ratioX = 1.0 - progress;
+          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
+          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           break;
         case 'random':
           ratioX = Math.random();
@@ -175,7 +202,12 @@ export class FireworkSequencer {
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        const t = pattern === 'random' ? ratioY : progress;
+        let t = progress;
+        if (pattern === 'random') {
+          t = ratioY;
+        } else if (pattern.startsWith('sweep-arc')) {
+          t = Math.sin(progress * Math.PI);
+        }
         ratioY = y1 + t * (y2 - y1);
       }
 

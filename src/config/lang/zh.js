@@ -313,6 +313,8 @@ export default {
           "sweep-right": "向右扫描",
           "sweep-arc-left": "弧形向左扫",
           "sweep-arc-right": "弧形向右扫",
+          "sweep-arc-out-left": "弧形向左外扫",
+          "sweep-arc-out-right": "弧形向右外扫",
           converge: "向内会聚",
           diverge: "向外发散",
           zigzag: "之字形",
