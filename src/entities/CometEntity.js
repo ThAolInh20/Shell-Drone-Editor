@@ -132,7 +132,11 @@ export class CometEntity {
 
       // Check if it reached the apex (velocity.y <= 0)
       if (this.velocity.y <= 0) {
-        this.state = CometEntity.STATE.DECAYING;
+        if (this.preset?.shellType === 'comet_cluster_notrail') {
+          this.state = CometEntity.STATE.DEAD;
+        } else {
+          this.state = CometEntity.STATE.DECAYING;
+        }
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
       // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực

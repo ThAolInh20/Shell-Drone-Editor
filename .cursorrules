@@ -2,4 +2,6 @@
 
 - **MANDATORY**: ALWAYS READ `STRUCTURE.md` BEFORE analyzing code, planning features, or making any changes. 
 - `STRUCTURE.md` is the single source of truth for the project's logical modules, execution flows, and cross-module dependencies. Do not rely solely on the physical folder structure.
-- If you change the architecture, add new files, or modify public interfaces, remind the user to run `docs/Up-structure-project.md` to keep `STRUCTURE.md` updated.
+- **MANDATORY**: Trong trường hợp có các file mới hoặc thay đổi kiến trúc/giao diện public, cần thực hiện cập nhật lại `STRUCTURE.md` (sử dụng các công cụ/script cập nhật cấu trúc dự án hoặc nhắc nhở người dùng) sau khi người dùng đã duyệt (approve) toàn bộ code và tự kiểm thử (test) thành công.
+- **MANDATORY**: Mọi tính năng mới, văn bản (text/label/alert/error message) mới hoặc các trường hợp tương tự hiển thị trên giao diện người dùng bắt buộc phải được định nghĩa trong các tệp cấu hình ngôn ngữ (`src/config/lang/`) để hỗ trợ đa ngôn ngữ đầy đủ thông qua hàm dịch `t()`. Tuyệt đối không hardcode văn bản trực tiếp trong mã nguồn.
+
