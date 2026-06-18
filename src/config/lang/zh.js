@@ -311,6 +311,8 @@ export default {
           random: "随机",
           "sweep-left": "向左扫描",
           "sweep-right": "向右扫描",
+          "sweep-arc-left": "弧形向左扫",
+          "sweep-arc-right": "弧形向右扫",
           converge: "向内会聚",
           diverge: "向外发散",
           zigzag: "之字形",

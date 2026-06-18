@@ -337,6 +337,8 @@ export default {
           random: "Random",
           "sweep-left": "Sweep Left",
           "sweep-right": "Sweep Right",
+          "sweep-arc-left": "Sweep Arc Left",
+          "sweep-arc-right": "Sweep Arc Right",
           converge: "Converge",
           diverge: "Diverge",
           zigzag: "Zigzag",

@@ -57,6 +57,14 @@ export class FireworkSequencer {
           ratioX = progress;
           ratioY = Math.sin(progress * Math.PI) * 0.6 + 0.4;
           break;
+        case 'sweep-arc-right':
+          ratioX = progress;
+          ratioY = Math.sin(progress * Math.PI) * 0.5 + 0.35;
+          break;
+        case 'sweep-arc-left':
+          ratioX = 1.0 - progress;
+          ratioY = Math.sin(progress * Math.PI) * 0.5 + 0.35;
+          break;
         case 'random':
           ratioX = Math.random();
           ratioY = Math.random();
@@ -141,6 +149,16 @@ export class FireworkSequencer {
           // Bắn dọc theo x2 -> x1 (phải qua trái), nghiêng cố định
           ratioX = 1.0 - progress;
           angleOffset = angle !== undefined ? angle : -Math.PI / 12; // Mặc định nghiêng sang trái 15 độ
+          break;
+        case 'sweep-arc-right':
+          ratioX = progress;
+          ratioY = Math.sin(progress * Math.PI) * 0.4 + 0.3;
+          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+          break;
+        case 'sweep-arc-left':
+          ratioX = 1.0 - progress;
+          ratioY = Math.sin(progress * Math.PI) * 0.4 + 0.3;
+          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
           break;
         case 'random':
           ratioX = Math.random();
