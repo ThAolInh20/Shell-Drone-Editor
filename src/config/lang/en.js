@@ -288,6 +288,84 @@ export default {
       saveNewSuccess: "Successfully saved new formation: {filename}",
       saveNewError: "Error saving new formation: {error}",
       exportSuccessBrowser: "Successfully exported script into {filename}!"
+    },
+    inspector: {
+      title: "Property Inspector",
+      empty: "No sequence selected.",
+      deleteBtn: "Delete Sequence",
+      groups: {
+        audioSettings: "Audio Settings",
+        coreSettings: "Core Settings",
+        cometConfig: "Comet Config",
+        visualEffects: "Visual Effects",
+        geometryOffsets: "Geometry & Offsets"
+      },
+      fields: {
+        time: "Start Time (s)",
+        volume: "Volume",
+        url: "File URL",
+        type: "Type",
+        pattern: "Pattern",
+        preset: "Preset",
+        count: "Count",
+        duration: "Duration (s)",
+        sectorId: "Sector ID",
+        angle: "Launch Angle (Deg)",
+        color: "Shell Color",
+        customColor: "Custom Color",
+        shellSize: "Shell Size",
+        pistil: "Pistil",
+        instantBurst: "Instant Burst",
+        strobe: "Strobe",
+        crackle: "Crackle",
+        ratioX: "Ratio X",
+        ratioY: "Ratio Y",
+        x1: "X1",
+        x2: "X2",
+        y1: "Y1",
+        y2: "Y2"
+      },
+      options: {
+        type: {
+          single: "Single Shot",
+          sequence: "Sequence",
+          cometsequence: "Comet Sequence",
+          finale: "Finale",
+          audio: "Audio"
+        },
+        pattern: {
+          random: "Random",
+          "sweep-left": "Sweep Left",
+          "sweep-right": "Sweep Right",
+          converge: "Converge",
+          diverge: "Diverge",
+          zigzag: "Zigzag",
+          fan: "Fan",
+          continuous: "Continuous",
+          "fan-sweep-left": "Fan Sweep Left",
+          "fan-sweep-right": "Fan Sweep Right",
+          "fan-sweep-continuous": "Fan Sweep Continuous",
+          "fan-burst": "Fan Burst"
+        },
+        sectorId: {
+          left: "Left",
+          center: "Center",
+          right: "Right",
+          empty: "None"
+        },
+        preset: {
+          random: "Random"
+        }
+      },
+      colors: {
+        red: "Red",
+        gold: "Gold",
+        white: "White",
+        blue: "Blue",
+        green: "Green",
+        purple: "Purple",
+        pink: "Pink"
+      }
     }
   }
 };

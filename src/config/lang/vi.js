@@ -288,6 +288,84 @@ export default {
       saveNewSuccess: "Đã lưu đội hình mới thành công: {filename}",
       saveNewError: "Lỗi khi lưu đội hình mới: {error}",
       exportSuccessBrowser: "Đã xuất kịch bản thành file {filename}!"
+    },
+    inspector: {
+      title: "Thông tin thuộc tính",
+      empty: "Chưa chọn đối tượng nào.",
+      deleteBtn: "Xóa sự kiện",
+      groups: {
+        audioSettings: "Cấu hình âm thanh",
+        coreSettings: "Cấu hình cốt lõi",
+        cometConfig: "Cấu hình Comet",
+        visualEffects: "Hiệu ứng ánh sáng",
+        geometryOffsets: "Tọa độ & Căn lề"
+      },
+      fields: {
+        time: "Thời gian bắt đầu (s)",
+        volume: "Âm lượng",
+        url: "Đường dẫn file",
+        type: "Loại",
+        pattern: "Quy luật bắn",
+        preset: "Preset",
+        count: "Số lượng",
+        duration: "Thời gian chạy (s)",
+        sectorId: "Phân khu (Sector)",
+        angle: "Góc bắn (Độ)",
+        color: "Màu sắc pháo",
+        customColor: "Màu tùy chỉnh",
+        shellSize: "Kích thước shell",
+        pistil: "Nhị pháo (Pistil)",
+        instantBurst: "Nổ tức thì",
+        strobe: "Chớp tắt (Strobe)",
+        crackle: "Nổ tách tách (Crackle)",
+        ratioX: "Tỉ lệ X",
+        ratioY: "Tỉ lệ Y",
+        x1: "X1",
+        x2: "X2",
+        y1: "Y1",
+        y2: "Y2"
+      },
+      options: {
+        type: {
+          single: "Bắn đơn",
+          sequence: "Bắn chuỗi",
+          cometsequence: "Bắn chuỗi Comet",
+          finale: "Đại kết cục (Finale)",
+          audio: "Âm thanh"
+        },
+        pattern: {
+          random: "Ngẫu nhiên",
+          "sweep-left": "Quét sang trái",
+          "sweep-right": "Quét sang phải",
+          converge: "Hội tụ",
+          diverge: "Phân kỳ",
+          zigzag: "Zic-zac",
+          fan: "Hình quạt",
+          continuous: "Liên tục",
+          "fan-sweep-left": "Hình quạt quét trái",
+          "fan-sweep-right": "Hình quạt quét phải",
+          "fan-sweep-continuous": "Hình quạt quét liên tục",
+          "fan-burst": "Bắn chùm quạt"
+        },
+        sectorId: {
+          left: "Bên trái",
+          center: "Ở giữa",
+          right: "Bên phải",
+          empty: "Không chọn"
+        },
+        preset: {
+          random: "Ngẫu nhiên"
+        }
+      },
+      colors: {
+        red: "Đỏ",
+        gold: "Vàng kim",
+        white: "Trắng",
+        blue: "Xanh dương",
+        green: "Xanh lá",
+        purple: "Tím",
+        pink: "Hồng"
+      }
     }
   }
 };

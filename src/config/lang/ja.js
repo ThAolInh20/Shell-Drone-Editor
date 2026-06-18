@@ -262,6 +262,84 @@ export default {
       saveNewSuccess: "正常に新規保存しました: {filename}",
       saveNewError: "新規保存エラー: {error}",
       exportSuccessBrowser: "スクリプトの書き出しに成功しました: {filename}！"
+    },
+    inspector: {
+      title: "属性インスペクタ",
+      empty: "オブジェクトが選択されていません。",
+      deleteBtn: "イベント削除",
+      groups: {
+        audioSettings: "音声設定",
+        coreSettings: "コア設定",
+        cometConfig: "Comet 設定",
+        visualEffects: "ライトエフェクト",
+        geometryOffsets: "座標とオフセット"
+      },
+      fields: {
+        time: "開始時間 (秒)",
+        volume: "音量",
+        url: "ファイルパス",
+        type: "タイプ",
+        pattern: "発射パターン",
+        preset: "プリセット",
+        count: "数量",
+        duration: "持続時間 (秒)",
+        sectorId: "セクター ID",
+        angle: "発射角度 (度)",
+        color: "花火カラー",
+        customColor: "カスタム色",
+        shellSize: "花火サイズ",
+        pistil: "芯付 (Pistil)",
+        instantBurst: "即時爆発",
+        strobe: "ストロボ (Strobe)",
+        crackle: "クラックル (Crackle)",
+        ratioX: "比率 X",
+        ratioY: "比率 Y",
+        x1: "X1",
+        x2: "X2",
+        y1: "Y1",
+        y2: "Y2"
+      },
+      options: {
+        type: {
+          single: "単発",
+          sequence: "シーケンス",
+          cometsequence: "Comet シーケンス",
+          finale: "フィナーレ",
+          audio: "音声"
+        },
+        pattern: {
+          random: "ランダム",
+          "sweep-left": "左スイープ",
+          "sweep-right": "右スイープ",
+          converge: "収束",
+          diverge: "発散",
+          zigzag: "ジグザグ",
+          fan: "扇形",
+          continuous: "連続",
+          "fan-sweep-left": "扇形左スイープ",
+          "fan-sweep-right": "扇形右スイープ",
+          "fan-sweep-continuous": "扇形連続スイープ",
+          "fan-burst": "扇形一斉発射"
+        },
+        sectorId: {
+          left: "左側",
+          center: "中央",
+          right: "右側",
+          empty: "なし"
+        },
+        preset: {
+          random: "ランダム"
+        }
+      },
+      colors: {
+        red: "赤色",
+        gold: "金色",
+        white: "白色",
+        blue: "青色",
+        green: "緑色",
+        purple: "紫色",
+        pink: "ピンク"
+      }
     }
   }
 };

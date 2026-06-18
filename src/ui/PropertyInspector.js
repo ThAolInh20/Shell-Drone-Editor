@@ -1,17 +1,21 @@
+import { t } from '../config/lang/i18n.js';
+
 export class PropertyInspector {
   constructor(container, onUpdate, presetOptions = ['random']) {
     this.container = container;
     this.onUpdate = onUpdate;
     this.presetOptions = presetOptions;
     this.selectedEvent = null;
+    this.collapsedGroups = {}; // Keep track of open/closed states
 
     this.container.style.position = 'relative';
     this.container.style.width = '320px';
     this.container.style.minWidth = '320px';
     this.container.style.flexShrink = '0';
     this.container.style.height = '100%';
-    this.container.style.background = 'rgba(20, 25, 30, 0.95)';
-    this.container.style.borderLeft = '1px solid #444';
+    this.container.style.background = 'rgba(15, 20, 25, 0.95)';
+    this.container.style.borderLeft = '1px solid rgba(255, 255, 255, 0.1)';
+    this.container.style.boxShadow = '-4px 0 16px rgba(0,0,0,0.5)';
     this.container.style.padding = '15px';
     this.container.style.boxSizing = 'border-box';
     this.container.style.color = '#fff';
@@ -19,6 +23,9 @@ export class PropertyInspector {
     this.container.style.overflowY = 'auto';
     this.container.style.display = 'none';
     this.container.style.zIndex = '1001';
+
+    this.debounceTimeout = null;
+    this.isEditing = false;
 
     this.render();
   }
@@ -34,261 +41,470 @@ export class PropertyInspector {
     this.container.style.display = 'none';
   }
 
-  render() {
-    this.container.innerHTML = '<h3>Property Inspector</h3>';
-    if (!this.selectedEvent) {
-      this.container.innerHTML += '<p>No sequence selected.</p>';
+  triggerUpdate(action) {
+    if (action === 'beforeChange') {
+      if (!this.isEditing) {
+        this.onUpdate('beforeChange');
+        this.isEditing = true;
+      }
       return;
     }
 
-    // Mặc định sectorId là 'center' nếu sự kiện chưa được thiết lập thuộc tính này
+    if (this.debounceTimeout) clearTimeout(this.debounceTimeout);
+    this.debounceTimeout = setTimeout(() => {
+      this.onUpdate();
+      this.debounceTimeout = null;
+    }, 250);
+  }
+
+  getSchema() {
+    const isCometPreset = (event) => {
+      return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet')) 
+          || (typeof event.preset === 'string' && (event.preset.startsWith('comet_cluster') || event.preset.includes('comet')));
+    };
+
+    return {
+      audio: [
+        {
+          groupKey: 'audioSettings',
+          fields: [
+            { name: 'time', labelKey: 'time', type: 'number', step: '0.1' },
+            { name: 'volume', labelKey: 'volume', type: 'number', step: '0.1' },
+            { name: 'url', labelKey: 'url', type: 'text', span: 2 }
+          ]
+        }
+      ],
+      event: [
+        {
+          groupKey: 'coreSettings',
+          fields: [
+            { name: 'time', labelKey: 'time', type: 'number', step: '0.1' },
+            { name: 'type', labelKey: 'type', type: 'select', options: ['single', 'sequence', 'cometsequence', 'finale'] },
+            { name: 'pattern', labelKey: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+            { name: 'preset', labelKey: 'preset', type: 'select', options: this.presetOptions, span: 2 },
+            { name: 'count', labelKey: 'count', type: 'number', step: '1' },
+            { name: 'duration', labelKey: 'duration', type: 'number', step: '0.1' },
+            { name: 'sectorId', labelKey: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] }
+          ]
+        },
+        {
+          groupKey: 'cometConfig',
+          visibleIf: (event) => event.type === 'cometsequence' || (event.type === 'single' && isCometPreset(event)),
+          fields: [
+            { name: 'angle', labelKey: 'angle', type: 'angle' }
+          ]
+        },
+        {
+          groupKey: 'visualEffects',
+          fields: [
+            { name: 'color', labelKey: 'color', type: 'color-badges' },
+            { name: 'shellSize', labelKey: 'shellSize', type: 'number', step: '0.1' },
+            { name: 'pistil', labelKey: 'pistil', type: 'checkbox' },
+            { name: 'instantBurst', labelKey: 'instantBurst', type: 'checkbox' },
+            { name: 'strobe', labelKey: 'strobe', type: 'checkbox' },
+            { name: 'crackle', labelKey: 'crackle', type: 'checkbox' }
+          ]
+        },
+        {
+          groupKey: 'geometryOffsets',
+          fields: [
+            { name: 'ratioX', labelKey: 'ratioX', type: 'number', step: '0.05' },
+            { name: 'ratioY', labelKey: 'ratioY', type: 'number', step: '0.05' },
+            { name: 'x1', labelKey: 'x1', type: 'number', step: '0.1' },
+            { name: 'x2', labelKey: 'x2', type: 'number', step: '0.1' },
+            { name: 'y1', labelKey: 'y1', type: 'number', step: '0.1' },
+            { name: 'y2', labelKey: 'y2', type: 'number', step: '0.1' }
+          ]
+        }
+      ]
+    };
+  }
+
+  render() {
+    this.container.innerHTML = `<h3 class="inspector-title">${t('editor.inspector.title')}</h3>`;
+    if (!this.selectedEvent) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'inspector-empty';
+      emptyMsg.textContent = t('editor.inspector.empty');
+      this.container.appendChild(emptyMsg);
+      return;
+    }
+
+    // Default sectorId to 'center' if undefined for non-audio
     if (this.selectedEvent.type !== 'audio' && this.selectedEvent.sectorId === undefined) {
       this.selectedEvent.sectorId = 'center';
     }
 
-    const form = document.createElement('div');
-    form.style.display = 'grid';
-    form.style.gridTemplateColumns = '1fr 1fr';
-    form.style.gap = '6px';
-    form.style.alignItems = 'end';
+    const typeKey = this.selectedEvent.type === 'audio' ? 'audio' : 'event';
+    const groups = this.getSchema()[typeKey];
 
-    let fields = [];
-    if (this.selectedEvent.type === 'audio') {
-      fields = [
-        { name: 'time', type: 'number', step: '0.1' },
-        { name: 'volume', type: 'number', step: '0.1' },
-        { name: 'url', type: 'text', span: 2 }
-      ];
-    } else {
-      fields = [
-        { name: 'time', type: 'number', step: '0.1' },
-        { name: 'type', type: 'select', options: ['single', 'sequence', 'cometsequence', 'finale'] },
-        { name: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 }
-      ];
-
-      const isCometPreset = (this.selectedEvent.preset && (this.selectedEvent.preset.type === 'comet_cluster' || this.selectedEvent.preset.type === 'comet')) 
-                         || (typeof this.selectedEvent.preset === 'string' && (this.selectedEvent.preset.startsWith('comet_cluster') || this.selectedEvent.preset.includes('comet')));
-      if (this.selectedEvent.type === 'cometsequence' || (this.selectedEvent.type === 'single' && isCometPreset)) {
-        fields.push({ name: 'angle', type: 'number', step: '1', span: 2 });
-      }
-
-      fields.push(
-        { name: 'preset', type: 'select', options: this.presetOptions, span: 2 },
-        { name: 'count', type: 'number', step: '1' },
-        { name: 'duration', type: 'number', step: '0.1' },
-        { name: 'sectorId', type: 'select', options: ['left', 'center', 'right', ''] },
-
-        { name: 'shellSize', type: 'number', step: '0.1' },
-        { name: 'color', type: 'text', span: 2 },
-        { name: 'pistil', type: 'checkbox' },
-        { name: 'instantBurst', type: 'checkbox' },
-        { name: 'strobe', type: 'checkbox' },
-        { name: 'crackle', type: 'checkbox' },
-        { name: 'ratioX', type: 'number', step: '0.05' },
-        { name: 'ratioY', type: 'number', step: '0.05' },
-        { name: 'x1', type: 'number', step: '0.1' },
-        { name: 'x2', type: 'number', step: '0.1' },
-        { name: 'y1', type: 'number', step: '0.1' },
-        { name: 'y2', type: 'number', step: '0.1' }
-      );
-    }
-
-    fields.forEach(field => {
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.flexDirection = field.type === 'checkbox' ? 'row' : 'column';
-      if (field.type === 'checkbox') {
-        row.style.alignItems = 'center';
-        row.style.gap = '8px';
-      }
-      if (field.span === 2) {
-        row.style.gridColumn = 'span 2';
-      }
-
-      if (field.name === 'color') {
-        row.style.gridColumn = 'span 2';
-        row.style.flexDirection = 'row';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        row.style.gap = '10px';
-        row.style.marginTop = '4px';
-        row.style.marginBottom = '4px';
-
-        const leftSide = document.createElement('div');
-        leftSide.style.display = 'flex';
-        leftSide.style.alignItems = 'center';
-        leftSide.style.gap = '6px';
-
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.id = 'inspector-use-custom-color';
-        cb.checked = this.selectedEvent.color !== undefined;
-
-        const lbl = document.createElement('label');
-        lbl.htmlFor = 'inspector-use-custom-color';
-        lbl.textContent = 'Custom Color';
-        lbl.style.fontSize = '11px';
-        lbl.style.color = '#aaa';
-        lbl.style.cursor = 'pointer';
-
-        leftSide.appendChild(cb);
-        leftSide.appendChild(lbl);
-
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.style.border = '1px solid #555';
-        colorInput.style.background = 'none';
-        colorInput.style.padding = '0';
-        colorInput.style.width = '60px';
-        colorInput.style.height = '24px';
-        colorInput.style.cursor = 'pointer';
-        colorInput.style.borderRadius = '4px';
-
-        const COLOR_MAP = {
-          'red': '#ff3333',
-          'gold': '#ffd700',
-          'white': '#ffffff',
-          'blue': '#00bfff',
-          'green': '#00ff00',
-          'purple': '#8a2be2',
-          'pink': '#ff69b4'
-        };
-        let initialHex = '#ffffff';
-        if (this.selectedEvent.color) {
-          const cLower = this.selectedEvent.color.toLowerCase();
-          if (COLOR_MAP[cLower]) {
-            initialHex = COLOR_MAP[cLower];
-          } else if (this.selectedEvent.color.startsWith('#')) {
-            initialHex = this.selectedEvent.color;
-          }
-        }
-        colorInput.value = initialHex;
-        colorInput.disabled = !cb.checked;
-        if (colorInput.disabled) {
-          colorInput.style.opacity = '0.4';
-          colorInput.style.cursor = 'not-allowed';
-        }
-
-        cb.addEventListener('change', (e) => {
-          this.onUpdate('beforeChange');
-          if (e.target.checked) {
-            colorInput.disabled = false;
-            colorInput.style.opacity = '1';
-            colorInput.style.cursor = 'pointer';
-            this.selectedEvent.color = colorInput.value;
-          } else {
-            colorInput.disabled = true;
-            colorInput.style.opacity = '0.4';
-            colorInput.style.cursor = 'not-allowed';
-            delete this.selectedEvent.color;
-          }
-          this.onUpdate();
-        });
-
-        colorInput.addEventListener('change', (e) => {
-          if (cb.checked) {
-            this.onUpdate('beforeChange');
-            this.selectedEvent.color = e.target.value;
-            this.onUpdate();
-          }
-        });
-
-        row.appendChild(leftSide);
-        row.appendChild(colorInput);
-        form.appendChild(row);
+    groups.forEach(group => {
+      // Check visibility condition
+      if (group.visibleIf && !group.visibleIf(this.selectedEvent)) {
         return;
       }
 
-      const label = document.createElement('label');
-      label.textContent = field.name;
-      label.style.fontSize = '11px';
-      label.style.marginBottom = field.type === 'checkbox' ? '0' : '2px';
-      label.style.color = '#aaa';
+      const accordion = document.createElement('div');
+      accordion.className = 'inspector-accordion';
 
-      let input;
-      if (field.type === 'select') {
-        input = document.createElement('select');
-        field.options.forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt;
-          option.textContent = opt || 'random';
-          input.appendChild(option);
-        });
-        input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
-      } else if (field.type === 'checkbox') {
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = !!this.selectedEvent[field.name];
-        input.style.margin = '0';
-      } else {
-        input = document.createElement('input');
-        input.type = field.type;
-        if (field.step) input.step = field.step;
-        if (field.name === 'angle') {
-          const rad = this.selectedEvent.angle;
-          input.value = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : '';
-        } else {
-          input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
-        }
-      }
-
-      input.style.padding = '3px';
-      input.style.fontSize = '12px';
-      input.style.background = '#222';
-      input.style.color = '#fff';
-      input.style.border = '1px solid #555';
-      input.style.width = field.type === 'checkbox' ? 'auto' : '100%';
-      input.style.boxSizing = 'border-box';
-
-      input.addEventListener('change', (e) => {
-        let val = field.type === 'checkbox' ? e.target.checked : e.target.value;
-        if (field.type === 'number') val = val === '' ? undefined : parseFloat(val);
-        this.onUpdate('beforeChange');
-        if (val === '' || val === undefined || (field.type === 'checkbox' && !val)) {
-          if (field.name === 'sectorId' && val === '') {
-            this.selectedEvent[field.name] = '';
-          } else {
-            delete this.selectedEvent[field.name];
-          }
-        } else {
-          if (field.name === 'angle') {
-            const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
-            this.selectedEvent.angle = (offsetDeg * Math.PI) / 180;
-          } else {
-            this.selectedEvent[field.name] = val;
-          }
-        }
-        this.onUpdate(); // Trigger re-render of timeline
-        this.render(); // Re-render the inspector to display new/hidden fields
+      const header = document.createElement('div');
+      const isCollapsed = this.collapsedGroups[group.groupKey] === true;
+      header.className = `inspector-accordion-header ${!isCollapsed ? 'active' : ''}`;
+      header.innerHTML = `<span>${t(`editor.inspector.groups.${group.groupKey}`)}</span><span>${isCollapsed ? '▶' : '▼'}</span>`;
+      
+      header.addEventListener('click', () => {
+        this.collapsedGroups[group.groupKey] = !isCollapsed;
+        this.render();
       });
 
-      if (field.type === 'checkbox') {
-        row.appendChild(input);
-        row.appendChild(label);
-      } else {
-        row.appendChild(label);
-        row.appendChild(input);
+      accordion.appendChild(header);
+
+      if (!isCollapsed) {
+        const content = document.createElement('div');
+        content.className = 'inspector-accordion-content';
+
+        group.fields.forEach(field => {
+          const fieldWrapper = document.createElement('div');
+          if (field.span === 2) {
+            fieldWrapper.className = 'inspector-field-span-2';
+          }
+
+          if (field.type === 'color-badges') {
+            this.renderColorBadges(fieldWrapper);
+          } else if (field.type === 'angle') {
+            this.renderAngleDial(fieldWrapper, field);
+          } else if (field.type === 'checkbox') {
+            this.renderCheckbox(fieldWrapper, field);
+          } else {
+            this.renderStandardInput(fieldWrapper, field);
+          }
+
+          content.appendChild(fieldWrapper);
+        });
+
+        accordion.appendChild(content);
       }
-      form.appendChild(row);
+
+      this.container.appendChild(accordion);
     });
 
+    // Delete Button
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = 'Delete Sequence';
-    deleteBtn.style.gridColumn = 'span 2';
-    deleteBtn.style.marginTop = '10px';
-    deleteBtn.style.background = '#d32f2f';
-    deleteBtn.style.color = 'white';
-    deleteBtn.style.border = 'none';
-    deleteBtn.style.padding = '6px';
-    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.className = 'inspector-delete-btn';
+    deleteBtn.textContent = t('editor.inspector.deleteBtn');
     deleteBtn.addEventListener('click', () => {
       this.onUpdate('beforeChange');
       this.selectedEvent._deleted = true;
       this.onUpdate();
       this.hide();
     });
-    form.appendChild(deleteBtn);
+    this.container.appendChild(deleteBtn);
+  }
 
-    this.container.appendChild(form);
+  renderStandardInput(parent, field) {
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+
+    let input;
+    if (field.type === 'select') {
+      input = document.createElement('select');
+      input.className = 'inspector-input';
+      field.options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        const lookupKey = opt === '' ? 'empty' : opt;
+        const translationKey = `editor.inspector.options.${field.name}.${lookupKey}`;
+        const translated = t(translationKey);
+        option.textContent = translated === translationKey ? (opt || 'random') : translated;
+        input.appendChild(option);
+      });
+      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+    } else {
+      input = document.createElement('input');
+      input.className = 'inspector-input';
+      input.type = field.type;
+      if (field.step) input.step = field.step;
+      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+    }
+
+    input.addEventListener('focus', () => {
+      this.isEditing = true;
+    });
+
+    input.addEventListener('blur', () => {
+      this.isEditing = false;
+      this.onUpdate(); // Final sync on blur
+    });
+
+    input.addEventListener('input', (e) => {
+      let val = e.target.value;
+      if (field.type === 'number') {
+        val = val === '' ? undefined : parseFloat(val);
+      }
+      
+      this.triggerUpdate('beforeChange');
+
+      if (val === '' || val === undefined) {
+        if (field.name === 'sectorId') {
+          this.selectedEvent[field.name] = '';
+        } else {
+          delete this.selectedEvent[field.name];
+        }
+      } else {
+        this.selectedEvent[field.name] = val;
+      }
+
+      this.triggerUpdate();
+    });
+
+    // Render loop helper to re-render inspector on type update
+    input.addEventListener('change', () => {
+      if (field.type === 'select') {
+        this.render();
+      }
+    });
+
+    parent.appendChild(label);
+    parent.appendChild(input);
+  }
+
+  renderCheckbox(parent, field) {
+    const container = document.createElement('label');
+    container.className = 'inspector-checkbox-container';
+
+    const input = document.createElement('input');
+    input.className = 'inspector-checkbox';
+    input.type = 'checkbox';
+    input.checked = !!this.selectedEvent[field.name];
+
+    input.addEventListener('change', (e) => {
+      this.onUpdate('beforeChange');
+      if (e.target.checked) {
+        this.selectedEvent[field.name] = true;
+      } else {
+        delete this.selectedEvent[field.name];
+      }
+      this.onUpdate();
+    });
+
+    container.appendChild(input);
+    const span = document.createElement('span');
+    span.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    container.appendChild(span);
+    parent.appendChild(container);
+  }
+
+  renderColorBadges(parent) {
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t('editor.inspector.fields.color');
+    parent.appendChild(label);
+
+    const COLOR_MAP = {
+      'red': '#ff3333',
+      'gold': '#ffd700',
+      'white': '#ffffff',
+      'blue': '#00bfff',
+      'green': '#00ff00',
+      'purple': '#8a2be2',
+      'pink': '#ff69b4'
+    };
+
+    const container = document.createElement('div');
+    container.className = 'color-badge-container';
+
+    let activeKey = null;
+    const currentColor = this.selectedEvent.color;
+    if (currentColor) {
+      const cLower = currentColor.toLowerCase();
+      activeKey = Object.keys(COLOR_MAP).find(k => k === cLower || COLOR_MAP[k] === cLower);
+    }
+
+    // Render default preset circles
+    Object.keys(COLOR_MAP).forEach(key => {
+      const badge = document.createElement('div');
+      badge.className = `color-badge ${activeKey === key ? 'active' : ''}`;
+      badge.style.backgroundColor = COLOR_MAP[key];
+      badge.title = t(`editor.inspector.colors.${key}`) || key;
+
+      badge.addEventListener('click', () => {
+        this.onUpdate('beforeChange');
+        this.selectedEvent.color = key;
+        this.onUpdate();
+        this.render(); // Redraw selection outline
+      });
+
+      container.appendChild(badge);
+    });
+
+    // Custom hex color input picker
+    const customWrapper = document.createElement('div');
+    customWrapper.className = 'color-custom-wrapper';
+
+    const customCb = document.createElement('input');
+    customCb.type = 'checkbox';
+    customCb.className = 'inspector-checkbox';
+    customCb.id = 'inspector-custom-color-cb';
+    customCb.checked = currentColor !== undefined;
+
+    const customInput = document.createElement('input');
+    customInput.type = 'color';
+    customInput.className = 'color-custom-input';
+    customInput.disabled = !customCb.checked;
+
+    let initialHex = '#ffffff';
+    if (currentColor) {
+      const cLower = currentColor.toLowerCase();
+      if (COLOR_MAP[cLower]) {
+        initialHex = COLOR_MAP[cLower];
+      } else if (currentColor.startsWith('#')) {
+        initialHex = currentColor;
+      }
+    }
+    customInput.value = initialHex;
+
+    customCb.addEventListener('change', (e) => {
+      this.onUpdate('beforeChange');
+      if (e.target.checked) {
+        customInput.disabled = false;
+        this.selectedEvent.color = customInput.value;
+      } else {
+        customInput.disabled = true;
+        delete this.selectedEvent.color;
+      }
+      this.onUpdate();
+      this.render();
+    });
+
+    customInput.addEventListener('input', (e) => {
+      if (customCb.checked) {
+        this.triggerUpdate('beforeChange');
+        this.selectedEvent.color = e.target.value;
+        this.triggerUpdate();
+      }
+    });
+
+    customInput.addEventListener('change', () => {
+      this.render();
+    });
+
+    const customLabel = document.createElement('label');
+    customLabel.htmlFor = 'inspector-custom-color-cb';
+    customLabel.textContent = t('editor.inspector.fields.customColor');
+    customLabel.style.fontSize = '10px';
+    customLabel.style.color = '#aaa';
+    customLabel.style.cursor = 'pointer';
+
+    customWrapper.appendChild(customCb);
+    customWrapper.appendChild(customLabel);
+    customWrapper.appendChild(customInput);
+    container.appendChild(customWrapper);
+
+    parent.appendChild(container);
+  }
+
+  renderAngleDial(parent, field) {
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    parent.appendChild(label);
+
+    const container = document.createElement('div');
+    container.className = 'angle-dial-container';
+
+    // The angle dial circle
+    const dial = document.createElement('div');
+    dial.className = 'angle-dial';
+
+    const dialLine = document.createElement('div');
+    dialLine.className = 'angle-dial-line';
+    dial.appendChild(dialLine);
+
+    const dialCenter = document.createElement('div');
+    dialCenter.className = 'angle-dial-center';
+    dial.appendChild(dialCenter);
+
+    // Numeric input next to dial
+    const angleInput = document.createElement('input');
+    angleInput.className = 'inspector-input';
+    angleInput.type = 'number';
+    angleInput.style.width = '70px';
+    angleInput.min = '10';
+    angleInput.max = '170';
+
+    const rad = this.selectedEvent.angle;
+    // Map radian to degree input: 90 - (rad * 180 / PI)
+    const currentDegVal = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : 90;
+    angleInput.value = currentDegVal;
+
+    // Position dial pointer initially
+    const currentRad = (rad !== undefined && rad !== null) ? rad : 0;
+    dialLine.style.transform = `translate(-50%, -50%) rotate(${currentRad - Math.PI/2}rad)`;
+
+    // Dial mouse/pointer interaction
+    dial.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const rect = dial.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const updateAngle = (pe) => {
+        const dx = pe.clientX - centerX;
+        const dy = pe.clientY - centerY;
+        
+        // Deflection angle from vertical (straight up is 0 rad)
+        let deflectionRad = Math.atan2(dx, -dy);
+        const maxLimitRad = 80 * Math.PI / 180;
+        deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
+
+        this.onUpdate('beforeChange');
+        this.selectedEvent.angle = deflectionRad;
+        this.onUpdate();
+
+        dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI/2}rad)`;
+        angleInput.value = Math.round(90 - (deflectionRad * 180 / Math.PI));
+      };
+
+      const onPointerMove = (pe) => {
+        updateAngle(pe);
+      };
+
+      const onPointerUp = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        this.isEditing = false;
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      this.isEditing = true;
+      updateAngle(e);
+    });
+
+    // Handle input change manually
+    angleInput.addEventListener('input', (e) => {
+      let val = e.target.value;
+      if (val === '') return;
+      val = parseFloat(val);
+
+      this.triggerUpdate('beforeChange');
+      // Convert degrees to deflection radians: (90 - val) * PI / 180
+      const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
+      const deflectionRad = (offsetDeg * Math.PI) / 180;
+
+      this.selectedEvent.angle = deflectionRad;
+      dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI/2}rad)`;
+      this.triggerUpdate();
+    });
+
+    angleInput.addEventListener('blur', () => {
+      this.isEditing = false;
+      this.onUpdate();
+    });
+
+    container.appendChild(dial);
+    container.appendChild(angleInput);
+    parent.appendChild(container);
   }
 }
