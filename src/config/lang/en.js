@@ -365,6 +365,10 @@ export default {
         green: "Green",
         purple: "Purple",
         pink: "Pink"
+      },
+      help: {
+        geometryOffsetsTooltip: "Click for details",
+        geometryOffsets: "value: 0 -> 1"
       }
     }
   }

@@ -624,3 +624,41 @@ code {
   background: #c0392b;
 }
 
+.inspector-help-icon {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.inspector-help-icon:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.inspector-help-banner {
+  background: rgba(52, 152, 219, 0.12);
+  border-left: 3px solid #3498db;
+  color: #a5b4fc;
+  font-size: 11px;
+  padding: 8px 12px;
+  margin: 8px 12px 2px 12px;
+  border-radius: 4px;
+  line-height: 1.4;
+  font-family: inherit;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

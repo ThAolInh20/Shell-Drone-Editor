@@ -339,6 +339,10 @@ export default {
         green: "绿色",
         purple: "紫色",
         pink: "粉色"
+      },
+      help: {
+        geometryOffsetsTooltip: "点击查看帮助",
+        geometryOffsets: "value: 0 -> 1"
       }
     }
   }

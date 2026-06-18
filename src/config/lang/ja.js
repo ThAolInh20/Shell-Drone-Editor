@@ -339,6 +339,10 @@ export default {
         green: "緑色",
         purple: "紫色",
         pink: "ピンク"
+      },
+      help: {
+        geometryOffsetsTooltip: "クリックしてヘルプを表示",
+        geometryOffsets: "value: 0 -> 1"
       }
     }
   }
