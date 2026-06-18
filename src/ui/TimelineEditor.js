@@ -128,6 +128,12 @@ export class TimelineEditor {
     saveBtn.style.color = 'white';
     saveBtn.addEventListener('click', () => this.saveSequence());
 
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = t('editor.timelinePanel.exportBtn');
+    exportBtn.style.background = '#00897b';
+    exportBtn.style.color = 'white';
+    exportBtn.addEventListener('click', () => this.exportSequence());
+
     const importBtn = document.createElement('button');
     importBtn.textContent = t('editor.timelinePanel.importBtn');
 
@@ -247,6 +253,7 @@ export class TimelineEditor {
     toolbar.appendChild(this.fileIndicator);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
+    toolbar.appendChild(exportBtn);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
 
@@ -603,8 +610,13 @@ export class TimelineEditor {
       preset: 'strobe'
     };
     this.sequences.push(newSeq);
+    this.selectedEvents = [newSeq];
     this.renderTracks();
     this.inspector.show(newSeq);
+
+    // Auto-scroll track container to show the new event
+    const scrollPos = time * this.pixelsPerSecond;
+    this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
   }
 
   addAudioSequence(time, file) {
@@ -625,8 +637,14 @@ export class TimelineEditor {
         volume: 1.0
       };
       this.sequences.push(newSeq);
+      this.selectedEvents = [newSeq];
       this.renderTracks();
       this.inspector.show(newSeq);
+
+      // Auto-scroll track container to show the new event
+      const scrollPos = time * this.pixelsPerSecond;
+      this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
+
       // Let showDirector know we loaded a new audio file so it can prep playback if needed
       const currentTime = this.showDirector.elapsedTime;
       this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
@@ -652,10 +670,10 @@ export class TimelineEditor {
         } else if (data.droneCount && data.steps) {
           this.processDroneShowData(time, data, file.name);
         } else {
-          alert("File JSON không hợp lệ: Không phải kịch bản show (mảng) hoặc file Drone Show (.droneCount và .steps).");
+          alert(t('editor.timelinePanel.invalidShowJson'));
         }
       } catch (err) {
-        alert("Lỗi khi đọc file JSON: " + err.message);
+        alert(t('editor.timelinePanel.readJsonError', { error: err.message }));
       }
     };
     reader.readAsText(file);
@@ -684,8 +702,14 @@ export class TimelineEditor {
       steps: parsedSteps
     };
     this.sequences.push(newSeq);
+    this.selectedEvents = [newSeq];
     this.renderTracks();
     this.inspector.show(newSeq);
+
+    // Auto-scroll track container to show the new event
+    const scrollPos = time * this.pixelsPerSecond;
+    this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
+
     const currentTime = this.showDirector.elapsedTime;
     this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
     this.showDirector.seek(currentTime);
@@ -706,13 +730,16 @@ export class TimelineEditor {
     });
 
     this.sequences.push(...newEvents);
+    this.selectedEvents = newEvents;
     this.renderTracks();
 
-    // Tự động chọn các event vừa import
-    this.selectedEvents = newEvents;
     if (newEvents.length > 0) {
       this.inspector.show(newEvents[newEvents.length - 1]);
     }
+
+    // Auto-scroll track container to show the newly imported events
+    const scrollPos = time * this.pixelsPerSecond;
+    this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
 
     const currentTime = this.showDirector.elapsedTime;
     this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
@@ -1100,6 +1127,48 @@ export class TimelineEditor {
       alert(`Đã tải xuống file ${this.filename || 'demoShow.json'}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
     } catch (err) {
       alert('Lỗi khi lưu file: ' + err.message);
+    }
+  }
+
+  async exportSequence() {
+    // Cleanup temporary variables
+    const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
+      const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
+      return cleanObj;
+    });
+
+    const content = JSON.stringify(cleanSeqs, null, 2);
+
+    if (window.electronAPI) {
+      try {
+        const res = await window.electronAPI.saveFileDialog(content, this.filename || 'demoShow.json');
+        if (res) {
+          this.currentFilePath = res.filePath;
+          this.filename = res.filename;
+          this.updateFileIndicator();
+          alert(t('editor.timelinePanel.exportSuccess', { filename: res.filename }));
+        }
+      } catch (err) {
+        alert(t('editor.timelinePanel.exportError', { error: err.message }));
+      }
+      return;
+    }
+
+    // Web Fallback
+    try {
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this.filename || 'demoShow.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert(t('editor.timelinePanel.exportSuccess', { filename: this.filename || 'demoShow.json' }));
+    } catch (err) {
+      alert(t('editor.timelinePanel.exportError', { error: err.message }));
     }
   }
 

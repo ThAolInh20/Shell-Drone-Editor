@@ -24,11 +24,23 @@
   - `BaseFormationState.saveStateToHistory()`: Takes a deep snapshot of current selections, positions, and constraints.
   - `BaseFormationState.undo()`, `BaseFormationState.redo()`: Traverses the undo and redo history stack of edits.
   - `BaseFormationState.updateLineConstraints()`: Automatically lerps intermediate nodes based on persistent 2-point line boundaries.
+- **`src/core/EventBus.js`**: Unified pub/sub event bus supporting communication across multiple systems.
+  - `EventBus.on(event, callback)`: Registers an event listener callback.
+  - `EventBus.off(event, callback)`: Removes an event listener callback.
+  - `EventBus.emit(event, data)`: Emits an event with optional data payload.
+- **`src/core/ConstraintSolver.js`**: Solves geometric constraint vectors for drone formations.
+  - `ConstraintSolver.solveLineConstraints(positions, lineConstraints)`: Automatically updates intermediate nodes based on 2-point line boundaries.
+  - `ConstraintSolver.adjustConstraintsOnDeletion(lineConstraints, deletedIndicesSortedDescending)`: Adjusts line constraints after drones are deleted.
+- **`src/core/HistoryManager.js`**: Manages the undo/redo history state stack.
+  - `HistoryManager.save(snapshot)`: Pushes a state snapshot onto the history stack.
+  - `HistoryManager.undo()`: Retrieves the previous state snapshot from the stack.
+  - `HistoryManager.redo()`: Retrieves the next state snapshot from the stack.
+  - `HistoryManager.clear()`: Resets the history stacks.
 
 ### Entity Models
 - **`src/entities/ShellEntity.js`**: Defines the physical properties of a launched firework shell (coordinates, velocity, color preset, and age).
 - **`src/entities/CometEntity.js`**: Encapsulates physics data for low-altitude trail comets.
-- **`src/entities/DroneEntity.js`**: Standard OOP model for singular drone objects (largely bypassed in high-performance rendering).
+- **`src/entities/DroneEntity.js`**: Standard OOP model for singular drone objects.
 - **`src/entities/DroneMotionProfile.js`**: Configures physics parameters like steering force for autonomous drone behaviors.
 - **`src/entities/DroneAnimationLayer.js`**: Dynamic animation layer attached to a drone entity for scaling, spinning, and shimmering effects.
   - `DroneAnimationLayer.applyAnimation(type, params, duration)`: Adds a new active procedural animation (spin, pulse, shimmer).
@@ -62,6 +74,7 @@
 - **`src/systems/DroneSystem.js`**: Handles global performance zone offsets and the `InstancedDroneMesh` rendering buffer.
   - `DroneSystem.createDrones(count)`: Spawns a specified number of drone instances.
   - `DroneSystem.applyFormat(positions, formatConfig)`: Sets target coordinates and transitions colors/animations.
+- **`src/systems/PhysicSystem.js`**: Placeholder for physics-related drone coordinate simulations.
 
 ### Effects & Animations
 - **`src/effects/arrival/ArrivalColorSystem.js`**: Handles gradual illumination when drones arrive at target positions.
@@ -99,14 +112,10 @@
   - `renderTimeline(state)`: Renders Step Cards with drag-and-drop handles.
 - **`src/editor/systems/GizmoSystem.js`**: 3D selection handles allowing translation, rotation, and scaling of selected particles.
 
----
-
 ## 2. Entry Points
 - **`src/main.js`**: Main show viewer entry point. Integrates audio, pyros simulation, and drone sequencers.
 - **`src/editor/main.js`**: Entry point for the animated timeline-based drone path editor.
 - **`src/formation/main.js`**: Entry point for the static 3D drone formation blueprint designer.
-
----
 
 ## 3. Relationship Graph
 ```mermaid
@@ -147,22 +156,18 @@ graph TD
     EditorUI --> TimelinePanel[editor/ui/panels/TimelinePanel]
 ```
 
----
-
 ## 4. Execution Flows
 - **Firework Show Playback & Sync**: `src/main.js` initializes managers -> `ShowDirector` tracks real elapsed ticks -> spawns comets, sparks, launch trails, and sound pops dynamically -> `DroneShowSequencer` calculates current chặng bay, interpolating drone paths and feeding matrix coordinate updates into `DroneSystem`.
 - **Static Formation blueprinting**: `src/formation/main.js` draws UI panels using `FormationUI` -> user adds shape profiles from `DroneFormationFactory` -> modifications update positions in `FormationState` -> `FormationDirector` flushes buffers directly into Three.js matrix updates.
 - **Timeline-based Animation Drag & Reorder**: In the Timeline Panel, dragging a step card stores its `index`. On `drop`, steps are reordered via `splice` directly in `state.steps` array. `state.recalculateTimes()` recalculates all timeline time intervals based on custom duration parameters -> UI is flushed and 3D simulation re-renders instantly.
 
----
-
 ## 5. Cross-Module Dependencies
 - **`BaseFormationState`**: Shared core state class managing coordinates, groups, history stacks, and line constraints.
+- **`ConstraintSolver`**: Shared mathematical operations to compute 3D lines constraints, used by BaseFormationState.
+- **`HistoryManager`**: Shared history stack mechanism to manage undo/redo snapshots.
+- **`globalEventBus`**: Centralized event system used across scene/input managers, audio/particle systems, and editors.
 - **`GizmoSystem`**: Jointly shared tool between static formation editor and animated editor.
 - **`i18n translation system`**: Imported across 15 frontend panel files and Electron configuration pipelines for complete multi-language syncing.
 
----
-
 ## 6. Problems & Anti-patterns
 - **HTML-in-JS UI Panel coupling**: Frontend panels in `src/editor/ui/panels/` and `src/formation/ui/` keep hardcoded HTML structures inside Javascript strings and query standard global DOM elements. They should be refactored into modular, template-based structures.
-- **Lack of centralized Event Bus**: Multiple systems communicate via global window DOM events (like `timeline:toggle`), increasing potential leak points. A unified pub/sub event bus is strongly recommended.
