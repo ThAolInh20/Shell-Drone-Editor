@@ -313,6 +313,8 @@ export default {
           "sweep-right": "右スイープ",
           "sweep-arc-left": "円弧左スイープ",
           "sweep-arc-right": "円弧右スイープ",
+          "sweep-arc-out-left": "円弧左外スイープ",
+          "sweep-arc-out-right": "円弧右外スイープ",
           converge: "収束",
           diverge: "発散",
           zigzag: "ジグザグ",

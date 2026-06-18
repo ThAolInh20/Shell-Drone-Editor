@@ -81,7 +81,7 @@ export class PropertyInspector {
           fields: [
             { name: 'time', labelKey: 'time', type: 'number', step: '0.1' },
             { name: 'type', labelKey: 'type', type: 'select', options: ['single', 'sequence', 'cometsequence', 'finale'] },
-            { name: 'pattern', labelKey: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'sweep-arc-left', 'sweep-arc-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+            { name: 'pattern', labelKey: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'sweep-arc-left', 'sweep-arc-right', 'sweep-arc-out-left', 'sweep-arc-out-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
             { name: 'preset', labelKey: 'preset', type: 'select', options: this.presetOptions, span: 2 },
             { name: 'count', labelKey: 'count', type: 'number', step: '1' },
             { name: 'duration', labelKey: 'duration', type: 'number', step: '0.1' },
