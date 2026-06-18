@@ -311,6 +311,8 @@ export default {
           random: "ランダム",
           "sweep-left": "左スイープ",
           "sweep-right": "右スイープ",
+          "sweep-arc-left": "円弧左スイープ",
+          "sweep-arc-right": "円弧右スイープ",
           converge: "収束",
           diverge: "発散",
           zigzag: "ジグザグ",

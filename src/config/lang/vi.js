@@ -337,6 +337,8 @@ export default {
           random: "Ngẫu nhiên",
           "sweep-left": "Quét sang trái",
           "sweep-right": "Quét sang phải",
+          "sweep-arc-left": "Quét vòng cung trái",
+          "sweep-arc-right": "Quét vòng cung phải",
           converge: "Hội tụ",
           diverge: "Phân kỳ",
           zigzag: "Zic-zac",
