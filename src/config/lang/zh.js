@@ -262,6 +262,84 @@ export default {
       saveNewSuccess: "成功保存新编队文件：{filename}",
       saveNewError: "保存新编队失败：{error}",
       exportSuccessBrowser: "成功导出剧本到 {filename}！"
+    },
+    inspector: {
+      title: "属性面板",
+      empty: "未选择任何对象。",
+      deleteBtn: "删除事件",
+      groups: {
+        audioSettings: "音频设置",
+        coreSettings: "核心设置",
+        cometConfig: "Comet 配置",
+        visualEffects: "灯光效果",
+        geometryOffsets: "坐标与偏移"
+      },
+      fields: {
+        time: "开始时间 (秒)",
+        volume: "音量",
+        url: "文件路径",
+        type: "类型",
+        pattern: "发射规律",
+        preset: "预设",
+        count: "数量",
+        duration: "持续时间 (秒)",
+        sectorId: "分区 ID",
+        angle: "发射角度 (度)",
+        color: "烟花颜色",
+        customColor: "自定义颜色",
+        shellSize: "烟花大小",
+        pistil: "花芯 (Pistil)",
+        instantBurst: "即时爆炸",
+        strobe: "闪烁 (Strobe)",
+        crackle: "裂音 (Crackle)",
+        ratioX: "比例 X",
+        ratioY: "比例 Y",
+        x1: "X1",
+        x2: "X2",
+        y1: "Y1",
+        y2: "Y2"
+      },
+      options: {
+        type: {
+          single: "单发",
+          sequence: "序列",
+          cometsequence: "Comet 序列",
+          finale: "谢幕 (Finale)",
+          audio: "音频"
+        },
+        pattern: {
+          random: "随机",
+          "sweep-left": "向左扫描",
+          "sweep-right": "向右扫描",
+          converge: "向内会聚",
+          diverge: "向外发散",
+          zigzag: "之字形",
+          fan: "扇形",
+          continuous: "连续",
+          "fan-sweep-left": "扇形向左扫",
+          "fan-sweep-right": "扇形向右扫",
+          "fan-sweep-continuous": "扇形连续扫",
+          "fan-burst": "扇形齐发"
+        },
+        sectorId: {
+          left: "左侧",
+          center: "中间",
+          right: "右侧",
+          empty: "无"
+        },
+        preset: {
+          random: "随机"
+        }
+      },
+      colors: {
+        red: "红色",
+        gold: "金色",
+        white: "白色",
+        blue: "蓝色",
+        green: "绿色",
+        purple: "紫色",
+        pink: "粉色"
+      }
     }
   }
 };

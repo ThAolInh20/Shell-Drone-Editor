@@ -416,3 +416,211 @@ code {
     border-right-color: var(--border);
   }
 }
+
+/* Property Inspector Styles */
+.inspector-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #3498db;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.inspector-empty {
+  color: #8a9ba8;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 30px;
+}
+.inspector-accordion {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.01);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.inspector-accordion-header {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  transition: background 0.15s ease;
+}
+.inspector-accordion-header:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.inspector-accordion-header.active {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+.inspector-accordion-content {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+.inspector-field-span-2 {
+  grid-column: span 2;
+}
+.inspector-label {
+  font-size: 10px;
+  color: #8a9ba8;
+  margin-bottom: 4px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.inspector-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: #101418;
+  border: 1px solid #2c3e50;
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.inspector-input:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+.inspector-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  color: #c2cbd2;
+  padding: 6px 0;
+}
+.inspector-checkbox {
+  margin: 0;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+.color-badge-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  align-items: center;
+  grid-column: span 2;
+}
+.color-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.4);
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.color-badge:hover {
+  transform: scale(1.15);
+}
+.color-badge.active {
+  border-color: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+.color-custom-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+.color-custom-input {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #555;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.color-custom-input:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.angle-dial-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  grid-column: span 2;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.angle-dial {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid #34495e;
+  background: #101418;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.angle-dial:hover {
+  border-color: #3498db;
+}
+.angle-dial-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 45%;
+  height: 2px;
+  background: #2ecc71;
+  transform-origin: left center;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+.angle-dial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.inspector-delete-btn {
+  width: 100%;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  margin-top: 15px;
+  transition: background 0.15s ease;
+}
+.inspector-delete-btn:hover {
+  background: #c0392b;
+}
+
