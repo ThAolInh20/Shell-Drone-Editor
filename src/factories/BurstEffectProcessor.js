@@ -16,6 +16,7 @@ export class BurstEffectProcessor {
     'falling-comets',
     'falling-comets-glitter',
     'crysanthemum-trail',
+    'crysanthemum-cc',
     'ghost',
     'galaxy-spin',
     'comet-ring'
@@ -197,6 +198,8 @@ export class BurstEffectProcessor {
       spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet, tuy nhiên nó sẽ mang màu của pháo đó
       trailLife = 0.45; // Rút ngắn đuôi hoa cúc
       trailIntensity = 0.9; // Cường độ sáng cao hơn nữa để giữ màu sắc thật
+    } else if (effectType === 'crysanthemum-cc') {
+      gravityScale = 0.3;
     } else if (effectType === 'ghost') {
       gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
       velocity.multiplyScalar(0.996);

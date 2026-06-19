@@ -366,6 +366,47 @@ export class FireworkSystem {
     const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
     const whiteColor = new THREE.Color(0xffffff);
 
+    // Initialize effect state early so we can access parameters like ghostAxis during particle generation
+    const effectState = {
+      ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount, preset),
+      shapeType: resolvedShape
+    };
+
+    let color2Blend = null;
+    if (normalizedEffect === 'ghost' || normalizedEffect === 'crysanthemum-cc') {
+      let secondColor;
+      if (preset && preset.secondColor && preset.secondColor !== preset.color) {
+        secondColor = new THREE.Color(preset.secondColor);
+      } else {
+        const baseHex = color.getHex();
+        // Hand-picked color transition map matching Preset Factory
+        const transitionMap = {
+          0xffd700: 0x00bfff,    // Gold -> Sky Blue
+          0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
+          0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
+          0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
+          0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
+          0x8a2be2: 0xffd700,    // Blue Violet -> Gold
+          0xffffff: 0xff4500     // White -> Orange Red
+        };
+
+        if (transitionMap[baseHex] !== undefined) {
+          secondColor = new THREE.Color(transitionMap[baseHex]);
+        } else {
+          // Fallback for custom color picker colors: shift hue by 180 degrees (0.5)
+          const hsl = { h: 0, s: 0, l: 0 };
+          color.getHSL(hsl);
+          if (hsl.s < 0.1 || hsl.l > 0.95) {
+            secondColor = new THREE.Color(0xff4500); // Grayscale -> Orange Red
+          } else {
+            const newHue = (hsl.h + 0.5) % 1.0;
+            secondColor = new THREE.Color().setHSL(newHue, hsl.s, hsl.l);
+          }
+        }
+      }
+      color2Blend = secondColor.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
+    }
+
     const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
     const hasPistil = Boolean(preset?.pistil);
     const isCompositeCore = isJupiterComposite || hasPistil;
@@ -423,15 +464,29 @@ export class FireworkSystem {
 
       const shellSizeScale = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
+      
+      // Store the normalized direction vector to determine the hemisphere for coloring
+      const normDir = direction.clone().normalize();
       velocities.push(direction.multiplyScalar(speed));
 
       positions[i * 3] = position.x;
       positions[i * 3 + 1] = position.y;
       positions[i * 3 + 2] = position.z;
 
-      const particleColor = isCoreParticle
-        ? (preset?.pistilColor ? new THREE.Color(preset.pistilColor) : new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0])).lerp(whiteColor, 0.08 + Math.random() * 0.12)
-        : burstColor;
+      let particleColor = burstColor;
+      if (isCoreParticle) {
+        particleColor = (preset?.pistilColor ? new THREE.Color(preset.pistilColor) : new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0])).lerp(whiteColor, 0.08 + Math.random() * 0.12);
+      } else if (normalizedEffect === 'ghost') {
+        const dot = normDir.x * effectState.ghostAxis.x + normDir.y * effectState.ghostAxis.y + normDir.z * effectState.ghostAxis.z;
+        if (dot < 0) {
+          particleColor = burstColor;
+        } else {
+          particleColor = color2Blend;
+        }
+      } else if (normalizedEffect === 'crysanthemum-cc') {
+        particleColor = burstColor;
+      }
+
       colors[i * 3] = particleColor.r * brightnessIntensity;
       colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
       colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
@@ -489,6 +544,10 @@ export class FireworkSystem {
         `
       );
     };
+
+    const color1Scaled = burstColor.clone().multiplyScalar(brightnessIntensity);
+    const color2Scaled = color2Blend ? color2Blend.clone().multiplyScalar(brightnessIntensity) : null;
+
     const points = new THREE.Points(geometry, material);
     points.userData = {
       velocities,
@@ -500,15 +559,14 @@ export class FireworkSystem {
       particleCount: burstParticleCount,
       heightProfile,
       preset,
-      effectState: {
-        ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount, preset),
-        shapeType: resolvedShape
-      }
+      effectState: effectState,
+      color1: color1Scaled,
+      color2: color2Scaled
     };
 
     if (normalizedEffect === 'ghost') {
       const ghostDots = new Float32Array(burstParticleCount);
-      const ghostAxis = points.userData.effectState.ghostAxis;
+      const ghostAxis = effectState.ghostAxis;
       for (let i = 0; i < burstParticleCount; i++) {
         const vel = velocities[i];
         const speed = vel.length();
@@ -517,7 +575,7 @@ export class FireworkSystem {
         const nz = speed > 0 ? vel.z / speed : 0;
         ghostDots[i] = nx * ghostAxis.x + ny * ghostAxis.y + nz * ghostAxis.z;
       }
-      points.userData.effectState.ghostDots = ghostDots;
+      effectState.ghostDots = ghostDots;
     }
 
     return {
@@ -891,6 +949,43 @@ export class FireworkSystem {
         colors[i * 3] = baseColors[i * 3] * intensity;
         colors[i * 3 + 1] = baseColors[i * 3 + 1] * intensity;
         colors[i * 3 + 2] = baseColors[i * 3 + 2] * intensity;
+        needsColorUpdate = true;
+      } else if (effectType === 'crysanthemum-cc' && baseColors) {
+        const color1 = item.points.userData.color1;
+        const color2 = item.points.userData.color2;
+        
+        let activeColor = color1;
+        let fade = 1.0;
+
+        if (lifeRatio < 0.4) {
+          activeColor = color1;
+          fade = 1.0;
+        } else if (lifeRatio < 0.5) {
+          activeColor = color1;
+          // Tối dần từ 1.0 về 0.0 (fade-out trước đổi màu)
+          fade = (0.5 - lifeRatio) / 0.1;
+        } else if (lifeRatio < 0.6) {
+          activeColor = color2;
+          // Sáng dần từ 0.0 lên 1.0 (fade-in sau đổi màu)
+          fade = (lifeRatio - 0.5) / 0.1;
+        } else {
+          activeColor = color2;
+          fade = 1.0;
+        }
+
+        const r = activeColor.r * fade;
+        const g = activeColor.g * fade;
+        const b = activeColor.b * fade;
+
+        colors[i * 3] = r;
+        colors[i * 3 + 1] = g;
+        colors[i * 3 + 2] = b;
+
+        // Cập nhật cả baseColors để các hạt trail kế thừa màu sắc mới sau khi đổi màu
+        baseColors[i * 3] = r;
+        baseColors[i * 3 + 1] = g;
+        baseColors[i * 3 + 2] = b;
+
         needsColorUpdate = true;
       }
 
