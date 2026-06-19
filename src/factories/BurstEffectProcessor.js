@@ -17,7 +17,8 @@ export class BurstEffectProcessor {
     'falling-comets-glitter',
     'crysanthemum-trail',
     'ghost',
-    'galaxy-spin'
+    'galaxy-spin',
+    'comet-ring'
   ]);
 
   static normalizeEffectType(effectType) {
@@ -213,6 +214,12 @@ export class BurstEffectProcessor {
       spawnTrail = true;
       trailLife = 0.24; // Rút ngắn vệt từ 0.35 xuống 0.24 để giảm dồn ứ hạt sáng
       trailIntensity = 0.22; // Giảm độ sáng của vệt từ 0.4 xuống 0.22
+    } else if (effectType === 'comet-ring') {
+      gravityScale = 0.06; // Rất nhẹ để giữ nguyên hình dạng vòng tròn phẳng lan tỏa rộng
+      spawnTrail = true;   // Kích hoạt vệt đuôi comet
+      trailLife = 1.4;     // Tăng thời gian sống để đuôi dài hơn nữa
+      trailIntensity = 0.85; // Tăng cường độ sáng rực rỡ cho vệt comet sắc nét
+      velocity.multiplyScalar(0.985); // Ma sát không khí nhẹ để chuyển động chậm dần mượt mà
     }
 
     // Apply modular overrides for strobe and crackle on top of other effects

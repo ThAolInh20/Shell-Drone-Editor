@@ -71,7 +71,7 @@ export class TrailSystem {
     }
   }
 
-  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0, strobe = false) {
+  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0, strobe = false, customVelocity = null, gravityScale = 1.0, dragScale = 1.0) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -81,9 +81,14 @@ export class TrailSystem {
       )
       : DEFAULT_TRAIL_COLOR.clone();
 
-    const velocity = zeroVelocity
-      ? new THREE.Vector3(0, 0, 0)
-      : new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
+    let velocity;
+    if (customVelocity) {
+      velocity = customVelocity.clone();
+    } else {
+      velocity = zeroVelocity
+        ? new THREE.Vector3(0, 0, 0)
+        : new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
+    }
 
     const particle = {
       position: position.clone(),
@@ -92,7 +97,9 @@ export class TrailSystem {
       life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
       age: 0,
       opacity: opacityMultiplier,
-      strobe: strobe
+      strobe: strobe,
+      gravityScale: gravityScale,
+      dragScale: dragScale
     };
     this.trailParticles.push(particle);
   }
@@ -148,11 +155,13 @@ export class TrailSystem {
     const colors = [];
 
     for (const particle of this.trailParticles) {
-      // Thêm lực cản không khí để hạt hãm phanh lại, không bị bung ra mãi tới lúc chết
-      particle.velocity.x *= (1.0 - 4.0 * deltaTime);
-      particle.velocity.z *= (1.0 - 4.0 * deltaTime);
-      // Rơi xuống từ từ
-      particle.velocity.y += GRAVITY * deltaTime * 0.5;
+      // Thêm lực cản không khí để hạt hãm phanh lại, nhân thêm dragScale riêng biệt
+      const drag = 1.0 - 4.0 * deltaTime * (particle.dragScale ?? 1.0);
+      particle.velocity.x *= drag;
+      particle.velocity.y *= drag;
+      particle.velocity.z *= drag;
+      // Rơi xuống từ từ (nhân thêm gravityScale riêng biệt của hạt)
+      particle.velocity.y += GRAVITY * deltaTime * 0.5 * (particle.gravityScale ?? 1.0);
       particle.position.addScaledVector(particle.velocity, deltaTime);
       particle.age += deltaTime;
 
