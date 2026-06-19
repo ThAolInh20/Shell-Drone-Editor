@@ -18,13 +18,14 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'galaxy-spin', 'comet-ring']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
+      { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
       { key: 'whiteStrobe', label: 'White Strobe' },
@@ -100,6 +101,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.crysanthemumShell());
       case 'crysanthemumV2':
         return this.validatePreset(this.crysanthemumV2Shell());
+      case 'crysanthemumCC':
+        return this.validatePreset(this.crysanthemumCCShell());
       case 'crackle':
         return this.validatePreset(this.crackleShell());
       case 'strobe':
@@ -231,6 +234,37 @@ export class ShellPresetFactory {
       shellType: 'crysanthemumV2',
       shapeType: 'sphere',
       effectType: 'crysanthemum-trail',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumCCShell(size = 1) {
+    const base = this.basePreset(size);
+    const color = base.color;
+
+    // Choose a second color based on transition color map
+    const colorMap = {
+      'white': 0xff4500,     // White -> Orange Red
+      0xffd700: 0x00bfff,    // Gold -> Sky Blue
+      0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
+      0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
+      0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
+      0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
+      0x8a2be2: 0xffd700     // Blue Violet -> Gold
+    };
+    const secondColor = colorMap[color] || 0xffffff;
+
+    return {
+      ...base,
+      color,
+      secondColor,
+      shellType: 'crysanthemumCC',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-cc',
       flower: false,
       smiley: false,
       hearth: false,
@@ -542,8 +576,25 @@ export class ShellPresetFactory {
   }
 
   ghostShell(size = 1) {
+    const base = this.basePreset(size);
+    const color = base.color;
+
+    // Choose a second color based on transition color map
+    const colorMap = {
+      'white': 0xff4500,     // White -> Orange Red
+      0xffd700: 0x00bfff,    // Gold -> Sky Blue
+      0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
+      0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
+      0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
+      0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
+      0x8a2be2: 0xffd700     // Blue Violet -> Gold
+    };
+    const secondColor = colorMap[color] || 0xffffff;
+
     return {
-      ...this.basePreset(size),
+      ...base,
+      color,
+      secondColor,
       shellType: 'ghost',
       shapeType: 'sphere',
       effectType: 'ghost',
