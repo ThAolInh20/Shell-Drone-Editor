@@ -284,6 +284,10 @@ export class FireworkSystem {
 
 
   resolveBurstParticleCount(shape, effectType, preset) {
+    if (preset?.shellType === 'ringComet') {
+      return 10 + Math.floor(Math.random() * 6); // 10-15 particles for sparse comet ring
+    }
+
     const shapeMultiplier = {
       sphere: 1,
       ring: 1.08,
@@ -443,7 +447,7 @@ export class FireworkSystem {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     const material = new THREE.PointsMaterial({
-      size: BASE_BURST_POINT_SIZE * heightProfile.sizeMultiplier,
+      size: (preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier,
       vertexColors: true,
       transparent: true,
       opacity: 0.92,
@@ -599,7 +603,7 @@ export class FireworkSystem {
     if (item.shellType === 'bouquetv2') {
       const clusterCount = 12 + Math.floor(Math.random() * 11); // 12 to 22 child shells
       const colorMode = item.preset?.colorMode ?? 'parent';
-      
+
       for (let i = 0; i < clusterCount; i++) {
         const colorHex = colorMode === 'random'
           ? FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]
@@ -607,7 +611,7 @@ export class FireworkSystem {
         const subColor = new THREE.Color(colorHex);
 
         const speed = 40 + Math.random() * 35; // Wider spread
-        const angleY = Math.random() * Math.PI / 2.2; 
+        const angleY = Math.random() * Math.PI / 2.2;
         const angleXZ = Math.random() * Math.PI * 2;
 
         const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
@@ -617,7 +621,7 @@ export class FireworkSystem {
         const velocity = new THREE.Vector3(vx, vy, vz);
         const targetHeight = burstPosition.y + 1000;
 
-        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5); 
+        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5);
         subPreset.color = colorHex;
         subPreset.shellType = 'floral-child';
         subPreset.particleCountMultiplier = 0.65; // More glitter particles
@@ -792,7 +796,8 @@ export class FireworkSystem {
           ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
           : 1.0;
 
-        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam) ? 1.0 : 0.3;
+        const isCometRing = item.points.userData.effectState?.effectType === 'comet-ring';
+        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing) ? 1.0 : 0.3;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
@@ -800,7 +805,24 @@ export class FireworkSystem {
           trailColor.multiplyScalar(currentIntensity); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
 
           const currentLife = (trailLife || 0.8) * (0.2 + 0.8 * parentFade);
-          this.trailSystem.spawnTrailParticle(particlePosition, trailColor, currentLife); // Kéo dài thời gian tồn tại của đuôi hoặc dùng giá trị tùy chỉnh
+
+          // Thừa kế vận tốc mẹ, triệt tiêu trọng lực và thiết lập lực cản gió lớn để đuôi phanh nhanh hơn đầu
+          const trailVel = isCometRing ? velocity.clone().multiplyScalar(0.7) : null;
+          const trailGrav = isCometRing ? 0.0 : 1.0;
+          const trailDrag = isCometRing ? 1.2 : 1.0;
+
+          this.trailSystem.spawnTrailParticle(
+            particlePosition,
+            trailColor,
+            isCometRing ? 1.0 : currentLife, // lifeMultiplier
+            false,
+            isCometRing ? currentLife : null, // customLife (exact lifetime)
+            1.0,
+            false,
+            trailVel,
+            trailGrav,
+            trailDrag
+          );
         }
       }
 

@@ -18,7 +18,7 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'galaxy-spin']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'galaxy-spin', 'comet-ring']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
@@ -42,6 +42,7 @@ export class ShellPresetFactory {
       { key: 'cat', label: 'Cat' },
       { key: 'ring', label: 'Ring' },
       { key: 'ringV2', label: 'RingV2' },
+      { key: 'ringComet', label: 'Comet Ring' },
       { key: 'oval', label: 'Oval' },
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
@@ -75,14 +76,15 @@ export class ShellPresetFactory {
     if (roll < 0.61) return this.flowerShell();
     if (roll < 0.67) return this.catShell();
     if (roll < 0.74) return this.ringShell();
-    if (roll < 0.8) return this.ringShellV2();
-    if (roll < 0.87) return this.ovalShell();
-    if (roll < 0.92) return this.snowShell();
+    if (roll < 0.82) return this.cometRingShell();
+    if (roll < 0.86) return this.ringShellV2();
+    if (roll < 0.90) return this.ovalShell();
+    if (roll < 0.93) return this.snowShell();
     if (roll < 0.96) return this.fishShell();
-    if (roll < 0.975) return this.smileyShell();
-    if (roll < 0.985) return this.waveShell();
-    if (roll < 0.99) return this.fallingCometsShell();
-    if (roll < 0.993) return this.starShell();
+    if (roll < 0.972) return this.smileyShell();
+    if (roll < 0.982) return this.waveShell();
+    if (roll < 0.988) return this.fallingCometsShell();
+    if (roll < 0.992) return this.starShell();
     if (roll < 0.995) return this.halfFlashShell();
     if (roll < 0.998) return this.splitFlashShell();
     return this.hearthShell();
@@ -132,6 +134,8 @@ export class ShellPresetFactory {
         return this.validatePreset(this.ringShell());
       case 'ringV2':
         return this.validatePreset(this.ringShellV2());
+      case 'ringComet':
+        return this.validatePreset(this.cometRingShell());
       case 'oval':
         return this.validatePreset(this.ovalShell());
       case 'snow':
@@ -316,6 +320,23 @@ export class ShellPresetFactory {
       ringCoreJitter: 0.08,
       doubleRing: false,
       streamers: Math.random() < 0.3
+    };
+  }
+
+  cometRingShell(size = 1.8) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'ringComet',
+      shapeType: 'ring',
+      effectType: 'comet-ring',
+      shapeRenderMode: 'outline',
+      outlineThickness: 0.035,
+      doubleRing: false,
+      particleCountMultiplier: 0.85, // Mật độ vừa phải để giữ đường nét thanh mảnh và hiệu năng tối ưu
+      color: this.whiteOrGold(),
+      streamers: false,
+      pistil: false,
+      particleSize: 14 // Đầu hạt nhỏ hơn
     };
   }
 
