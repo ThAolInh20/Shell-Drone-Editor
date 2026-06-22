@@ -3,13 +3,14 @@ import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { globalEventBus } from './EventBus.js';
 
 export class SceneManager {
-  constructor() {
+  constructor(eventBus = null) {
     this.instance = new THREE.Scene();
     this.baseSkyColor = new THREE.Color(0x050510);
     this.baseFogDensity = 0.002;
     this.baseAmbientIntensity = 0.1;
     this.baseHemisphereIntensity = 0.08;
     this.eventSubscriptions = [];
+    this.eventBus = eventBus || globalEventBus;
 
     // Set a very dark blue/black color for night sky void
     this.instance.background = this.baseSkyColor.clone();
@@ -84,7 +85,7 @@ export class SceneManager {
     // this.addLaunchPad();
 
     this.eventSubscriptions.push(
-      globalEventBus.on('timeline:toggle', (visible) => {
+      this.eventBus.on('timeline:toggle', (visible) => {
         this.launchPadGroup.visible = visible;
       })
     );
@@ -170,9 +171,13 @@ export class SceneManager {
     }
   }
 
-  addCheckerboardFloor() {
+  _createCheckerboardTexture() {
     const floorSize = 2000;
     const tileSize = 50;
+
+    if (typeof document === 'undefined') {
+      return null;
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -215,6 +220,12 @@ export class SceneManager {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.magFilter = THREE.NearestFilter;
+    return texture;
+  }
+
+  addCheckerboardFloor() {
+    const floorSize = 2000;
+    const texture = this._createCheckerboardTexture();
 
     const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize);
     const floorMaterial = new THREE.MeshStandardMaterial({

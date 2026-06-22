@@ -2,13 +2,18 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 
 export class AudioSystem {
-  constructor(cameraManager) {
+  constructor(cameraManager, audioContext = null, eventBus = null) {
     this.cameraManager = cameraManager;
     this.baseURLLegacy = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/';
     this.baseURLNew = 'https://shellsound.s3.ap-southeast-2.amazonaws.com/effect/';
+    this.eventBus = eventBus || globalEventBus;
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioContext();
+    if (audioContext) {
+      this.ctx = audioContext;
+    } else {
+      const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
+      this.ctx = AudioContextClass ? new AudioContextClass() : null;
+    }
 
     this.speedOfSound = 343; // units/second, assuming 1 unit = 1 meter
 
@@ -55,9 +60,9 @@ export class AudioSystem {
 
   bindEvents() {
     this.eventSubscriptions.push(
-      globalEventBus.on('firework:launch', (detail) => this.handleLaunch(detail)),
-      globalEventBus.on('firework:burst', (detail) => this.handleBurst(detail)),
-      globalEventBus.on('firework:crackle', (detail) => this.handleCrackle(detail))
+      this.eventBus.on('firework:launch', (detail) => this.handleLaunch(detail)),
+      this.eventBus.on('firework:burst', (detail) => this.handleBurst(detail)),
+      this.eventBus.on('firework:crackle', (detail) => this.handleCrackle(detail))
     );
   }
 
@@ -68,6 +73,7 @@ export class AudioSystem {
   }
 
   async preload() {
+    if (!this.ctx) return Promise.resolve();
     const allFilePromises = [];
 
     const checkStatus = (response) => {
@@ -106,10 +112,11 @@ export class AudioSystem {
   }
 
   resume() {
+    if (!this.ctx) return;
     // Play a silent sound to unlock AudioContext
     this.playSoundBase('lift', 0, 1, 0);
     setTimeout(() => {
-      if (this.ctx.state === 'suspended') {
+      if (this.ctx && this.ctx.state === 'suspended') {
         this.ctx.resume();
       }
     }, 250);
@@ -133,12 +140,15 @@ export class AudioSystem {
   }
 
   calculatePan(position) {
-    if (!position || position.x === undefined || !this.cameraManager || !this.cameraManager.instance) {
+    if (!position || position.x === undefined || !this.cameraManager) {
       return 0;
     }
 
     try {
-      const camera = this.cameraManager.instance;
+      const camera = this.cameraManager.instance || this.cameraManager;
+      if (!camera || typeof camera.applyMatrix4 !== 'function') {
+        return 0;
+      }
       // Chuyển vị trí nổ sang không gian của camera (View Space)
       const viewPos = new THREE.Vector3(position.x, position.y, position.z);
       viewPos.applyMatrix4(camera.matrixWorldInverse);
@@ -163,6 +173,7 @@ export class AudioSystem {
   }
 
   playSoundBase(type, volumeScale = 1, playbackRateScale = 1, delay = 0, position = null) {
+    if (!this.ctx) return;
     const source = this.sources[type];
     if (!source || !source.buffers || source.buffers.length === 0) return;
 
