@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export class BurstEffectProcessor {
   static SUPPORTED_EFFECTS = new Set([
     'standard',
@@ -21,6 +23,13 @@ export class BurstEffectProcessor {
     'galaxy-spin',
     'comet-ring'
   ]);
+
+  static effectsRegistry = new Map();
+
+  static registerEffect(effectName, strategy) {
+    this.effectsRegistry.set(effectName, strategy);
+    this.SUPPORTED_EFFECTS.add(effectName);
+  }
 
   static normalizeEffectType(effectType) {
     return this.SUPPORTED_EFFECTS.has(effectType) ? effectType : 'standard';
@@ -66,7 +75,6 @@ export class BurstEffectProcessor {
     for (let i = 0; i < count; i++) {
       spin[i] = (Math.random() - 0.5) * 3.2;
 
-
       if (strobeEnabled || normalizedEffect === 'strobe' || normalizedEffect === 'white-strobe' || normalizedEffect === 'glitter-strobe' || normalizedEffect === 'falling-comets-glitter') {
         if (i % 12 === 0) currentStrobePhase = Math.random() * Math.PI * 2;
         phase[i] = currentStrobePhase;
@@ -96,34 +104,15 @@ export class BurstEffectProcessor {
 
   static materialOpacity(effectType, age, maxLife, baseOpacity) {
     const normalizedEffect = this.normalizeEffectType(effectType);
-
-    if (normalizedEffect === 'wave') {
-      const blinkSpeed = 38;
-      const blink = Math.sin(age * blinkSpeed) > 0 ? 1 : 0.2;
-      return Math.max(0, Math.min(1, baseOpacity * blink));
+    const strategy = this.effectsRegistry.get(normalizedEffect);
+    if (strategy && typeof strategy.materialOpacity === 'function') {
+      return strategy.materialOpacity(age, maxLife, baseOpacity);
     }
-
-    if (normalizedEffect === 'heart') {
-      const pulse = 0.78 + Math.sin(age * 12) * 0.18;
-      return Math.max(0, Math.min(1, baseOpacity * pulse));
-    }
-
-    if (normalizedEffect === 'oval') {
-      const softness = 0.88 + Math.sin(age * 4.5) * 0.08;
-      return Math.max(0, Math.min(1, baseOpacity * softness));
-    }
-
-    if (normalizedEffect === 'galaxy-spin') {
-      // Giảm bớt opacity cơ bản để hạt chính không bị chói lóa
-      return Math.max(0, Math.min(1, baseOpacity * 0.72));
-    }
-
     return baseOpacity;
   }
 
   static updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
     const effectType = this.normalizeEffectType(effectState?.effectType ?? 'standard');
-    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
 
     let gravityScale = 0.3;
     let emitSpark = false;
@@ -131,98 +120,17 @@ export class BurstEffectProcessor {
     let trailLife = 0.8;
     let trailIntensity = 0.35;
 
-    if (effectType === 'flow') {
-      gravityScale = 0.08;
-      const spinAmount = (effectState.spin[index] || 0) * deltaTime;
-      const cos = Math.cos(spinAmount);
-      const sin = Math.sin(spinAmount);
-      const oldX = velocity.x;
-      const oldZ = velocity.z;
-      velocity.x = oldX * cos - oldZ * sin;
-      velocity.z = oldX * sin + oldZ * cos;
-      velocity.y += Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.02;
-      velocity.multiplyScalar(0.998);
-      spawnTrail = true;
-      trailLife = 0.25; // vệt ngắn cho cá bơi
-      trailIntensity = 0.3; // Tăng độ sáng cho vệt sáng cá bơi
-    } else if (effectType === 'snow') {
-      gravityScale = 0.05;
-      const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
-      velocity.x += drift * deltaTime;
-      velocity.z += drift * deltaTime * 0.7;
-      velocity.multiplyScalar(0.996);
-    } else if (effectType === 'crackle') {
-      gravityScale = 0.18;
-      const jitter = (effectState.turbulence[index] || 1) * 0.03;
-      velocity.x += (Math.random() - 0.5) * jitter;
-      velocity.y += (Math.random() - 0.5) * jitter * 0.5;
-      velocity.z += (Math.random() - 0.5) * jitter;
-      emitSpark = false; // Tắt tia lửa bay tự do dọc đường
-    } else if (effectType === 'wave') {
-      gravityScale = 0.22;
-      velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
-    } else if (effectType === 'strobe' || effectType === 'white-strobe' || effectType === 'glitter-strobe') {
-      gravityScale = 0.2;
-      velocity.multiplyScalar(0.996);
-    } else if (effectType === 'heart') {
-      gravityScale = 0.24;
-      velocity.y += Math.sin(age * 6 + (effectState.phase[index] || 0)) * 0.018;
-      velocity.x *= 0.998;
-      velocity.z *= 0.998;
-    } else if (effectType === 'oval') {
-      gravityScale = 0.16;
-      const spinAmount = (effectState.spin[index] || 0) * deltaTime * 0.4;
-      const cos = Math.cos(spinAmount);
-      const sin = Math.sin(spinAmount);
-      const oldX = velocity.x;
-      const oldZ = velocity.z;
-      velocity.x = oldX * cos - oldZ * sin;
-      velocity.z = oldX * sin + oldZ * cos;
-      velocity.multiplyScalar(0.997);
-    } else if (effectType === 'flower' || effectType === 'floral') {
-      gravityScale = 0.2;
-      velocity.multiplyScalar(0.997);
-    } else if (effectType === 'falling-leaves') {
-      gravityScale = 0.06;
-      const drift = Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.06;
-      velocity.x += drift * deltaTime;
-      velocity.z += drift * deltaTime * 0.8;
-      velocity.multiplyScalar(0.995);
-    } else if (effectType === 'falling-comets' || effectType === 'falling-comets-glitter') {
-      gravityScale = 0.25; // Trọng lực bình thường để nó bung ra thành hình cầu
-      spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet
-      trailLife = 0.55; // Rút ngắn đuôi comet rủ xuống
-      trailIntensity = 0.35; // Tăng sáng cho đuôi comet
-    } else if (effectType === 'crysanthemum-trail') {
-      gravityScale = 0.3;
-      spawnTrail = true; // Cờ báo cho FireworkSystem biết cần sinh hạt vệt sáng như comet, tuy nhiên nó sẽ mang màu của pháo đó
-      trailLife = 0.45; // Rút ngắn đuôi hoa cúc
-      trailIntensity = 0.9; // Cường độ sáng cao hơn nữa để giữ màu sắc thật
-    } else if (effectType === 'crysanthemum-cc') {
-      gravityScale = 0.3;
-    } else if (effectType === 'ghost') {
-      gravityScale = 0.15; // Pháo ma thường rủ nhẹ, chậm
-      velocity.multiplyScalar(0.996);
-    } else if (effectType === 'galaxy-spin') {
-      gravityScale = 0.05; // Cực kỳ nhẹ để giữ dáng xoắn ốc
-      const spinSpeed = 2.5 * (1.0 - lifeRatio); // Chậm dần theo thời gian
-      const angleChange = spinSpeed * deltaTime;
-      const cos = Math.cos(angleChange);
-      const sin = Math.sin(angleChange);
-      const oldX = velocity.x;
-      const oldY = velocity.y;
-      velocity.x = oldX * cos - oldY * sin;
-      velocity.y = oldX * sin + oldY * cos;
-      velocity.multiplyScalar(0.992); // Ma sát không khí
-      spawnTrail = true;
-      trailLife = 0.24; // Rút ngắn vệt từ 0.35 xuống 0.24 để giảm dồn ứ hạt sáng
-      trailIntensity = 0.22; // Giảm độ sáng của vệt từ 0.4 xuống 0.22
-    } else if (effectType === 'comet-ring') {
-      gravityScale = 0.06; // Rất nhẹ để giữ nguyên hình dạng vòng tròn phẳng lan tỏa rộng
-      spawnTrail = true;   // Kích hoạt vệt đuôi comet
-      trailLife = 1.4;     // Tăng thời gian sống để đuôi dài hơn nữa
-      trailIntensity = 0.85; // Tăng cường độ sáng rực rỡ cho vệt comet sắc nét
-      velocity.multiplyScalar(0.985); // Ma sát không khí nhẹ để chuyển động chậm dần mượt mà
+    // Delegate to strategy from registry
+    const strategy = this.effectsRegistry.get(effectType);
+    if (strategy && typeof strategy.updateVelocity === 'function') {
+      const overrides = strategy.updateVelocity(velocity, index, deltaTime, age, maxLife, effectState);
+      if (overrides) {
+        if (overrides.gravityScale !== undefined) gravityScale = overrides.gravityScale;
+        if (overrides.emitSpark !== undefined) emitSpark = overrides.emitSpark;
+        if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
+        if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
+        if (overrides.trailIntensity !== undefined) trailIntensity = overrides.trailIntensity;
+      }
     }
 
     // Apply modular overrides for strobe and crackle on top of other effects
@@ -237,7 +145,7 @@ export class BurstEffectProcessor {
       velocity.x += (Math.random() - 0.5) * jitter;
       velocity.y += (Math.random() - 0.5) * jitter * 0.5;
       velocity.z += (Math.random() - 0.5) * jitter;
-      emitSpark = false; // Tắt tia lửa bay tự do dọc đường
+      emitSpark = false;
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)
@@ -246,8 +154,8 @@ export class BurstEffectProcessor {
       const halfCount = effectState.phase.length - numBeams;
       if (index >= halfCount) {
         spawnTrail = true;
-        trailLife = 0.42; // Đuôi râu sứa ngắn hơn một chút cho gọn gàng, mượt mà
-        trailIntensity = 0.85; // Tăng cường độ sáng rực rỡ
+        trailLife = 0.42;
+        trailIntensity = 0.85;
       }
     }
 
@@ -257,11 +165,198 @@ export class BurstEffectProcessor {
       const halfCount = effectState.phase.length - numBeams;
       if (index >= halfCount) {
         spawnTrail = true;
-        trailLife = 0.38; // Đuôi comet cắt ngang sắc nét và ngắn hơn
-        trailIntensity = 0.9; // Tăng độ sáng cao rực rỡ
+        trailLife = 0.38;
+        trailIntensity = 0.9;
       }
     }
 
     return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };
   }
 }
+
+// Register default strategies (OCP compliance)
+BurstEffectProcessor.registerEffect('standard', {
+  updateVelocity() {
+    return { gravityScale: 0.3 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('flow', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const spinAmount = (effectState.spin[index] || 0) * deltaTime;
+    const cos = Math.cos(spinAmount);
+    const sin = Math.sin(spinAmount);
+    const oldX = velocity.x;
+    const oldZ = velocity.z;
+    velocity.x = oldX * cos - oldZ * sin;
+    velocity.z = oldX * sin + oldZ * cos;
+    velocity.y += Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.02;
+    velocity.multiplyScalar(0.998);
+    return { gravityScale: 0.08, spawnTrail: true, trailLife: 0.25, trailIntensity: 0.3 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('snow', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
+    velocity.x += drift * deltaTime;
+    velocity.z += drift * deltaTime * 0.7;
+    velocity.multiplyScalar(0.996);
+    return { gravityScale: 0.05 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crackle', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const jitter = (effectState.turbulence[index] || 1) * 0.03;
+    velocity.x += (Math.random() - 0.5) * jitter;
+    velocity.y += (Math.random() - 0.5) * jitter * 0.5;
+    velocity.z += (Math.random() - 0.5) * jitter;
+    return { gravityScale: 0.18, emitSpark: false };
+  }
+});
+
+BurstEffectProcessor.registerEffect('wave', {
+  materialOpacity(age, maxLife, baseOpacity) {
+    const blinkSpeed = 38;
+    const blink = Math.sin(age * blinkSpeed) > 0 ? 1 : 0.2;
+    return Math.max(0, Math.min(1, baseOpacity * blink));
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    velocity.y += Math.sin(age * 8 + (effectState.phase[index] || 0)) * 0.03;
+    return { gravityScale: 0.22 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('strobe', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return { gravityScale: 0.2 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('white-strobe', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return { gravityScale: 0.2 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('glitter-strobe', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return { gravityScale: 0.2 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('heart', {
+  materialOpacity(age, maxLife, baseOpacity) {
+    const pulse = 0.78 + Math.sin(age * 12) * 0.18;
+    return Math.max(0, Math.min(1, baseOpacity * pulse));
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    velocity.y += Math.sin(age * 6 + (effectState.phase[index] || 0)) * 0.018;
+    velocity.x *= 0.998;
+    velocity.z *= 0.998;
+    return { gravityScale: 0.24 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('oval', {
+  materialOpacity(age, maxLife, baseOpacity) {
+    const softness = 0.88 + Math.sin(age * 4.5) * 0.08;
+    return Math.max(0, Math.min(1, baseOpacity * softness));
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const spinAmount = (effectState.spin[index] || 0) * deltaTime * 0.4;
+    const cos = Math.cos(spinAmount);
+    const sin = Math.sin(spinAmount);
+    const oldX = velocity.x;
+    const oldZ = velocity.z;
+    velocity.x = oldX * cos - oldZ * sin;
+    velocity.z = oldX * sin + oldZ * cos;
+    velocity.multiplyScalar(0.997);
+    return { gravityScale: 0.16 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('flower', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.997);
+    return { gravityScale: 0.2 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('floral', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.997);
+    return { gravityScale: 0.2 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('falling-leaves', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const drift = Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.06;
+    velocity.x += drift * deltaTime;
+    velocity.z += drift * deltaTime * 0.8;
+    velocity.multiplyScalar(0.995);
+    return { gravityScale: 0.06 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('falling-comets', {
+  updateVelocity() {
+    return { gravityScale: 0.25, spawnTrail: true, trailLife: 0.55, trailIntensity: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('falling-comets-glitter', {
+  updateVelocity() {
+    return { gravityScale: 0.25, spawnTrail: true, trailLife: 0.55, trailIntensity: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-trail', {
+  updateVelocity() {
+    return { gravityScale: 0.3, spawnTrail: true, trailLife: 0.45, trailIntensity: 0.9 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-cc', {
+  updateVelocity() {
+    return { gravityScale: 0.3 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('ghost', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return { gravityScale: 0.15 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('galaxy-spin', {
+  materialOpacity(age, maxLife, baseOpacity) {
+    return Math.max(0, Math.min(1, baseOpacity * 0.72));
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    const spinSpeed = 2.5 * (1.0 - lifeRatio);
+    const angleChange = spinSpeed * deltaTime;
+    const cos = Math.cos(angleChange);
+    const sin = Math.sin(angleChange);
+    const oldX = velocity.x;
+    const oldY = velocity.y;
+    velocity.x = oldX * cos - oldY * sin;
+    velocity.y = oldX * sin + oldY * cos;
+    velocity.multiplyScalar(0.992);
+    return { gravityScale: 0.05, spawnTrail: true, trailLife: 0.24, trailIntensity: 0.22 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('comet-ring', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.985);
+    return { gravityScale: 0.06, spawnTrail: true, trailLife: 1.4, trailIntensity: 0.85 };
+  }
+});
