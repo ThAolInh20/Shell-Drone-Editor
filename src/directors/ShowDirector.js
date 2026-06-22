@@ -1,11 +1,14 @@
+import { ShowEventDispatcher } from './ShowEventDispatcher.js';
+
 export class ShowDirector {
-  constructor(sequencer, fireworkSystem) {
+  constructor(sequencer, fireworkSystem, dispatcher = null) {
     this.sequencer = sequencer;
     this.fireworkSystem = fireworkSystem;
     this.elapsedTime = 0;
     this.events = [];
     this.isPlaying = false;
     this.audioPlayers = new Map();
+    this.dispatcher = dispatcher || new ShowEventDispatcher();
   }
 
   loadScript(scriptConfig) {
@@ -127,60 +130,9 @@ export class ShowDirector {
   }
 
   executeEvent(evt) {
-    switch(evt.type) {
-      case 'single': {
-        let overrides = evt.effectOverrides;
-        if (evt.instantBurst !== undefined || evt.shellSize !== undefined || evt.strobe !== undefined || evt.crackle !== undefined || evt.pistil !== undefined) {
-          overrides = { ...(overrides || {}) };
-          if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
-          if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
-          if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
-          if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
-          if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
-        }
-
-        const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 
-                      || (typeof evt.preset === 'string' && (evt.preset.startsWith('comet_cluster') || evt.preset.includes('comet')));
-
-        if (isComet && this.sequencer.cometSystem) {
-          this.sequencer.cometSystem.launchRandom(evt.preset, { 
-            ratioX: evt.ratioX, 
-            ratioY: evt.ratioY, 
-            ratioZ: evt.ratioZ,
-            sectorId: evt.sectorId,
-            color: evt.color,
-            effectOverrides: overrides
-          });
-        } else {
-          this.fireworkSystem.launchRandom(evt.preset, { 
-            ratioX: evt.ratioX, 
-            ratioY: evt.ratioY, 
-            ratioZ: evt.ratioZ,
-            sectorId: evt.sectorId,
-            color: evt.color,
-            effectOverrides: overrides
-          });
-        }
-        break;
-      }
-      case 'sequence':
-        this.sequencer.playPattern(evt.pattern, evt);
-        break;
-      case 'cometsequence':
-        this.sequencer.playCometSequence(evt.pattern, evt);
-        break;
-      case 'finale':
-        this.sequencer.playFinale(evt.totalShells, evt.duration);
-        break;
-      case 'audio':
-        // Audio is handled continuously in update() loop
-        break;
-      case 'droneshow':
-        // Handled completely by DroneShowSequencer which syncs to global playbackTime
-        break;
-      default:
-        console.warn(`[ShowDirector] Unknown event type: ${evt.type}`);
-        break;
-    }
+    this.dispatcher.dispatch(evt, {
+      sequencer: this.sequencer,
+      fireworkSystem: this.fireworkSystem
+    });
   }
 }
