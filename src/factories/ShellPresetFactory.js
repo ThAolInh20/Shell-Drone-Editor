@@ -59,6 +59,57 @@ export class ShellPresetFactory {
       { key: 'sparkling_comet', label: 'Sparkling Comet (Apex Spark)' },
       { key: 'galaxy', label: 'Spiral Galaxy' }
     ];
+
+    // Registry for dynamic preset strategies (OCP compliance)
+    this.presetsRegistry = new Map();
+    this.initializePresetsRegistry();
+  }
+
+  registerPreset(key, generatorFn, menuEntry = null) {
+    this.presetsRegistry.set(key, generatorFn);
+    if (menuEntry) {
+      this.presetMenuEntries.push(menuEntry);
+    }
+  }
+
+  initializePresetsRegistry() {
+    this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
+    this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
+    this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
+    this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
+    this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
+    this.presetsRegistry.set('glitterStrobe', (size) => this.glitterStrobeShell(size));
+    this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
+    this.presetsRegistry.set('weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
+    this.presetsRegistry.set('weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
+    this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
+    this.presetsRegistry.set('floral', (size) => this.floralShell(size));
+    this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
+    this.presetsRegistry.set('bouquetV2', (size) => this.bouquetV2Shell(size));
+    this.presetsRegistry.set('bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
+    this.presetsRegistry.set('rumble', (size) => this.rumbleShell(size));
+    this.presetsRegistry.set('flower', (size) => this.flowerShell(size));
+    this.presetsRegistry.set('cat', (size) => this.catShell(size));
+    this.presetsRegistry.set('ring', (size) => this.ringShell(size));
+    this.presetsRegistry.set('ringV2', (size) => this.ringShellV2(size));
+    this.presetsRegistry.set('ringComet', (size) => this.cometRingShell(size));
+    this.presetsRegistry.set('oval', (size) => this.ovalShell(size));
+    this.presetsRegistry.set('snow', (size) => this.snowShell(size));
+    this.presetsRegistry.set('fish', (size) => this.fishShell(size));
+    this.presetsRegistry.set('fishV2', (size) => this.fishV2Shell(size));
+    this.presetsRegistry.set('smiley', (size) => this.smileyShell(size));
+    this.presetsRegistry.set('wave', (size) => this.waveShell(size));
+    this.presetsRegistry.set('heart', (size) => this.hearthShell(size));
+    this.presetsRegistry.set('star', (size) => this.starShell(size));
+    this.presetsRegistry.set('ghost', (size) => this.ghostShell(size));
+    this.presetsRegistry.set('falling-comets', (size) => this.fallingCometsShell(size));
+    this.presetsRegistry.set('halfFlash', (size) => this.halfFlashShell(size));
+    this.presetsRegistry.set('splitFlash', (size) => this.splitFlashShell(size));
+    this.presetsRegistry.set('comet_cluster', (size) => this.cometCluster(size));
+    this.presetsRegistry.set('comet_cluster_notrail', (size) => this.cometClusterNoTrail(size));
+    this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
+    this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
   }
 
   randomPreset() {
@@ -96,85 +147,11 @@ export class ShellPresetFactory {
   }
 
   createPresetByKey(key) {
-    switch (key) {
-      case 'crysanthemum':
-        return this.validatePreset(this.crysanthemumShell());
-      case 'crysanthemumV2':
-        return this.validatePreset(this.crysanthemumV2Shell());
-      case 'crysanthemumCC':
-        return this.validatePreset(this.crysanthemumCCShell());
-      case 'crackle':
-        return this.validatePreset(this.crackleShell());
-      case 'strobe':
-        return this.validatePreset(this.strobeShell());
-      case 'whiteStrobe':
-        return this.validatePreset(this.whiteStrobeShell());
-      case 'glitterStrobe':
-        return this.validatePreset(this.glitterStrobeShell());
-      case 'weepingWillowComets':
-        return this.validatePreset(this.weepingWillowCometsShell());
-      case 'weepingWillowCometsV2':
-        return this.validatePreset(this.weepingWillowCometsV2Shell());
-      case 'weepingWillowCometsV3':
-        return this.validatePreset(this.weepingWillowCometsV3Shell());
-      case 'fallingLeaves':
-        return this.validatePreset(this.fallingLeavesShell());
-      case 'floral':
-        return this.validatePreset(this.floralShell());
-      case 'bouquet':
-        return this.validatePreset(this.bouquetShell());
-      case 'bouquetV2':
-        return this.validatePreset(this.bouquetV2Shell());
-      case 'bouquetV2Multicolor':
-        return this.validatePreset(this.bouquetV2MulticolorShell());
-      case 'rumble':
-        return this.validatePreset(this.rumbleShell());
-      case 'flower':
-        return this.validatePreset(this.flowerShell());
-      case 'cat':
-        return this.validatePreset(this.catShell());
-      case 'ring':
-        return this.validatePreset(this.ringShell());
-      case 'ringV2':
-        return this.validatePreset(this.ringShellV2());
-      case 'ringComet':
-        return this.validatePreset(this.cometRingShell());
-      case 'oval':
-        return this.validatePreset(this.ovalShell());
-      case 'snow':
-        return this.validatePreset(this.snowShell());
-      case 'fish':
-        return this.validatePreset(this.fishShell());
-      case 'fishV2':
-        return this.validatePreset(this.fishV2Shell());
-      case 'smiley':
-        return this.validatePreset(this.smileyShell());
-      case 'wave':
-        return this.validatePreset(this.waveShell());
-      case 'heart':
-        return this.validatePreset(this.hearthShell());
-      case 'star':
-        return this.validatePreset(this.starShell());
-      case 'ghost':
-        return this.validatePreset(this.ghostShell());
-      case 'falling-comets':
-        return this.validatePreset(this.fallingCometsShell());
-      case 'halfFlash':
-        return this.validatePreset(this.halfFlashShell());
-      case 'splitFlash':
-        return this.validatePreset(this.splitFlashShell());
-      case 'comet_cluster':
-        return this.validatePreset(this.cometCluster());
-      case 'comet_cluster_notrail':
-        return this.validatePreset(this.cometClusterNoTrail());
-      case 'sparkling_comet':
-        return this.validatePreset(this.sparklingComet());
-      case 'galaxy':
-        return this.validatePreset(this.galaxyShell());
-      case 'random':
-      default:
-        return null;
+    const generator = this.presetsRegistry.get(key);
+    if (generator) {
+      return this.validatePreset(generator());
     }
+    return null;
   }
 
   basePreset(size = 1) {

@@ -3,7 +3,7 @@ import { HistoryManager } from './HistoryManager.js';
 import { ConstraintSolver } from './ConstraintSolver.js';
 
 export class BaseFormationState {
-  constructor() {
+  constructor(historyManager = null, constraintSolver = null) {
     this.name = "NewFormation";
     this.currentFilePath = null;
     this.positions = []; // Array of THREE.Vector3
@@ -19,8 +19,9 @@ export class BaseFormationState {
     // Selection state
     this.selectedIndices = new Set();
 
-    // Decoupled Undo/Redo stack manager
-    this.historyManager = new HistoryManager(50);
+    // Decoupled Undo/Redo stack manager with DIP
+    this.historyManager = historyManager || new HistoryManager(50);
+    this.constraintSolver = constraintSolver || ConstraintSolver;
     
     // Clipboard for copy/paste
     this.clipboard = null;
@@ -209,11 +210,11 @@ export class BaseFormationState {
   }
 
   updateLineConstraints() {
-    return ConstraintSolver.solveLineConstraints(this.positions, this.lineConstraints);
+    return this.constraintSolver.solveLineConstraints(this.positions, this.lineConstraints);
   }
 
   adjustConstraintsOnDeletion(deletedIndicesSortedDescending) {
-    this.lineConstraints = ConstraintSolver.adjustConstraintsOnDeletion(this.lineConstraints, deletedIndicesSortedDescending);
+    this.lineConstraints = this.constraintSolver.adjustConstraintsOnDeletion(this.lineConstraints, deletedIndicesSortedDescending);
   }
 
   selectAll() {
