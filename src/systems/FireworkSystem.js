@@ -31,11 +31,11 @@ const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
 
 export class FireworkSystem {
-  constructor(scene, trailSystem) {
+  constructor(scene, trailSystem, shellPresetFactory = null) {
     this.scene = scene;
     this.trailSystem = trailSystem;
     this.activeFireworks = [];
-    this.shellPresetFactory = new ShellPresetFactory();
+    this.shellPresetFactory = shellPresetFactory || new ShellPresetFactory();
     this.launchZone = LAUNCH_ZONE_CONFIG;
     this.launchPosition = this.launchZone.center.clone();
     this.autoLaunchEnabled = false;
