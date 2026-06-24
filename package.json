@@ -1,6 +1,6 @@
 {
   "name": "shell-drone-animation",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Shell Drone Animation and Formation Editor",
   "author": "ThaoLinn20",
   "private": true,
@@ -37,12 +37,6 @@
           ]
         },
         {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
           "target": "zip",
           "arch": [
             "x64"
@@ -56,7 +50,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Shell Drone Editor",
-      "displayLanguageSelector": true
+      "displayLanguageSelector": true,
+      "license": "LICENSE"
     }
   },
   "devDependencies": {
