@@ -31,6 +31,7 @@
 ---
 
 ## Download & Installation
+## Download & Installation
 
 1. Visit the project's **[GitHub Releases](https://github.com/ThAolInh20/Shell-Drone_3d/releases)** page.
 2. Select the latest release (tag) and download the installer for Windows.
