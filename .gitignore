@@ -30,3 +30,4 @@ _bmad
 
 public/
 dist-electron.zip
+.vite
