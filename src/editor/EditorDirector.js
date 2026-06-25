@@ -1845,11 +1845,18 @@ export class EditorDirector {
           if (i >= newPositions.length) break;
           const finalPos = newPositions[i].clone().add(offset);
           updates.push({ index: id, pos: finalPos });
+          if (newPositions[i].color) {
+            this.state.colors[id].copy(newPositions[i].color);
+          }
           i++;
         }
         this.state.updatePositions(updates);
 
-        // Update colors & groups if JSON imported
+        // Update colors & groups if JSON imported or custom colors present
+        let hasCustomColors = (type === 'json' && newColors);
+        if (newPositions.some(p => p.color)) {
+          hasCustomColors = true;
+        }
         if (type === 'json' && newColors) {
           let j = 0;
           for (const id of this.state.selectedIndices) {
@@ -1860,6 +1867,8 @@ export class EditorDirector {
             }
             j++;
           }
+        }
+        if (hasCustomColors) {
           this.state.notify(); // Force UI colors refresh
         }
 
@@ -1902,7 +1911,7 @@ export class EditorDirector {
         // Inject into active memory
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
-          this.state.colors.push(colors[i]);
+          this.state.colors.push(positions[i].color || colors[i]);
           const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
           this.state.particleGroups.push(gName);
           this.state.effects.push('none');
@@ -1914,7 +1923,7 @@ export class EditorDirector {
           const step = this.state.steps[sIndex];
           for (let i = 0; i < count; i++) {
             step.positions.push(positions[i].clone());
-            step.colors.push(colors[i].clone());
+            step.colors.push(positions[i].color ? positions[i].color.clone() : colors[i].clone());
             const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
             step.particleGroups.push(gName);
             if (!step.effects) step.effects = [];

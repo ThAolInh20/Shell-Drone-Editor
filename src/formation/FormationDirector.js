@@ -1910,11 +1910,18 @@ export class FormationDirector {
           if (i >= newPositions.length) break;
           const finalPos = newPositions[i].clone().add(offset);
           updates.push({ index: id, pos: finalPos });
+          if (newPositions[i].color) {
+            this.state.colors[id].copy(newPositions[i].color);
+          }
           i++;
         }
         this.state.updatePositions(updates);
 
-        // Update colors & groups if JSON imported
+        // Update colors & groups if JSON imported or custom colors present
+        let hasCustomColors = (type === 'json' && newColors);
+        if (newPositions.some(p => p.color)) {
+          hasCustomColors = true;
+        }
         if (type === 'json' && newColors) {
           let j = 0;
           for (const id of this.state.selectedIndices) {
@@ -1925,6 +1932,8 @@ export class FormationDirector {
             }
             j++;
           }
+        }
+        if (hasCustomColors) {
           this.state.notify(); // Force UI colors refresh
         }
 
@@ -1966,7 +1975,7 @@ export class FormationDirector {
         // Inject into active memory
         for (let i = 0; i < count; i++) {
           this.state.positions.push(positions[i]);
-          this.state.colors.push(colors[i]);
+          this.state.colors.push(positions[i].color || colors[i]);
           const gName = (type === 'json' && particleGroups[i]) ? particleGroups[i] : targetGroupName;
           this.state.particleGroups.push(gName);
         }
