@@ -258,12 +258,19 @@ export function setupShapePanel(state, director) {
         if (i >= newPositions.length) break;
         const finalPos = newPositions[i].add(offset);
         updates.push({ index: id, pos: finalPos });
+        if (newPositions[i].color) {
+          state.colors[id].copy(newPositions[i].color);
+        }
         i++;
       }
 
       state.updatePositions(updates);
 
-      // Update colors and groups if json imported
+      // Update colors and groups if json imported or custom colors present
+      let hasCustomColors = (type === 'json' && newColors);
+      if (newPositions.some(p => p.color)) {
+        hasCustomColors = true;
+      }
       if (type === 'json' && newColors) {
         let j = 0;
         for (const id of state.selectedIndices) {
@@ -274,6 +281,8 @@ export function setupShapePanel(state, director) {
           }
           j++;
         }
+      }
+      if (hasCustomColors) {
         state.saveCurrentStep();
         state.notify(); // Force UI color refresh if selection color changed
       }
@@ -310,7 +319,7 @@ export function setupShapePanel(state, director) {
       // Inject into active memory
       for (let i = 0; i < count; i++) {
         state.positions.push(positions[i]);
-        state.colors.push(colors[i]);
+        state.colors.push(positions[i].color || colors[i]);
         const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : targetGroupName;
         state.particleGroups.push(gName);
         state.effects.push('none');
@@ -322,7 +331,7 @@ export function setupShapePanel(state, director) {
         const step = state.steps[sIndex];
         for (let i = 0; i < count; i++) {
           step.positions.push(positions[i].clone());
-          step.colors.push(colors[i].clone());
+          step.colors.push(positions[i].color ? positions[i].color.clone() : colors[i].clone());
           const gName = (type === 'json' && customShapeData.particleGroups && customShapeData.particleGroups[i]) ? customShapeData.particleGroups[i] : targetGroupName;
           step.particleGroups.push(gName);
           if (!step.effects) step.effects = [];

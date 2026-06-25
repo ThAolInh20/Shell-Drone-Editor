@@ -1,5 +1,54 @@
 import * as THREE from 'three';
 
+import num0 from '../../public/output/text/numbers/num-0.json';
+import num1 from '../../public/output/text/numbers/num-1.json';
+import num2 from '../../public/output/text/numbers/num-2.json';
+import num3 from '../../public/output/text/numbers/num-3.json';
+import num4 from '../../public/output/text/numbers/num-4.json';
+import num5 from '../../public/output/text/numbers/num-5.json';
+import num6 from '../../public/output/text/numbers/num-6.json';
+import num7 from '../../public/output/text/numbers/num-7.json';
+import num8 from '../../public/output/text/numbers/num-8.json';
+import num9 from '../../public/output/text/numbers/num-9.json';
+
+import charA from '../../public/output/text/texts/char-A.json';
+import charB from '../../public/output/text/texts/char-B.json';
+import charC from '../../public/output/text/texts/char-C.json';
+import charD from '../../public/output/text/texts/char-D.json';
+import charE from '../../public/output/text/texts/char-E.json';
+import charF from '../../public/output/text/texts/char-F.json';
+import charG from '../../public/output/text/texts/char-G.json';
+import charH from '../../public/output/text/texts/char-H.json';
+import charI from '../../public/output/text/texts/char-I.json';
+import charJ from '../../public/output/text/texts/char-J.json';
+import charK from '../../public/output/text/texts/char-K.json';
+import charL from '../../public/output/text/texts/char-L.json';
+import charM from '../../public/output/text/texts/char-M.json';
+import charN from '../../public/output/text/texts/char-N.json';
+import charO from '../../public/output/text/texts/char-O.json';
+import charP from '../../public/output/text/texts/char-P.json';
+import charQ from '../../public/output/text/texts/char-Q.json';
+import charR from '../../public/output/text/texts/char-R.json';
+import charS from '../../public/output/text/texts/char-S.json';
+import charT from '../../public/output/text/texts/char-T.json';
+import charU from '../../public/output/text/texts/char-U.json';
+import charV from '../../public/output/text/texts/char-V.json';
+import charW from '../../public/output/text/texts/char-W.json';
+import charX from '../../public/output/text/texts/char-X.json';
+import charY from '../../public/output/text/texts/char-Y.json';
+import charZ from '../../public/output/text/texts/char-Z.json';
+
+const characterMap = {
+    '0': num0, '1': num1, '2': num2, '3': num3, '4': num4,
+    '5': num5, '6': num6, '7': num7, '8': num8, '9': num9,
+    'A': charA, 'B': charB, 'C': charC, 'D': charD, 'E': charE,
+    'F': charF, 'G': charG, 'H': charH, 'I': charI, 'J': charJ,
+    'K': charK, 'L': charL, 'M': charM, 'N': charN, 'O': charO,
+    'P': charP, 'Q': charQ, 'R': charR, 'S': charS, 'T': charT,
+    'U': charU, 'V': charV, 'W': charW, 'X': charX, 'Y': charY,
+    'Z': charZ
+};
+
 export class DroneFormationFactory {
     static circle(count, params = {}) {
         const radius = params.radius || 10;
@@ -347,58 +396,88 @@ export class DroneFormationFactory {
         const spacing = params.spacing || 15;
         const yOffset = params.y || 20;
         
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 600;
-        canvas.height = 200;
+        const chars = text.split('');
+        const charGap = 2; // spacing between chars in local units
+        const spaceWidth = 6; // width of space char
         
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        let currentX = 0;
+        const allPoints = [];
         
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 100px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const filledPixels = [];
-        
-        for (let py = 0; py < canvas.height; py += 3) {
-            for (let px = 0; px < canvas.width; px += 3) {
-                const index = (py * canvas.width + px) * 4;
-                if (imageData[index] > 128) {
-                    filledPixels.push({x: px, y: py});
+        for (let i = 0; i < chars.length; i++) {
+            const char = chars[i];
+            const upperChar = char.toUpperCase();
+            
+            if (char === ' ' || !characterMap[upperChar]) {
+                currentX += spaceWidth + charGap;
+                continue;
+            }
+            
+            const data = characterMap[upperChar];
+            let minX = Infinity;
+            let maxX = -Infinity;
+            for (const pt of data) {
+                if (pt.x !== undefined) {
+                    if (pt.x < minX) minX = pt.x;
+                    if (pt.x > maxX) maxX = pt.x;
                 }
             }
+            
+            if (minX === Infinity) {
+                currentX += spaceWidth + charGap;
+                continue;
+            }
+            
+            const charWidth = maxX - minX;
+            
+            for (const pt of data) {
+                if (pt.x !== undefined && pt.y !== undefined) {
+                    allPoints.push({
+                        x: pt.x - minX + currentX,
+                        y: pt.y,
+                        r: pt.r !== undefined ? pt.r : 255,
+                        g: pt.g !== undefined ? pt.g : 255,
+                        b: pt.b !== undefined ? pt.b : 0
+                    });
+                }
+            }
+            
+            currentX += charWidth + charGap;
         }
+        
+        if (allPoints.length === 0) {
+            return this.grid(count, params);
+        }
+        
+        let minTotalX = Infinity, maxTotalX = -Infinity;
+        let minTotalY = Infinity, maxTotalY = -Infinity;
+        
+        for (const pt of allPoints) {
+            if (pt.x < minTotalX) minTotalX = pt.x;
+            if (pt.x > maxTotalX) maxTotalX = pt.x;
+            if (pt.y < minTotalY) minTotalY = pt.y;
+            if (pt.y > maxTotalY) maxTotalY = pt.y;
+        }
+        
+        const centerTotalX = (minTotalX + maxTotalX) / 2;
+        const centerTotalY = (minTotalY + maxTotalY) / 2;
         
         const positions = [];
-        if (filledPixels.length === 0) return this.grid(count, params);
-        
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const p of filledPixels) {
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        }
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
         
         for (let i = 0; i < count; i++) {
-            const pixelIndex = Math.floor((i / count) * filledPixels.length);
-            const px = filledPixels[pixelIndex];
+            const pointIndex = Math.floor((i / count) * allPoints.length);
+            const pt = allPoints[pointIndex];
             
-            const worldX = (px.x - centerX) * spacing * 0.05;
-            const worldY = (centerY - px.y) * spacing * 0.05 + yOffset;
+            const worldX = (pt.x - centerTotalX) * spacing * 0.05;
+            const worldY = (pt.y - centerTotalY) * spacing * 0.05 + yOffset;
             const worldZ = 0;
             
-            const jitterX = (count > filledPixels.length) ? (((i * 0.618033) % 1) - 0.5) * spacing * 0.04 : 0;
-            const jitterY = (count > filledPixels.length) ? (((i * 0.754877) % 1) - 0.5) * spacing * 0.04 : 0;
-            const jitterZ = (count > filledPixels.length) ? (((i * 0.569840) % 1) - 0.5) * spacing * 0.04 : 0;
+            const jitterX = (count > allPoints.length) ? (((i * 0.618033) % 1) - 0.5) * spacing * 0.04 : 0;
+            const jitterY = (count > allPoints.length) ? (((i * 0.754877) % 1) - 0.5) * spacing * 0.04 : 0;
+            const jitterZ = (count > allPoints.length) ? (((i * 0.569840) % 1) - 0.5) * spacing * 0.04 : 0;
             
-            positions.push(new THREE.Vector3(worldX + jitterX, worldY + jitterY, worldZ + jitterZ));
+            const pos = new THREE.Vector3(worldX + jitterX, worldY + jitterY, worldZ + jitterZ);
+            pos.color = new THREE.Color(`rgb(${pt.r}, ${pt.g}, ${pt.b})`);
+            positions.push(pos);
         }
         
         return positions;

@@ -314,7 +314,7 @@ export function setupFormationShapePanel(state, director) {
         const groupName = 'Generated_' + Date.now();
         for (const pos of positions) {
           state.positions.push(pos.clone());
-          state.colors.push(new THREE.Color(0xffffff));
+          state.colors.push(pos.color ? pos.color.clone() : new THREE.Color(0xffffff));
           state.particleGroups.push(groupName);
         }
         state.center.set(cx, cy, cz); // Update active formation center
@@ -344,10 +344,14 @@ export function setupFormationShapePanel(state, director) {
           if (i < positions.length) {
             const finalPos = positions[i].clone().add(offset);
             updates.push({ index: index, pos: finalPos });
+            if (positions[i].color) {
+              state.colors[index].copy(positions[i].color);
+            }
           }
           i++;
         }
         state.updatePositions(updates);
+        state.notify();
         state.saveStateToHistory();
       }
     });
