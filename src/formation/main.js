@@ -4,7 +4,6 @@ import { SceneManager } from '../core/SceneManager.js';
 import { Renderer } from '../core/Renderer.js';
 import { FormationDirector } from './FormationDirector.js';
 import '../style.css';
-import { setLanguage } from '../config/lang/i18n.js';
 
 
 // Initialize Core ECS Boilerplate
@@ -29,11 +28,4 @@ function animate() {
 
 // Start simulation
 animate();
-
-if (window.electronAPI && window.electronAPI.onChangeLanguage) {
-  window.electronAPI.onChangeLanguage((lang) => {
-    setLanguage(lang);
-    window.location.reload();
-  });
-}
 
