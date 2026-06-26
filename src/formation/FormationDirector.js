@@ -166,7 +166,7 @@ export class FormationDirector {
     if (this.gizmoSystem.isHovering()) return; // Don't select if interacting with Gizmo
     if (this.bezierTransformControl && (this.bezierTransformControl.dragging || this.bezierTransformControl.axis !== null)) return;
 
-    if (event.shiftKey) {
+    if (event.ctrlKey || event.metaKey) {
       // Intercept event and prevent OrbitControls camera panning/rotation
       event.stopImmediatePropagation();
       this.controls.enabled = false;
@@ -216,7 +216,7 @@ export class FormationDirector {
         const dy = endY - startY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // If user just clicked (dragged < 5px) with Shift held, treat it as normal click selection (add/remove select)
+        // If user just clicked (dragged < 5px) with Ctrl held, treat it as normal click selection (add/remove select)
         if (dist < 5) {
           this.handleCanvasClick(upEvent);
           return;
@@ -413,7 +413,7 @@ export class FormationDirector {
       event.preventDefault();
       this.state.selectAll();
     }
-    if (event.shiftKey && isS) {
+    if ((event.ctrlKey || event.metaKey) && isS) {
       event.preventDefault();
       this.saveDirectly();
     }
@@ -429,11 +429,11 @@ export class FormationDirector {
       event.preventDefault();
       this.state.duplicateSelected();
     }
-    if (event.shiftKey && isC) {
+    if ((event.ctrlKey || event.metaKey) && isC) {
       event.preventDefault();
       this.state.copyToClipboard();
     }
-    if (event.shiftKey && isV) {
+    if ((event.ctrlKey || event.metaKey) && isV) {
       event.preventDefault();
       this.state.pasteFromClipboard();
     }
