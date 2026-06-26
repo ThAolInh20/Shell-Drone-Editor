@@ -33,6 +33,7 @@ export function setupTimelinePanel(state) {
       if (state.steps && state.steps[state.currentStepIndex]) {
         state.playbackTime = state.steps[state.currentStepIndex].time;
       }
+      state.notify();
     }
   });
 

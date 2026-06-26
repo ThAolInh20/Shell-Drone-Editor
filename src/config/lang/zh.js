@@ -81,6 +81,7 @@ export default {
       visualsTitle: "旋转中心与辅助显示",
       showCenterCheckbox: "显示中心",
       pivotLinesCheckbox: "连接线到中心",
+      showOnionSkin: "显示上一步 (洋葱皮)",
       centerToSelectionBtn: "将中心设为选中组的重心",
       centerX: "中心 X",
       centerY: "中心 Y",

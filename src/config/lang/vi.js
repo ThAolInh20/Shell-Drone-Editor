@@ -79,6 +79,7 @@ export default {
       visualsTitle: "Tâm xoay & Hiển thị",
       showCenterCheckbox: "Hiển thị Tâm xoay",
       pivotLinesCheckbox: "Đường nối tới Tâm",
+      showOnionSkin: "Hiển thị bước trước (Bóng mờ)",
       centerToSelectionBtn: "Đặt Tâm vào Nhóm đã Chọn"
     },
     shapePanel: {

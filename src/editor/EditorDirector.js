@@ -106,6 +106,20 @@ export class EditorDirector {
     this.instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(10000 * 3), 3);
 
     this.sceneManager.instance.add(this.instancedMesh);
+
+    // Setup ghost instanced mesh for Onion Skinning
+    const ghostMaterial = new THREE.MeshBasicMaterial({
+      color: 0xcccccc,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false
+    });
+    this.ghostInstancedMesh = new THREE.InstancedMesh(geometry, ghostMaterial, 10000);
+    this.ghostInstancedMesh.frustumCulled = false;
+    this.ghostInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.ghostInstancedMesh.count = 0;
+    this.ghostInstancedMesh.visible = false;
+    this.sceneManager.instance.add(this.ghostInstancedMesh);
   }
 
   initCenterVisualizers() {
@@ -453,6 +467,33 @@ export class EditorDirector {
     // because the instance matrices have changed!
     this.instancedMesh.computeBoundingSphere();
 
+    // Update ghost instanced mesh for Onion Skin (Previous Step)
+    if (this.ghostInstancedMesh) {
+      if (this.state.showOnionSkin && this.state.currentStepIndex > 0 && !this.state.isPlaying) {
+        const prevStep = this.state.steps[this.state.currentStepIndex - 1];
+        if (prevStep && prevStep.positions && prevStep.positions.length > 0) {
+          const prevPositions = prevStep.positions;
+          this.ghostInstancedMesh.count = prevPositions.length;
+          
+          const ghostDummy = new THREE.Object3D();
+          for (let i = 0; i < prevPositions.length; i++) {
+            ghostDummy.position.copy(prevPositions[i]);
+            ghostDummy.scale.set(0.6, 0.6, 0.6);
+            ghostDummy.updateMatrix();
+            this.ghostInstancedMesh.setMatrixAt(i, ghostDummy.matrix);
+          }
+          this.ghostInstancedMesh.instanceMatrix.needsUpdate = true;
+          this.ghostInstancedMesh.visible = true;
+        } else {
+          this.ghostInstancedMesh.count = 0;
+          this.ghostInstancedMesh.visible = false;
+        }
+      } else {
+        this.ghostInstancedMesh.count = 0;
+        this.ghostInstancedMesh.visible = false;
+      }
+    }
+
     // Update center visualizer objects
     if (this.state.center && this.centerHelper) {
       this.centerHelper.position.copy(this.state.center);
@@ -601,6 +642,9 @@ export class EditorDirector {
     this.controls.update();
 
     if (this.state.isPlaying && this.instancedMesh) {
+      if (this.ghostInstancedMesh) {
+        this.ghostInstancedMesh.visible = false;
+      }
       this.state.playbackTime += deltaTime * 1000;
 
       const maxTime = this.state.getMaxPlaybackTime();
