@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DroneEntity } from '../entities/DroneEntity.js';
 import { InstancedDroneMesh } from '../render/InstancedDroneMesh.js';
 import { ArrivalColorSystem } from '../effects/arrival/ArrivalColorSystem.js';
+import { TransitionColorSystem } from '../effects/transition/TransitionColorSystem.js';
 import { DRONE_ZONE_CONFIG } from '../config/droneZone.js';
 
 export class DroneSystem {
@@ -110,7 +111,7 @@ export class DroneSystem {
 
         for (let i = 0; i < this.drones.length; i++) {
             const drone = this.drones[i];
-            drone.update(deltaTime);
+            drone.update(deltaTime, TransitionColorSystem, ArrivalColorSystem);
             
             this.droneMesh.updateInstance(
                 i, 
