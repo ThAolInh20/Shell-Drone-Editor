@@ -194,6 +194,10 @@ export function renderSelectionPanel() {
           <input type="checkbox" id="ui-show-pivot-lines" style="cursor: pointer;" />
           ${t('editor.selectionPanel.pivotLinesCheckbox')}
         </label>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
+          <input type="checkbox" id="ui-show-onion-skin" style="cursor: pointer;" />
+          ${t('editor.selectionPanel.showOnionSkin') || 'Show Previous Step (Onion Skin)'}
+        </label>
       </div>
       <button class="btn" id="btn-center-to-selection" style="margin-top: 12px; background-color: #2a9d8f; color: white; width: 100%; font-size: 12px; padding: 6px; display: none;">${t('editor.selectionPanel.centerToSelectionBtn')}</button>
     </div>

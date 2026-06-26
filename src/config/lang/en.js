@@ -79,6 +79,7 @@ export default {
       visualsTitle: "Formation Center & Visuals",
       showCenterCheckbox: "Show Center",
       pivotLinesCheckbox: "Pivot Lines",
+      showOnionSkin: "Show Previous Step (Onion Skin)",
       centerToSelectionBtn: "Set Center to Selection"
     },
     shapePanel: {
