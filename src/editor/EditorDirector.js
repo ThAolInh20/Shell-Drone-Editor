@@ -106,6 +106,20 @@ export class EditorDirector {
     this.instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(10000 * 3), 3);
 
     this.sceneManager.instance.add(this.instancedMesh);
+
+    // Setup ghost instanced mesh for Onion Skinning
+    const ghostMaterial = new THREE.MeshBasicMaterial({
+      color: 0xcccccc,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false
+    });
+    this.ghostInstancedMesh = new THREE.InstancedMesh(geometry, ghostMaterial, 10000);
+    this.ghostInstancedMesh.frustumCulled = false;
+    this.ghostInstancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.ghostInstancedMesh.count = 0;
+    this.ghostInstancedMesh.visible = false;
+    this.sceneManager.instance.add(this.ghostInstancedMesh);
   }
 
   initCenterVisualizers() {
@@ -144,7 +158,7 @@ export class EditorDirector {
     if (event.button !== 0) return; // Only left click
     if (this.gizmoSystem.isHovering()) return; // Don't select if interacting with Gizmo
 
-    if (event.shiftKey) {
+    if (event.ctrlKey || event.metaKey) {
       // Intercept event and prevent OrbitControls camera panning/rotation
       event.stopImmediatePropagation();
       this.controls.enabled = false;
@@ -194,7 +208,7 @@ export class EditorDirector {
         const dy = endY - startY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // If user just clicked (dragged < 5px) with Shift held, treat it as normal click selection (add/remove select)
+        // If user just clicked (dragged < 5px) with Ctrl held, treat it as normal click selection (add/remove select)
         if (dist < 5) {
           this.handleCanvasClick(upEvent);
           return;
@@ -340,7 +354,7 @@ export class EditorDirector {
     const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
     const isA = event.key.toLowerCase() === 'a' || event.code === 'KeyA';
 
-    if (event.shiftKey && isS) {
+    if ((event.ctrlKey || event.metaKey) && isS) {
       event.preventDefault();
       this.saveDirectly();
     }
@@ -360,12 +374,12 @@ export class EditorDirector {
       event.preventDefault();
       this.state.duplicateSelected();
     }
-    if (event.shiftKey && isC) {
+    if ((event.ctrlKey || event.metaKey) && isC) {
       event.preventDefault();
       this.state.copyToClipboard();
       console.log('Copied to clipboard');
     }
-    if (event.shiftKey && isV) {
+    if ((event.ctrlKey || event.metaKey) && isV) {
       event.preventDefault();
       this.state.pasteFromClipboard();
       console.log('Pasted from clipboard');
@@ -452,6 +466,33 @@ export class EditorDirector {
     // Crucial for Raycasting: recompute the bounding sphere of the instanced mesh 
     // because the instance matrices have changed!
     this.instancedMesh.computeBoundingSphere();
+
+    // Update ghost instanced mesh for Onion Skin (Previous Step)
+    if (this.ghostInstancedMesh) {
+      if (this.state.showOnionSkin && this.state.currentStepIndex > 0 && !this.state.isPlaying) {
+        const prevStep = this.state.steps[this.state.currentStepIndex - 1];
+        if (prevStep && prevStep.positions && prevStep.positions.length > 0) {
+          const prevPositions = prevStep.positions;
+          this.ghostInstancedMesh.count = prevPositions.length;
+          
+          const ghostDummy = new THREE.Object3D();
+          for (let i = 0; i < prevPositions.length; i++) {
+            ghostDummy.position.copy(prevPositions[i]);
+            ghostDummy.scale.set(0.6, 0.6, 0.6);
+            ghostDummy.updateMatrix();
+            this.ghostInstancedMesh.setMatrixAt(i, ghostDummy.matrix);
+          }
+          this.ghostInstancedMesh.instanceMatrix.needsUpdate = true;
+          this.ghostInstancedMesh.visible = true;
+        } else {
+          this.ghostInstancedMesh.count = 0;
+          this.ghostInstancedMesh.visible = false;
+        }
+      } else {
+        this.ghostInstancedMesh.count = 0;
+        this.ghostInstancedMesh.visible = false;
+      }
+    }
 
     // Update center visualizer objects
     if (this.state.center && this.centerHelper) {
@@ -601,6 +642,9 @@ export class EditorDirector {
     this.controls.update();
 
     if (this.state.isPlaying && this.instancedMesh) {
+      if (this.ghostInstancedMesh) {
+        this.ghostInstancedMesh.visible = false;
+      }
       this.state.playbackTime += deltaTime * 1000;
 
       const maxTime = this.state.getMaxPlaybackTime();

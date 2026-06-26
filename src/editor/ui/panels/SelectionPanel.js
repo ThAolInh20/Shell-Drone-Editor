@@ -129,6 +129,14 @@ export function setupSelectionPanel(state, director) {
     state.notify();
   });
 
+  const showOnionSkinEl = document.getElementById('ui-show-onion-skin');
+  if (showOnionSkinEl) {
+    showOnionSkinEl.addEventListener('change', (e) => {
+      state.showOnionSkin = e.target.checked;
+      state.notify();
+    });
+  }
+
   document.getElementById('btn-center-to-selection').addEventListener('click', () => {
     if (state.selectedIndices.size > 0) {
       const center = new THREE.Vector3();
@@ -239,6 +247,9 @@ export function setupSelectionPanel(state, director) {
 
     const showPivotCb = document.getElementById('ui-show-pivot-lines');
     if (showPivotCb) showPivotCb.checked = !!state.showPivotLines;
+
+    const showOnionCb = document.getElementById('ui-show-onion-skin');
+    if (showOnionCb) showOnionCb.checked = !!state.showOnionSkin;
 
     const btnCenterSel = document.getElementById('btn-center-to-selection');
     if (btnCenterSel) {

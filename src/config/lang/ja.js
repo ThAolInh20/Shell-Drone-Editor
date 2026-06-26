@@ -81,6 +81,7 @@ export default {
       visualsTitle: "回転中心と補助表示",
       showCenterCheckbox: "中心を表示",
       pivotLinesCheckbox: "中心への接続線",
+      showOnionSkin: "前のステップを表示 (オニオンスキン)",
       centerToSelectionBtn: "選択グループの重心に中心を設定",
       centerX: "中心 X",
       centerY: "中心 Y",

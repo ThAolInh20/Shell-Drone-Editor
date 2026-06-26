@@ -40,7 +40,12 @@
 ### Entity Models
 - **`src/entities/ShellEntity.js`**: Defines the physical properties of a launched firework shell (coordinates, velocity, color preset, and age).
 - **`src/entities/CometEntity.js`**: Encapsulates physics data for low-altitude trail comets.
-- **`src/entities/DroneEntity.js`**: Standard OOP model for singular drone objects.
+- **`src/entities/DroneEntity.js`**: Standard OOP model for singular drone objects, representing data state.
+  - `DroneEntity.update(deltaTime, transitionSystem, arrivalSystem)`: Delegates motion physics solver and lighting controller updates.
+- **`src/entities/DroneKinematicsSolver.js`**: Pure physics kinematics solver for steering forces, damping, target arrivals, and wind/flight oscillations.
+  - `DroneKinematicsSolver.solve(drone, deltaTime)`: Solves and updates drone velocity and position vectors.
+- **`src/entities/DroneLightingController.js`**: Decoupled LED color transition and visual animation controller.
+  - `DroneLightingController.update(drone, deltaTime, transitionSystem, arrivalSystem)`: Calculates active LED color transitions, blink rates, and pulsing glow effects.
 - **`src/entities/DroneMotionProfile.js`**: Configures physics parameters like steering force for autonomous drone behaviors.
 - **`src/entities/DroneAnimationLayer.js`**: Dynamic animation layer attached to a drone entity for scaling, spinning, and shimmering effects.
   - `DroneAnimationLayer.applyAnimation(type, params, duration)`: Adds a new active procedural animation (spin, pulse, shimmer).
@@ -55,8 +60,9 @@
   - `BurstShapeGenerator.generate(shapeName, count, preset)`: Outputs an array of vector coordinates mapping the explosion shape.
 - **`src/factories/BurstEffectProcessor.js`**: Modifies velocities and colors of fading particles to simulate micro-effects (Strobe, Crackle, Waves).
   - `BurstEffectProcessor.apply(effectType, velocity, age, color, params)`: Transforms particle attributes dynamically based on its active effects.
-- **`src/factories/DroneFormationFactory.js`**: Procedural generator for 3D drone shapes (grid, circle, sphere, cube, wave, text, star, cylinder) with random jitter offsets.
-  - `DroneFormationFactory.createFormation(type, count, params)`: Factory router to invoke the correct shape generator.
+- **`src/factories/DroneFormationFactory.js`**: Dynamic factory registry that generates 3D drone shape coordinate arrays (grid, circle, sphere, cube, wave, text, star, cylinder) with dynamic custom registration.
+  - `DroneFormationFactory.registerFormation(type, generatorFn)`: Registers new custom geometry shape generators.
+  - `DroneFormationFactory.createFormation(type, count, params)`: Looks up and executes a shape generator from the registry.
 - **`src/factories/DronePropertyFactory.js`**: Applies color and LED state logic to drone meshes based on group index mappings.
   - `DronePropertyFactory.assignColors(positions, colors, colorRule)`: Computes visual gradients or patterns for a set of drone positions.
 
@@ -71,9 +77,8 @@
 - **`src/systems/SkyLightReactionSystem.js`**: Briefly increases ambient light levels and flashes sky colors in sync with massive explosions.
 - **`src/systems/AudioSystem.js`**: Manages Web Audio API spatial triggers for liftoff whooshes and explosive pops.
 - **`src/systems/MovementSystem.js`**: Reads keyboard controller inputs to steer the viewer camera in 3D flight.
-- **`src/systems/DroneSystem.js`**: Handles global performance zone offsets and the `InstancedDroneMesh` rendering buffer.
-  - `DroneSystem.createDrones(count)`: Spawns a specified number of drone instances.
-  - `DroneSystem.applyFormat(positions, formatConfig)`: Sets target coordinates and transitions colors/animations.
+- **`src/systems/DroneSystem.js`**: Handles global performance zone offsets, instanced rendering, and updates drone attributes.
+  - `DroneSystem.update(deltaTime)`: Updates drone parameters (injecting TransitionColorSystem and ArrivalColorSystem) and flushes instance matrix buffers.
 - **`src/systems/PhysicSystem.js`**: Placeholder for physics-related drone coordinate simulations.
 
 ### Effects & Animations
@@ -84,32 +89,34 @@
 - **`src/config/lang/i18n.js`**: The translation manager executing in both Electron backend and Vite frontend, handling locale lookup and system detection.
   - `t(key, params)`: Looks up translation values recursively from dictionaries, supporting dynamic interpolation.
   - `getLanguage()`, `setLanguage(lang)`: Manages current language state and saves preference persistent to localStorage.
-- **`src/config/lang/en.js`, `vi.js`, `zh.js`, `ja.js`**: Dictionaries for English, Vietnamese, Simplified Chinese, and Japanese, mapping all 270+ front-end panel interfaces.
+- **`src/config/lang/en.js`, `vi.js`, `zh.js`, `ja.js`**: Dictionaries for English, Vietnamese, Simplified Chinese, and Japanese, mapping all front-end panel interfaces.
+
+### Shared Layout & Editor UI
+- **`src/editor/ui/BaseEditorUI.js`**: Reusable base editor UI helper.
+  - `setupBaseEditorUI(state, director, options)`: Sets up left/right columns, handles collapsible panels, camera reset view, and Electron native language listeners.
 
 ### Static Formation Module
 - **`src/formation/FormationState.js`**: Managed state subclass inheriting from `BaseFormationState` representing static drone configurations.
 - **`src/formation/FormationDirector.js`**: Master scene loop and InstancedMesh compiler for static 3D formations.
-- **`src/formation/ui/FormationUI.js`**: Assembles HTML templates for the Left (Shape, Group) and Right (Gizmo, Properties) panels in static editing mode.
+- **`src/formation/ui/FormationUI.js`**: Sets up static editor left (Shape, Group) and right (Gizmo, Properties) panels using `BaseEditorUI`.
 - **`src/formation/ui/FormationShapePanel.js`**: Renders forms and shape templates (Model Holograms, Reference 2D images).
 
 ### Orchestration & Controllers
 - **`src/controllers/InputSystem.js`**: Binds standard desktop mouse/keyboard events, pointer locking, and play/pause timeline shortcuts.
 - **`src/directors/FireworkSequencer.js`**: Translates sequence timestamps into actual launch events.
+- **`src/directors/ShowDirector.js`**: Master clock that reads timeline tracks, firing audio, pyro patterns, and drone sequencers in perfect synchronization.
 - **`src/directors/DroneShowSequencer.js`**: High-performance interpolation engine syncing pre-calculated drone JSON steps to the global timeline.
   - `DroneShowSequencer.seek(time)`: Jumps timeline position and updates positions instantly.
   - `DroneShowSequencer.update(deltaTime)`: Computes current interpolation weights between keyframes, applies transition light effects, and outputs colors.
-- **`src/directors/ShowDirector.js`**: Master clock that reads timeline tracks, firing audio, pyro patterns, and drone sequencers in perfect synchronization.
 
 ### UI & Animated Timeline Editor
 - **`src/ui/TimelineEditor.js`**: Standard editor overlay containing track timelines, zoom options, event blocks, and playback controls.
 - **`src/ui/PropertyInspector.js`**: Connects form inputs to event timing modifications and coordinates.
 - **`src/editor/main.js`**: Entry point for the timeline-based animated formation editor.
-- **`src/editor/FormationEditorState.js`**: State engine for the animated timeline-based drone editor, extending `BaseFormationState`.
+- **`src/editor/FormationEditorState.js`**: State engine for the animated timeline-based drone path editor, extending `BaseFormationState`.
 - **`src/editor/EditorDirector.js`**: Manages animated rendering loops, selection raycasting, transition light computations, and Three.js matrix updates.
-  - `EditorDirector.update(deltaTime)`: Reads playback status, computes dynamic transitions, processes transition effects (arcs, spirals), and applies blackout logic.
+- **`src/editor/ui/EditorUI.js`**: Sets up animated editor left (File, Group) and right (Gizmo, Selection, Step) panels using `BaseEditorUI`.
 - **`src/editor/ui/panels/TimelinePanel.js`**: Timeline step sequence view, providing native HTML5 drag-and-drop to swap step orders and recompute times.
-  - `setupTimelinePanel(state)`: Binds drag, drop, and play control listeners.
-  - `renderTimeline(state)`: Renders Step Cards with drag-and-drop handles.
 - **`src/editor/systems/GizmoSystem.js`**: 3D selection handles allowing translation, rotation, and scaling of selected particles.
 
 ## 2. Entry Points
@@ -134,7 +141,13 @@ graph TD
     FWSystem --> ShellEnt[entities/ShellEntity]
 
     DroneSeq --> DroneSys[systems/DroneSystem]
-    DroneSys --> DroneAnim[entities/DroneAnimationLayer]
+    DroneSys --> DroneEntity[entities/DroneEntity]
+    DroneEntity --> DroneKinematicsSolver[entities/DroneKinematicsSolver]
+    DroneEntity --> DroneLightingController[entities/DroneLightingController]
+    DroneLightingController -.-> TransitionColorSystem[effects/transition/TransitionColorSystem]
+    DroneLightingController -.-> ArrivalColorSystem[effects/arrival/ArrivalColorSystem]
+    DroneSys --> TransitionColorSystem
+    DroneSys --> ArrivalColorSystem
 
     %% Static Formation Editor Entry
     FormationMain[src/formation/main.js] --> FormDir[formation/FormationDirector]
@@ -143,6 +156,7 @@ graph TD
     FormDir --> FormState[formation/FormationState]
     FormState --> BaseState[core/BaseFormationState]
     FormState --> DroneFactory[factories/DroneFormationFactory]
+    FormUI --> BaseEditorUI[editor/ui/BaseEditorUI]
     FormUI --> Gizmo[editor/systems/GizmoSystem]
 
     %% Animated Timeline Editor Entry
@@ -152,13 +166,14 @@ graph TD
     EditorDir --> EdState[editor/FormationEditorState]
     EdState --> BaseState
     EdState --> DroneFactory
+    EditorUI --> BaseEditorUI
     EditorUI --> Gizmo
     EditorUI --> TimelinePanel[editor/ui/panels/TimelinePanel]
 ```
 
 ## 4. Execution Flows
 - **Firework Show Playback & Sync**: `src/main.js` initializes managers -> `ShowDirector` tracks real elapsed ticks -> spawns comets, sparks, launch trails, and sound pops dynamically -> `DroneShowSequencer` calculates current chặng bay, interpolating drone paths and feeding matrix coordinate updates into `DroneSystem`.
-- **Static Formation blueprinting**: `src/formation/main.js` draws UI panels using `FormationUI` -> user adds shape profiles from `DroneFormationFactory` -> modifications update positions in `FormationState` -> `FormationDirector` flushes buffers directly into Three.js matrix updates.
+- **Static Formation blueprinting**: `src/formation/main.js` draws UI panels using `FormationUI` -> user adds shape profiles from `DroneFormationFactory` (which processes the shape coordinates via its dynamic registry) -> modifications update positions in `FormationState` -> `FormationDirector` flushes buffers directly into Three.js matrix updates.
 - **Timeline-based Animation Drag & Reorder**: In the Timeline Panel, dragging a step card stores its `index`. On `drop`, steps are reordered via `splice` directly in `state.steps` array. `state.recalculateTimes()` recalculates all timeline time intervals based on custom duration parameters -> UI is flushed and 3D simulation re-renders instantly.
 
 ## 5. Cross-Module Dependencies
@@ -167,7 +182,8 @@ graph TD
 - **`HistoryManager`**: Shared history stack mechanism to manage undo/redo snapshots.
 - **`globalEventBus`**: Centralized event system used across scene/input managers, audio/particle systems, and editors.
 - **`GizmoSystem`**: Jointly shared tool between static formation editor and animated editor.
+- **`BaseEditorUI`**: Shared layout framework for left/right columns, collapsible panel handling, reset view camera, and native language change events.
 - **`i18n translation system`**: Imported across 15 frontend panel files and Electron configuration pipelines for complete multi-language syncing.
 
 ## 6. Problems & Anti-patterns
-- **HTML-in-JS UI Panel coupling**: Frontend panels in `src/editor/ui/panels/` and `src/formation/ui/` keep hardcoded HTML structures inside Javascript strings and query standard global DOM elements. They should be refactored into modular, template-based structures.
+- **HTML-in-JS UI Panel coupling**: Frontend panels in `src/editor/ui/panels/` and `src/formation/ui/` keep hardcoded HTML structures inside Javascript strings and query standard global DOM elements. They should be refactored into modular, template-based structures. *(Note: Shared layout boilerplate, reset view, and collapsible logic were consolidated in June 2026 via `BaseEditorUI.js`)*.

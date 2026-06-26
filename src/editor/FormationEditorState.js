@@ -34,6 +34,7 @@ export class FormationEditorState extends BaseFormationState {
     this.currentStepIndex = 0;
     this.isPlaying = false;
     this.playbackTime = 0;
+    this.showOnionSkin = false;
   }
 
   isDroneInGroup(droneIndex, groupName) {
