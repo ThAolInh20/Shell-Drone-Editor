@@ -50,6 +50,26 @@ const characterMap = {
 };
 
 export class DroneFormationFactory {
+    static formationsRegistry = new Map();
+
+    static registerFormation(type, generatorFn) {
+        this.formationsRegistry.set(type, generatorFn);
+    }
+
+    static {
+        this.registerFormation('circle', this.circle);
+        this.registerFormation('triangle', this.triangle);
+        this.registerFormation('grid', this.grid);
+        this.registerFormation('line', this.line);
+        this.registerFormation('bezier', this.bezier);
+        this.registerFormation('wave', this.wave);
+        this.registerFormation('sphere', this.sphere);
+        this.registerFormation('cube', this.cube);
+        this.registerFormation('cylinder', this.cylinder);
+        this.registerFormation('star', this.star);
+        this.registerFormation('text', this.text);
+    }
+
     static circle(count, params = {}) {
         const radius = params.radius || 10;
         const y = params.y || 20;
@@ -776,20 +796,12 @@ export class DroneFormationFactory {
     }
 
     static createFormation(type, count, params) {
+        const generator = this.formationsRegistry.get(type);
         let positions;
-        switch (type) {
-            case 'circle': positions = this.circle(count, params); break;
-            case 'triangle': positions = this.triangle(count, params); break;
-            case 'grid': positions = this.grid(count, params); break;
-            case 'line': positions = this.line(count, params); break;
-            case 'bezier': positions = this.bezier(count, params); break;
-            case 'wave': positions = this.wave(count, params); break;
-            case 'sphere': positions = this.sphere(count, params); break;
-            case 'cube': positions = this.cube(count, params); break;
-            case 'cylinder': positions = this.cylinder(count, params); break;
-            case 'star': positions = this.star(count, params); break;
-            case 'text': positions = this.text(count, params); break;
-            default: positions = this.grid(count, params); break;
+        if (generator) {
+            positions = generator.call(this, count, params);
+        } else {
+            positions = this.grid(count, params);
         }
         
         if (params && params.variation) {
