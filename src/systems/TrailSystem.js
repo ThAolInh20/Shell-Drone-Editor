@@ -115,7 +115,13 @@ export class TrailSystem {
     const spark = {
       position: position.clone(),
       // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần) hoặc dùng vận tốc tùy biến
-      velocity: customVelocity ? customVelocity.clone() : new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
+      velocity: customVelocity
+        ? customVelocity.clone()
+        : new THREE.Vector3(
+            (Math.random() - 0.5) * 6,
+            Math.random() * 5,
+            (Math.random() - 0.5) * 6
+          ),
       color: color.clone(),
       // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn (hoặc dùng customLife ngắn hơn)
       life: customLife !== null ? customLife : 1.5 + Math.random() * 1.2,
