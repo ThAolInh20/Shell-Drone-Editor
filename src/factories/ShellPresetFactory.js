@@ -18,13 +18,14 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
+      { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
@@ -75,6 +76,7 @@ export class ShellPresetFactory {
   initializePresetsRegistry() {
     this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
+    this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
     this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
@@ -211,6 +213,21 @@ export class ShellPresetFactory {
       shellType: 'crysanthemumV2',
       shapeType: 'sphere',
       effectType: 'crysanthemum-trail',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSmokeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSmoke',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-smoke',
+      starLife: 1800 + size * 400, // Tăng thời gian sống của hạt pháo để bay xa hơn và sinh khói dài hơn
       flower: false,
       smiley: false,
       hearth: false,
