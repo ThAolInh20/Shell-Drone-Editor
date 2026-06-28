@@ -58,6 +58,8 @@ export class BurstShapeGenerator {
         return 'half-flash';
       case 'split-flash':
         return 'split-flash';
+      case 'upward-spray':
+        return 'upward-spray';
       case 'hearth':
         return 'heart';
       default:
@@ -66,6 +68,17 @@ export class BurstShapeGenerator {
   }
 
   static direction(shape, angle, index, count, preset = null) {
+    if (shape === 'upward-spray') {
+      const angleY = Math.random() * Math.PI / 2.2; // Spread upwards and outwards
+      const angleXZ = Math.random() * Math.PI * 2;
+
+      const vx = Math.sin(angleY) * Math.cos(angleXZ);
+      const vz = Math.sin(angleY) * Math.sin(angleXZ);
+      const vy = Math.cos(angleY) + 1.2; // Extra upward boost
+
+      return new THREE.Vector3(vx, vy, vz).normalize();
+    }
+
     if (shape === 'galaxy') {
       const numArms = 3;
       const armId = index % numArms;
