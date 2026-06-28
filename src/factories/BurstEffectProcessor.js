@@ -119,6 +119,9 @@ export class BurstEffectProcessor {
     let spawnTrail = false;
     let trailLife = 0.8;
     let trailIntensity = 0.35;
+    let spawnSmoke = false;
+    let smokeLife = 2.5;
+    let smokeOpacity = 0.15;
 
     // Delegate to strategy from registry
     const strategy = this.effectsRegistry.get(effectType);
@@ -130,6 +133,9 @@ export class BurstEffectProcessor {
         if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
         if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
         if (overrides.trailIntensity !== undefined) trailIntensity = overrides.trailIntensity;
+        if (overrides.spawnSmoke !== undefined) spawnSmoke = overrides.spawnSmoke;
+        if (overrides.smokeLife !== undefined) smokeLife = overrides.smokeLife;
+        if (overrides.smokeOpacity !== undefined) smokeOpacity = overrides.smokeOpacity;
       }
     }
 
@@ -170,7 +176,7 @@ export class BurstEffectProcessor {
       }
     }
 
-    return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };
+    return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity, spawnSmoke, smokeLife, smokeOpacity };
   }
 }
 
@@ -319,6 +325,12 @@ BurstEffectProcessor.registerEffect('falling-comets-glitter', {
 BurstEffectProcessor.registerEffect('crysanthemum-trail', {
   updateVelocity() {
     return { gravityScale: 0.3, spawnTrail: true, trailLife: 0.45, trailIntensity: 0.9 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-smoke', {
+  updateVelocity() {
+    return { gravityScale: 0.3, spawnSmoke: true, smokeLife: 3.8, smokeOpacity: 0.20 };
   }
 });
 

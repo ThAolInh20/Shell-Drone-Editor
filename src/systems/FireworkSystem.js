@@ -464,7 +464,7 @@ export class FireworkSystem {
 
       const shellSizeScale = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
-      
+
       // Store the normalized direction vector to determine the hemisphere for coloring
       const normDir = direction.clone().normalize();
       velocities.push(direction.multiplyScalar(speed));
@@ -832,7 +832,16 @@ export class FireworkSystem {
         positions[i * 3 + 2]
       );
 
-      const { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity } = BurstEffectProcessor.updateVelocity(
+      const {
+        gravityScale,
+        emitSpark,
+        spawnTrail,
+        trailLife,
+        trailIntensity,
+        spawnSmoke,
+        smokeLife,
+        smokeOpacity
+      } = BurstEffectProcessor.updateVelocity(
         velocity,
         i,
         deltaTime,
@@ -881,6 +890,36 @@ export class FireworkSystem {
             trailGrav,
             trailDrag
           );
+        }
+      }
+
+      if (spawnSmoke) { // Sinh khói thay vì sinh hạt vệt sáng (Comet Trail)
+        const parentFade = lifeRatio > BURST_DISSOLVE_START
+          ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
+          : 1.0;
+
+        // 100% sinh khói ở 12% vòng đời đầu tiên (vừa nổ), sau đó giảm dần.
+        // Áp dụng cho mỗi hạt chẵn (i % 2 === 0) để tạo đường nét rõ ràng nhưng không bị chồng chéo quá dày.
+        const spawnChance = lifeRatio < 0.12
+          ? 1.0
+          : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
+
+        if (i % 2 === 0 && Math.random() < spawnChance) {
+          const particleColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+          // Hạt khói bay vệt nhẹ, thừa hưởng một phần vận tốc của hạt pháo hoa
+          const smokeVel = velocity.clone().multiplyScalar(0.12);
+
+          globalEventBus.emit('smoke:spawn', {
+            position: particlePosition.clone(),
+            velocity: smokeVel,
+            options: {
+              life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
+              scale: 3.2 + Math.random() * 2.2,
+              growth: 2.8,
+              opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0), // Đậm hơn một chút lúc vừa burst
+              color: particleColor
+            }
+          });
         }
       }
 
@@ -953,7 +992,7 @@ export class FireworkSystem {
       } else if (effectType === 'crysanthemum-cc' && baseColors) {
         const color1 = item.points.userData.color1;
         const color2 = item.points.userData.color2;
-        
+
         let activeColor = color1;
         let fade = 1.0;
 
