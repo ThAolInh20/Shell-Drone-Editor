@@ -923,7 +923,126 @@ export class FireworkSystem {
         }
       }
 
-      if (effectType === 'white-strobe' && baseColors) {
+      if (effectType === 'sparking' && lifeRatio > 0.4) {
+        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
+        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+        const transitionStart = 0.46 + randomOffset;
+
+        if (i % 2 === 0 && lifeRatio > transitionStart) {
+          const tDecay = (lifeRatio - transitionStart) / (1.0 - transitionStart);
+          // Tăng nhẹ mật độ hạt lấp lánh lên 0.42 để tạo thành bụi sao li ti
+          const sparkleChance = 0.42 * Math.pow(1.0 - tDecay, 1.8);
+          if (Math.random() < sparkleChance) {
+            // Phối trộn màu sắc tro tàn: cam vàng ấm (lửa tàn), bạc/trắng lung linh (kim tuyến), và xám đen (tro nguội)
+            const roll = Math.random();
+            let sparkColor;
+            if (roll < 0.52) {
+              sparkColor = new THREE.Color(0xff8800).lerp(new THREE.Color(0xffd700), Math.random()); // Cam vàng ấm áp
+            } else if (roll < 0.82) {
+              sparkColor = new THREE.Color(0xffffff).lerp(new THREE.Color(0xfffacd), Math.random()); // Trắng bạc kim tuyến lung linh
+            } else {
+              sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+            }
+
+            // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
+            const sparkVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 4.5,
+              -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+              (Math.random() - 0.5) * 4.5
+            );
+
+            // Chia các hạt pháo hoa chính thành từng nhóm 12 hạt để đồng bộ hóa nhịp nháy (strobe)
+            const groupIndex = Math.floor(i / 12);
+            const sparkPhase = groupIndex * 180; // Mỗi nhóm 12 hạt lệch pha chớp nháy 180ms
+
+            // Thời gian sống cực ngắn (0.3s - 0.55s) để hạt chớp tắt rồi biến mất ngay, tránh tạo thành vệt đuôi kéo dài
+            const sparkLife = 0.3 + Math.random() * 0.25;
+
+            this.trailSystem.spawnEffectSpark(
+              particlePosition,
+              sparkColor,
+              Math.random() < 0.85, // Tỷ lệ lấp lánh chớp tắt
+              sparkVel,
+              sparkPhase,
+              sparkLife
+            );
+          }
+        }
+      }
+
+      if (effectType === 'sparking-v2') {
+        // Sinh tro tàn lấp lánh ngay lập tức từ lúc nổ (lifeRatio từ 0 đến 1)
+        // Mật độ giảm dần theo thời gian tàn của pháo
+        const sparkleChance = 0.38 * Math.pow(1.0 - lifeRatio, 1.8);
+        if (Math.random() < sparkleChance) {
+          const roll = Math.random();
+          let sparkColor;
+          if (roll < 0.52) {
+            sparkColor = new THREE.Color(0xff8800).lerp(new THREE.Color(0xffd700), Math.random()); // Cam vàng ấm áp
+          } else if (roll < 0.82) {
+            sparkColor = new THREE.Color(0xffffff).lerp(new THREE.Color(0xfffacd), Math.random()); // Trắng bạc kim tuyến lung linh
+          } else {
+            sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+          }
+
+          // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
+          const sparkVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 4.5,
+            -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+            (Math.random() - 0.5) * 4.5
+          );
+
+          // Đồng bộ chớp tắt theo nhóm 12 hạt
+          const groupIndex = Math.floor(i / 12);
+          const sparkPhase = groupIndex * 180;
+          const sparkLife = 0.3 + Math.random() * 0.25;
+
+          this.trailSystem.spawnEffectSpark(
+            particlePosition,
+            sparkColor,
+            Math.random() < 0.85,
+            sparkVel,
+            sparkPhase,
+            sparkLife
+          );
+        }
+      }
+
+      if (effectType === 'sparking' && baseColors) {
+        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
+        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+        const transitionStart = 0.46 + randomOffset;
+        const transitionEnd = transitionStart + 0.08;
+
+        if (i % 2 !== 0) {
+          // 1/ Hạt vỏ ngoài: Tan biến từ từ (Soft Fade-out)
+          if (lifeRatio > transitionEnd) {
+            positions[i * 3] = 99999;
+            positions[i * 3 + 1] = -99999;
+            positions[i * 3 + 2] = 99999;
+            velocity.set(0, 0, 0);
+
+            colors[i * 3] = 0;
+            colors[i * 3 + 1] = 0;
+            colors[i * 3 + 2] = 0;
+          } else if (lifeRatio > transitionStart) {
+            const fade = (transitionEnd - lifeRatio) / (transitionEnd - transitionStart);
+            colors[i * 3] = baseColors[i * 3] * fade;
+            colors[i * 3 + 1] = baseColors[i * 3 + 1] * fade;
+            colors[i * 3 + 2] = baseColors[i * 3 + 2] * fade;
+          } else {
+            colors[i * 3] = baseColors[i * 3];
+            colors[i * 3 + 1] = baseColors[i * 3 + 1];
+            colors[i * 3 + 2] = baseColors[i * 3 + 2];
+          }
+        } else {
+          // 2/ Hạt lõi trong: Giữ nguyên màu sắc của pháo
+          colors[i * 3] = baseColors[i * 3];
+          colors[i * 3 + 1] = baseColors[i * 3 + 1];
+          colors[i * 3 + 2] = baseColors[i * 3 + 2];
+        }
+        needsColorUpdate = true;
+      } else if (effectType === 'white-strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         if (lifeRatio > 0.5) {
           const timeMs = (item.age + phase) * 1000;
@@ -953,7 +1072,11 @@ export class FireworkSystem {
         colors[i * 3 + 1] = blink;
         colors[i * 3 + 2] = blink;
         needsColorUpdate = true;
-      } else if ((effectType === 'strobe' || item.points.userData.preset?.strobe) && baseColors) {
+      } else if (
+        (
+          effectType === 'strobe'
+          || item.points.userData.preset?.strobe
+        ) && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         const timeMs = (item.age + phase) * 1000;
         const strobeFreq = 150; // Chớp nhanh hơn để tạo cảm giác lung linh (150ms)

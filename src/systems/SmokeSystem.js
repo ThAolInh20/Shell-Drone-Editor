@@ -130,8 +130,8 @@ export class SmokeSystem {
   }
 
   onBurst(detail = {}) {
-    // Chỉ kích hoạt khói vụ nổ cho pháo hoa có hiệu ứng khói (Chrysanthemum Smoke)
-    if (detail.effectType !== 'crysanthemum-smoke' && detail.shellType !== 'crysanthemumSmoke') {
+    // Kích hoạt khói vụ nổ cho Chrysanthemum Smoke, Sparking và Sparking V2 để tạo quầng sáng trung tâm mềm mại
+    if (detail.effectType !== 'crysanthemum-smoke' && detail.shellType !== 'crysanthemumSmoke' && detail.effectType !== 'sparking' && detail.effectType !== 'sparking-v2') {
       return;
     }
 

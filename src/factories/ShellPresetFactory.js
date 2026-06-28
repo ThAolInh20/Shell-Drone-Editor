@@ -18,7 +18,7 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring', 'sparking', 'sparking-v2']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
@@ -27,6 +27,8 @@ export class ShellPresetFactory {
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
+      { key: 'sparking', label: 'Sparking (Ember Decay)' },
+      { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
       { key: 'whiteStrobe', label: 'White Strobe' },
@@ -78,6 +80,8 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
+    this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
     this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
     this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
@@ -232,6 +236,40 @@ export class ShellPresetFactory {
       smiley: false,
       hearth: false,
       star: false,
+      doubleRing: false
+    };
+  }
+
+  sparkingShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sparking',
+      shapeType: 'sphere',
+      effectType: 'sparking',
+      starLife: 1600 + size * 400, // Tăng thời gian sống để hạt bay xa và sinh tàn tro lâu hơn
+      particleCountMultiplier: 1.6, // Tăng số lượng hạt lên 1.6 lần để tạo ra hàng ngàn hạt ánh sáng li ti
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      pistil: false,
+      doubleRing: false
+    };
+  }
+
+  sparkingV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sparkingV2',
+      shapeType: 'sphere',
+      effectType: 'sparking-v2',
+      starLife: 1600 + size * 400,
+      particleCountMultiplier: 1.6,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      pistil: false,
       doubleRing: false
     };
   }
