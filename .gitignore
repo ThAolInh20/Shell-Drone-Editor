@@ -25,7 +25,6 @@ dist-electron
 *.sw?
 .agent
 _bmad
-.github
 public/image/
 dist-electron.zip
 .vite/
