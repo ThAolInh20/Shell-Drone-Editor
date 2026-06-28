@@ -39,6 +39,7 @@ export class ShellPresetFactory {
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet (Cluster)' },
+      { key: 'bouquetComet', label: 'Bouquet (Comets)' },
       { key: 'bouquetV2', label: 'Bouquet V2 (Parent Color)' },
       { key: 'bouquetV2Multicolor', label: 'Bouquet V2 (Multi Color)' },
       { key: 'rumble', label: 'Rumble' },
@@ -92,6 +93,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
     this.presetsRegistry.set('floral', (size) => this.floralShell(size));
     this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
+    this.presetsRegistry.set('bouquetComet', (size) => this.bouquetCometShell(size));
     this.presetsRegistry.set('bouquetV2', (size) => this.bouquetV2Shell(size));
     this.presetsRegistry.set('bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
     this.presetsRegistry.set('rumble', (size) => this.rumbleShell(size));
@@ -465,6 +467,16 @@ export class ShellPresetFactory {
     return {
       type: 'bouquet',
       shellType: 'bouquet',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size
+    };
+  }
+
+  bouquetCometShell(size = 1) {
+    return {
+      type: 'bouquetComet',
+      shellType: 'bouquetComet',
       shapeType: 'sphere',
       effectType: 'standard',
       shellSize: size

@@ -21,7 +21,8 @@ export class BurstEffectProcessor {
     'crysanthemum-cc',
     'ghost',
     'galaxy-spin',
-    'comet-ring'
+    'comet-ring',
+    'bouquet-comet'
   ]);
 
   static effectsRegistry = new Map();
@@ -393,5 +394,17 @@ BurstEffectProcessor.registerEffect('sparking-v2', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
     // Bay bung tỏa tự do, bình thường như pháo hoa Chrysanthemum thường, trọng lực chuẩn
     return { gravityScale: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('bouquet-comet', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    velocity.multiplyScalar(0.995); // Lực cản không khí
+    return { 
+      gravityScale: 0.15, // Trọng lực vừa phải để vút lên cao rồi cong dần xuống
+      spawnTrail: true, 
+      trailLife: 0.8, // Vệt đuôi dài
+      trailIntensity: 0.7 
+    };
   }
 });

@@ -609,10 +609,12 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (item.shellType === 'bouquet') {
+    if (item.shellType === 'bouquet' || item.shellType === 'bouquetComet') {
       const clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
       for (let i = 0; i < clusterCount; i++) {
-        const colorHex = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+        const colorHex = item.shellType === 'bouquetComet' 
+          ? item.color.getHex() 
+          : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
         const subColor = new THREE.Color(colorHex);
 
         const speed = 35 + Math.random() * 30; // Increased speed for wider spread
@@ -626,10 +628,17 @@ export class FireworkSystem {
         const velocity = new THREE.Vector3(vx, vy, vz);
         const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
 
-        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
-        subPreset.color = colorHex;
-        subPreset.shellType = 'floral-child';
-        subPreset.particleCountMultiplier = 0.5; // save FPS
+        let subPreset;
+        if (item.shellType === 'bouquetComet') {
+          subPreset = this.shellPresetFactory.basePreset(0.5);
+          subPreset.noBurst = true;
+          subPreset.shellType = 'floral-child';
+        } else {
+          subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
+          subPreset.color = colorHex;
+          subPreset.shellType = 'floral-child';
+          subPreset.particleCountMultiplier = 0.5; // save FPS
+        }
 
         const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c' + i);
 
@@ -709,6 +718,13 @@ export class FireworkSystem {
         intensity: normalizedEnergy,
         duration: 1.25 + normalizedEnergy * 1.1
       });
+      return;
+    }
+
+    if (item.preset?.noBurst) {
+      this.scene.remove(item.mesh);
+      item.markBursted?.();
+      finished.push(item);
       return;
     }
 
