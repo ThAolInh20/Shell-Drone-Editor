@@ -35,12 +35,13 @@ export class ShellPresetFactory {
       { key: 'glitterStrobe', label: 'Glitter Strobe' },
       { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
       { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
-      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3 (Glitter)' },
+      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet (Cluster)' },
       { key: 'bouquetComet', label: 'Bouquet (Comets)' },
-      { key: 'bouquetV2', label: 'Bouquet V2 (Parent Color)' },
+      { key: 'bouquetCometSphere', label: 'Bouquet' },
+      { key: 'bouquetV2', label: 'Bouquet V2' },
       { key: 'bouquetV2Multicolor', label: 'Bouquet V2 (Multi Color)' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
@@ -94,6 +95,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('floral', (size) => this.floralShell(size));
     this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
     this.presetsRegistry.set('bouquetComet', (size) => this.bouquetCometShell(size));
+    this.presetsRegistry.set('bouquetCometSphere', (size) => this.bouquetCometSphereShell(size));
     this.presetsRegistry.set('bouquetV2', (size) => this.bouquetV2Shell(size));
     this.presetsRegistry.set('bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
     this.presetsRegistry.set('rumble', (size) => this.rumbleShell(size));
@@ -477,6 +479,16 @@ export class ShellPresetFactory {
     return {
       type: 'bouquetComet',
       shellType: 'bouquetComet',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size
+    };
+  }
+
+  bouquetCometSphereShell(size = 1) {
+    return {
+      type: 'bouquetCometSphere',
+      shellType: 'bouquetCometSphere',
       shapeType: 'sphere',
       effectType: 'standard',
       shellSize: size

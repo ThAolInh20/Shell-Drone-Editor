@@ -600,7 +600,14 @@ export class FireworkSystem {
     const shouldBurst = item.update(deltaTime);
 
     if (Math.random() < 0.4) {
-      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5);
+      let customLife = null;
+      if (item.preset?.noBurst && item.preset?.starLife) {
+        const lifeTime = item.preset.starLife / 1000;
+        const remainingLife = Math.max(0.1, lifeTime - item.age);
+        const baseTrailLife = (2 + Math.random() * 3) * 0.5;
+        customLife = Math.min(baseTrailLife, remainingLife);
+      }
+      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5, false, customLife);
     }
 
     if (!shouldBurst) {
@@ -609,30 +616,59 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (item.shellType === 'bouquet' || item.shellType === 'bouquetComet') {
-      const clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+    if (
+      item.shellType === 'bouquet'
+      || item.shellType === 'bouquetComet'
+      || item.shellType === 'bouquetCometSphere'
+    ) {
+      let clusterCount;
+      if (item.shellType === 'bouquetCometSphere') {
+        // Needs a lot more particles to form a recognizable sphere
+        clusterCount = 70 + Math.floor(Math.random() * 20); // 45 to 65
+      } else {
+        clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+      }
+
       for (let i = 0; i < clusterCount; i++) {
-        const colorHex = item.shellType === 'bouquetComet' 
-          ? item.color.getHex() 
+        const colorHex = (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere')
+          ? item.color.getHex()
           : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
         const subColor = new THREE.Color(colorHex);
 
-        const speed = 35 + Math.random() * 30; // Increased speed for wider spread
-        const angleY = Math.random() * Math.PI / 2.2; // spread upwards and outwards
-        const angleXZ = Math.random() * Math.PI * 2;
+        let vx, vy, vz;
 
-        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
-        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-        const vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+        if (item.shellType === 'bouquetCometSphere') {
+          // Use Fibonacci sphere for a perfectly even and clear spherical shell
+          const t = (i + 0.5) / clusterCount;
+          const phi = Math.acos(1 - 2 * t);
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+          
+          // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
+          const speed = 55 + Math.random() * 5; 
+
+          vx = Math.cos(theta) * Math.sin(phi) * speed;
+          vy = Math.cos(phi) * speed;
+          vz = Math.sin(theta) * Math.sin(phi) * speed;
+        } else {
+          // Upward spray
+          const speed = 35 + Math.random() * 30; // Increased speed for wider spread
+          const angleY = Math.random() * Math.PI / 2.2;
+          const angleXZ = Math.random() * Math.PI * 2;
+
+          vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+          vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+          vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+        }
 
         const velocity = new THREE.Vector3(vx, vy, vz);
         const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
 
         let subPreset;
-        if (item.shellType === 'bouquetComet') {
+        if (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere') {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
+          subPreset.starLife = 3500; // Increased life time for much longer flight
         } else {
           subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
           subPreset.color = colorHex;
