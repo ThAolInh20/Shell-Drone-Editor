@@ -1,32 +1,18 @@
 # Mô phỏng Trình diễn Drone và Pháo hoa 3D (Shell Drone Animation)
 
-Dự án này là một ứng dụng mô phỏng và biên tập trình diễn pháo hoa & drone 3D lập trình và tương tác trực quan, được xây dựng bằng **Three.js** và **Vite**, nay đã được tích hợp **Electron** để mang lại trải nghiệm phần mềm Desktop chuyên nghiệp.
+Dự án này là một ứng dụng mô phỏng và biên tập trình diễn pháo hoa & drone 3D, được xây dựng bằng **Three.js** và **Vite**, Sử dụng **Electron** để build phần mềm Desktop chuyên nghiệp.
 
 ---
-
-## Hướng dẫn Sử dụng Chi tiết (User Guides)
-
-Tài liệu hướng dẫn sử dụng chi tiết cho từng phân hệ được lưu trữ trong thư mục [**`guides/`**](./guides/):
-
-*   [**Tài liệu Mục lục & Phím tắt Chung (README.md)**](./guides/README.md)
-*   [**1. Phân hệ Trình diễn Viewer (show-viewer)**](./guides/show-viewer/README.md) - Cách xem trình phát pháo hoa, drone và chèn âm nhạc.
-*   [**2. Phân hệ Thiết kế Đội hình Tĩnh (static-formation)**](./guides/static-formation/README.md) - Cách tạo hình học drone, dùng Bezier và mô hình Hologram/Ảnh mẫu dẫn hướng.
-*   [**3. Phân hệ Biên tập Hoạt cảnh Động (animated-editor)**](./guides/animated-editor/README.md) - Lên timeline, chỉnh bước chuyển, hiệu ứng ánh sáng LED và uốn nhóm drone.
-
----
-
 
 ## Hướng dẫn Tải và Cài đặt mã nguồn
 
-Bạn có thể tải mã nguồn của dự án này bằng một trong hai cách sau:
 
 ### Cách 1: Sử dụng Git (Khuyên dùng)
 Nếu máy bạn đã cài đặt Git, hãy mở Terminal (hoặc Command Prompt/PowerShell) và chạy lệnh sau:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/ThAolInh20/Shell-Drone-Editor.git
 cd shell-drone-animation
 ```
-*(Lưu ý: Thay thế `<your-repo-url>` bằng liên kết repository thực tế của bạn).*
 
 ### Cách 2: Tải file ZIP trực tiếp
 1. Nhấp vào nút **Code** màu xanh lá cây ở góc trên bên phải của trang repository này.
@@ -71,22 +57,6 @@ Sau đó, truy cập vào địa chỉ local được hiển thị trên termina
 
 ## Biên dịch và Đóng gói (Production Build)
 
-### A. Đóng gói cho Nền tảng Web (Vite Build)
-Khi muốn biên dịch ứng dụng web thông thường để đưa lên máy chủ hoặc host tĩnh:
-
-- **Biên dịch Dự án:**
-  Tối ưu hóa mã nguồn và tạo ra thư mục tĩnh `dist` sẵn sàng cho việc hosting:
-  ```bash
-  npm run build
-  ```
-
-- **Chạy thử Bản biên dịch:**
-  Kiểm tra và xem trước phiên bản đã được biên dịch ngay tại local:
-  ```bash
-  npm run preview
-  ```
-
----
 ### B. Đóng gói Ứng dụng Desktop (.EXE với Electron)
 Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Desktop chạy độc lập trên Windows (`.exe`):
 
@@ -95,3 +65,4 @@ Khi muốn đóng gói toàn bộ dự án thành phần mềm cài đặt Deskt
    ```bash
    npm run electron:build
    ```
+   File được lưu vào thư mục `dist-electron`
