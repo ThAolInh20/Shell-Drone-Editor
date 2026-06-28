@@ -937,9 +937,15 @@ export class FireworkSystem {
             const roll = Math.random();
             let sparkColor;
             if (roll < 0.52) {
-              sparkColor = new THREE.Color(0xff8800).lerp(new THREE.Color(0xffd700), Math.random()); // Cam vàng ấm áp
+              sparkColor = new THREE.Color(0xff8800).lerp(
+                new THREE.Color(0xffd700),
+                Math.random()
+              ); // Cam vàng ấm áp
             } else if (roll < 0.82) {
-              sparkColor = new THREE.Color(0xffffff).lerp(new THREE.Color(0xfffacd), Math.random()); // Trắng bạc kim tuyến lung linh
+              sparkColor = new THREE.Color(0xffffff).lerp(
+                new THREE.Color(0xfffacd),
+                Math.random()
+              ); // Trắng bạc kim tuyến lung linh
             } else {
               sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
             }
@@ -978,9 +984,15 @@ export class FireworkSystem {
           const roll = Math.random();
           let sparkColor;
           if (roll < 0.52) {
-            sparkColor = new THREE.Color(0xff8800).lerp(new THREE.Color(0xffd700), Math.random()); // Cam vàng ấm áp
+            sparkColor = new THREE.Color(0xff8800).lerp(
+              new THREE.Color(0xffd700),
+              Math.random()
+            ); // Cam vàng ấm áp
           } else if (roll < 0.82) {
-            sparkColor = new THREE.Color(0xffffff).lerp(new THREE.Color(0xfffacd), Math.random()); // Trắng bạc kim tuyến lung linh
+            sparkColor = new THREE.Color(0xffffff).lerp(
+              new THREE.Color(0xfffacd),
+              Math.random()
+            ); // Trắng bạc kim tuyến lung linh
           } else {
             sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
           }

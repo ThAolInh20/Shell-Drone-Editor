@@ -176,7 +176,16 @@ export class BurstEffectProcessor {
       }
     }
 
-    return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity, spawnSmoke, smokeLife, smokeOpacity };
+    return {
+      gravityScale,
+      emitSpark,
+      spawnTrail,
+      trailLife,
+      trailIntensity,
+      spawnSmoke,
+      smokeLife,
+      smokeOpacity
+    };
   }
 }
 

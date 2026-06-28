@@ -46,7 +46,14 @@ export class SmokeSystem {
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    const gradient = ctx.createRadialGradient(size * 0.5, size * 0.5, size * 0.1, size * 0.5, size * 0.5, size * 0.5);
+    const gradient = ctx.createRadialGradient(
+      size * 0.5,
+      size * 0.5,
+      size * 0.1,
+      size * 0.5,
+      size * 0.5,
+      size * 0.5
+    );
     gradient.addColorStop(0, 'rgba(185, 194, 210, 0.92)');
     gradient.addColorStop(0.38, 'rgba(126, 136, 154, 0.62)');
     gradient.addColorStop(1, 'rgba(70, 78, 96, 0.0)');
@@ -131,7 +138,12 @@ export class SmokeSystem {
 
   onBurst(detail = {}) {
     // Kích hoạt khói vụ nổ cho Chrysanthemum Smoke, Sparking và Sparking V2 để tạo quầng sáng trung tâm mềm mại
-    if (detail.effectType !== 'crysanthemum-smoke' && detail.shellType !== 'crysanthemumSmoke' && detail.effectType !== 'sparking' && detail.effectType !== 'sparking-v2') {
+    if (
+      detail.effectType !== 'crysanthemum-smoke' &&
+      detail.shellType !== 'crysanthemumSmoke' &&
+      detail.effectType !== 'sparking' &&
+      detail.effectType !== 'sparking-v2'
+    ) {
       return;
     }
 
@@ -175,30 +187,30 @@ export class SmokeSystem {
 
   update(deltaTime) {
     const elapsed = performance.now() / 1000;
-    
+
     for (let i = this.puffs.length - 1; i >= 0; i--) {
       const puff = this.puffs[i];
       puff.age += deltaTime;
-      
+
       if (puff.age >= puff.life) {
         this.group.remove(puff.sprite);
         if (puff.sprite.material) puff.sprite.material.dispose();
         this.puffs.splice(i, 1);
         continue;
       }
-      
+
       const t = puff.age / puff.life;
-      
+
       // Hạt khói dần dần hòa vào tốc độ của gió (lerp) để tạo cảm giác bị cuốn đi
       puff.velocity.lerp(this.wind, deltaTime * 1.2);
-      
+
       // Khói vẫn giữ một chút lực nổi tự nhiên (bốc lên trên) kết hợp nhiễu động nhẹ (turbulence)
       const noiseX = Math.sin(elapsed * 3.0 + puff.age * 5.0) * 0.4;
       const noiseZ = Math.cos(elapsed * 2.5 + puff.age * 4.0) * 0.4;
       puff.velocity.x += noiseX * deltaTime;
       puff.velocity.z += noiseZ * deltaTime;
       puff.velocity.y += 0.45 * deltaTime;
-      
+
       puff.sprite.position.addScaledVector(puff.velocity, deltaTime);
 
       const growthScale = 1 + puff.growth * t;
