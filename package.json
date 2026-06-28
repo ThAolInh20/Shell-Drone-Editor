@@ -1,7 +1,7 @@
 {
   "name": "shell-drone-animation",
-  "version": "2.0.3",
-  "description": "Shell Drone Animation and Formation Editor",
+  "version": "2.0.5",
+  "description": "Editor show Drone and Firework",
   "author": "ThaoLinn20",
   "private": true,
   "type": "module",
@@ -15,8 +15,8 @@
     "electron:build": "npm run build && electron-builder"
   },
   "build": {
-    "appId": "com.shelldrone.editor",
-    "productName": "ShellDroneEditor",
+    "appId": "com.droneshell.editor",
+    "productName": "DroneShellEditor",
     "copyright": "Copyright © 2026 ThaoLinn20",
     "directories": {
       "output": "dist-electron"
@@ -49,7 +49,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Shell Drone Editor",
+      "shortcutName": "Drone Shell Editor",
       "displayLanguageSelector": true,
       "license": "LICENSE"
     }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 
-const MAX_SMOKE_PUFFS = 420;
+const MAX_SMOKE_PUFFS = 1200;
 
 export class SmokeSystem {
   constructor(sceneManager) {
@@ -13,10 +13,18 @@ export class SmokeSystem {
     this.puffs = [];
     this.eventSubscriptions = [];
 
+    // Hướng gió mặc định (thổi ngang sang phải X và hơi đẩy về sau Z)
+    this.wind = new THREE.Vector3(5.5, 0.8, 2.5);
+
     this.eventSubscriptions.push(
       globalEventBus.on('firework:launch', (detail) => this.onLaunch(detail)),
       globalEventBus.on('firework:burst', (detail) => this.onBurst(detail)),
-      globalEventBus.on('firework:clear', () => this.clear())
+      globalEventBus.on('firework:clear', () => this.clear()),
+      globalEventBus.on('smoke:spawn', (detail) => {
+        if (detail && detail.position && detail.velocity) {
+          this.spawnPuff(detail.position, detail.velocity, detail.options);
+        }
+      })
     );
   }
 
@@ -24,6 +32,11 @@ export class SmokeSystem {
     for (const unsubscribe of this.eventSubscriptions) {
       unsubscribe();
     }
+    this.clear();
+    if (this.smokeTexture) {
+      this.smokeTexture.dispose();
+    }
+    this.scene.remove(this.group);
   }
 
   createSmokeTexture() {
@@ -33,7 +46,14 @@ export class SmokeSystem {
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    const gradient = ctx.createRadialGradient(size * 0.5, size * 0.5, size * 0.1, size * 0.5, size * 0.5, size * 0.5);
+    const gradient = ctx.createRadialGradient(
+      size * 0.5,
+      size * 0.5,
+      size * 0.1,
+      size * 0.5,
+      size * 0.5,
+      size * 0.5
+    );
     gradient.addColorStop(0, 'rgba(185, 194, 210, 0.92)');
     gradient.addColorStop(0.38, 'rgba(126, 136, 154, 0.62)');
     gradient.addColorStop(1, 'rgba(70, 78, 96, 0.0)');
@@ -60,7 +80,7 @@ export class SmokeSystem {
       opacity: options.opacity ?? 0.24,
       color: options.color ?? new THREE.Color(0x8892a3),
       depthWrite: false,
-      depthTest: false,
+      depthTest: true, // Cho phép vật thể đặc (như drone) che khuất khói tự nhiên
 
       blending: THREE.NormalBlending
     });
@@ -79,8 +99,8 @@ export class SmokeSystem {
       growth: options.growth ?? 4.4,
 
       baseScale,
-      baseOpacity: options.opacity ?? 0.24
-
+      baseOpacity: options.opacity ?? 0.24,
+      rotSpeed: options.rotSpeed ?? (Math.random() - 0.5) * 0.8 // Khởi tạo tốc độ xoay tránh lỗi NaN
     });
   }
 
@@ -117,6 +137,16 @@ export class SmokeSystem {
   }
 
   onBurst(detail = {}) {
+    // Kích hoạt khói vụ nổ cho Chrysanthemum Smoke, Sparking và Sparking V2 để tạo quầng sáng trung tâm mềm mại
+    if (
+      detail.effectType !== 'crysanthemum-smoke' &&
+      detail.shellType !== 'crysanthemumSmoke' &&
+      detail.effectType !== 'sparking' &&
+      detail.effectType !== 'sparking-v2'
+    ) {
+      return;
+    }
+
     const burstPos = new THREE.Vector3(
       detail.position?.x ?? 0,
       detail.position?.y ?? 160,
@@ -157,32 +187,30 @@ export class SmokeSystem {
 
   update(deltaTime) {
     const elapsed = performance.now() / 1000;
-    
+
     for (let i = this.puffs.length - 1; i >= 0; i--) {
       const puff = this.puffs[i];
       puff.age += deltaTime;
-      
+
       if (puff.age >= puff.life) {
         this.group.remove(puff.sprite);
         if (puff.sprite.material) puff.sprite.material.dispose();
         this.puffs.splice(i, 1);
         continue;
       }
-      
+
       const t = puff.age / puff.life;
-      const easeOut = 1 - Math.pow(1 - t, 3);
-      
-      // Khói bị thổi bay bởi gió (wind) thay vì chỉ trôi bồng bềnh tại chỗ
-      if (!this.wind) {
-        // Gió thổi ngang sang phải (X) và hơi đẩy về sau (Z)
-        this.wind = new THREE.Vector3(5.5, 0.8, 2.5); 
-      }
-      
+
       // Hạt khói dần dần hòa vào tốc độ của gió (lerp) để tạo cảm giác bị cuốn đi
       puff.velocity.lerp(this.wind, deltaTime * 1.2);
-      
-      // Khói vẫn giữ một chút lực nổi tự nhiên (bốc lên trên)
-      puff.velocity.y += 0.4 * deltaTime;
+
+      // Khói vẫn giữ một chút lực nổi tự nhiên (bốc lên trên) kết hợp nhiễu động nhẹ (turbulence)
+      const noiseX = Math.sin(elapsed * 3.0 + puff.age * 5.0) * 0.4;
+      const noiseZ = Math.cos(elapsed * 2.5 + puff.age * 4.0) * 0.4;
+      puff.velocity.x += noiseX * deltaTime;
+      puff.velocity.z += noiseZ * deltaTime;
+      puff.velocity.y += 0.45 * deltaTime;
+
       puff.sprite.position.addScaledVector(puff.velocity, deltaTime);
 
       const growthScale = 1 + puff.growth * t;
