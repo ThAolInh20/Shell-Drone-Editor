@@ -104,16 +104,24 @@ export class TrailSystem {
     this.trailParticles.push(particle);
   }
 
-  spawnEffectSpark(position, color, strobe = false) {
+  spawnEffectSpark(
+    position,
+    color,
+    strobe = false,
+    customVelocity = null,
+    phase = 0,
+    customLife = null
+  ) {
     const spark = {
       position: position.clone(),
-      // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần)
-      velocity: new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
+      // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần) hoặc dùng vận tốc tùy biến
+      velocity: customVelocity ? customVelocity.clone() : new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 5, (Math.random() - 0.5) * 6),
       color: color.clone(),
-      // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn
-      life: 1.5 + Math.random() * 1.2,
+      // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn (hoặc dùng customLife ngắn hơn)
+      life: customLife !== null ? customLife : 1.5 + Math.random() * 1.2,
       age: 0,
-      strobe: strobe
+      strobe: strobe,
+      phase: phase
     };
     this.trailParticles.push(spark);
   }
@@ -177,7 +185,10 @@ export class TrailSystem {
 
         // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
         if (particle.strobe) {
-          const timeMs = particle.age * 1000;
+          // Sử dụng thời gian thực tế toàn cục kết hợp lệch pha để đồng bộ hóa chớp nháy theo nhóm
+          const timeMs = (particle.phase !== undefined)
+            ? (performance.now() + particle.phase)
+            : (particle.age * 1000);
           const strobeFreq = 120; // Tần số lấp lánh (ms)
           const isBlinking = Math.floor(timeMs / strobeFreq) % 2 === 0;
           if (!isBlinking) {

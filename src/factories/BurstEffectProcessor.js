@@ -372,3 +372,17 @@ BurstEffectProcessor.registerEffect('comet-ring', {
     return { gravityScale: 0.06, spawnTrail: true, trailLife: 1.4, trailIntensity: 0.85 };
   }
 });
+
+BurstEffectProcessor.registerEffect('sparking', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    // Bay bung tỏa tự do, bình thường như pháo hoa Chrysanthemum thường
+    return { gravityScale: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparking-v2', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    // Bay bung tỏa tự do, bình thường như pháo hoa Chrysanthemum thường, trọng lực chuẩn
+    return { gravityScale: 0.35 };
+  }
+});
