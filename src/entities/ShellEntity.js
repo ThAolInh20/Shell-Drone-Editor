@@ -110,6 +110,10 @@ export class ShellEntity {
   }
 
   canBurst() {
+    if (this.preset?.noBurst) {
+      const lifeTime = (this.preset.starLife / 1000) || 2.5; // starLife is usually in ms
+      return this.age >= lifeTime;
+    }
     return this.mesh.position.y >= this.burstHeight || this.velocity.y <= 0;
   }
 

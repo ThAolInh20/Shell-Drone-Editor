@@ -21,7 +21,8 @@ export class BurstEffectProcessor {
     'crysanthemum-cc',
     'ghost',
     'galaxy-spin',
-    'comet-ring'
+    'comet-ring',
+    'bouquet-comet'
   ]);
 
   static effectsRegistry = new Map();
@@ -119,6 +120,9 @@ export class BurstEffectProcessor {
     let spawnTrail = false;
     let trailLife = 0.8;
     let trailIntensity = 0.35;
+    let spawnSmoke = false;
+    let smokeLife = 2.5;
+    let smokeOpacity = 0.15;
 
     // Delegate to strategy from registry
     const strategy = this.effectsRegistry.get(effectType);
@@ -130,6 +134,9 @@ export class BurstEffectProcessor {
         if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
         if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
         if (overrides.trailIntensity !== undefined) trailIntensity = overrides.trailIntensity;
+        if (overrides.spawnSmoke !== undefined) spawnSmoke = overrides.spawnSmoke;
+        if (overrides.smokeLife !== undefined) smokeLife = overrides.smokeLife;
+        if (overrides.smokeOpacity !== undefined) smokeOpacity = overrides.smokeOpacity;
       }
     }
 
@@ -170,7 +177,16 @@ export class BurstEffectProcessor {
       }
     }
 
-    return { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity };
+    return {
+      gravityScale,
+      emitSpark,
+      spawnTrail,
+      trailLife,
+      trailIntensity,
+      spawnSmoke,
+      smokeLife,
+      smokeOpacity
+    };
   }
 }
 
@@ -322,6 +338,12 @@ BurstEffectProcessor.registerEffect('crysanthemum-trail', {
   }
 });
 
+BurstEffectProcessor.registerEffect('crysanthemum-smoke', {
+  updateVelocity() {
+    return { gravityScale: 0.3, spawnSmoke: true, smokeLife: 3.8, smokeOpacity: 0.20 };
+  }
+});
+
 BurstEffectProcessor.registerEffect('crysanthemum-cc', {
   updateVelocity() {
     return { gravityScale: 0.3 };
@@ -358,5 +380,31 @@ BurstEffectProcessor.registerEffect('comet-ring', {
   updateVelocity(velocity) {
     velocity.multiplyScalar(0.985);
     return { gravityScale: 0.06, spawnTrail: true, trailLife: 1.4, trailIntensity: 0.85 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparking', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    // Bay bung tỏa tự do, bình thường như pháo hoa Chrysanthemum thường
+    return { gravityScale: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparking-v2', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    // Bay bung tỏa tự do, bình thường như pháo hoa Chrysanthemum thường, trọng lực chuẩn
+    return { gravityScale: 0.35 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('bouquet-comet', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    velocity.multiplyScalar(0.995); // Lực cản không khí
+    return { 
+      gravityScale: 0.15, // Trọng lực vừa phải để vút lên cao rồi cong dần xuống
+      spawnTrail: true, 
+      trailLife: 0.8, // Vệt đuôi dài
+      trailIntensity: 0.7 
+    };
   }
 });

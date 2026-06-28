@@ -18,25 +18,30 @@ export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
     this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring']);
+    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring', 'sparking', 'sparking-v2']);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
+      { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
+      { key: 'sparking', label: 'Sparking (Ember Decay)' },
+      { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
       { key: 'whiteStrobe', label: 'White Strobe' },
       { key: 'glitterStrobe', label: 'Glitter Strobe' },
       { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
       { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
-      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3 (Glitter)' },
+      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet (Cluster)' },
-      { key: 'bouquetV2', label: 'Bouquet V2 (Parent Color)' },
+      { key: 'bouquetComet', label: 'Bouquet (Comets)' },
+      { key: 'bouquetCometSphere', label: 'Bouquet' },
+      { key: 'bouquetV2', label: 'Bouquet V2' },
       { key: 'bouquetV2Multicolor', label: 'Bouquet V2 (Multi Color)' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
@@ -75,7 +80,10 @@ export class ShellPresetFactory {
   initializePresetsRegistry() {
     this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
+    this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
+    this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
     this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
     this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
@@ -86,6 +94,8 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
     this.presetsRegistry.set('floral', (size) => this.floralShell(size));
     this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
+    this.presetsRegistry.set('bouquetComet', (size) => this.bouquetCometShell(size));
+    this.presetsRegistry.set('bouquetCometSphere', (size) => this.bouquetCometSphereShell(size));
     this.presetsRegistry.set('bouquetV2', (size) => this.bouquetV2Shell(size));
     this.presetsRegistry.set('bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
     this.presetsRegistry.set('rumble', (size) => this.rumbleShell(size));
@@ -215,6 +225,55 @@ export class ShellPresetFactory {
       smiley: false,
       hearth: false,
       star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSmokeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSmoke',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-smoke',
+      starLife: 1800 + size * 400, // Tăng thời gian sống của hạt pháo để bay xa hơn và sinh khói dài hơn
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  sparkingShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sparking',
+      shapeType: 'sphere',
+      effectType: 'sparking',
+      starLife: 1600 + size * 400, // Tăng thời gian sống để hạt bay xa và sinh tàn tro lâu hơn
+      particleCountMultiplier: 1.6, // Tăng số lượng hạt lên 1.6 lần để tạo ra hàng ngàn hạt ánh sáng li ti
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      pistil: false,
+      doubleRing: false
+    };
+  }
+
+  sparkingV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sparkingV2',
+      shapeType: 'sphere',
+      effectType: 'sparking-v2',
+      starLife: 1600 + size * 400,
+      particleCountMultiplier: 1.6,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      pistil: false,
       doubleRing: false
     };
   }
@@ -410,6 +469,26 @@ export class ShellPresetFactory {
     return {
       type: 'bouquet',
       shellType: 'bouquet',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size
+    };
+  }
+
+  bouquetCometShell(size = 1) {
+    return {
+      type: 'bouquetComet',
+      shellType: 'bouquetComet',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      shellSize: size
+    };
+  }
+
+  bouquetCometSphereShell(size = 1) {
+    return {
+      type: 'bouquetCometSphere',
+      shellType: 'bouquetCometSphere',
       shapeType: 'sphere',
       effectType: 'standard',
       shellSize: size

@@ -464,7 +464,7 @@ export class FireworkSystem {
 
       const shellSizeScale = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
-      
+
       // Store the normalized direction vector to determine the hemisphere for coloring
       const normDir = direction.clone().normalize();
       velocities.push(direction.multiplyScalar(speed));
@@ -600,7 +600,14 @@ export class FireworkSystem {
     const shouldBurst = item.update(deltaTime);
 
     if (Math.random() < 0.4) {
-      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5);
+      let customLife = null;
+      if (item.preset?.noBurst && item.preset?.starLife) {
+        const lifeTime = item.preset.starLife / 1000;
+        const remainingLife = Math.max(0.1, lifeTime - item.age);
+        const baseTrailLife = (2 + Math.random() * 3) * 0.5;
+        customLife = Math.min(baseTrailLife, remainingLife);
+      }
+      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5, false, customLife);
     }
 
     if (!shouldBurst) {
@@ -609,27 +616,65 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (item.shellType === 'bouquet') {
-      const clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+    if (
+      item.shellType === 'bouquet'
+      || item.shellType === 'bouquetComet'
+      || item.shellType === 'bouquetCometSphere'
+    ) {
+      let clusterCount;
+      if (item.shellType === 'bouquetCometSphere') {
+        // Needs a lot more particles to form a recognizable sphere
+        clusterCount = 70 + Math.floor(Math.random() * 20); // 45 to 65
+      } else {
+        clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+      }
+
       for (let i = 0; i < clusterCount; i++) {
-        const colorHex = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+        const colorHex = (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere')
+          ? item.color.getHex()
+          : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
         const subColor = new THREE.Color(colorHex);
 
-        const speed = 35 + Math.random() * 30; // Increased speed for wider spread
-        const angleY = Math.random() * Math.PI / 2.2; // spread upwards and outwards
-        const angleXZ = Math.random() * Math.PI * 2;
+        let vx, vy, vz;
 
-        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
-        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-        const vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+        if (item.shellType === 'bouquetCometSphere') {
+          // Use Fibonacci sphere for a perfectly even and clear spherical shell
+          const t = (i + 0.5) / clusterCount;
+          const phi = Math.acos(1 - 2 * t);
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+          
+          // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
+          const speed = 55 + Math.random() * 5; 
+
+          vx = Math.cos(theta) * Math.sin(phi) * speed;
+          vy = Math.cos(phi) * speed;
+          vz = Math.sin(theta) * Math.sin(phi) * speed;
+        } else {
+          // Upward spray
+          const speed = 35 + Math.random() * 30; // Increased speed for wider spread
+          const angleY = Math.random() * Math.PI / 2.2;
+          const angleXZ = Math.random() * Math.PI * 2;
+
+          vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+          vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+          vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+        }
 
         const velocity = new THREE.Vector3(vx, vy, vz);
         const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
 
-        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
-        subPreset.color = colorHex;
-        subPreset.shellType = 'floral-child';
-        subPreset.particleCountMultiplier = 0.5; // save FPS
+        let subPreset;
+        if (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere') {
+          subPreset = this.shellPresetFactory.basePreset(0.5);
+          subPreset.noBurst = true;
+          subPreset.shellType = 'floral-child';
+          subPreset.starLife = 3500; // Increased life time for much longer flight
+        } else {
+          subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
+          subPreset.color = colorHex;
+          subPreset.shellType = 'floral-child';
+          subPreset.particleCountMultiplier = 0.5; // save FPS
+        }
 
         const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c' + i);
 
@@ -709,6 +754,13 @@ export class FireworkSystem {
         intensity: normalizedEnergy,
         duration: 1.25 + normalizedEnergy * 1.1
       });
+      return;
+    }
+
+    if (item.preset?.noBurst) {
+      this.scene.remove(item.mesh);
+      item.markBursted?.();
+      finished.push(item);
       return;
     }
 
@@ -832,7 +884,16 @@ export class FireworkSystem {
         positions[i * 3 + 2]
       );
 
-      const { gravityScale, emitSpark, spawnTrail, trailLife, trailIntensity } = BurstEffectProcessor.updateVelocity(
+      const {
+        gravityScale,
+        emitSpark,
+        spawnTrail,
+        trailLife,
+        trailIntensity,
+        spawnSmoke,
+        smokeLife,
+        smokeOpacity
+      } = BurstEffectProcessor.updateVelocity(
         velocity,
         i,
         deltaTime,
@@ -884,7 +945,168 @@ export class FireworkSystem {
         }
       }
 
-      if (effectType === 'white-strobe' && baseColors) {
+      if (spawnSmoke) { // Sinh khói thay vì sinh hạt vệt sáng (Comet Trail)
+        const parentFade = lifeRatio > BURST_DISSOLVE_START
+          ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
+          : 1.0;
+
+        // 100% sinh khói ở 12% vòng đời đầu tiên (vừa nổ), sau đó giảm dần.
+        // Áp dụng cho mỗi hạt chẵn (i % 2 === 0) để tạo đường nét rõ ràng nhưng không bị chồng chéo quá dày.
+        const spawnChance = lifeRatio < 0.12
+          ? 1.0
+          : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
+
+        if (i % 2 === 0 && Math.random() < spawnChance) {
+          const particleColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+          // Hạt khói bay vệt nhẹ, thừa hưởng một phần vận tốc của hạt pháo hoa
+          const smokeVel = velocity.clone().multiplyScalar(0.12);
+
+          globalEventBus.emit('smoke:spawn', {
+            position: particlePosition.clone(),
+            velocity: smokeVel,
+            options: {
+              life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
+              scale: 3.2 + Math.random() * 2.2,
+              growth: 2.8,
+              opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0), // Đậm hơn một chút lúc vừa burst
+              color: particleColor
+            }
+          });
+        }
+      }
+
+      if (effectType === 'sparking' && lifeRatio > 0.4) {
+        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
+        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+        const transitionStart = 0.46 + randomOffset;
+
+        if (i % 2 === 0 && lifeRatio > transitionStart) {
+          const tDecay = (lifeRatio - transitionStart) / (1.0 - transitionStart);
+          // Tăng nhẹ mật độ hạt lấp lánh lên 0.42 để tạo thành bụi sao li ti
+          const sparkleChance = 0.42 * Math.pow(1.0 - tDecay, 1.8);
+          if (Math.random() < sparkleChance) {
+            // Phối trộn màu sắc tro tàn: cam vàng ấm (lửa tàn), bạc/trắng lung linh (kim tuyến), và xám đen (tro nguội)
+            const roll = Math.random();
+            let sparkColor;
+            if (roll < 0.52) {
+              sparkColor = new THREE.Color(0xff8800).lerp(
+                new THREE.Color(0xffd700),
+                Math.random()
+              ); // Cam vàng ấm áp
+            } else if (roll < 0.82) {
+              sparkColor = new THREE.Color(0xffffff).lerp(
+                new THREE.Color(0xfffacd),
+                Math.random()
+              ); // Trắng bạc kim tuyến lung linh
+            } else {
+              sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+            }
+
+            // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
+            const sparkVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 4.5,
+              -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+              (Math.random() - 0.5) * 4.5
+            );
+
+            // Chia các hạt pháo hoa chính thành từng nhóm 12 hạt để đồng bộ hóa nhịp nháy (strobe)
+            const groupIndex = Math.floor(i / 12);
+            const sparkPhase = groupIndex * 180; // Mỗi nhóm 12 hạt lệch pha chớp nháy 180ms
+
+            // Thời gian sống cực ngắn (0.3s - 0.55s) để hạt chớp tắt rồi biến mất ngay, tránh tạo thành vệt đuôi kéo dài
+            const sparkLife = 0.3 + Math.random() * 0.25;
+
+            this.trailSystem.spawnEffectSpark(
+              particlePosition,
+              sparkColor,
+              Math.random() < 0.85, // Tỷ lệ lấp lánh chớp tắt
+              sparkVel,
+              sparkPhase,
+              sparkLife
+            );
+          }
+        }
+      }
+
+      if (effectType === 'sparking-v2') {
+        // Sinh tro tàn lấp lánh ngay lập tức từ lúc nổ (lifeRatio từ 0 đến 1)
+        // Mật độ giảm dần theo thời gian tàn của pháo
+        const sparkleChance = 0.38 * Math.pow(1.0 - lifeRatio, 1.8);
+        if (Math.random() < sparkleChance) {
+          const roll = Math.random();
+          let sparkColor;
+          if (roll < 0.52) {
+            sparkColor = new THREE.Color(0xff8800).lerp(
+              new THREE.Color(0xffd700),
+              Math.random()
+            ); // Cam vàng ấm áp
+          } else if (roll < 0.82) {
+            sparkColor = new THREE.Color(0xffffff).lerp(
+              new THREE.Color(0xfffacd),
+              Math.random()
+            ); // Trắng bạc kim tuyến lung linh
+          } else {
+            sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+          }
+
+          // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
+          const sparkVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 4.5,
+            -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+            (Math.random() - 0.5) * 4.5
+          );
+
+          // Đồng bộ chớp tắt theo nhóm 12 hạt
+          const groupIndex = Math.floor(i / 12);
+          const sparkPhase = groupIndex * 180;
+          const sparkLife = 0.3 + Math.random() * 0.25;
+
+          this.trailSystem.spawnEffectSpark(
+            particlePosition,
+            sparkColor,
+            Math.random() < 0.85,
+            sparkVel,
+            sparkPhase,
+            sparkLife
+          );
+        }
+      }
+
+      if (effectType === 'sparking' && baseColors) {
+        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
+        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+        const transitionStart = 0.46 + randomOffset;
+        const transitionEnd = transitionStart + 0.08;
+
+        if (i % 2 !== 0) {
+          // 1/ Hạt vỏ ngoài: Tan biến từ từ (Soft Fade-out)
+          if (lifeRatio > transitionEnd) {
+            positions[i * 3] = 99999;
+            positions[i * 3 + 1] = -99999;
+            positions[i * 3 + 2] = 99999;
+            velocity.set(0, 0, 0);
+
+            colors[i * 3] = 0;
+            colors[i * 3 + 1] = 0;
+            colors[i * 3 + 2] = 0;
+          } else if (lifeRatio > transitionStart) {
+            const fade = (transitionEnd - lifeRatio) / (transitionEnd - transitionStart);
+            colors[i * 3] = baseColors[i * 3] * fade;
+            colors[i * 3 + 1] = baseColors[i * 3 + 1] * fade;
+            colors[i * 3 + 2] = baseColors[i * 3 + 2] * fade;
+          } else {
+            colors[i * 3] = baseColors[i * 3];
+            colors[i * 3 + 1] = baseColors[i * 3 + 1];
+            colors[i * 3 + 2] = baseColors[i * 3 + 2];
+          }
+        } else {
+          // 2/ Hạt lõi trong: Giữ nguyên màu sắc của pháo
+          colors[i * 3] = baseColors[i * 3];
+          colors[i * 3 + 1] = baseColors[i * 3 + 1];
+          colors[i * 3 + 2] = baseColors[i * 3 + 2];
+        }
+        needsColorUpdate = true;
+      } else if (effectType === 'white-strobe' && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         if (lifeRatio > 0.5) {
           const timeMs = (item.age + phase) * 1000;
@@ -914,7 +1136,11 @@ export class FireworkSystem {
         colors[i * 3 + 1] = blink;
         colors[i * 3 + 2] = blink;
         needsColorUpdate = true;
-      } else if ((effectType === 'strobe' || item.points.userData.preset?.strobe) && baseColors) {
+      } else if (
+        (
+          effectType === 'strobe'
+          || item.points.userData.preset?.strobe
+        ) && baseColors) {
         const phase = item.points.userData.effectState.phase[i];
         const timeMs = (item.age + phase) * 1000;
         const strobeFreq = 150; // Chớp nhanh hơn để tạo cảm giác lung linh (150ms)
@@ -953,7 +1179,7 @@ export class FireworkSystem {
       } else if (effectType === 'crysanthemum-cc' && baseColors) {
         const color1 = item.points.userData.color1;
         const color2 = item.points.userData.color2;
-        
+
         let activeColor = color1;
         let fade = 1.0;
 
