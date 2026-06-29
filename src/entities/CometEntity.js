@@ -24,6 +24,16 @@ export class CometEntity {
     this.initialVy = velocity.y;
     this.launchY = position.y;
 
+    if (this.preset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
+      this.color1 = color.clone();
+      this.color2 = new THREE.Color(this.preset.secondColor);
+      this.color2.offsetHSL(
+        (Math.random() - 0.5) * 0.05,
+        (Math.random() - 0.5) * 0.1,
+        (Math.random() - 0.5) * 0.2
+      );
+    }
+
     if (this.preset?.shellType === 'comet_cluster_notrail') {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
@@ -130,13 +140,36 @@ export class CometEntity {
       
       this.updateRotation();
 
+      if (this.preset?.shellType === 'comet_cluster_cc' && this.color2) {
+        const timeToApex = this.initialVy / 30;
+        const lifeRatio = Math.min(1.0, this.age / timeToApex);
+        
+        let fade = 1.0;
+        let activeColor = this.color1;
+        
+        if (lifeRatio < 0.4) {
+          activeColor = this.color1;
+          fade = 1.0;
+        } else if (lifeRatio < 0.5) {
+          activeColor = this.color1;
+          fade = (0.5 - lifeRatio) / 0.1;
+        } else if (lifeRatio < 0.6) {
+          activeColor = this.color2;
+          fade = (lifeRatio - 0.5) / 0.1;
+        } else {
+          activeColor = this.color2;
+          fade = 1.0;
+        }
+
+        this.color.setRGB(activeColor.r * fade, activeColor.g * fade, activeColor.b * fade);
+        if (this.coreMesh) {
+          this.coreMesh.material.color.copy(this.color);
+        }
+      }
+
       // Check if it reached the apex (velocity.y <= 0)
       if (this.velocity.y <= 0) {
-        if (this.preset?.shellType === 'comet_cluster_notrail') {
-          this.state = CometEntity.STATE.DEAD;
-        } else {
-          this.state = CometEntity.STATE.DECAYING;
-        }
+        this.state = CometEntity.STATE.DEAD;
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
       // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực

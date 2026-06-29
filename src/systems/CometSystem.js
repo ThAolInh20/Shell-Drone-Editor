@@ -50,6 +50,20 @@ export class CometSystem {
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.
     const clusterColor = color ? new THREE.Color(color) : new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
 
+    if (finalPreset?.shellType === 'comet_cluster_cc') {
+      const hex = clusterColor.getHex();
+      const colorMap = {
+        0xffffff: 0xff4500,     // White -> Orange Red
+        0xffd700: 0x00bfff,    // Gold -> Sky Blue
+        0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
+        0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
+        0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
+        0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
+        0x8a2be2: 0xffd700     // Blue Violet -> Gold
+      };
+      finalPreset.secondColor = colorMap[hex] || 0xffffff;
+    }
+
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
       // Giảm độ cao xuống còn 2/3 so với ban đầu
