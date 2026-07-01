@@ -20,7 +20,7 @@ Tài liệu này mô tả chi tiết 4 phương án tối ưu hóa nhằm giúp 
 * **Ưu điểm:** Giải phóng hoàn toàn cho CPU. GPU xử lý song song cực kỳ nhanh, cho phép hiển thị mượt mà hơn 100.000 hạt cùng lúc mà không tụt FPS.
 * **Phạm vi ảnh hưởng:** Viết lại shader vật liệu của pháo hoa trong [FireworkSystem.js](file:///e:/shell-drone-animation/src/systems/FireworkSystem.js).
 
-## Phương án 4: Tối ưu hóa hệ thống khói (SmokeSystem) bằng InstancedMesh
+## Phương án 4 (processed): Tối ưu hóa hệ thống khói (SmokeSystem) bằng InstancedMesh
 * **Vấn đề hiện tại:** Các cụm khói bốc lên đang được quản lý như các Mesh riêng lẻ trong THREE.Group, tạo ra thêm rất nhiều draw calls khi màn khói dày đặc.
 * **Giải pháp:** Chuyển đổi SmokeSystem sang sử dụng THREE.InstancedMesh dùng chung một chất liệu và texture khói.
 * **Ưu điểm:** Toàn bộ hệ thống khói chỉ tiêu tốn đúng 1 draw call bất kể mật độ khói dày đến mức nào.
