@@ -5,6 +5,7 @@ import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
 import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 
 const GRAVITY = -30;
 const BASE_BURST_PARTICLES = 110;
@@ -63,7 +64,7 @@ export class FireworkSystem {
       sizeCurve: 0.9,
       brightnessCurve: 1.15
     };
-
+    this.instancedShellRenderer = new InstancedShellRenderer(scene);
   }
 
   emitFireworkEvent(type, detail) {
@@ -144,8 +145,14 @@ export class FireworkSystem {
       return;
     }
 
-    const shell = this.createShell(position, velocity, targetHeight, finalColor, shellPreset, shellId);
-    this.scene.add(shell.mesh);
+    const shell = this.createShell(
+      position,
+      velocity,
+      targetHeight,
+      finalColor,
+      shellPreset,
+      shellId
+    );
     this.activeFireworks.push(shell);
     this.diagnostics.launched += 1;
 
@@ -676,14 +683,19 @@ export class FireworkSystem {
           subPreset.particleCountMultiplier = 0.5; // save FPS
         }
 
-        const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c' + i);
+        const subShell = this.createShell(
+          burstPosition.clone(),
+          velocity,
+          targetHeight,
+          subColor,
+          subPreset,
+          item.shellId + '-c' + i
+        );
 
-        this.scene.add(subShell.mesh);
         this.activeFireworks.push(subShell);
         this.diagnostics.launched += 1;
       }
 
-      this.scene.remove(item.mesh);
       item.markBursted?.();
       finished.push(item);
 
@@ -730,14 +742,19 @@ export class FireworkSystem {
         subPreset.particleCountMultiplier = 0.65; // More glitter particles
         subPreset.launchTrail = true; // Enable trails for children for maximum sparkles
 
-        const subShell = this.createShell(burstPosition.clone(), velocity, targetHeight, subColor, subPreset, item.shellId + '-c2-' + i);
+        const subShell = this.createShell(
+          burstPosition.clone(),
+          velocity,
+          targetHeight,
+          subColor,
+          subPreset,
+          item.shellId + '-c2-' + i
+        );
 
-        this.scene.add(subShell.mesh);
         this.activeFireworks.push(subShell);
         this.diagnostics.launched += 1;
       }
 
-      this.scene.remove(item.mesh);
       item.markBursted?.();
       finished.push(item);
 
@@ -758,17 +775,20 @@ export class FireworkSystem {
     }
 
     if (item.preset?.noBurst) {
-      this.scene.remove(item.mesh);
       item.markBursted?.();
       finished.push(item);
       return;
     }
 
-    const burst = this.createBurst(burstPosition, item.color, item.shapeType ?? item.shape, item.preset);
+    const burst = this.createBurst(
+      burstPosition,
+      item.color,
+      item.shapeType ?? item.shape,
+      item.preset
+    );
     const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
     const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
     this.scene.add(burst.points);
-    this.scene.remove(item.mesh);
     item.markBursted?.();
     finished.push(item);
     this.activeFireworks.push(burst);
@@ -1245,15 +1265,15 @@ export class FireworkSystem {
         fw.points.geometry.dispose();
         fw.points.material.dispose();
       }
-      if (fw.mesh) {
-        this.scene.remove(fw.mesh);
-      }
     }
     this.activeFireworks = [];
+    this.instancedShellRenderer.update([]);
   }
 
   burstAll() {
-    const toBurst = this.activeFireworks.filter(item => item.type === 'shell' && item.state === ShellEntity.STATE.LAUNCHING);
+    const toBurst = this.activeFireworks.filter(
+      (item) => item.type === 'shell' && item.state === ShellEntity.STATE.LAUNCHING
+    );
     for (const shell of toBurst) {
       shell.velocity.y = -1; // Force burst on next frame
     }
@@ -1273,13 +1293,27 @@ export class FireworkSystem {
 
     for (const item of this.activeFireworks) {
       if (item.type === 'shell') {
-        this.handleShellUpdate(item, deltaTime, finished);
+        this.handleShellUpdate(
+          item,
+          deltaTime,
+          finished
+        );
       } else if (item.type === 'burst') {
-        this.handleBurstUpdate(item, deltaTime, finished);
+        this.handleBurstUpdate(
+          item,
+          deltaTime,
+          finished
+        );
       }
     }
 
-    this.activeFireworks = this.activeFireworks.filter(item => !finished.includes(item));
+    this.activeFireworks = this.activeFireworks.filter(
+      (item) => !finished.includes(item)
+    );
 
+    const shells = this.activeFireworks.filter(
+      (item) => item.type === 'shell'
+    );
+    this.instancedShellRenderer.update(shells);
   }
 }
