@@ -956,8 +956,12 @@ export class FireworkSystem {
           ? 1.0
           : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
 
-        if (i % 2 === 0 && Math.random() < spawnChance) {
-          const particleColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+        if (i % 12 === 0 && Math.random() < spawnChance) {
+          const particleColor = new THREE.Color(
+            baseColors[i * 3],
+            baseColors[i * 3 + 1],
+            baseColors[i * 3 + 2]
+          );
           // Hạt khói bay vệt nhẹ, thừa hưởng một phần vận tốc của hạt pháo hoa
           const smokeVel = velocity.clone().multiplyScalar(0.12);
 
