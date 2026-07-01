@@ -14,3 +14,6 @@
       size * 0.5
     );
     ```
+
+## General Communication & Output Rules
+- **No Icons or Emojis**: Do NOT use any icons or emojis in any generated content, documentation, release notes, commit messages, or general communication. Keep everything strictly professional and text-only.
