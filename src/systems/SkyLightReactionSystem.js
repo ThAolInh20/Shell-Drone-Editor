@@ -97,10 +97,26 @@ export class SkyLightReactionSystem {
       : this.baseSkyColor.clone();
       
     // Significantly reduced global light influence to keep the sky dark
-    const skyMix = THREE.MathUtils.clamp(skyEnergy * 0.05, 0, 0.08);
-    const fogMix = THREE.MathUtils.clamp(skyEnergy * 0.05, 0, 0.08);
-    const ambientBoost = THREE.MathUtils.clamp(skyEnergy * 0.02, 0, 0.04);
-    const hemiBoost = THREE.MathUtils.clamp(skyEnergy * 0.02, 0, 0.04);
+    const skyMix = THREE.MathUtils.clamp(
+      skyEnergy * 0.005,
+      0,
+      0.008
+    );
+    const fogMix = THREE.MathUtils.clamp(
+      skyEnergy * 0.005,
+      0,
+      0.008
+    );
+    const ambientBoost = THREE.MathUtils.clamp(
+      skyEnergy * 0.002,
+      0,
+      0.004
+    );
+    const hemiBoost = THREE.MathUtils.clamp(
+      skyEnergy * 0.002,
+      0,
+      0.004
+    );
 
 
     const skyTarget = this.baseSkyColor.clone().lerp(blendedColor, skyMix);
