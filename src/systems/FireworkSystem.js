@@ -65,6 +65,115 @@ export class FireworkSystem {
       brightnessCurve: 1.15
     };
     this.instancedShellRenderer = new InstancedShellRenderer(scene);
+
+    // Global Burst Particle System (Option 2)
+    this.maxBurstParticles = 6000;
+    this.burstParticles = [];
+
+    this.burstPositionsArray = new Float32Array(this.maxBurstParticles * 3);
+    this.burstColorsArray = new Float32Array(this.maxBurstParticles * 3);
+    this.burstSizesArray = new Float32Array(this.maxBurstParticles);
+    this.burstOpacitiesArray = new Float32Array(this.maxBurstParticles);
+
+    this.globalBurstGeometry = new THREE.BufferGeometry();
+    this.globalBurstGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(
+        this.burstPositionsArray,
+        3
+      )
+    );
+    this.globalBurstGeometry.setAttribute(
+      'color',
+      new THREE.BufferAttribute(
+        this.burstColorsArray,
+        3
+      )
+    );
+    this.globalBurstGeometry.setAttribute(
+      'aSize',
+      new THREE.BufferAttribute(
+        this.burstSizesArray,
+        1
+      )
+    );
+    this.globalBurstGeometry.setAttribute(
+      'aOpacity',
+      new THREE.BufferAttribute(
+        this.burstOpacitiesArray,
+        1
+      )
+    );
+
+    this.globalBurstMaterial = new THREE.PointsMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    this.globalBurstMaterial.onBeforeCompile = (shader) => {
+      // Add custom attribute floats for particle-specific sizes and opacities
+      shader.vertexShader = `
+        attribute float aSize;
+        attribute float aOpacity;
+        varying float vOpacity;
+      ` + shader.vertexShader.replace(
+        '#include <common>',
+        `
+        #include <common>
+        `
+      ).replace(
+        'gl_PointSize = size;',
+        `
+        gl_PointSize = aSize;
+        vOpacity = aOpacity;
+        `
+      );
+
+      // Patch the fragment shader to apply the custom opacity and gradient
+      shader.fragmentShader = `
+        varying float vOpacity;
+      ` + shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `
+        #include <color_fragment>
+        
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord) * 2.0;
+        if (dist > 1.0) discard;
+        
+        vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
+        vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
+        vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
+        vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
+        
+        vec4 gradientColor;
+        if (dist < 0.024) {
+            gradientColor = stop0;
+        } else if (dist < 0.125) {
+            float t = (dist - 0.024) / (0.125 - 0.024);
+            gradientColor = mix(stop0, stop1, t);
+        } else if (dist < 0.32) {
+            float t = (dist - 0.125) / (0.32 - 0.125);
+            gradientColor = mix(stop1, stop2, t);
+          } else {
+            float t = (dist - 0.32) / (1.0 - 0.32);
+            gradientColor = mix(stop2, stop3, t);
+        }
+        
+        diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a * vOpacity);
+        `
+      );
+    };
+
+    this.globalBurstPoints = new THREE.Points(
+      this.globalBurstGeometry,
+      this.globalBurstMaterial
+    );
+    this.globalBurstPoints.frustumCulled = false;
+    this.scene.add(this.globalBurstPoints);
   }
 
   emitFireworkEvent(type, detail) {
@@ -119,9 +228,13 @@ export class FireworkSystem {
 
     if (shellPreset.instantBurst) {
       const burstPos = new THREE.Vector3(position.x, targetHeight, position.z);
-      const burst = this.createBurst(burstPos, finalColor, shellPreset.shapeType ?? 'willow', shellPreset);
-      this.scene.add(burst.points);
-      this.activeFireworks.push(burst);
+      this.createBurst(
+        burstPos,
+        finalColor,
+        shellPreset.shapeType ?? 'willow',
+        shellPreset,
+        shellId
+      );
       this.diagnostics.bursted += 1;
 
       for (const warning of shellPreset.__contract?.warnings ?? []) {
@@ -324,8 +437,18 @@ export class FireworkSystem {
     };
 
     const presetMultiplier = Math.max(0.7, Math.min(2.2, preset?.particleCountMultiplier ?? 1));
-    const renderModeMultiplier = (preset?.shapeRenderMode === 'outline' || preset?.shapeRenderMode === 'jupiter') ? 1.12 : 1;
-    const activeBurstCount = this.activeFireworks.reduce((count, item) => count + (item.type === 'burst' ? 1 : 0), 0);
+    const renderModeMultiplier = (
+      preset?.shapeRenderMode === 'outline'
+      || preset?.shapeRenderMode === 'jupiter'
+    )
+      ? 1.12
+      : 1;
+    const uniqueShells = new Set(
+      this.burstParticles.map(
+        (p) => p.shellId
+      )
+    );
+    const activeBurstCount = uniqueShells.size;
 
     let performanceScale = 1;
     if (activeBurstCount > 12) {
@@ -342,7 +465,7 @@ export class FireworkSystem {
     return Math.max(MIN_BURST_PARTICLES, Math.min(MAX_BURST_PARTICLES, Math.round(rawCount)));
   }
 
-  createBurst(position, color, shape = 'sphere', preset = null) {
+  createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
     const requestedShape = shape ?? 'sphere';
     const resolvedShape = BurstShapeGenerator.resolveShape(requestedShape);
     if (resolvedShape !== requestedShape) {
@@ -358,24 +481,49 @@ export class FireworkSystem {
       this.registerWarning(`[Burst] Effect fallback from "${requestedEffect}" to "${normalizedEffect}".`);
     }
 
-    const burstParticleCount = this.resolveBurstParticleCount(resolvedShape, normalizedEffect, preset);
-    const positions = new Float32Array(burstParticleCount * 3);
-    const colors = new Float32Array(burstParticleCount * 3);
-    const baseColors = new Float32Array(burstParticleCount * 3);
-    const velocities = [];
-    const life = new Float32Array(burstParticleCount);
+    const burstParticleCount = this.resolveBurstParticleCount(
+      resolvedShape,
+      normalizedEffect,
+      preset
+    );
     const burstRotation = this.createRandomBurstRotation();
     const heightProfile = this.heightScalingConfig.enabled
-      ? BurstEffectProcessor.createHeightProfile(position.y, this.heightScalingConfig)
-      : { normalized: 0, sizeMultiplier: 1, brightnessMultiplier: 1 };
-    const brightnessBlend = Math.min(Math.max((heightProfile.brightnessMultiplier - 1) / 1.2, 0), 0.75);
-    const brightnessIntensity = Math.min(Math.max(heightProfile.brightnessMultiplier, 1), 1.3);
-    const burstColor = color.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
+      ? BurstEffectProcessor.createHeightProfile(
+        position.y,
+        this.heightScalingConfig
+      )
+      : {
+        normalized: 0,
+        sizeMultiplier: 1,
+        brightnessMultiplier: 1
+      };
+    const brightnessBlend = Math.min(
+      Math.max(
+        (heightProfile.brightnessMultiplier - 1) / 1.2,
+        0
+      ),
+      0.75
+    );
+    const brightnessIntensity = Math.min(
+      Math.max(
+        heightProfile.brightnessMultiplier,
+        1
+      ),
+      1.3
+    );
+    const burstColor = color.clone().lerp(
+      new THREE.Color(0xffffff),
+      brightnessBlend
+    );
     const whiteColor = new THREE.Color(0xffffff);
 
     // Initialize effect state early so we can access parameters like ghostAxis during particle generation
     const effectState = {
-      ...BurstEffectProcessor.initialize(normalizedEffect, burstParticleCount, preset),
+      ...BurstEffectProcessor.initialize(
+        normalizedEffect,
+        burstParticleCount,
+        preset
+      ),
       shapeType: resolvedShape
     };
 
@@ -407,11 +555,18 @@ export class FireworkSystem {
             secondColor = new THREE.Color(0xff4500); // Grayscale -> Orange Red
           } else {
             const newHue = (hsl.h + 0.5) % 1.0;
-            secondColor = new THREE.Color().setHSL(newHue, hsl.s, hsl.l);
+            secondColor = new THREE.Color().setHSL(
+              newHue,
+              hsl.s,
+              hsl.l
+            );
           }
         }
       }
-      color2Blend = secondColor.clone().lerp(new THREE.Color(0xffffff), brightnessBlend);
+      color2Blend = secondColor.clone().lerp(
+        new THREE.Color(0xffffff),
+        brightnessBlend
+      );
     }
 
     const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
@@ -420,14 +575,40 @@ export class FireworkSystem {
 
     let coreRatio = 0;
     if (isJupiterComposite) {
-      coreRatio = Math.min(0.85, Math.max(0.15, preset?.ringCoreRatio ?? 0.42));
+      coreRatio = Math.min(
+        0.85,
+        Math.max(
+          0.15,
+          preset?.ringCoreRatio ?? 0.42
+        )
+      );
     } else if (hasPistil) {
       coreRatio = 0.7; // Dành 70% số hạt cho phần lõi (pistil)
     }
 
-    const coreCount = isCompositeCore ? Math.max(8, Math.floor(burstParticleCount * coreRatio)) : 0;
-    const ringCount = Math.max(1, burstParticleCount - coreCount);
-    const ringPreset = isJupiterComposite ? { ...preset, shapeRenderMode: 'outline' } : preset;
+    const coreCount = isCompositeCore
+      ? Math.max(
+        8,
+        Math.floor(burstParticleCount * coreRatio)
+      )
+      : 0;
+    const ringCount = Math.max(
+      1,
+      burstParticleCount - coreCount
+    );
+    const ringPreset = isJupiterComposite
+      ? {
+        ...preset,
+        shapeRenderMode: 'outline'
+      }
+      : preset;
+
+    const color1Scaled = burstColor.clone().multiplyScalar(brightnessIntensity);
+    const color2Scaled = color2Blend
+      ? color2Blend.clone().multiplyScalar(brightnessIntensity)
+      : null;
+
+    const newParticles = [];
 
     for (let i = 0; i < burstParticleCount; i++) {
       const isCoreParticle = isCompositeCore && i < coreCount;
@@ -463,28 +644,40 @@ export class FireworkSystem {
         const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * speedVariance;
         baseSpeed = BURST_SPEED * outlineSpeedBand;
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
-        const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash') ? (0.97 + Math.random() * 0.06) : sphereSpeedBand;
+        const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
+          ? (0.97 + Math.random() * 0.06)
+          : sphereSpeedBand;
         baseSpeed = BURST_SPEED * speedBand;
       } else {
         baseSpeed = BURST_SPEED * defaultSpeedBand;
       }
 
-      const shellSizeScale = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
+      const shellSizeScale = Math.max(
+        0.6,
+        Math.min(
+          6,
+          preset?.shellSize ?? 1
+        )
+      );
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
 
-      // Store the normalized direction vector to determine the hemisphere for coloring
       const normDir = direction.clone().normalize();
-      velocities.push(direction.multiplyScalar(speed));
-
-      positions[i * 3] = position.x;
-      positions[i * 3 + 1] = position.y;
-      positions[i * 3 + 2] = position.z;
+      const velocityVal = direction.multiplyScalar(speed);
 
       let particleColor = burstColor;
       if (isCoreParticle) {
-        particleColor = (preset?.pistilColor ? new THREE.Color(preset.pistilColor) : new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0])).lerp(whiteColor, 0.08 + Math.random() * 0.12);
+        const fallbackColor = new THREE.Color(FIREWORK_COLORS[(Math.random() * FIREWORK_COLORS.length) | 0]);
+        const finalCoreBaseColor = preset?.pistilColor
+          ? new THREE.Color(preset.pistilColor)
+          : fallbackColor;
+        particleColor = finalCoreBaseColor.lerp(
+          whiteColor,
+          0.08 + Math.random() * 0.12
+        );
       } else if (normalizedEffect === 'ghost') {
-        const dot = normDir.x * effectState.ghostAxis.x + normDir.y * effectState.ghostAxis.y + normDir.z * effectState.ghostAxis.z;
+        const dot = normDir.x * effectState.ghostAxis.x
+          + normDir.y * effectState.ghostAxis.y
+          + normDir.z * effectState.ghostAxis.z;
         if (dot < 0) {
           particleColor = burstColor;
         } else {
@@ -494,103 +687,47 @@ export class FireworkSystem {
         particleColor = burstColor;
       }
 
-      colors[i * 3] = particleColor.r * brightnessIntensity;
-      colors[i * 3 + 1] = particleColor.g * brightnessIntensity;
-      colors[i * 3 + 2] = particleColor.b * brightnessIntensity;
+      const finalColorVal = particleColor.clone().multiplyScalar(brightnessIntensity);
 
-      baseColors[i * 3] = colors[i * 3];
-      baseColors[i * 3 + 1] = colors[i * 3 + 1];
-      baseColors[i * 3 + 2] = colors[i * 3 + 2];
-
-      life[i] = 0;
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const material = new THREE.PointsMaterial({
-      size: (preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.92,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending
-    });
-
-    material.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <color_fragment>',
-        `
-        #include <color_fragment>
-        
-        vec2 coord = gl_PointCoord - vec2(0.5);
-        float dist = length(coord) * 2.0;
-        if (dist > 1.0) discard;
-        
-        vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
-        vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
-        vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
-        vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
-        
-        vec4 gradientColor;
-        if (dist < 0.024) {
-            gradientColor = stop0;
-        } else if (dist < 0.125) {
-            float t = (dist - 0.024) / (0.125 - 0.024);
-            gradientColor = mix(stop0, stop1, t);
-        } else if (dist < 0.32) {
-            float t = (dist - 0.125) / (0.32 - 0.125);
-            gradientColor = mix(stop1, stop2, t);
-        } else {
-            float t = (dist - 0.32) / (1.0 - 0.32);
-            gradientColor = mix(stop2, stop3, t);
-        }
-        
-        diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a);
-        `
-      );
-    };
-
-    const color1Scaled = burstColor.clone().multiplyScalar(brightnessIntensity);
-    const color2Scaled = color2Blend ? color2Blend.clone().multiplyScalar(brightnessIntensity) : null;
-
-    const points = new THREE.Points(geometry, material);
-    points.userData = {
-      velocities,
-      life,
-      baseColors,
-      effectType: normalizedEffect,
-      crackle: crackleEnabled || normalizedEffect === 'crackle',
-      crackleCloudTriggered: false,
-      particleCount: burstParticleCount,
-      heightProfile,
-      preset,
-      effectState: effectState,
-      color1: color1Scaled,
-      color2: color2Scaled
-    };
-
-    if (normalizedEffect === 'ghost') {
-      const ghostDots = new Float32Array(burstParticleCount);
-      const ghostAxis = effectState.ghostAxis;
-      for (let i = 0; i < burstParticleCount; i++) {
-        const vel = velocities[i];
-        const speed = vel.length();
-        const nx = speed > 0 ? vel.x / speed : 0;
-        const ny = speed > 0 ? vel.y / speed : 0;
-        const nz = speed > 0 ? vel.z / speed : 0;
-        ghostDots[i] = nx * ghostAxis.x + ny * ghostAxis.y + nz * ghostAxis.z;
+      let ghostDotVal = 0;
+      if (normalizedEffect === 'ghost') {
+        const speedVal = velocityVal.length();
+        const nx = speedVal > 0 ? velocityVal.x / speedVal : 0;
+        const ny = speedVal > 0 ? velocityVal.y / speedVal : 0;
+        const nz = speedVal > 0 ? velocityVal.z / speedVal : 0;
+        ghostDotVal = nx * effectState.ghostAxis.x
+          + ny * effectState.ghostAxis.y
+          + nz * effectState.ghostAxis.z;
       }
-      effectState.ghostDots = ghostDots;
+
+      newParticles.push({
+        position: position.clone(),
+        velocity: velocityVal.clone(),
+        color: finalColorVal.clone(),
+        baseColor: finalColorVal.clone(),
+        color2: color2Scaled ? color2Scaled.clone() : null,
+        age: 0,
+        maxLife: BURST_LIFE * (0.8 + Math.random() * 0.4),
+        effectType: normalizedEffect,
+        crackle: crackleEnabled || normalizedEffect === 'crackle',
+        crackleTriggered: false,
+        phase: effectState.phase ? effectState.phase[i] : 0,
+        preset,
+        heightProfile,
+        effectState,
+        ghostDot: ghostDotVal,
+        particleIndex: i,
+        totalParticleCount: burstParticleCount,
+        shellId: shellId ?? Math.floor(Math.random() * 100000000)
+      });
     }
 
-    return {
-      type: 'burst',
-      points,
-      age: 0,
-      maxLife: BURST_LIFE
-    };
+    for (const p of newParticles) {
+      if (this.burstParticles.length >= this.maxBurstParticles) {
+        this.burstParticles.shift();
+      }
+      this.burstParticles.push(p);
+    }
   }
 
   createRandomBurstRotation() {
@@ -780,18 +917,17 @@ export class FireworkSystem {
       return;
     }
 
-    const burst = this.createBurst(
+    this.createBurst(
       burstPosition,
       item.color,
       item.shapeType ?? item.shape,
-      item.preset
+      item.preset,
+      item.shellId
     );
     const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
     const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
-    this.scene.add(burst.points);
     item.markBursted?.();
     finished.push(item);
-    this.activeFireworks.push(burst);
     this.diagnostics.bursted += 1;
     this.emitDiagnostics();
 
@@ -813,97 +949,27 @@ export class FireworkSystem {
     });
   }
 
-  handleBurstUpdate(item, deltaTime, finished) {
-    item.age += deltaTime;
-    const positions = item.points.geometry.attributes.position.array;
-    const colors = item.points.geometry.attributes.color.array;
-    const baseColors = item.points.userData.baseColors;
-    const lifeArray = item.points.userData.life;
-    const effectType = item.points.userData.effectType;
-    const heightProfile = item.points.userData.heightProfile ?? { brightnessMultiplier: 1 };
+  updateBurstParticles(deltaTime) {
+    const activeParticles = [];
 
-    if (item.points.userData.crackle && item.age >= item.maxLife * 0.65) {
-      const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
+    // Strobe frequency adjustment based on active burst count
+    const uniqueShells = new Set(
+      this.burstParticles.map(
+        (p) => p.shellId
+      )
+    );
+    const activeBurstCount = uniqueShells.size;
+    const strobeFreqMultiplier = activeBurstCount > 8 ? 1.6 : 1.0;
 
-      if (!item.points.userData.crackleTriggeredList) {
-        item.points.userData.crackleTriggeredList = new Uint8Array(particleCount);
-        item.points.userData.nextCrackleTime = item.age; // Nổ cụm đầu tiên ngay
+    for (let idx = 0; idx < this.burstParticles.length; idx++) {
+      const p = this.burstParticles[idx];
+      p.age += deltaTime;
+
+      if (p.age >= p.maxLife) {
+        continue;
       }
 
-      const isLastFrame = item.age >= item.maxLife - deltaTime * 2;
-
-      if (item.age >= item.points.userData.nextCrackleTime || isLastFrame) {
-        const remainingParticles = [];
-        for (let i = 0; i < particleCount; i++) {
-          if (item.points.userData.crackleTriggeredList[i] === 0) {
-            remainingParticles.push(i);
-          }
-        }
-
-        if (remainingParticles.length > 0) {
-          // Nổ từng cụm khoảng 15-25% tổng số hạt mỗi lần, nếu là frame cuối thì nổ sạch phần còn lại
-          const clusterSize = isLastFrame ? remainingParticles.length : Math.min(remainingParticles.length, Math.ceil(particleCount * (0.15 + Math.random() * 0.15)));
-          let centerOrigin = null;
-
-          for (let c = 0; c < clusterSize; c++) {
-            const rIdx = Math.floor(Math.random() * remainingParticles.length);
-            const i = remainingParticles.splice(rIdx, 1)[0];
-
-            item.points.userData.crackleTriggeredList[i] = 1;
-
-            if (Math.random() < 0.65) { // Burst 65% of particles to save FPS
-              const origin = new THREE.Vector3(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-              const baseColor = baseColors ? new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]) : null;
-              this.trailSystem.spawnMicroCrackle(origin, baseColor);
-              if (!centerOrigin) centerOrigin = origin;
-            }
-
-            // Ẩn hạt gốc đi sau khi nổ crackle
-            colors[i * 3] = 0;
-            colors[i * 3 + 1] = 0;
-            colors[i * 3 + 2] = 0;
-            if (baseColors) {
-              baseColors[i * 3] = 0;
-              baseColors[i * 3 + 1] = 0;
-              baseColors[i * 3 + 2] = 0;
-            }
-          }
-
-          if (centerOrigin) {
-            this.emitFireworkEvent('firework:crackle', { position: { x: centerOrigin.x, y: centerOrigin.y, z: centerOrigin.z } });
-          }
-
-          // Cụm tiếp theo sẽ nổ sau 0.05s đến 0.15s
-          item.points.userData.nextCrackleTime = item.age + 0.05 + Math.random() * 0.1;
-        }
-      }
-    }
-
-    const brightnessOpacityScale = Math.min(Math.max(0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24, 0.72), 1.15);
-    const lifeRatio = item.maxLife > 0 ? item.age / item.maxLife : 1;
-    let baseOpacity = brightnessOpacityScale;
-
-    if (lifeRatio > BURST_DISSOLVE_START) {
-      const dissolveT = THREE.MathUtils.clamp((lifeRatio - BURST_DISSOLVE_START) / (1 - BURST_DISSOLVE_START), 0, 1);
-      baseOpacity = Math.max(
-        Math.pow(1 - dissolveT, BURST_FADE_EXPONENT) * brightnessOpacityScale,
-        (1 - dissolveT) * 0.08
-      );
-    }
-
-    item.points.material.opacity = BurstEffectProcessor.materialOpacity(effectType, item.age, item.maxLife, baseOpacity);
-
-    const particleCount = item.points.userData.particleCount ?? BASE_BURST_PARTICLES;
-    let needsColorUpdate = false;
-
-    for (let i = 0; i < particleCount; i++) {
-      const velocity = item.points.userData.velocities[i];
-      const particlePosition = new THREE.Vector3(
-        positions[i * 3],
-        positions[i * 3 + 1],
-        positions[i * 3 + 2]
-      );
-
+      // 1. Kinematics Update
       const {
         gravityScale,
         emitSpark,
@@ -914,48 +980,85 @@ export class FireworkSystem {
         smokeLife,
         smokeOpacity
       } = BurstEffectProcessor.updateVelocity(
-        velocity,
-        i,
+        p.velocity,
+        p.particleIndex,
         deltaTime,
-        item.age,
-        item.maxLife,
-        item.points.userData.effectState
+        p.age,
+        p.maxLife,
+        p.effectState
       );
 
-      if (emitSpark) {
-        this.trailSystem.spawnEffectSpark(particlePosition, CRACKLE_SPARK_COLOR);
+      // Micro crackle trigger
+      if (p.crackle && p.age >= p.maxLife * 0.65 && !p.crackleTriggered) {
+        p.crackleTriggered = true;
+        if (Math.random() < 0.65) {
+          const originPos = p.position.clone();
+          const origColor = p.baseColor.clone();
+          this.trailSystem.spawnMicroCrackle(
+            originPos,
+            origColor
+          );
+          this.emitFireworkEvent(
+            'firework:crackle',
+            {
+              position: {
+                x: originPos.x,
+                y: originPos.y,
+                z: originPos.z
+              }
+            }
+          );
+        }
+        // Hide the original particle by setting its baseColor to 0
+        p.baseColor.setRGB(0, 0, 0);
       }
 
-      if (spawnTrail) { // Sinh hạt vệt sáng liên tục như đuôi comet
-        const isHalfFlashTentacle = item.points.userData.effectState?.shapeType === 'half-flash' && i >= (particleCount - 4);
-        const isSplitFlashBeam = item.points.userData.effectState?.shapeType === 'split-flash' && i >= (particleCount - 5);
+      p.position.addScaledVector(
+        p.velocity,
+        deltaTime
+      );
+      p.velocity.y += GRAVITY * deltaTime * gravityScale;
 
-        // Tính toán hệ số suy hao của hạt cha (nếu đã qua điểm bắt đầu tan rã)
-        const parentFade = lifeRatio > BURST_DISSOLVE_START
-          ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
-          : 1.0;
+      // 2. Spawn Side Effects (sparks, trails, smoke)
+      if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+        this.trailSystem.spawnEffectSpark(
+          p.position,
+          CRACKLE_SPARK_COLOR
+        );
+      }
 
-        const isCometRing = item.points.userData.effectState?.effectType === 'comet-ring';
+      const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
+      const parentFade = lifeRatio > BURST_DISSOLVE_START
+        ? Math.pow(
+          1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START),
+          2.0
+        )
+        : 1.0;
+
+      if (spawnTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+        const isHalfFlashTentacle = p.effectState?.shapeType === 'half-flash'
+          && p.particleIndex >= (p.totalParticleCount - 4);
+        const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
+          && p.particleIndex >= (p.totalParticleCount - 5);
+        const isCometRing = p.effectState?.effectType === 'comet-ring';
         const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing) ? 1.0 : 0.3;
 
         if (Math.random() < spawnChance * parentFade) {
-          const trailColor = new THREE.Color(baseColors[i * 3], baseColors[i * 3 + 1], baseColors[i * 3 + 2]);
+          const trailColor = p.baseColor.clone();
           const currentIntensity = (trailIntensity ?? 0.35) * parentFade;
-          trailColor.multiplyScalar(currentIntensity); // Tùy chỉnh độ sáng màu để vệt giữ được màu thật của pháo
+          trailColor.multiplyScalar(currentIntensity);
 
           const currentLife = (trailLife || 0.8) * (0.2 + 0.8 * parentFade);
-
-          // Thừa kế vận tốc mẹ, triệt tiêu trọng lực và thiết lập lực cản gió lớn để đuôi phanh nhanh hơn đầu
-          const trailVel = isCometRing ? velocity.clone().multiplyScalar(0.7) : null;
+          const trailVel = isCometRing ? p.velocity.clone().multiplyScalar(0.7) : null;
           const trailGrav = isCometRing ? 0.0 : 1.0;
           const trailDrag = isCometRing ? 1.2 : 1.0;
 
           this.trailSystem.spawnTrailParticle(
-            particlePosition,
+            p.position,
             trailColor,
-            isCometRing ? 1.0 : currentLife, // lifeMultiplier
+            isCometRing ? 1.0 : currentLife,
             false,
-            isCometRing ? currentLife : null, // customLife (exact lifetime)
+            isCometRing ? currentLife : null,
             1.0,
             false,
             trailVel,
@@ -965,85 +1068,69 @@ export class FireworkSystem {
         }
       }
 
-      if (spawnSmoke) { // Sinh khói thay vì sinh hạt vệt sáng (Comet Trail)
-        const parentFade = lifeRatio > BURST_DISSOLVE_START
-          ? Math.pow(1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START), 2.0)
-          : 1.0;
-
-        // 100% sinh khói ở 12% vòng đời đầu tiên (vừa nổ), sau đó giảm dần.
-        // Áp dụng cho mỗi hạt chẵn (i % 2 === 0) để tạo đường nét rõ ràng nhưng không bị chồng chéo quá dày.
+      if (spawnSmoke && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const spawnChance = lifeRatio < 0.12
           ? 1.0
           : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
 
-        if (i % 12 === 0 && Math.random() < spawnChance) {
-          const particleColor = new THREE.Color(
-            baseColors[i * 3],
-            baseColors[i * 3 + 1],
-            baseColors[i * 3 + 2]
-          );
-          // Hạt khói bay vệt nhẹ, thừa hưởng một phần vận tốc của hạt pháo hoa
-          const smokeVel = velocity.clone().multiplyScalar(0.12);
+        if (p.particleIndex % 12 === 0 && Math.random() < spawnChance) {
+          const particleColor = p.baseColor.clone();
+          const smokeVel = p.velocity.clone().multiplyScalar(0.12);
 
-          globalEventBus.emit('smoke:spawn', {
-            position: particlePosition.clone(),
-            velocity: smokeVel,
-            options: {
-              life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
-              scale: 3.2 + Math.random() * 2.2,
-              growth: 2.8,
-              opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0), // Đậm hơn một chút lúc vừa burst
-              color: particleColor
+          globalEventBus.emit(
+            'smoke:spawn',
+            {
+              position: p.position.clone(),
+              velocity: smokeVel,
+              options: {
+                life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
+                scale: 3.2 + Math.random() * 2.2,
+                growth: 2.8,
+                opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0),
+                color: particleColor
+              }
             }
-          });
+          );
         }
       }
 
-      if (effectType === 'sparking' && lifeRatio > 0.4) {
-        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
-        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+      // Sparking sparks
+      if (p.effectType === 'sparking' && lifeRatio > 0.4 && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+        const randomOffset = ((p.particleIndex * 7) % 11) * 0.01;
         const transitionStart = 0.46 + randomOffset;
-
-        if (i % 2 === 0 && lifeRatio > transitionStart) {
+        if (p.particleIndex % 2 === 0 && lifeRatio > transitionStart) {
           const tDecay = (lifeRatio - transitionStart) / (1.0 - transitionStart);
-          // Tăng nhẹ mật độ hạt lấp lánh lên 0.42 để tạo thành bụi sao li ti
           const sparkleChance = 0.42 * Math.pow(1.0 - tDecay, 1.8);
           if (Math.random() < sparkleChance) {
-            // Phối trộn màu sắc tro tàn: cam vàng ấm (lửa tàn), bạc/trắng lung linh (kim tuyến), và xám đen (tro nguội)
             const roll = Math.random();
             let sparkColor;
             if (roll < 0.52) {
               sparkColor = new THREE.Color(0xff8800).lerp(
                 new THREE.Color(0xffd700),
                 Math.random()
-              ); // Cam vàng ấm áp
+              );
             } else if (roll < 0.82) {
               sparkColor = new THREE.Color(0xffffff).lerp(
                 new THREE.Color(0xfffacd),
                 Math.random()
-              ); // Trắng bạc kim tuyến lung linh
+              );
             } else {
-              sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+              sparkColor = new THREE.Color(0x444444);
             }
 
-            // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
             const sparkVel = new THREE.Vector3(
               (Math.random() - 0.5) * 4.5,
-              -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+              -3.0 - Math.random() * 5.0,
               (Math.random() - 0.5) * 4.5
             );
-
-            // Chia các hạt pháo hoa chính thành từng nhóm 12 hạt để đồng bộ hóa nhịp nháy (strobe)
-            const groupIndex = Math.floor(i / 12);
-            const sparkPhase = groupIndex * 180; // Mỗi nhóm 12 hạt lệch pha chớp nháy 180ms
-
-            // Thời gian sống cực ngắn (0.3s - 0.55s) để hạt chớp tắt rồi biến mất ngay, tránh tạo thành vệt đuôi kéo dài
+            const groupIndex = Math.floor(p.particleIndex / 12);
+            const sparkPhase = groupIndex * 180;
             const sparkLife = 0.3 + Math.random() * 0.25;
 
             this.trailSystem.spawnEffectSpark(
-              particlePosition,
+              p.position,
               sparkColor,
-              Math.random() < 0.85, // Tỷ lệ lấp lánh chớp tắt
+              Math.random() < 0.85,
               sparkVel,
               sparkPhase,
               sparkLife
@@ -1052,9 +1139,7 @@ export class FireworkSystem {
         }
       }
 
-      if (effectType === 'sparking-v2') {
-        // Sinh tro tàn lấp lánh ngay lập tức từ lúc nổ (lifeRatio từ 0 đến 1)
-        // Mật độ giảm dần theo thời gian tàn của pháo
+      if (p.effectType === 'sparking-v2' && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const sparkleChance = 0.38 * Math.pow(1.0 - lifeRatio, 1.8);
         if (Math.random() < sparkleChance) {
           const roll = Math.random();
@@ -1063,30 +1148,27 @@ export class FireworkSystem {
             sparkColor = new THREE.Color(0xff8800).lerp(
               new THREE.Color(0xffd700),
               Math.random()
-            ); // Cam vàng ấm áp
+            );
           } else if (roll < 0.82) {
             sparkColor = new THREE.Color(0xffffff).lerp(
               new THREE.Color(0xfffacd),
               Math.random()
-            ); // Trắng bạc kim tuyến lung linh
+            );
           } else {
-            sparkColor = new THREE.Color(0x444444); // Tro carbon xám tối
+            sparkColor = new THREE.Color(0x444444);
           }
 
-          // Tạo vận tốc hướng xuống dưới và tỏa nhẹ sang hai bên để tàn tro lập tức rơi rụng xuống
           const sparkVel = new THREE.Vector3(
             (Math.random() - 0.5) * 4.5,
-            -3.0 - Math.random() * 5.0, // Rơi thẳng xuống
+            -3.0 - Math.random() * 5.0,
             (Math.random() - 0.5) * 4.5
           );
-
-          // Đồng bộ chớp tắt theo nhóm 12 hạt
-          const groupIndex = Math.floor(i / 12);
+          const groupIndex = Math.floor(p.particleIndex / 12);
           const sparkPhase = groupIndex * 180;
           const sparkLife = 0.3 + Math.random() * 0.25;
 
           this.trailSystem.spawnEffectSpark(
-            particlePosition,
+            p.position,
             sparkColor,
             Math.random() < 0.85,
             sparkVel,
@@ -1096,178 +1178,182 @@ export class FireworkSystem {
         }
       }
 
-      if (effectType === 'sparking' && baseColors) {
-        // Tạo độ lệch pha ngẫu nhiên nhưng cố định cho từng hạt dựa trên index để tránh đồng loạt
-        const randomOffset = ((i * 7) % 11) * 0.01; // Lệch từ -0.05 đến +0.05
+      // 3. Visual properties calculation (color, size, opacity)
+      const heightProfile = p.heightProfile ?? { sizeMultiplier: 1, brightnessMultiplier: 1 };
+      const brightnessOpacityScale = Math.min(
+        Math.max(
+          0.82 + (heightProfile.brightnessMultiplier - 1) * 0.24,
+          0.72
+        ),
+        1.15
+      );
+      let baseOpacity = brightnessOpacityScale;
+
+      if (lifeRatio > BURST_DISSOLVE_START) {
+        const dissolveT = THREE.MathUtils.clamp(
+          (lifeRatio - BURST_DISSOLVE_START) / (1 - BURST_DISSOLVE_START),
+          0,
+          1
+        );
+        baseOpacity = Math.max(
+          Math.pow(1 - dissolveT, BURST_FADE_EXPONENT) * brightnessOpacityScale,
+          (1 - dissolveT) * 0.08
+        );
+      }
+
+      const opacity = BurstEffectProcessor.materialOpacity(
+        p.effectType,
+        p.age,
+        p.maxLife,
+        baseOpacity
+      );
+
+      // Color sweep
+      let r = p.baseColor.r;
+      let g = p.baseColor.g;
+      let b = p.baseColor.b;
+
+      if (p.effectType === 'sparking') {
+        const randomOffset = ((p.particleIndex * 7) % 11) * 0.01;
         const transitionStart = 0.46 + randomOffset;
         const transitionEnd = transitionStart + 0.08;
 
-        if (i % 2 !== 0) {
-          // 1/ Hạt vỏ ngoài: Tan biến từ từ (Soft Fade-out)
+        if (p.particleIndex % 2 !== 0) {
           if (lifeRatio > transitionEnd) {
-            positions[i * 3] = 99999;
-            positions[i * 3 + 1] = -99999;
-            positions[i * 3 + 2] = 99999;
-            velocity.set(0, 0, 0);
-
-            colors[i * 3] = 0;
-            colors[i * 3 + 1] = 0;
-            colors[i * 3 + 2] = 0;
+            r = 0; g = 0; b = 0;
           } else if (lifeRatio > transitionStart) {
             const fade = (transitionEnd - lifeRatio) / (transitionEnd - transitionStart);
-            colors[i * 3] = baseColors[i * 3] * fade;
-            colors[i * 3 + 1] = baseColors[i * 3 + 1] * fade;
-            colors[i * 3 + 2] = baseColors[i * 3 + 2] * fade;
-          } else {
-            colors[i * 3] = baseColors[i * 3];
-            colors[i * 3 + 1] = baseColors[i * 3 + 1];
-            colors[i * 3 + 2] = baseColors[i * 3 + 2];
+            r = p.baseColor.r * fade;
+            g = p.baseColor.g * fade;
+            b = p.baseColor.b * fade;
           }
-        } else {
-          // 2/ Hạt lõi trong: Giữ nguyên màu sắc của pháo
-          colors[i * 3] = baseColors[i * 3];
-          colors[i * 3 + 1] = baseColors[i * 3 + 1];
-          colors[i * 3 + 2] = baseColors[i * 3 + 2];
         }
-        needsColorUpdate = true;
-      } else if (effectType === 'white-strobe' && baseColors) {
-        const phase = item.points.userData.effectState.phase[i];
+      } else if (p.effectType === 'white-strobe') {
         if (lifeRatio > 0.5) {
-          const timeMs = (item.age + phase) * 1000;
-          // Tần số giảm từ 450ms xuống 150ms (trước đó là 180ms xuống 50ms)
-          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600);
+          const timeMs = (p.age + p.phase) * 1000;
+          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
           const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
           const blink = isBlinking ? 1.0 : 0.05;
-
-          colors[i * 3] = blink;
-          colors[i * 3 + 1] = blink;
-          colors[i * 3 + 2] = blink;
-        } else {
-          colors[i * 3] = baseColors[i * 3];
-          colors[i * 3 + 1] = baseColors[i * 3 + 1];
-          colors[i * 3 + 2] = baseColors[i * 3 + 2];
+          r = blink;
+          g = blink;
+          b = blink;
         }
-        needsColorUpdate = true;
-      } else if ((effectType === 'glitter-strobe' || effectType === 'falling-comets-glitter') && baseColors) {
-        const phase = item.points.userData.effectState.phase[i];
-        const timeMs = (item.age + phase) * 1000;
-        const strobeFreq = 90; // Nhịp rất nhanh để lấp lánh (90ms/tick)
-        // Đen-Đen-Đen-Trắng -> 3 tick tắt, 1 tick bật -> modulo 4
+      } else if (p.effectType === 'glitter-strobe' || p.effectType === 'falling-comets-glitter') {
+        const timeMs = (p.age + p.phase) * 1000;
+        const strobeFreq = 90 * strobeFreqMultiplier;
         const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
-        const blink = isBlinking ? 1.5 : 0.0; // Trắng sáng chói rồi tắt hẳn về 0
+        const blink = isBlinking ? 1.5 : 0.0;
+        r = blink;
+        g = blink;
+        b = blink;
+      } else if (p.effectType === 'strobe' || p.preset?.strobe) {
+        const timeMs = (p.age + p.phase) * 1000;
+        const strobeFreq = 150 * strobeFreqMultiplier;
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+        const blink = isBlinking ? 1.0 : 0.0;
 
-        colors[i * 3] = blink;
-        colors[i * 3 + 1] = blink;
-        colors[i * 3 + 2] = blink;
-        needsColorUpdate = true;
-      } else if (
-        (
-          effectType === 'strobe'
-          || item.points.userData.preset?.strobe
-        ) && baseColors) {
-        const phase = item.points.userData.effectState.phase[i];
-        const timeMs = (item.age + phase) * 1000;
-        const strobeFreq = 150; // Chớp nhanh hơn để tạo cảm giác lung linh (150ms)
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0; // on:off:off
-        const blink = isBlinking ? 1.0 : 0.0; // Trắng tinh khi ON, tắt hoàn toàn (0) khi OFF
-
-        // Chỉ ép màu trắng nếu đúng là pháo strobe nguyên bản, nếu là ringV2 thì giữ màu gốc
-        if (item.points.userData.shellType === 'strobe') {
-          colors[i * 3] = blink;
-          colors[i * 3 + 1] = blink;
-          colors[i * 3 + 2] = blink;
+        if (p.preset?.shellType === 'strobe') {
+          r = blink;
+          g = blink;
+          b = blink;
         } else {
-          colors[i * 3] = baseColors[i * 3] * blink;
-          colors[i * 3 + 1] = baseColors[i * 3 + 1] * blink;
-          colors[i * 3 + 2] = baseColors[i * 3 + 2] * blink;
+          r = p.baseColor.r * blink;
+          g = p.baseColor.g * blink;
+          b = p.baseColor.b * blink;
         }
-        needsColorUpdate = true;
-      } else if (effectType === 'ghost' && baseColors) {
-        const dot = item.points.userData.effectState.ghostDots[i]; // -1.0 to 1.0
-
-        const lifeRatio = item.age / item.maxLife;
-        // Sweep from -1.5 to 1.5
+      } else if (p.effectType === 'ghost') {
         const sweep = (lifeRatio / 0.8) * 3.0 - 1.5;
-
         let intensity = 0;
-        if (dot < sweep) {
+        if (p.ghostDot < sweep) {
           intensity = 1.0;
-        } else if (dot < sweep + 0.4) {
-          intensity = 1.0 - ((dot - sweep) / 0.4); // soft edge
+        } else if (p.ghostDot < sweep + 0.4) {
+          intensity = 1.0 - ((p.ghostDot - sweep) / 0.4);
         }
-
-        colors[i * 3] = baseColors[i * 3] * intensity;
-        colors[i * 3 + 1] = baseColors[i * 3 + 1] * intensity;
-        colors[i * 3 + 2] = baseColors[i * 3 + 2] * intensity;
-        needsColorUpdate = true;
-      } else if (effectType === 'crysanthemum-cc' && baseColors) {
-        const color1 = item.points.userData.color1;
-        const color2 = item.points.userData.color2;
-
-        let activeColor = color1;
+        r = p.baseColor.r * intensity;
+        g = p.baseColor.g * intensity;
+        b = p.baseColor.b * intensity;
+      } else if (p.effectType === 'crysanthemum-cc' && p.color2) {
+        let activeColor = p.baseColor;
         let fade = 1.0;
 
         if (lifeRatio < 0.4) {
-          activeColor = color1;
+          activeColor = p.baseColor;
           fade = 1.0;
         } else if (lifeRatio < 0.5) {
-          activeColor = color1;
-          // Tối dần từ 1.0 về 0.0 (fade-out trước đổi màu)
+          activeColor = p.baseColor;
           fade = (0.5 - lifeRatio) / 0.1;
         } else if (lifeRatio < 0.6) {
-          activeColor = color2;
-          // Sáng dần từ 0.0 lên 1.0 (fade-in sau đổi màu)
+          activeColor = p.color2;
           fade = (lifeRatio - 0.5) / 0.1;
         } else {
-          activeColor = color2;
+          activeColor = p.color2;
           fade = 1.0;
         }
 
-        const r = activeColor.r * fade;
-        const g = activeColor.g * fade;
-        const b = activeColor.b * fade;
-
-        colors[i * 3] = r;
-        colors[i * 3 + 1] = g;
-        colors[i * 3 + 2] = b;
-
-        // Cập nhật cả baseColors để các hạt trail kế thừa màu sắc mới sau khi đổi màu
-        baseColors[i * 3] = r;
-        baseColors[i * 3 + 1] = g;
-        baseColors[i * 3 + 2] = b;
-
-        needsColorUpdate = true;
+        r = activeColor.r * fade;
+        g = activeColor.g * fade;
+        b = activeColor.b * fade;
       }
 
-      positions[i * 3] += velocity.x * deltaTime;
-      positions[i * 3 + 1] += velocity.y * deltaTime;
-      positions[i * 3 + 2] += velocity.z * deltaTime;
+      p.color.setRGB(r, g, b);
 
-      velocity.y += GRAVITY * deltaTime * gravityScale;
-      lifeArray[i] += deltaTime;
+      // Calculate size
+      const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
+      p.renderSize = baseSize;
+      p.renderOpacity = opacity;
+
+      activeParticles.push(p);
     }
 
-    item.points.geometry.attributes.position.needsUpdate = true;
-    if (needsColorUpdate) {
-      item.points.geometry.attributes.color.needsUpdate = true;
+    this.burstParticles = activeParticles;
+    const count = Math.min(
+      this.burstParticles.length,
+      this.maxBurstParticles
+    );
+
+    // 4. Fill Geometry Buffers
+    for (let i = 0; i < count; i++) {
+      const p = this.burstParticles[i];
+
+      this.burstPositionsArray[i * 3] = p.position.x;
+      this.burstPositionsArray[i * 3 + 1] = p.position.y;
+      this.burstPositionsArray[i * 3 + 2] = p.position.z;
+
+      this.burstColorsArray[i * 3] = p.color.r;
+      this.burstColorsArray[i * 3 + 1] = p.color.g;
+      this.burstColorsArray[i * 3 + 2] = p.color.b;
+
+      this.burstSizesArray[i] = p.renderSize;
+      this.burstOpacitiesArray[i] = p.renderOpacity;
     }
 
-    if (item.age >= item.maxLife) {
-      this.scene.remove(item.points);
-      finished.push(item);
+    // Hide remaining spots
+    for (let i = count; i < this.maxBurstParticles; i++) {
+      this.burstPositionsArray[i * 3] = 0;
+      this.burstPositionsArray[i * 3 + 1] = -99999;
+      this.burstPositionsArray[i * 3 + 2] = 0;
+
+      this.burstColorsArray[i * 3] = 0;
+      this.burstColorsArray[i * 3 + 1] = 0;
+      this.burstColorsArray[i * 3 + 2] = 0;
+
+      this.burstSizesArray[i] = 0;
+      this.burstOpacitiesArray[i] = 0;
     }
+
+    // Mark geometry attributes for update
+    this.globalBurstGeometry.getAttribute('position').needsUpdate = true;
+    this.globalBurstGeometry.getAttribute('color').needsUpdate = true;
+    this.globalBurstGeometry.getAttribute('aSize').needsUpdate = true;
+    this.globalBurstGeometry.getAttribute('aOpacity').needsUpdate = true;
+    this.globalBurstGeometry.setDrawRange(0, count);
   }
 
   clear() {
-    for (const fw of this.activeFireworks) {
-      if (fw.points) {
-        this.scene.remove(fw.points);
-        fw.points.geometry.dispose();
-        fw.points.material.dispose();
-      }
-    }
     this.activeFireworks = [];
     this.instancedShellRenderer.update([]);
+    this.burstParticles = [];
+    this.updateBurstParticles(0);
   }
 
   burstAll() {
@@ -1298,12 +1384,6 @@ export class FireworkSystem {
           deltaTime,
           finished
         );
-      } else if (item.type === 'burst') {
-        this.handleBurstUpdate(
-          item,
-          deltaTime,
-          finished
-        );
       }
     }
 
@@ -1315,5 +1395,8 @@ export class FireworkSystem {
       (item) => item.type === 'shell'
     );
     this.instancedShellRenderer.update(shells);
+
+    // Update global burst particles
+    this.updateBurstParticles(deltaTime);
   }
 }
