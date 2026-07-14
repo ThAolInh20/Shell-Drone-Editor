@@ -224,12 +224,24 @@ export class CometSystem {
               1.0,
               true,
               customLife,
-              0.8, // Sáng rõ
-              true // strobe = true (lấp lánh bằng ánh sáng trắng)
+              0.8,
+              false,
+              null,
+              1.0,
+              1.0,
+              true
             );
           }
           if (Math.random() < 0.25 && !comet.preset?.sparkleAtEnd) {
-            this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color, true);
+            this.trailSystem.spawnEffectSpark(
+              comet.mesh.position.clone(),
+              comet.color,
+              false,
+              null,
+              0,
+              null,
+              true
+            );
           }
         }
 

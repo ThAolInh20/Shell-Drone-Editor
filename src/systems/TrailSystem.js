@@ -71,7 +71,19 @@ export class TrailSystem {
     }
   }
 
-  spawnTrailParticle(position, color, lifeMultiplier = 1.0, zeroVelocity = false, customLife = null, opacityMultiplier = 1.0, strobe = false, customVelocity = null, gravityScale = 1.0, dragScale = 1.0) {
+  spawnTrailParticle(
+    position,
+    color,
+    lifeMultiplier = 1.0,
+    zeroVelocity = false,
+    customLife = null,
+    opacityMultiplier = 1.0,
+    strobe = false,
+    customVelocity = null,
+    gravityScale = 1.0,
+    dragScale = 1.0,
+    shimmer = false
+  ) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -98,6 +110,7 @@ export class TrailSystem {
       age: 0,
       opacity: opacityMultiplier,
       strobe: strobe,
+      shimmer: shimmer,
       gravityScale: gravityScale,
       dragScale: dragScale
     };
@@ -110,7 +123,8 @@ export class TrailSystem {
     strobe = false,
     customVelocity = null,
     phase = 0,
-    customLife = null
+    customLife = null,
+    shimmer = false
   ) {
     const spark = {
       position: position.clone(),
@@ -127,6 +141,7 @@ export class TrailSystem {
       life: customLife !== null ? customLife : 1.5 + Math.random() * 1.2,
       age: 0,
       strobe: strobe,
+      shimmer: shimmer,
       phase: phase
     };
     this.trailParticles.push(spark);
@@ -205,6 +220,20 @@ export class TrailSystem {
             g = 1.0;
             b = 1.0;
           }
+        } else if (particle.shimmer) {
+          // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin
+          const timeMs = (particle.phase !== undefined)
+            ? (performance.now() + particle.phase)
+            : (particle.age * 1000);
+          
+          const shimmerVal = 0.3 + 0.7 * Math.abs(Math.sin(timeMs * 0.05));
+          alpha *= shimmerVal;
+          
+          // Trộn thêm ánh sáng trắng lung linh
+          const blendFactor = 0.5 + 0.5 * Math.sin(timeMs * 0.05);
+          r += (1.0 - r) * blendFactor;
+          g += (1.0 - g) * blendFactor;
+          b += (1.0 - b) * blendFactor;
         }
 
         positions.push(particle.position.x, particle.position.y, particle.position.z);

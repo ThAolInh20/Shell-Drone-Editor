@@ -169,7 +169,7 @@ export class CometEntity {
 
       // Check if it reached the apex (velocity.y <= 0)
       if (this.velocity.y <= 0) {
-        this.state = CometEntity.STATE.DEAD;
+        this.state = CometEntity.STATE.DECAYING;
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
       // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực
@@ -207,19 +207,45 @@ export class CometEntity {
                            this.state === CometEntity.STATE.LAUNCHING && 
                            heightRatio >= 0.5;
 
-    // Hiệu ứng strobe (chớp tắt nhấp nháy) bằng ánh sáng trắng cho lõi comet khi đạt 50% độ cao trên đường bay
+    // Hiệu ứng lung linh (shimmer/twinkle) bằng cách dao động liên tục opacity và scale của lõi comet
     if (isStrobeActive) {
-      const timeMs = this.age * 1000;
-      const strobeFreq = 120; // Chớp tần suất 120ms
-      const isBlinking = Math.floor(timeMs / strobeFreq) % 2 === 0;
-      this.coreMesh.visible = isBlinking;
-      if (isBlinking && this.coreMesh.material && this.coreMesh.material.color) {
-        this.coreMesh.material.color.setRGB(1.0, 1.0, 1.0);
+      this.coreMesh.visible = true;
+      // Dao động hình sin nhanh cho opacity
+      const shimmerVal = 0.3 + 0.7 * Math.abs(Math.sin(this.age * 50));
+      this.coreMesh.material.opacity = shimmerVal;
+
+      // Dao động scale để lõi phồng xẹp lấp lánh
+      const scaleMultiplier = 0.7 + 0.4 * Math.abs(Math.sin(this.age * 50));
+      const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+      const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+      this.coreMesh.scale.set(
+        baseScaleX * scaleMultiplier,
+        baseScaleY * scaleMultiplier,
+        baseScaleX * scaleMultiplier
+      );
+
+      // Hòa trộn màu sắc lõi pháo sang màu trắng lung linh
+      if (this.coreMesh.material && this.coreMesh.material.color) {
+        const blendFactor = 0.5 + 0.5 * Math.sin(this.age * 50);
+        this.coreMesh.material.color.copy(this.coreColor);
+        this.coreMesh.material.color.r = this.coreColor.r + (1.0 - this.coreColor.r) * blendFactor;
+        this.coreMesh.material.color.g = this.coreColor.g + (1.0 - this.coreColor.g) * blendFactor;
+        this.coreMesh.material.color.b = this.coreColor.b + (1.0 - this.coreColor.b) * blendFactor;
       }
     } else {
       this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING) : true;
       if (this.coreMesh.material && this.coreMesh.material.color) {
         this.coreMesh.material.color.copy(this.coreColor);
+      }
+      // Khôi phục scale gốc
+      if (this.preset?.shellType !== 'comet_cluster_notrail') {
+        const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+        const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+        this.coreMesh.scale.set(
+          baseScaleX,
+          baseScaleY,
+          baseScaleX
+        );
       }
     }
 
