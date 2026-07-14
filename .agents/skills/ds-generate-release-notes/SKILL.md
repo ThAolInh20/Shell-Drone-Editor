@@ -55,11 +55,16 @@ Structure the output using Markdown IN ENGLISH. Use exactly this structure:
 - ...
 ```
 
-## 5. Save the File
+## 5. Update package.json Version
+- Update the `"version"` field in the project's `package.json` file to match the new version tag (e.g. if the new version is `v2.1.1`, update it to `"2.1.1"` without the `"v"` prefix).
+
+## 6. Save the Release Notes File
 Use the appropriate file writing tool to save the release notes.
 - Completely OVERWRITE the existing `RELEASE_NOTES.md` file so that it ONLY contains the release notes for the new version. Do NOT append or insert content. The file should only reflect the latest tag.
 
-## 6. Auto-Create Git Tag
-After the release notes are successfully saved, automatically create and push the new git tag using the terminal:
+## 7. Stage, Commit, and Auto-Create Git Tag
+After the files are successfully saved, automatically stage, commit, and create/push the new git tag:
+- Run `git add package.json RELEASE_NOTES.md`
+- Run `git commit -m "docs: release <new_version>"`
 - Run `git tag <new_version>`
 - Run `git push origin <new_version>` (or `git push --tags`)
