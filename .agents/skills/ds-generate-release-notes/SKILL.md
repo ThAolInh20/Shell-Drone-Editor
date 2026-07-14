@@ -11,6 +11,7 @@ When the user asks you to generate release notes or create a new release, follow
 1. **NO ICONS OR EMOJIS**: Do not use any emojis (like 🚀, 🐛, etc.) anywhere in the output.
 2. **ENGLISH ONLY**: The generated release notes MUST be written entirely in English, regardless of the language used in the commit messages or the user's prompt.
 3. **MANDATORY SECTIONS**: You must use exactly the main sections defined below. If a section has no relevant commits, you may omit that section.
+4. **NON-TECHNICAL DESCRIPTIONS**: All descriptions must be extremely concise, simple, and easy to understand for non-technical users. Avoid coding jargon (such as 'instanced rendering', 'draw calls', 'vertex shader', 'buffer allocation') and instead focus on user-facing benefits (e.g., write 'Improved display performance when spawning many fireworks' instead of 'implemented instanced shell rendering to reduce draw calls').
 
 ## 1. Fetch Commits Since Last Tag
 - Use the terminal (`run_command` tool) to find the most recent git tag: `git describe --tags --abbrev=0`.
