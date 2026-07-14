@@ -1,6 +1,6 @@
 # 3D Firework & Drone Animation Simulation (Shell Drone Animation)
 
-🌍 **Languages:** [English](README.md) | [Tiếng Việt](docs/readme/README_vi.md) | [日本語](docs/readme/README_ja.md) | [中文](docs/readme/README_zh.md)
+**Languages:** [English](README.md) | [Tiếng Việt](docs/readme/README_vi.md) | [日本語](docs/readme/README_ja.md) | [中文](docs/readme/README_zh.md)
 
 This project is a 3D firework & drone animation simulation and editing application built with **Three.js** and **Vite**, utilizing **Electron** to build professional Desktop software.
 
