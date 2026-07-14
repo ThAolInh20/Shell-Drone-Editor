@@ -5,6 +5,7 @@ import { GizmoSystem } from './systems/GizmoSystem.js';
 import { setupEditorUI } from './ui/EditorUI.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 import { customAlert } from './ui/utils/Modal.js';
+import { HotkeyManager } from '../core/HotkeyManager.js';
 
 export class EditorDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -74,6 +75,8 @@ export class EditorDirector {
 
     this.isSelectingBox = false;
 
+    this.hotkeyManager = new HotkeyManager();
+    this.hotkeyManager.setActiveContext('editor');
     this.setupEvents();
   }
 
@@ -151,7 +154,36 @@ export class EditorDirector {
   setupEvents() {
     this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this), true);
     this.renderer.instance.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
-    window.addEventListener('keydown', this.onKeyDown.bind(this));
+
+    this.hotkeyManager.register('editor', 'ctrl+s', () => {
+      this.saveDirectly();
+    });
+    this.hotkeyManager.register('editor', 'ctrl+a', () => {
+      this.state.selectAll();
+    });
+    this.hotkeyManager.register('editor', 'ctrl+z', () => {
+      this.state.undo();
+    });
+    this.hotkeyManager.register('editor', 'ctrl+y', () => {
+      this.state.redo();
+    });
+    this.hotkeyManager.register('editor', 'ctrl+d', () => {
+      this.state.duplicateSelected();
+    });
+    this.hotkeyManager.register('editor', 'ctrl+c', () => {
+      this.state.copyToClipboard();
+      console.log('Copied to clipboard');
+    });
+    this.hotkeyManager.register('editor', 'ctrl+v', () => {
+      this.state.pasteFromClipboard();
+      console.log('Pasted from clipboard');
+    });
+    this.hotkeyManager.register('editor', 'delete', () => {
+      this.state.deleteSelected();
+    });
+    this.hotkeyManager.register('editor', 'backspace', () => {
+      this.state.deleteSelected();
+    });
   }
 
   onPointerDown(event) {
@@ -343,51 +375,7 @@ export class EditorDirector {
     this.state.selectMultiple(selectedList);
   }
 
-  onKeyDown(event) {
-    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
 
-    const isZ = event.key.toLowerCase() === 'z' || event.code === 'KeyZ';
-    const isY = event.key.toLowerCase() === 'y' || event.code === 'KeyY';
-    const isD = event.key.toLowerCase() === 'd' || event.code === 'KeyD';
-    const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
-    const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
-    const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
-    const isA = event.key.toLowerCase() === 'a' || event.code === 'KeyA';
-
-    if ((event.ctrlKey || event.metaKey) && isS) {
-      event.preventDefault();
-      this.saveDirectly();
-    }
-    if ((event.ctrlKey || event.metaKey) && isA) {
-      event.preventDefault();
-      this.state.selectAll();
-    }
-    if (event.ctrlKey && isZ) {
-      event.preventDefault();
-      this.state.undo();
-    }
-    if (event.ctrlKey && isY) {
-      event.preventDefault();
-      this.state.redo();
-    }
-    if (event.ctrlKey && isD) {
-      event.preventDefault();
-      this.state.duplicateSelected();
-    }
-    if ((event.ctrlKey || event.metaKey) && isC) {
-      event.preventDefault();
-      this.state.copyToClipboard();
-      console.log('Copied to clipboard');
-    }
-    if ((event.ctrlKey || event.metaKey) && isV) {
-      event.preventDefault();
-      this.state.pasteFromClipboard();
-      console.log('Pasted from clipboard');
-    }
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      this.state.deleteSelected();
-    }
-  }
 
   async saveDirectly() {
     const data = this.state.exportFormat();

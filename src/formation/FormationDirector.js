@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { t } from '../config/lang/i18n.js';
+import { HotkeyManager } from '../core/HotkeyManager.js';
 
 import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
@@ -71,6 +72,8 @@ export class FormationDirector {
     this.isSelectingBox = false;
 
     this.isCtrlPressed = false;
+    this.hotkeyManager = new HotkeyManager();
+    this.hotkeyManager.setActiveContext('formation');
     this.setupEvents();
 
     // Hologram Ghost Guide fields
@@ -147,6 +150,34 @@ export class FormationDirector {
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
     window.addEventListener('blur', this.onBlur.bind(this));
+
+    this.hotkeyManager.register('formation', 'ctrl+a', () => {
+      this.state.selectAll();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+s', () => {
+      this.saveDirectly();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+z', () => {
+      this.state.undo();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+y', () => {
+      this.state.redo();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+d', () => {
+      this.state.duplicateSelected();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+c', () => {
+      this.state.copyToClipboard();
+    });
+    this.hotkeyManager.register('formation', 'ctrl+v', () => {
+      this.state.pasteFromClipboard();
+    });
+    this.hotkeyManager.register('formation', 'delete', () => {
+      this.state.deleteSelected();
+    });
+    this.hotkeyManager.register('formation', 'backspace', () => {
+      this.state.deleteSelected();
+    });
 
     // Synchronize isCtrlPressed state via pointer events
     this.handlePointer = (e) => {
@@ -398,47 +429,6 @@ export class FormationDirector {
     if (event.key === 'Control') {
       this.isCtrlPressed = true;
       this.updateBezierGizmoVisibility();
-    }
-    if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
-
-    const isZ = event.key.toLowerCase() === 'z' || event.code === 'KeyZ';
-    const isY = event.key.toLowerCase() === 'y' || event.code === 'KeyY';
-    const isD = event.key.toLowerCase() === 'd' || event.code === 'KeyD';
-    const isC = event.key.toLowerCase() === 'c' || event.code === 'KeyC';
-    const isV = event.key.toLowerCase() === 'v' || event.code === 'KeyV';
-    const isS = event.key.toLowerCase() === 's' || event.code === 'KeyS';
-    const isA = event.key.toLowerCase() === 'a' || event.code === 'KeyA';
-
-    if ((event.ctrlKey || event.metaKey) && isA) {
-      event.preventDefault();
-      this.state.selectAll();
-    }
-    if ((event.ctrlKey || event.metaKey) && isS) {
-      event.preventDefault();
-      this.saveDirectly();
-    }
-    if (event.ctrlKey && isZ) {
-      event.preventDefault();
-      this.state.undo();
-    }
-    if (event.ctrlKey && isY) {
-      event.preventDefault();
-      this.state.redo();
-    }
-    if (event.ctrlKey && isD) {
-      event.preventDefault();
-      this.state.duplicateSelected();
-    }
-    if ((event.ctrlKey || event.metaKey) && isC) {
-      event.preventDefault();
-      this.state.copyToClipboard();
-    }
-    if ((event.ctrlKey || event.metaKey) && isV) {
-      event.preventDefault();
-      this.state.pasteFromClipboard();
-    }
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      this.state.deleteSelected();
     }
   }
 

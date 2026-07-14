@@ -21,6 +21,7 @@ import { PerformanceMonitor } from './core/PerformanceMonitor.js';
 import { renderingConfig } from './config/rendering.js';
 import './style.css';
 import { setLanguage } from './config/lang/i18n.js';
+import { HotkeyManager } from './core/HotkeyManager.js';
 
 // Initialize Core ECS Boilerplate
 const clock = new Clock();
@@ -58,7 +59,8 @@ const droneSequencer = new DroneShowSequencer(droneSystem);
 const fireworkSequencer = new FireworkSequencer(fireworkSystem, cometSystem);
 const showDirector = new ShowDirector(fireworkSequencer, fireworkSystem);
 showDirector.droneSequencer = droneSequencer;
-const timelineEditor = new TimelineEditor(showDirector);
+const hotkeyManager = new HotkeyManager();
+const timelineEditor = new TimelineEditor(showDirector, hotkeyManager);
 
 // The show script loading is now handled in InputSystem
 
@@ -78,14 +80,12 @@ renderer.instance.domElement.addEventListener('click', () => {
   }
 });
 
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyY' && e.shiftKey) {
-    if (performanceMonitor.overlay) {
-      performanceMonitor.overlay.style.display = performanceMonitor.overlay.style.display === 'none' ? '' : 'none';
-    }
-    if (inputSystem.statusOverlay) {
-      inputSystem.statusOverlay.style.display = inputSystem.statusOverlay.style.display === 'none' ? '' : 'none';
-    }
+hotkeyManager.register('global', 'shift+y', () => {
+  if (performanceMonitor.overlay) {
+    performanceMonitor.overlay.style.display = performanceMonitor.overlay.style.display === 'none' ? '' : 'none';
+  }
+  if (inputSystem.statusOverlay) {
+    inputSystem.statusOverlay.style.display = inputSystem.statusOverlay.style.display === 'none' ? '' : 'none';
   }
 });
 
