@@ -3,11 +3,13 @@ import { PropertyInspector } from './PropertyInspector.js';
 import demoShow from '../config/sequences/demoShow.json';
 import { t } from '../config/lang/i18n.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
 
 
 export class TimelineEditor {
-  constructor(showDirector) {
+  constructor(showDirector, hotkeyManager = null) {
     this.showDirector = showDirector;
+    this.hotkeyManager = hotkeyManager;
     this.sequences = JSON.parse(JSON.stringify(demoShow)); // Deep clone to edit safely
     this.pixelsPerSecond = 50;
     this.rowHeight = 30;
@@ -128,11 +130,93 @@ export class TimelineEditor {
     saveBtn.style.color = 'white';
     saveBtn.addEventListener('click', () => this.saveSequence());
 
+    const exportContainer = document.createElement('div');
+    exportContainer.style.position = 'relative';
+    exportContainer.style.display = 'inline-block';
+
     const exportBtn = document.createElement('button');
     exportBtn.textContent = t('editor.timelinePanel.exportBtn');
     exportBtn.style.background = '#00897b';
     exportBtn.style.color = 'white';
-    exportBtn.addEventListener('click', () => this.exportSequence());
+    exportContainer.appendChild(exportBtn);
+
+    let exportDropdown = null;
+
+    const closeExportDropdown = () => {
+      if (exportDropdown) {
+        exportDropdown.remove();
+        exportDropdown = null;
+        document.removeEventListener('click', closeExportDropdown);
+      }
+    };
+
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (exportDropdown) {
+        closeExportDropdown();
+        return;
+      }
+
+      exportDropdown = document.createElement('div');
+      exportDropdown.style.position = 'absolute';
+      exportDropdown.style.top = '100%';
+      exportDropdown.style.left = '0';
+      exportDropdown.style.background = '#1e1e1e';
+      exportDropdown.style.border = '1px solid #444';
+      exportDropdown.style.borderRadius = '4px';
+      exportDropdown.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+      exportDropdown.style.zIndex = '2000';
+      exportDropdown.style.minWidth = '220px';
+      exportDropdown.style.display = 'flex';
+      exportDropdown.style.flexDirection = 'column';
+      exportDropdown.style.padding = '4px 0';
+      exportDropdown.style.marginTop = '4px';
+
+      // Item 1: Export all
+      const itemAll = document.createElement('div');
+      itemAll.textContent = t('editor.timelinePanel.exportAll') || 'Export all blocks';
+      itemAll.style.padding = '8px 12px';
+      itemAll.style.cursor = 'pointer';
+      itemAll.style.color = '#fff';
+      itemAll.style.fontSize = '12px';
+      itemAll.style.transition = 'background 0.2s';
+      itemAll.addEventListener('mouseover', () => itemAll.style.background = '#333');
+      itemAll.addEventListener('mouseout', () => itemAll.style.background = '');
+      itemAll.addEventListener('click', () => {
+        this.exportSequence(false);
+        closeExportDropdown();
+      });
+      exportDropdown.appendChild(itemAll);
+
+      // Item 2: Export selected
+      const hasSelection = this.selectedEvents && this.selectedEvents.length > 0;
+      const itemSelected = document.createElement('div');
+      itemSelected.textContent = (t('editor.timelinePanel.exportSelected') || 'Export selected blocks') + ` (${this.selectedEvents ? this.selectedEvents.length : 0})`;
+      itemSelected.style.padding = '8px 12px';
+      itemSelected.style.fontSize = '12px';
+      itemSelected.style.transition = 'background 0.2s';
+
+      if (hasSelection) {
+        itemSelected.style.cursor = 'pointer';
+        itemSelected.style.color = '#fff';
+        itemSelected.addEventListener('mouseover', () => itemSelected.style.background = '#333');
+        itemSelected.addEventListener('mouseout', () => itemSelected.style.background = '');
+        itemSelected.addEventListener('click', () => {
+          this.exportSequence(true);
+          closeExportDropdown();
+        });
+      } else {
+        itemSelected.style.cursor = 'not-allowed';
+        itemSelected.style.color = '#666';
+      }
+      exportDropdown.appendChild(itemSelected);
+
+      exportContainer.appendChild(exportDropdown);
+      
+      setTimeout(() => {
+        document.addEventListener('click', closeExportDropdown);
+      }, 50);
+    });
 
     const importBtn = document.createElement('button');
     importBtn.textContent = t('editor.timelinePanel.importBtn');
@@ -253,7 +337,7 @@ export class TimelineEditor {
     toolbar.appendChild(this.fileIndicator);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
-    toolbar.appendChild(exportBtn);
+    toolbar.appendChild(exportContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
 
@@ -411,116 +495,217 @@ export class TimelineEditor {
     document.body.appendChild(this.container);
 
     // Global Hotkeys
-    window.addEventListener('keydown', (e) => {
-      // Direct Save (Ctrl + S)
-      if (e.code === 'KeyS' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT') {
-          e.preventDefault();
+    if (this.hotkeyManager) {
+      this.hotkeyManager.register(
+        'global',
+        'ctrl+t',
+        () => {
+          this.toggle();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+s',
+        () => {
           this.saveDirectly();
         }
-      }
+      );
 
-      // Toggle Timeline (Ctrl + T)
-      if (e.code === 'KeyT' && e.ctrlKey) {
-        e.preventDefault();
-        this.toggle();
-      }
-      if (e.key === ')' || (e.shiftKey && e.key === '0')) {
-        e.preventDefault();
-        const zoomLevels = [25, 50, 100, 200];
-        let idx = zoomLevels.indexOf(this.pixelsPerSecond);
-        idx = (idx + 1) % zoomLevels.length;
-        this.pixelsPerSecond = zoomLevels[idx];
-        this.renderRuler();
-        this.renderTracks();
-        this.anchorHead.style.left = (this.anchorTime * this.pixelsPerSecond) + 'px';
-      }
-      if (e.code === 'Space' && this.visible) {
-        if (e.target.tagName !== 'INPUT') {
-          e.preventDefault();
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+t',
+        () => {
+          this.toggle();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        ')',
+        () => {
+          this.changeZoom();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'shift+0',
+        () => {
+          this.changeZoom();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'space',
+        () => {
           this.togglePlay();
         }
-      }
+      );
 
-      // Undo (Ctrl + Z)
-      if (e.code === 'KeyZ' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT') {
-          e.preventDefault();
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+z',
+        () => {
           this.undo();
         }
-      }
+      );
 
-      // Redo (Ctrl + Y hoặc Ctrl + Shift + Z)
-      if (((e.code === 'KeyY' && e.ctrlKey) || (e.code === 'KeyZ' && e.ctrlKey && e.shiftKey)) && this.visible) {
-        if (e.target.tagName !== 'INPUT') {
-          e.preventDefault();
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+y',
+        () => {
           this.redo();
         }
-      }
+      );
 
-      // Copy (Ctrl + C)
-      if (e.code === 'KeyC' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT' && this.selectedEvents && this.selectedEvents.length > 0) {
-          const minTime = Math.min(...this.selectedEvents.map(s => s.time));
-          this.clipboardEvents = this.selectedEvents.map(s => {
-            const clone = JSON.parse(JSON.stringify(s));
-            delete clone._trackRow;
-            delete clone._deleted;
-            return {
-              event: clone,
-              offset: s.time - minTime
-            };
-          });
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+shift+z',
+        () => {
+          this.redo();
         }
-      }
+      );
 
-      // Paste (Ctrl + V)
-      if (e.code === 'KeyV' && e.ctrlKey && this.visible) {
-        if (e.target.tagName !== 'INPUT' && this.clipboardEvents && this.clipboardEvents.length > 0) {
-          this.saveHistoryState();
-
-          const newPastedEvents = [];
-          this.clipboardEvents.forEach(item => {
-            const newEvent = JSON.parse(JSON.stringify(item.event));
-            newEvent.time = Math.round((this.anchorTime + item.offset) * 10) / 10;
-            this.sequences.push(newEvent);
-            newPastedEvents.push(newEvent);
-          });
-
-          // Set active selection to the newly pasted events
-          this.selectedEvents = newPastedEvents;
-
-          if (newPastedEvents.length > 0) {
-            const primary = newPastedEvents[newPastedEvents.length - 1];
-            this.inspector.show(primary);
-          }
-
-          this.renderTracks();
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+c',
+        () => {
+          this.copySelected();
         }
-      }
+      );
 
-      // Delete
-      if ((e.code === 'Delete' || e.code === 'Backspace') && this.visible) {
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && this.selectedEvents && this.selectedEvents.length > 0) {
-          this.saveHistoryState();
-          this.selectedEvents.forEach(s => {
-            s._deleted = true;
-          });
-          this.selectedEvents = [];
-          this.inspector.hide();
-          this.renderTracks();
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+v',
+        () => {
+          this.pasteSelected();
         }
-      }
-    });
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'delete',
+        () => {
+          this.deleteSelected();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'backspace',
+        () => {
+          this.deleteSelected();
+        }
+      );
+    }
 
     // Auto-hide when entering Move Mode (pointer lock), show only if it was visible
     document.addEventListener('pointerlockchange', () => {
       if (document.pointerLockElement) {
         this.container.style.display = 'none';
+        if (this.hotkeyManager) {
+          this.hotkeyManager.setActiveContext('global');
+        }
       } else {
         this.container.style.display = this.visible ? 'flex' : 'none';
+        if (
+          this.hotkeyManager &&
+          this.visible
+        ) {
+          this.hotkeyManager.setActiveContext('timeline');
+        }
       }
     });
+  }
+
+  changeZoom() {
+    const zoomLevels = [
+      25,
+      50,
+      100,
+      200
+    ];
+    let idx = zoomLevels.indexOf(
+      this.pixelsPerSecond
+    );
+    idx = (idx + 1) % zoomLevels.length;
+    this.pixelsPerSecond = zoomLevels[idx];
+    this.renderRuler();
+    this.renderTracks();
+    this.anchorHead.style.left = (this.anchorTime * this.pixelsPerSecond) + 'px';
+  }
+
+  copySelected() {
+    if (
+      this.selectedEvents &&
+      this.selectedEvents.length > 0
+    ) {
+      const minTime = Math.min(
+        ...this.selectedEvents.map((s) => {
+          return s.time;
+        })
+      );
+      this.clipboardEvents = this.selectedEvents.map((s) => {
+        const clone = JSON.parse(
+          JSON.stringify(s)
+        );
+        delete clone._trackRow;
+        delete clone._deleted;
+        return {
+          event: clone,
+          offset: s.time - minTime
+        };
+      });
+    }
+  }
+
+  pasteSelected() {
+    if (
+      this.clipboardEvents &&
+      this.clipboardEvents.length > 0
+    ) {
+      this.saveHistoryState();
+
+      const newPastedEvents = [];
+      this.clipboardEvents.forEach((item) => {
+        const newEvent = JSON.parse(
+          JSON.stringify(item.event)
+        );
+        newEvent.time = Math.round(
+          (this.anchorTime + item.offset) * 10
+        ) / 10;
+        this.sequences.push(newEvent);
+        newPastedEvents.push(newEvent);
+      });
+
+      this.selectedEvents = newPastedEvents;
+
+      if (newPastedEvents.length > 0) {
+        const primary = newPastedEvents[
+          newPastedEvents.length - 1
+        ];
+        this.inspector.show(primary);
+      }
+
+      this.renderTracks();
+    }
+  }
+
+  deleteSelected() {
+    if (
+      this.selectedEvents &&
+      this.selectedEvents.length > 0
+    ) {
+      this.saveHistoryState();
+      this.selectedEvents.forEach((s) => {
+        s._deleted = true;
+      });
+      this.selectedEvents = [];
+      this.inspector.hide();
+      this.renderTracks();
+    }
   }
 
   updateFileIndicator() {
@@ -591,6 +776,11 @@ export class TimelineEditor {
     this.container.style.display = this.visible ? 'flex' : 'none';
     if (this.visible && document.pointerLockElement) {
       document.exitPointerLock();
+    }
+    if (this.hotkeyManager) {
+      this.hotkeyManager.setActiveContext(
+        this.visible ? 'timeline' : 'global'
+      );
     }
     globalEventBus.emit('timeline:toggle', this.visible);
   }
@@ -1151,9 +1341,15 @@ export class TimelineEditor {
     }
   }
 
-  async exportSequence() {
+  async exportSequence(onlySelected = false) {
+    const sourceEvents = onlySelected ? this.selectedEvents : this.sequences;
+    if (onlySelected && (!sourceEvents || sourceEvents.length === 0)) {
+      alert(t('editor.timelinePanel.noSelectionExport') || 'No blocks selected to export!');
+      return;
+    }
+
     // Cleanup temporary variables
-    const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
+    const cleanSeqs = sourceEvents.filter(s => !s._deleted).map(s => {
       const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
       return cleanObj;
     });
