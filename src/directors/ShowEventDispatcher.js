@@ -21,7 +21,12 @@ export class ShowEventDispatcher {
     // Single event handler
     this.register('single', (evt, context) => {
       let overrides = evt.effectOverrides;
-      if (evt.instantBurst !== undefined || evt.shellSize !== undefined || evt.strobe !== undefined || evt.crackle !== undefined || evt.pistil !== undefined) {
+      if (evt.instantBurst !== undefined 
+        || evt.shellSize !== undefined 
+        || evt.strobe !== undefined 
+        || evt.crackle !== undefined 
+        || evt.pistil !== undefined) 
+      {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
         if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
