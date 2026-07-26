@@ -6,111 +6,36 @@ import { setupEditorUI } from './ui/EditorUI.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 import { customAlert } from './ui/utils/Modal.js';
 import { HotkeyManager } from '../core/HotkeyManager.js';
+import { BaseDirector } from '../core/BaseDirector.js';
 
-export class EditorDirector {
+export class EditorDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
-    this.sceneManager = sceneManager;
-    this.cameraManager = cameraManager;
-    this.renderer = renderer;
+    super(sceneManager, cameraManager, renderer);
 
-    // Performance Scratch Variables (GC prevention)
-    this.scratchVec1 = new THREE.Vector3();
-    this.scratchVec2 = new THREE.Vector3();
-    this.scratchVec3 = new THREE.Vector3();
-    this.scratchVec4 = new THREE.Vector3();
-    this.scratchVecCenter = new THREE.Vector3();
-    this.scratchVecPosA = new THREE.Vector3();
-    this.scratchVecPosB = new THREE.Vector3();
-    this.scratchColor1 = new THREE.Color();
-    this.scratchColor2 = new THREE.Color();
-    this.scratchColor3 = new THREE.Color();
-    this.scratchDummy = new THREE.Object3D();
-    this.defaultCenter = new THREE.Vector3(0, 20, 0);
-
+    // State specific to editor
     this.state = new FormationEditorState();
 
     // Editor UI Setup
     setupEditorUI(this.state, this);
 
-    // Camera controls
-    this.controls = new OrbitControls(this.cameraManager.instance, this.renderer.instance.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
-    this.controls.target.set(0, 50, 0);
+    // Initialise shared components (camera, mesh, gizmos, events, hotkeys)
+    this.initCommon();
 
-    // Instanced rendering for performance
-    this.initInstancedMesh();
+    // Initialise editor‑specific ghost mesh for onion skinning
+    this.initGhostInstancedMesh();
 
-    this.centerHelper = null;
-    this.pivotLines = null;
-    this.initCenterVisualizers();
+// Duplicate initialization removed; state and UI already set above
 
-    // Gizmo System for selecting and moving drones
-    this.gizmoSystem = new GizmoSystem(
-      this.sceneManager.instance,
-      this.cameraManager.instance,
-      this.renderer.instance.domElement,
-      this.controls,
-      this.state
-    );
 
-    // Listen to state changes to update the mesh
-    this.state.subscribe(() => this.updateMeshFromState());
-
-    // Raycaster for selection
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
-
-    // Selection Box DOM helper element (visual marquee selection)
-    this.selectionBoxEl = document.createElement('div');
-    this.selectionBoxEl.style.position = 'absolute';
-    this.selectionBoxEl.style.border = '1.5px dashed #3a86ff';
-    this.selectionBoxEl.style.backgroundColor = 'rgba(58, 134, 255, 0.15)';
-    this.selectionBoxEl.style.borderRadius = '2px';
-    this.selectionBoxEl.style.boxShadow = '0 0 8px rgba(58, 134, 255, 0.4)';
-    this.selectionBoxEl.style.pointerEvents = 'none';
-    this.selectionBoxEl.style.zIndex = '99999';
-    this.selectionBoxEl.style.display = 'none';
-    document.body.appendChild(this.selectionBoxEl);
-
-    this.isSelectingBox = false;
-
-    this.hotkeyManager = new HotkeyManager();
-    this.hotkeyManager.setActiveContext('editor');
-    this.setupEvents();
   }
 
-  initInstancedMesh() {
-    // Add visual aids
-    const gridHelper = new THREE.GridHelper(500, 50, 0x444444, 0x222222);
-    this.sceneManager.instance.add(gridHelper);
+  getHotkeyContext() {
+    return 'editor';
+  }
 
-    const axesHelper = new THREE.AxesHelper(100);
-    // Move axes slightly up so it doesn't z-fight with the grid
-    axesHelper.position.y = 0.1;
-    this.sceneManager.instance.add(axesHelper);
-
+// Editor‑specific additional instanced mesh (ghost) – kept separate from BaseDirector
+  initGhostInstancedMesh() {
     const geometry = new THREE.SphereGeometry(1, 16, 16);
-    geometry.computeBoundingSphere();
-    geometry.boundingSphere.radius = 999999; // Prevent raycaster early-culling
-
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      toneMapped: false
-    });
-
-    // We allow up to 10,000 drones in the editor
-    this.instancedMesh = new THREE.InstancedMesh(geometry, material, 10000);
-    this.instancedMesh.frustumCulled = false; // Prevent disappearing when looking away from origin
-    this.instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.instancedMesh.count = 0;
-
-    // Highlight material logic (can use vertex colors)
-    this.instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(10000 * 3), 3);
-
-    this.sceneManager.instance.add(this.instancedMesh);
-
-    // Setup ghost instanced mesh for Onion Skinning
     const ghostMaterial = new THREE.MeshBasicMaterial({
       color: 0xcccccc,
       transparent: true,
@@ -123,32 +48,6 @@ export class EditorDirector {
     this.ghostInstancedMesh.count = 0;
     this.ghostInstancedMesh.visible = false;
     this.sceneManager.instance.add(this.ghostInstancedMesh);
-  }
-
-  initCenterVisualizers() {
-    // 1. Center Point Helper (Sphere)
-    const sphereGeo = new THREE.SphereGeometry(1.5, 16, 16);
-    const sphereMat = new THREE.MeshBasicMaterial({
-      color: 0xffaa00,
-      toneMapped: false,
-      transparent: true,
-      opacity: 0.8
-    });
-    this.centerHelper = new THREE.Mesh(sphereGeo, sphereMat);
-    this.centerHelper.visible = false;
-    this.sceneManager.instance.add(this.centerHelper);
-
-    // 2. Pivot Connection Lines
-    const lineMat = new THREE.LineBasicMaterial({
-      color: 0xffaa00,
-      transparent: true,
-      opacity: 0.3,
-      depthWrite: false
-    });
-    const lineGeo = new THREE.BufferGeometry();
-    this.pivotLines = new THREE.LineSegments(lineGeo, lineMat);
-    this.pivotLines.visible = false;
-    this.sceneManager.instance.add(this.pivotLines);
   }
 
   setupEvents() {

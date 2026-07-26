@@ -7,25 +7,22 @@ import { HotkeyManager } from '../core/HotkeyManager.js';
 import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
 import { setupFormationUI } from './ui/FormationUI.js';
+import { BaseDirector } from '../core/BaseDirector.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 
-export class FormationDirector {
+export class FormationDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
-    this.sceneManager = sceneManager;
-    this.cameraManager = cameraManager;
-    this.renderer = renderer;
+    super(sceneManager, cameraManager, renderer);
+    this.state = new FormationState();
+    setupFormationUI(this.state, this);
+    this.initCommon();
 
     // Performance Scratch Variables (GC prevention)
     this.scratchVec1 = new THREE.Vector3();
     this.scratchDummy = new THREE.Object3D();
     this.scratchColor = new THREE.Color();
-
-    this.state = new FormationState();
-    
-    // Editor UI Setup
-    setupFormationUI(this.state, this);
 
     // Camera controls
     this.controls = new OrbitControls(this.cameraManager.instance, this.renderer.instance.domElement);
