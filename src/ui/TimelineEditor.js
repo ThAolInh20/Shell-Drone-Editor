@@ -614,6 +614,38 @@ export class TimelineEditor {
           this.tapBeat();
         }
       );
+
+      this.hotkeyManager.register(
+        'timeline',
+        '[',
+        () => {
+          this.seekToPreviousBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        ']',
+        () => {
+          this.seekToNextBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'alt+arrowleft',
+        () => {
+          this.seekToPreviousBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'alt+arrowright',
+        () => {
+          this.seekToNextBeat();
+        }
+      );
     }
 
     // Auto-hide when entering Move Mode (pointer lock), show only if it was visible
@@ -1639,6 +1671,71 @@ export class TimelineEditor {
           this.inspector.render();
         }
       }
+    }
+  }
+
+  getSortedAbsoluteBeats() {
+    const absoluteBeats = [];
+    this.sequences.forEach((s) => {
+      if (
+        !s._deleted &&
+        s.type === 'audio' &&
+        s.beats
+      ) {
+        s.beats.forEach((beatOffset) => {
+          absoluteBeats.push(
+            s.time + beatOffset
+          );
+        });
+      }
+    });
+    const uniqueBeats = [
+      ...new Set(absoluteBeats)
+    ];
+    return uniqueBeats.sort(
+      (a, b) => {
+        return a - b;
+      }
+    );
+  }
+
+  seekToNextBeat() {
+    const beats = this.getSortedAbsoluteBeats();
+    if (beats.length === 0) return;
+
+    const currentTime = this.anchorTime;
+    const nextBeat = beats.find(
+      (b) => {
+        return b > currentTime + 0.05;
+      }
+    );
+
+    if (nextBeat !== undefined) {
+      this.anchorTime = nextBeat;
+      this.anchorHead.style.left =
+        (nextBeat * this.pixelsPerSecond) + 'px';
+      this.seek(nextBeat);
+    }
+  }
+
+  seekToPreviousBeat() {
+    const beats = this.getSortedAbsoluteBeats();
+    if (beats.length === 0) return;
+
+    const currentTime = this.anchorTime;
+    const prevBeats = beats.filter(
+      (b) => {
+        return b < currentTime - 0.05;
+      }
+    );
+
+    if (prevBeats.length > 0) {
+      const prevBeat =
+        prevBeats[prevBeats.length - 1];
+      this.anchorTime = prevBeat;
+      this.anchorHead.style.left =
+        (prevBeat * this.pixelsPerSecond) + 'px';
+      this.seek(prevBeat);
     }
   }
 }
