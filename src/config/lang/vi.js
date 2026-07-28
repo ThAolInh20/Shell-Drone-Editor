@@ -302,7 +302,8 @@ export default {
         coreSettings: "Cấu hình cốt lõi",
         cometConfig: "Cấu hình Comet",
         visualEffects: "Hiệu ứng ánh sáng",
-        geometryOffsets: "Tọa độ & Căn lề"
+        geometryOffsets: "Tọa độ & Căn lề",
+        beatSettings: "Biên tập nhịp (Beat)"
       },
       fields: {
         time: "Thời gian bắt đầu (s)",
@@ -327,7 +328,16 @@ export default {
         x1: "X1",
         x2: "X2",
         y1: "Y1",
-        y2: "Y2"
+        y2: "Y2",
+        beatThreshold: "Độ nhạy phân tích (1.0 - 2.0)",
+        beatsCount: "Số lượng nhịp: ",
+        tapBeatBtn: "Gõ nhịp thủ công (Phím B)",
+        autoBeatBtn: "Tự động tạo nhịp (Auto)",
+        clearBeatsBtn: "Xóa tất cả nhịp",
+        confirmClearBeats: "Bạn có chắc chắn muốn xóa toàn bộ điểm nhịp?",
+        deleteBeat: "Xóa nhịp này",
+        analyzing: "Đang phân tích âm thanh...",
+        analyzeError: "Lỗi khi phân tích âm thanh: "
       },
       options: {
         type: {
