@@ -19,5 +19,5 @@
 - **No Icons or Emojis**: Do NOT use any icons or emojis in any generated content, documentation, release notes, commit messages, or general communication. Keep everything strictly professional and text-only.
 
 ## Terminology & Glossary
-- **Terminology Reference**: Always refer to [GLOSSARY.md](../docs/GLOSSARY.md) for naming conventions and definitions of timeline/editor components (such as Playhead, Anchor Head, Beat, Snap-to-beat). Do not invent new terms or mix names (e.g. do not call Anchor Head "playhead cursor" or "timeline pointer").
+- **Terminology Reference**: Always refer to [GLOSSARY.md](../GLOSSARY.md) for naming conventions and definitions of timeline/editor components (such as Playhead, Anchor Head, Beat, Snap-to-beat). Do not invent new terms or mix names (e.g. do not call Anchor Head "playhead cursor" or "timeline pointer").
 

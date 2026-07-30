@@ -10,6 +10,7 @@ Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ n
 - Trong code: `this.playhead` (thuộc lớp `TimelineEditor`). Liên kết với `this.showDirector.elapsedTime` để lấy thời gian hiện tại của show.
 
 ### Anchor Head / Anchor Time
+- Tên gọi khác: vạch xanh, vạch đỏ trên timeline
 - Định nghĩa: Điểm neo thời gian (điểm chọn để chỉnh sửa/chèn hiệu ứng).
 - Hiển thị: Vạch dọc đứng màu xanh dương (cyan) cố định trên timeline. Khi người dùng click vào ruler để chọn một thời điểm, điểm này sẽ thay đổi. Khi nhấn play, show sẽ bắt đầu phát từ vị trí này.
 - Trong code: `this.anchorHead` (quản lý phần tử DOM hiển thị) và `this.anchorTime` (biến số thực lưu thời gian giây tương ứng).
