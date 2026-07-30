@@ -73,6 +73,10 @@ export class PropertyInspector {
             { name: 'volume', labelKey: 'volume', type: 'number', step: '0.1' },
             { name: 'url', labelKey: 'url', type: 'text', span: 2 }
           ]
+        },
+        {
+          groupKey: 'beatSettings',
+          customRender: true
         }
       ],
       event: [
@@ -202,24 +206,30 @@ export class PropertyInspector {
         const content = document.createElement('div');
         content.className = 'inspector-accordion-content';
 
-        group.fields.forEach(field => {
-          const fieldWrapper = document.createElement('div');
-          if (field.span === 2) {
-            fieldWrapper.className = 'inspector-field-span-2';
+        if (group.customRender) {
+          if (group.groupKey === 'beatSettings') {
+            this.renderBeatSettings(content);
           }
+        } else if (group.fields) {
+          group.fields.forEach(field => {
+            const fieldWrapper = document.createElement('div');
+            if (field.span === 2) {
+              fieldWrapper.className = 'inspector-field-span-2';
+            }
 
-          if (field.type === 'color-badges') {
-            this.renderColorBadges(fieldWrapper);
-          } else if (field.type === 'angle') {
-            this.renderAngleDial(fieldWrapper, field);
-          } else if (field.type === 'checkbox') {
-            this.renderCheckbox(fieldWrapper, field);
-          } else {
-            this.renderStandardInput(fieldWrapper, field);
-          }
+            if (field.type === 'color-badges') {
+              this.renderColorBadges(fieldWrapper);
+            } else if (field.type === 'angle') {
+              this.renderAngleDial(fieldWrapper, field);
+            } else if (field.type === 'checkbox') {
+              this.renderCheckbox(fieldWrapper, field);
+            } else {
+              this.renderStandardInput(fieldWrapper, field);
+            }
 
-          content.appendChild(fieldWrapper);
-        });
+            content.appendChild(fieldWrapper);
+          });
+        }
 
         accordion.appendChild(content);
       }
@@ -589,5 +599,176 @@ export class PropertyInspector {
         dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI/2}rad)`;
       }
     }
+  }
+
+  renderBeatSettings(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!event.beats) {
+      event.beats = [];
+    }
+
+    /*
+    const threshWrapper = document.createElement('div');
+    threshWrapper.className = 'input-group';
+    threshWrapper.style.flexDirection = 'column';
+    threshWrapper.style.alignItems = 'stretch';
+    threshWrapper.style.marginBottom = '12px';
+
+    const threshLabel = document.createElement('label');
+    threshLabel.className = 'inspector-label';
+    threshLabel.style.marginBottom = '6px';
+    threshLabel.textContent =
+      t('editor.inspector.fields.beatThreshold') ||
+      'Do nhay phan tich (1.0 - 2.0)';
+
+    const sliderContainer = document.createElement('div');
+    sliderContainer.style.display = 'flex';
+    sliderContainer.style.alignItems = 'center';
+    sliderContainer.style.gap = '10px';
+
+    const threshSlider = document.createElement('input');
+    threshSlider.type = 'range';
+    threshSlider.min = '1.0';
+    threshSlider.max = '2.0';
+    threshSlider.step = '0.05';
+    threshSlider.value =
+      event._beatThreshold !== undefined
+        ? event._beatThreshold
+        : '1.3';
+    threshSlider.style.flex = '1';
+
+    const threshValSpan = document.createElement('span');
+    threshValSpan.textContent = threshSlider.value;
+    threshValSpan.style.fontFamily = 'monospace';
+    threshValSpan.style.width = '30px';
+
+    threshSlider.addEventListener(
+      'input',
+      () => {
+        threshValSpan.textContent = threshSlider.value;
+        event._beatThreshold = parseFloat(threshSlider.value);
+      }
+    );
+
+    sliderContainer.appendChild(threshSlider);
+    sliderContainer.appendChild(threshValSpan);
+    threshWrapper.appendChild(threshLabel);
+    threshWrapper.appendChild(sliderContainer);
+    parent.appendChild(threshWrapper);
+    */
+
+    const btnContainer = document.createElement('div');
+    btnContainer.style.display = 'flex';
+    btnContainer.style.flexDirection = 'column';
+    btnContainer.style.gap = '8px';
+    btnContainer.style.marginBottom = '12px';
+
+    const tapBtn = document.createElement('button');
+    tapBtn.className = 'btn';
+    tapBtn.style.background = '#ffd700';
+    tapBtn.style.color = '#000';
+    tapBtn.textContent =
+      t('editor.inspector.fields.tapBeatBtn') ||
+      'Go nhip thu cong (Phim B)';
+    tapBtn.addEventListener(
+      'click',
+      () => {
+        window.dispatchEvent(
+          new CustomEvent('timeline:tap-beat')
+        );
+      }
+    );
+    btnContainer.appendChild(tapBtn);
+
+    /*
+    const autoBtn = document.createElement('button');
+    autoBtn.className = 'btn';
+    autoBtn.style.background = '#9c27b0';
+    autoBtn.style.color = '#fff';
+    autoBtn.textContent =
+      t('editor.inspector.fields.autoBeatBtn') ||
+      'Tu dong tao nhip (Auto)';
+    
+    const loadingText = document.createElement('div');
+    loadingText.style.fontSize = '12px';
+    loadingText.style.color = '#ffd700';
+    loadingText.style.display = 'none';
+    loadingText.style.marginTop = '4px';
+    loadingText.textContent =
+      t('editor.inspector.fields.analyzing') ||
+      'Dang phan tich am thanh...';
+
+    autoBtn.addEventListener(
+      'click',
+      async () => {
+        const source =
+          event._file ||
+          event._blobUrl ||
+          ('/' + event.url);
+        const threshold =
+          event._beatThreshold !== undefined
+            ? event._beatThreshold
+            : 1.3;
+        
+        autoBtn.disabled = true;
+        autoBtn.style.opacity = '0.5';
+        loadingText.style.display = 'block';
+
+        try {
+          const { BeatDetector } = await import(
+            '../utils/BeatDetector.js'
+          );
+          const beats = await BeatDetector.detectBeats(
+            source,
+            threshold
+          );
+          
+          this.triggerUpdate('beforeChange');
+          event.beats = beats;
+          this.triggerUpdate();
+          this.render();
+        } catch (err) {
+          alert(
+            (t('editor.inspector.fields.analyzeError') ||
+              'Loi khi phan tich am thanh: ') +
+              err.message
+          );
+        } finally {
+          autoBtn.disabled = false;
+          autoBtn.style.opacity = '1';
+          loadingText.style.display = 'none';
+        }
+      }
+    );
+    btnContainer.appendChild(autoBtn);
+    btnContainer.appendChild(loadingText);
+    */
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'btn btn-secondary';
+    clearBtn.textContent =
+      t('editor.inspector.fields.clearBeatsBtn') ||
+      'Xoa tat ca nhip';
+    clearBtn.addEventListener(
+      'click',
+      () => {
+        if (
+          confirm(
+            t('editor.inspector.fields.confirmClearBeats') ||
+              'Ban co chac chan muon xoa toan bo diem nhip?'
+          )
+        ) {
+          this.triggerUpdate('beforeChange');
+          event.beats = [];
+          this.triggerUpdate();
+          this.render();
+        }
+      }
+    );
+    btnContainer.appendChild(clearBtn);
+
+    parent.appendChild(btnContainer);
   }
 }

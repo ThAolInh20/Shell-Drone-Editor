@@ -5,6 +5,8 @@ const GRAVITY = -30;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
 
+const MAX_PARTICLES = 50000;
+
 export class TrailSystem {
   constructor(scene) {
     this.scene = scene;
@@ -13,6 +15,39 @@ export class TrailSystem {
 
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
+
+    // Pre-allocate buffers for GPU upload
+    this.positionsArray = new Float32Array(
+      MAX_PARTICLES * 3
+    );
+    this.colorsArray = new Float32Array(
+      MAX_PARTICLES * 4
+    );
+
+    this.positionsAttr = new THREE.BufferAttribute(
+      this.positionsArray,
+      3
+    );
+    this.positionsAttr.setUsage(
+      THREE.DynamicDrawUsage
+    );
+    this.trailGeometry.setAttribute(
+      'position',
+      this.positionsAttr
+    );
+
+    this.colorsAttr = new THREE.BufferAttribute(
+      this.colorsArray,
+      4
+    );
+    this.colorsAttr.setUsage(
+      THREE.DynamicDrawUsage
+    );
+    this.trailGeometry.setAttribute(
+      'color',
+      this.colorsAttr
+    );
+
     this.trailMaterial = new THREE.PointsMaterial({
       size: 8,
       color: 0xffffff,
@@ -179,76 +214,140 @@ export class TrailSystem {
   }
 
   update(deltaTime) {
-    const finishedTrails = [];
-    const positions = [];
-    const colors = [];
+    let activeCount = 0;
 
-    for (const particle of this.trailParticles) {
+    for (let i = 0; i < this.trailParticles.length; i++) {
+      const particle = this.trailParticles[i];
+
       // Thêm lực cản không khí để hạt hãm phanh lại, nhân thêm dragScale riêng biệt
-      const drag = 1.0 - 4.0 * deltaTime * (particle.dragScale ?? 1.0);
+      const drag =
+        1.0 -
+        4.0 *
+          deltaTime *
+          (particle.dragScale ?? 1.0);
       particle.velocity.x *= drag;
       particle.velocity.y *= drag;
       particle.velocity.z *= drag;
       // Rơi xuống từ từ (nhân thêm gravityScale riêng biệt của hạt)
-      particle.velocity.y += GRAVITY * deltaTime * 0.5 * (particle.gravityScale ?? 1.0);
-      particle.position.addScaledVector(particle.velocity, deltaTime);
+      particle.velocity.y +=
+        GRAVITY *
+        deltaTime *
+        0.5 *
+        (particle.gravityScale ?? 1.0);
+      particle.position.addScaledVector(
+        particle.velocity,
+        deltaTime
+      );
       particle.age += deltaTime;
 
-      if (particle.age >= particle.life) {
-        finishedTrails.push(particle);
-      } else {
-        // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
-        const lifeRatio = particle.age / particle.life;
-        let alpha = Math.max(0, Math.pow(1.0 - lifeRatio, 2.5)) * (particle.opacity ?? 1.0);
-        let r = particle.color.r;
-        let g = particle.color.g;
-        let b = particle.color.b;
+      if (particle.age < particle.life) {
+        if (activeCount < MAX_PARTICLES) {
+          // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
+          const lifeRatio = particle.age / particle.life;
+          let alpha =
+            Math.max(
+              0,
+              Math.pow(1.0 - lifeRatio, 2.5)
+            ) * (particle.opacity ?? 1.0);
+          let r = particle.color.r;
+          let g = particle.color.g;
+          let b = particle.color.b;
 
-        // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
-        if (particle.strobe) {
-          // Sử dụng thời gian thực tế toàn cục kết hợp lệch pha để đồng bộ hóa chớp nháy theo nhóm
-          const timeMs = (particle.phase !== undefined)
-            ? (performance.now() + particle.phase)
-            : (particle.age * 1000);
-          const strobeFreq = 120; // Tần số lấp lánh (ms)
-          const isBlinking = Math.floor(timeMs / strobeFreq) % 2 === 0;
-          if (!isBlinking) {
-            alpha = 0.0;
-          } else {
-            // Khi sáng lên thì lấp lánh bằng ánh sáng trắng
-            r = 1.0;
-            g = 1.0;
-            b = 1.0;
+          // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
+          if (particle.strobe) {
+            // Sử dụng thời gian thực tế toàn cục kết hợp lệch pha để đồng bộ hóa chớp nháy theo nhóm
+            const timeMs =
+              particle.phase !== undefined
+                ? performance.now() + particle.phase
+                : particle.age * 1000;
+            const strobeFreq = 120; // Tần số lấp lánh (ms)
+            const isBlinking =
+              Math.floor(timeMs / strobeFreq) %
+                2 ===
+              0;
+            if (!isBlinking) {
+              alpha = 0.0;
+            } else {
+              // Khi sáng lên thì lấp lánh bằng ánh sáng trắng
+              r = 1.0;
+              g = 1.0;
+              b = 1.0;
+            }
+          } else if (particle.shimmer) {
+            // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin
+            const timeMs =
+              particle.phase !== undefined
+                ? performance.now() + particle.phase
+                : particle.age * 1000;
+            
+            const shimmerVal =
+              0.3 +
+              0.7 *
+                Math.abs(
+                  Math.sin(timeMs * 0.05)
+                );
+            alpha *= shimmerVal;
+            
+            // Trộn thêm ánh sáng trắng lung linh
+            const blendFactor =
+              0.5 + 0.5 * Math.sin(timeMs * 0.05);
+            r += (1.0 - r) * blendFactor;
+            g += (1.0 - g) * blendFactor;
+            b += (1.0 - b) * blendFactor;
           }
-        } else if (particle.shimmer) {
-          // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin
-          const timeMs = (particle.phase !== undefined)
-            ? (performance.now() + particle.phase)
-            : (particle.age * 1000);
-          
-          const shimmerVal = 0.3 + 0.7 * Math.abs(Math.sin(timeMs * 0.05));
-          alpha *= shimmerVal;
-          
-          // Trộn thêm ánh sáng trắng lung linh
-          const blendFactor = 0.5 + 0.5 * Math.sin(timeMs * 0.05);
-          r += (1.0 - r) * blendFactor;
-          g += (1.0 - g) * blendFactor;
-          b += (1.0 - b) * blendFactor;
-        }
 
-        positions.push(particle.position.x, particle.position.y, particle.position.z);
-        colors.push(r, g, b, alpha);
+          // Ghi trực tiếp dữ liệu vào mảng Float32Array tĩnh
+          const posIdx = activeCount * 3;
+          this.positionsArray[posIdx] =
+            particle.position.x;
+          this.positionsArray[posIdx + 1] =
+            particle.position.y;
+          this.positionsArray[posIdx + 2] =
+            particle.position.z;
+
+          const colIdx = activeCount * 4;
+          this.colorsArray[colIdx] = r;
+          this.colorsArray[colIdx + 1] = g;
+          this.colorsArray[colIdx + 2] = b;
+          this.colorsArray[colIdx + 3] = alpha;
+
+          // Thực hiện dồn hạt tại chỗ (in-place) để tránh phân bổ lại mảng
+          if (i !== activeCount) {
+            this.trailParticles[activeCount] = particle;
+          }
+          activeCount++;
+        }
       }
     }
-    this.trailParticles = this.trailParticles.filter(p => !finishedTrails.includes(p));
 
-    const activeCount = positions.length / 3;
+    // Cắt bớt phần mảng thừa trực tiếp (in-place)
+    this.trailParticles.length = activeCount;
+
     if (activeCount > 0) {
-      this.trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      this.trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-      this.trailGeometry.setDrawRange(0, activeCount);
+      this.positionsAttr.needsUpdate = true;
+      this.colorsAttr.needsUpdate = true;
+      
+      if (this.positionsAttr.updateRange) {
+        this.positionsAttr.updateRange.offset = 0;
+        this.positionsAttr.updateRange.count =
+          activeCount * 3;
+      }
+      
+      if (this.colorsAttr.updateRange) {
+        this.colorsAttr.updateRange.offset = 0;
+        this.colorsAttr.updateRange.count =
+          activeCount * 4;
+      }
+
+      this.trailGeometry.setDrawRange(
+        0,
+        activeCount
+      );
     } else {
-      this.trailGeometry.setDrawRange(0, 0);
+      this.trailGeometry.setDrawRange(
+        0,
+        0
+      );
     }
   }
 

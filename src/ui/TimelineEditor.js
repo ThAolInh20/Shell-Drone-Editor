@@ -35,6 +35,13 @@ export class TimelineEditor {
     // Update playhead on animation frame
     this.updateLoop = this.updatePlayhead.bind(this);
     requestAnimationFrame(this.updateLoop);
+
+    window.addEventListener(
+      'timeline:tap-beat',
+      () => {
+        this.tapBeat();
+      }
+    );
   }
 
   initDOM() {
@@ -599,6 +606,46 @@ export class TimelineEditor {
           this.deleteSelected();
         }
       );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'b',
+        () => {
+          this.tapBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        '[',
+        () => {
+          this.seekToPreviousBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        ']',
+        () => {
+          this.seekToNextBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'alt+arrowleft',
+        () => {
+          this.seekToPreviousBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'alt+arrowright',
+        () => {
+          this.seekToNextBeat();
+        }
+      );
     }
 
     // Auto-hide when entering Move Mode (pointer lock), show only if it was visible
@@ -845,6 +892,8 @@ export class TimelineEditor {
         uiDuration: duration, // start visual duration exactly same as true duration
         url: file.name,
         _blobUrl: blobUrl,
+        _file: file,
+        beats: [],
         volume: 1.0
       };
       this.sequences.push(newSeq);
@@ -1052,12 +1101,81 @@ export class TimelineEditor {
         block.style.background = 'linear-gradient(90deg, #1565c0, #03a9f4)';
       }
 
+      const textSpan = document.createElement('span');
+      textSpan.style.pointerEvents = 'none';
+
       if (seq.type === 'audio') {
-        block.textContent = t('editor.timelinePanel.audioBlock', { name: seq.name || seq.url || 'Audio' });
+        textSpan.textContent = t(
+          'editor.timelinePanel.audioBlock',
+          {
+            name: seq.name || seq.url || 'Audio'
+          }
+        );
       } else if (seq.type === 'droneshow') {
-        block.textContent = t('editor.timelinePanel.droneBlock', { name: seq.name || 'Drone Show', count: seq.droneCount });
+        textSpan.textContent = t(
+          'editor.timelinePanel.droneBlock',
+          {
+            name: seq.name || 'Drone Show',
+            count: seq.droneCount
+          }
+        );
       } else {
-        block.textContent = t('editor.timelinePanel.eventBlock', { preset: seq.preset || seq.pattern, count: seq.count || 1 });
+        textSpan.textContent = t(
+          'editor.timelinePanel.eventBlock',
+          {
+            preset: seq.preset || seq.pattern,
+            count: seq.count || 1
+          }
+        );
+      }
+      block.appendChild(textSpan);
+
+      // Render yellow dots for beats if it's an audio block
+      if (seq.type === 'audio' && seq.beats) {
+        seq.beats.forEach((beatTime) => {
+          const beatX = beatTime * this.pixelsPerSecond;
+          if (beatX <= width) {
+            const dot = document.createElement('div');
+            dot.style.position = 'absolute';
+            dot.style.left = beatX + 'px';
+            dot.style.top = '50%';
+            dot.style.transform = 'translate(-50%, -50%)';
+            dot.style.width = '8px';
+            dot.style.height = '8px';
+            dot.style.borderRadius = '50%';
+            dot.style.backgroundColor = '#ffd700';
+            dot.style.border = '1px solid rgba(0,0,0,0.5)';
+            dot.style.cursor = 'pointer';
+            dot.title = `Beat: ${beatTime.toFixed(2)}s (Double click to delete)`;
+
+            dot.addEventListener(
+              'dblclick',
+              (e) => {
+                e.stopPropagation();
+                this.saveHistoryState();
+                seq.beats = seq.beats.filter(
+                  (b) => {
+                    return b !== beatTime;
+                  }
+                );
+                this.renderTracks();
+                this.inspector.render();
+              }
+            );
+
+            dot.addEventListener(
+              'mousedown',
+              (e) => {
+                e.stopPropagation();
+                this.selectedEvents = [seq];
+                this.inspector.show(seq);
+                this.renderTracks();
+              }
+            );
+
+            block.appendChild(dot);
+          }
+        });
       }
 
 
@@ -1155,13 +1273,58 @@ export class TimelineEditor {
     }
 
     if (!this.isDragging || !this.draggedEvent) return;
-    const newX = e.clientX - this.tracksArea.getBoundingClientRect().left - this.dragOffsetX;
-    let newTime = Math.max(0, newX / this.pixelsPerSecond);
+    const newX =
+      e.clientX -
+      this.tracksArea.getBoundingClientRect().left -
+      this.dragOffsetX;
+    let newTime = Math.max(
+      0,
+      newX / this.pixelsPerSecond
+    );
 
-    // Snap to 0.1s grid
-    newTime = Math.round(newTime * 10) / 10;
+    // Snap to beat points if close, otherwise fallback to 0.1s grid
+    const absoluteBeatTimes = [];
+    this.sequences.forEach((s) => {
+      if (
+        !s._deleted &&
+        s.type === 'audio' &&
+        s !== this.draggedEvent &&
+        s.beats
+      ) {
+        s.beats.forEach((beatOffset) => {
+          absoluteBeatTimes.push(
+            s.time + beatOffset
+          );
+        });
+      }
+    });
 
-    let dTime = newTime - (this.draggedEvent.initialTime !== undefined ? this.draggedEvent.initialTime : this.draggedEvent.time);
+    const snapThresholdSec = 0.15;
+    let closestBeat = null;
+    let minDiff = Infinity;
+
+    absoluteBeatTimes.forEach((beatTime) => {
+      const diff = Math.abs(newTime - beatTime);
+      if (
+        diff < minDiff &&
+        diff <= snapThresholdSec
+      ) {
+        minDiff = diff;
+        closestBeat = beatTime;
+      }
+    });
+
+    if (closestBeat !== null) {
+      newTime = closestBeat;
+    } else {
+      newTime = Math.round(newTime * 10) / 10;
+    }
+
+    let dTime =
+      newTime -
+      (this.draggedEvent.initialTime !== undefined
+        ? this.draggedEvent.initialTime
+        : this.draggedEvent.time);
 
     // Clamp dTime so no selected event goes below time 0
     if (this.selectedEvents && this.selectedEvents.length > 0) {
@@ -1440,6 +1603,139 @@ export class TimelineEditor {
       } else {
         this.inspector.hide();
       }
+    }
+  }
+
+  tapBeat() {
+    let audioSeq = this.selectedEvents.find(
+      (s) => {
+        return !s._deleted && s.type === 'audio';
+      }
+    );
+
+    if (!audioSeq) {
+      const currentTime = this.showDirector.elapsedTime;
+      audioSeq = this.sequences.find(
+        (s) => {
+          return (
+            !s._deleted &&
+            s.type === 'audio' &&
+            currentTime >= s.time &&
+            currentTime <= s.time + (s.duration || 999)
+          );
+        }
+      );
+    }
+
+    if (!audioSeq) {
+      audioSeq = this.sequences.find(
+        (s) => {
+          return !s._deleted && s.type === 'audio';
+        }
+      );
+    }
+
+    if (!audioSeq) return;
+
+    const currentTime = this.showDirector.elapsedTime;
+    const relativeTime = currentTime - audioSeq.time;
+
+    if (
+      relativeTime >= 0 &&
+      relativeTime <= (audioSeq.duration || 9999)
+    ) {
+      this.saveHistoryState();
+      if (!audioSeq.beats) {
+        audioSeq.beats = [];
+      }
+      
+      const roundedTime =
+        Math.round(relativeTime * 100) / 100;
+      const isDuplicate = audioSeq.beats.some(
+        (b) => {
+          return Math.abs(b - roundedTime) < 0.1;
+        }
+      );
+
+      if (!isDuplicate) {
+        audioSeq.beats.push(roundedTime);
+        audioSeq.beats.sort(
+          (a, b) => {
+            return a - b;
+          }
+        );
+        this.renderTracks();
+        if (
+          this.inspector.selectedEvent === audioSeq
+        ) {
+          this.inspector.render();
+        }
+      }
+    }
+  }
+
+  getSortedAbsoluteBeats() {
+    const absoluteBeats = [];
+    this.sequences.forEach((s) => {
+      if (
+        !s._deleted &&
+        s.type === 'audio' &&
+        s.beats
+      ) {
+        s.beats.forEach((beatOffset) => {
+          absoluteBeats.push(
+            s.time + beatOffset
+          );
+        });
+      }
+    });
+    const uniqueBeats = [
+      ...new Set(absoluteBeats)
+    ];
+    return uniqueBeats.sort(
+      (a, b) => {
+        return a - b;
+      }
+    );
+  }
+
+  seekToNextBeat() {
+    const beats = this.getSortedAbsoluteBeats();
+    if (beats.length === 0) return;
+
+    const currentTime = this.anchorTime;
+    const nextBeat = beats.find(
+      (b) => {
+        return b > currentTime + 0.05;
+      }
+    );
+
+    if (nextBeat !== undefined) {
+      this.anchorTime = nextBeat;
+      this.anchorHead.style.left =
+        (nextBeat * this.pixelsPerSecond) + 'px';
+      this.seek(nextBeat);
+    }
+  }
+
+  seekToPreviousBeat() {
+    const beats = this.getSortedAbsoluteBeats();
+    if (beats.length === 0) return;
+
+    const currentTime = this.anchorTime;
+    const prevBeats = beats.filter(
+      (b) => {
+        return b < currentTime - 0.05;
+      }
+    );
+
+    if (prevBeats.length > 0) {
+      const prevBeat =
+        prevBeats[prevBeats.length - 1];
+      this.anchorTime = prevBeat;
+      this.anchorHead.style.left =
+        (prevBeat * this.pixelsPerSecond) + 'px';
+      this.seek(prevBeat);
     }
   }
 }

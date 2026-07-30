@@ -276,7 +276,8 @@ export default {
         coreSettings: "核心设置",
         cometConfig: "Comet 配置",
         visualEffects: "灯光效果",
-        geometryOffsets: "坐标与偏移"
+        geometryOffsets: "坐标与偏移",
+        beatSettings: "Beat Editor"
       },
       fields: {
         time: "开始时间 (秒)",
@@ -301,7 +302,16 @@ export default {
         x1: "X1",
         x2: "X2",
         y1: "Y1",
-        y2: "Y2"
+        y2: "Y2",
+        beatThreshold: "Analysis Threshold (1.0 - 2.0)",
+        beatsCount: "Beats Count: ",
+        tapBeatBtn: "Tap Beat (Key B)",
+        autoBeatBtn: "Auto Detect Beats",
+        clearBeatsBtn: "Clear All Beats",
+        confirmClearBeats: "Are you sure you want to clear all beat points?",
+        deleteBeat: "Delete this beat",
+        analyzing: "Analyzing audio...",
+        analyzeError: "Error analyzing audio: "
       },
       options: {
         type: {
