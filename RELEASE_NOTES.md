@@ -1,15 +1,19 @@
-# Release Notes - v2.1.1
+# Release Notes - v2.2.1
 
 ## Features
-- Added a dropdown selection menu when exporting timeline sequences, allowing users to export all blocks or only the selected blocks.
-- Implemented multi-language support (English, Vietnamese, Japanese, and Chinese) for the new timeline export options.
+- Added audio beat detection to automatically sync drone and firework animations with music.
+- Added a visual property inspector for editing drone and firework parameters directly in the user interface.
+- Updated the timeline editor with audio track visualization, timeline zooming, and snap-to-beat controls.
+- Added project glossary documentation.
 
 ## Bug Fixes
-- Fixed an issue where the Ctrl+T and Ctrl+Y keyboard shortcuts were not working on the timeline editor.
-- Fixed a bug where the red playback line on the timeline was misaligned and not moving.
+- Fixed layout and formatting alignment in the project read-me document.
 
 ## Updates
-- Centralized the keyboard shortcut management system to improve response consistency.
+- Improved performance and visual smoothness for drone flight trails.
+- Restructured and organized the core show director codebase.
+- Enhanced comet effects with customizable strobe settings.
+- Updated interface text translations for English, Vietnamese, Japanese, and Chinese.
 
 ## Chores
-- Added helper tools for release note generation.
+- Updated internal build configurations and project structure documentation.
