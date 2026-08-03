@@ -11,6 +11,7 @@ import { BaseDirector } from '../core/BaseDirector.js';
 import { SelectionBoxHelper } from './ui/SelectionBoxHelper.js';
 import { FormationUIBridge } from './ui/FormationUIBridge.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
+import { SelectionSolver } from '../core/SelectionSolver.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
@@ -62,9 +63,6 @@ export class FormationDirector extends BaseDirector {
     this.isSelectingBox = false;
 
     this.isCtrlPressed = false;
-    this.hotkeyManager = new HotkeyManager();
-    this.hotkeyManager.setActiveContext('formation');
-    this.setupEvents();
 
     // Hologram Ghost Guide fields
     this.ghostModel = null;
@@ -84,6 +82,10 @@ export class FormationDirector extends BaseDirector {
       this.state,
       this.uiBridge
     );
+  }
+
+  getHotkeyContext() {
+    return 'formation';
   }
 
   initInstancedMesh() {
@@ -274,47 +276,30 @@ export class FormationDirector extends BaseDirector {
     window.addEventListener('pointerup', onPointerUp);
   }
 
-  performBoxSelection(startX, startY, endX, endY) {
-    const minX = Math.min(startX, endX);
-    const maxX = Math.max(startX, endX);
-    const minY = Math.min(startY, endY);
-    const maxY = Math.max(startY, endY);
-
-    const rect = this.renderer.instance.domElement.getBoundingClientRect();
-    const camera = this.cameraManager.instance;
-    const positions = this.state.positions;
-
-    const selectedList = [];
-
-    for (let i = 0; i < positions.length; i++) {
-      const pos = positions[i];
-      
-      // Project to camera/view space
-      const viewV = this.scratchVec1.copy(pos).applyMatrix4(camera.matrixWorldInverse);
-      if (viewV.z > 0) {
-        // Behind camera
-        continue;
-      }
-
-      // Project view space to NDC
-      viewV.applyMatrix4(camera.projectionMatrix);
-
-      // Convert NDC to client screen coords
-      const x = rect.left + (viewV.x * 0.5 + 0.5) * rect.width;
-      const y = rect.top + (-viewV.y * 0.5 + 0.5) * rect.height;
-
-      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-        selectedList.push(i);
-      }
-    }
-
+  performBoxSelection(
+    startX,
+    startY,
+    endX,
+    endY
+  ) {
+    const selectedList = SelectionSolver.solveBoxSelection({
+      startX,
+      startY,
+      endX,
+      endY,
+      domElement: this.renderer.instance.domElement,
+      camera: this.cameraManager.instance,
+      positions: this.state.positions
+    });
     this.state.selectMultiple(selectedList);
   }
 
   handleCanvasClick(event) {
+    console.log('handleCanvasClick triggered in FormationDirector, event clientX/Y:', event.clientX, event.clientY);
     // Calculate mouse position in normalized device coordinates (-1 to +1)
-    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const rect = this.renderer.instance.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
 
@@ -376,45 +361,11 @@ export class FormationDirector extends BaseDirector {
     }
 
     const intersects = this.raycaster.intersectObject(this.instancedMesh);
-
-    if (intersects.length > 0) {
-      const instanceId = intersects[0].instanceId;
-      const multiSelect = event.shiftKey || event.ctrlKey;
-      
-      const selectGroupUI = document.getElementById('ui-select-group');
-      if (selectGroupUI && selectGroupUI.checked) {
-        const groupName = this.state.particleGroups[instanceId];
-        if (groupName) {
-          let groupHasSelection = false;
-          for (const idx of this.state.selectedIndices) {
-            if (this.state.particleGroups[idx] === groupName) {
-              groupHasSelection = true;
-              break;
-            }
-          }
-          if (groupHasSelection) {
-            if (multiSelect && this.state.selectedIndices.has(instanceId)) {
-              this.state.deselect(instanceId);
-            } else {
-              this.state.select(instanceId, multiSelect);
-            }
-          } else {
-            this.state.selectGroup(groupName, multiSelect);
-          }
-        }
-      } else {
-        if (multiSelect && this.state.selectedIndices.has(instanceId)) {
-          this.state.deselect(instanceId);
-        } else {
-          this.state.select(instanceId, multiSelect);
-        }
-      }
-    } else {
-      const multiSelect = event.shiftKey || event.ctrlKey;
-      if (!multiSelect) {
-        this.state.clearSelection();
-      }
-    }
+    SelectionSolver.solveClickSelection({
+      intersects,
+      event,
+      state: this.state
+    });
   }
 
   onKeyDown(event) {

@@ -4,43 +4,43 @@ export class FormationUIBridge {
 
     this.gizmoSystem = {
       setMode: (mode) => {
-        this._director.gizmoSystem.setMode(mode);
+        director.gizmoSystem.setMode(mode);
       },
 
       activateDeformMode: () => {
-        this._director.gizmoSystem.activateDeformMode();
+        director.gizmoSystem.activateDeformMode();
       },
 
       deactivateDeformMode: (applyState) => {
-        this._director.gizmoSystem.deactivateDeformMode(applyState);
+        director.gizmoSystem.deactivateDeformMode(applyState);
       },
 
       get isDeformModeActive() {
-        return this._director.gizmoSystem.isDeformModeActive;
+        return director.gizmoSystem.isDeformModeActive;
       },
 
       set deformType(type) {
-        this._director.gizmoSystem.deformType = type;
+        director.gizmoSystem.deformType = type;
       },
 
       get deformType() {
-        return this._director.gizmoSystem.deformType;
+        return director.gizmoSystem.deformType;
       },
 
       set deformStrength(strength) {
-        this._director.gizmoSystem.deformStrength = strength;
+        director.gizmoSystem.deformStrength = strength;
       },
 
       get deformStrength() {
-        return this._director.gizmoSystem.deformStrength;
+        return director.gizmoSystem.deformStrength;
       },
 
       updateDeformLine: () => {
-        this._director.gizmoSystem.updateDeformLine();
+        director.gizmoSystem.updateDeformLine();
       },
 
       updateGroupDeformation: () => {
-        this._director.gizmoSystem.updateGroupDeformation();
+        director.gizmoSystem.updateGroupDeformation();
       }
     };
   }
