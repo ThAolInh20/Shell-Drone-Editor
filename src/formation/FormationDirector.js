@@ -8,6 +8,8 @@ import { FormationState } from './FormationState.js';
 import { GizmoSystem } from '../editor/systems/GizmoSystem.js';
 import { setupFormationUI } from './ui/FormationUI.js';
 import { BaseDirector } from '../core/BaseDirector.js';
+import { SelectionBoxHelper } from './ui/SelectionBoxHelper.js';
+import { FormationUIBridge } from './ui/FormationUIBridge.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
@@ -16,7 +18,6 @@ export class FormationDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
     super(sceneManager, cameraManager, renderer);
     this.state = new FormationState();
-    setupFormationUI(this.state, this);
     this.initCommon();
 
     // Performance Scratch Variables (GC prevention)
@@ -54,17 +55,8 @@ export class FormationDirector extends BaseDirector {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
 
-    // Selection Box DOM helper element (visual marquee selection)
-    this.selectionBoxEl = document.createElement('div');
-    this.selectionBoxEl.style.position = 'absolute';
-    this.selectionBoxEl.style.border = '1.5px dashed #3a86ff';
-    this.selectionBoxEl.style.backgroundColor = 'rgba(58, 134, 255, 0.15)';
-    this.selectionBoxEl.style.borderRadius = '2px';
-    this.selectionBoxEl.style.boxShadow = '0 0 8px rgba(58, 134, 255, 0.4)';
-    this.selectionBoxEl.style.pointerEvents = 'none';
-    this.selectionBoxEl.style.zIndex = '99999';
-    this.selectionBoxEl.style.display = 'none';
-    document.body.appendChild(this.selectionBoxEl);
+    // Selection Box helper
+    this.selectionBoxHelper = new SelectionBoxHelper();
 
     this.isSelectingBox = false;
 
@@ -85,6 +77,12 @@ export class FormationDirector extends BaseDirector {
     this.bezierHelpers = [];
     this.bezierLine = null;
     this.initBezierHelpers();
+
+    this.uiBridge = new FormationUIBridge(this);
+    setupFormationUI(
+      this.state,
+      this.uiBridge
+    );
   }
 
   initInstancedMesh() {
@@ -204,26 +202,22 @@ export class FormationDirector extends BaseDirector {
       const startY = event.clientY;
 
       // Position visual element at start point
-      this.selectionBoxEl.style.left = `${startX}px`;
-      this.selectionBoxEl.style.top = `${startY}px`;
-      this.selectionBoxEl.style.width = '0px';
-      this.selectionBoxEl.style.height = '0px';
-      this.selectionBoxEl.style.display = 'block';
+      this.selectionBoxHelper.show(
+        startX,
+        startY
+      );
 
       const onPointerMove = (moveEvent) => {
         if (!this.isSelectingBox) return;
         const currentX = moveEvent.clientX;
         const currentY = moveEvent.clientY;
 
-        const left = Math.min(startX, currentX);
-        const top = Math.min(startY, currentY);
-        const width = Math.abs(currentX - startX);
-        const height = Math.abs(currentY - startY);
-
-        this.selectionBoxEl.style.left = `${left}px`;
-        this.selectionBoxEl.style.top = `${top}px`;
-        this.selectionBoxEl.style.width = `${width}px`;
-        this.selectionBoxEl.style.height = `${height}px`;
+        this.selectionBoxHelper.update(
+          startX,
+          startY,
+          currentX,
+          currentY
+        );
       };
 
       const onPointerUp = (upEvent) => {
@@ -232,7 +226,7 @@ export class FormationDirector extends BaseDirector {
 
         if (!this.isSelectingBox) return;
         this.isSelectingBox = false;
-        this.selectionBoxEl.style.display = 'none';
+        this.selectionBoxHelper.hide();
 
         // Re-enable OrbitControls
         this.controls.enabled = true;
