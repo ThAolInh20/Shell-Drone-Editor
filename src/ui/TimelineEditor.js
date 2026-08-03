@@ -3,6 +3,7 @@ import { PropertyInspector } from './PropertyInspector.js';
 import demoShow from '../config/sequences/demoShow.json';
 import { t } from '../config/lang/i18n.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { fileStorage } from '../core/FileStorageAdapter.js';
 import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
 
 
@@ -231,7 +232,7 @@ export class TimelineEditor {
     importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
     importBtn.addEventListener('click', () => {
-      if (window.electronAPI) {
+      if (fileStorage.isElectron) {
         this.openNativeFile();
       } else {
         this.fileInput.click();
@@ -1386,7 +1387,7 @@ export class TimelineEditor {
 
   async openNativeFile() {
     try {
-      const fileData = await window.electronAPI.openFileDialog();
+      const fileData = await fileStorage.openFileDialog();
       if (fileData) {
         const { filePath, content, filename } = fileData;
         const data = JSON.parse(content);
@@ -1452,10 +1453,13 @@ export class TimelineEditor {
 
     const content = JSON.stringify(cleanSeqs, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       if (this.currentFilePath) {
         try {
-          await window.electronAPI.saveFileAbsolute(this.currentFilePath, content);
+          await fileStorage.saveFileAbsolute(
+            this.currentFilePath,
+            content
+          );
           alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
         } catch (err) {
           alert(t('editor.timelinePanel.saveError', { error: err.message }));
@@ -1463,7 +1467,10 @@ export class TimelineEditor {
       } else {
         // Save As
         try {
-          const res = await window.electronAPI.saveFileDialog(content, this.filename || 'demoShow.json');
+          const res = await fileStorage.saveFileDialog(
+            content,
+            this.filename || 'demoShow.json'
+          );
           if (res) {
             this.currentFilePath = res.filePath;
             this.filename = res.filename;
@@ -1519,9 +1526,12 @@ export class TimelineEditor {
 
     const content = JSON.stringify(cleanSeqs, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const res = await window.electronAPI.saveFileDialog(content, this.filename || 'demoShow.json');
+        const res = await fileStorage.saveFileDialog(
+          content,
+          this.filename || 'demoShow.json'
+        );
         if (res) {
           this.currentFilePath = res.filePath;
           this.filename = res.filename;

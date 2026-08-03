@@ -10,6 +10,7 @@ import { setupFormationUI } from './ui/FormationUI.js';
 import { BaseDirector } from '../core/BaseDirector.js';
 import { SelectionBoxHelper } from './ui/SelectionBoxHelper.js';
 import { FormationUIBridge } from './ui/FormationUIBridge.js';
+import { fileStorage } from '../core/FileStorageAdapter.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
@@ -479,10 +480,13 @@ export class FormationDirector extends BaseDirector {
 
     const content = JSON.stringify(exportObject, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       if (this.state.currentFilePath) {
         try {
-          await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
+          await fileStorage.saveFileAbsolute(
+            this.state.currentFilePath,
+            content
+          );
           alert(t('editor.formationPanel.saveSuccessDirect', { filename: this.state.name }));
         } catch (err) {
           alert(t('editor.formationPanel.saveErrorDirect', { error: err.message }));
@@ -490,7 +494,10 @@ export class FormationDirector extends BaseDirector {
       } else {
         // Save As
         try {
-          const res = await window.electronAPI.saveFileDialog(content, `${this.state.name}.json`);
+          const res = await fileStorage.saveFileDialog(
+            content,
+            `${this.state.name}.json`
+          );
           if (res) {
             this.state.currentFilePath = res.filePath;
             this.state.name = res.filename.replace('.json', '');

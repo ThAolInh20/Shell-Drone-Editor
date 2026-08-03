@@ -7,6 +7,7 @@ import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 import { customAlert } from './ui/utils/Modal.js';
 import { HotkeyManager } from '../core/HotkeyManager.js';
 import { BaseDirector } from '../core/BaseDirector.js';
+import { fileStorage } from '../core/FileStorageAdapter.js';
 
 export class EditorDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -280,10 +281,13 @@ export class EditorDirector extends BaseDirector {
     const data = this.state.exportFormat();
     const content = JSON.stringify(data, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       if (this.state.currentFilePath) {
         try {
-          await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
+          await fileStorage.saveFileAbsolute(
+            this.state.currentFilePath,
+            content
+          );
           await customAlert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
         } catch (err) {
           await customAlert("Lỗi khi lưu file trực tiếp: " + err.message);
@@ -291,7 +295,10 @@ export class EditorDirector extends BaseDirector {
       } else {
         // Save As
         try {
-          const res = await window.electronAPI.saveFileDialog(content, `${this.state.name}.json`);
+          const res = await fileStorage.saveFileDialog(
+            content,
+            `${this.state.name}.json`
+          );
           if (res) {
             this.state.currentFilePath = res.filePath;
             this.state.name = res.filename.replace('.json', '');

@@ -22,6 +22,7 @@ import { renderingConfig } from './config/rendering.js';
 import './style.css';
 import { setLanguage } from './config/lang/i18n.js';
 import { HotkeyManager } from './core/HotkeyManager.js';
+import { fileStorage } from './core/FileStorageAdapter.js';
 
 // Initialize Core ECS Boilerplate
 const clock = new Clock();
@@ -126,9 +127,7 @@ function animate() {
 animate();
 
 // Bind Native IPC Language Selector Event
-if (window.electronAPI && window.electronAPI.onChangeLanguage) {
-  window.electronAPI.onChangeLanguage((lang) => {
-    setLanguage(lang);
-    window.location.reload();
-  });
-}
+fileStorage.onChangeLanguage((lang) => {
+  setLanguage(lang);
+  window.location.reload();
+});

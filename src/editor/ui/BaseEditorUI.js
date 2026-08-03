@@ -1,4 +1,5 @@
 import { t, setLanguage } from '../../config/lang/i18n.js';
+import { fileStorage } from '../../core/FileStorageAdapter.js';
 
 export function setupBaseEditorUI(state, director, options = {}) {
   const {
@@ -27,12 +28,10 @@ export function setupBaseEditorUI(state, director, options = {}) {
   rightContainer.innerHTML = rightPanelsHtml;
 
   // Bind Native IPC Language Selector Event
-  if (window.electronAPI && window.electronAPI.onChangeLanguage) {
-    window.electronAPI.onChangeLanguage((lang) => {
-      setLanguage(lang);
-      window.location.reload();
-    });
-  }
+  fileStorage.onChangeLanguage((lang) => {
+    setLanguage(lang);
+    window.location.reload();
+  });
 
   // Make all sidebar panel-sections collapsible dropdowns
   makePanelsCollapsible(shouldCollapse);

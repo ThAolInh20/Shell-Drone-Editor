@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DroneFormationFactory } from '../../factories/DroneFormationFactory.js';
 import { t } from '../../config/lang/i18n.js';
-
+import { fileStorage } from '../../core/FileStorageAdapter.js';
 
 import { renderFormationShapePanel } from './templates/FormationTemplates.js';
 export { renderFormationShapePanel };
@@ -162,9 +162,12 @@ export function setupFormationShapePanel(state, uiBridge) {
 
     const content = JSON.stringify(exportObject, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const res = await window.electronAPI.saveFileDialog(content, `${state.name}.json`);
+        const res = await fileStorage.saveFileDialog(
+          content,
+          `${state.name}.json`
+        );
         if (res) {
           state.currentFilePath = res.filePath;
           state.name = res.filename.replace('.json', '');
@@ -186,9 +189,9 @@ export function setupFormationShapePanel(state, uiBridge) {
 
   // Import JSON Trigger
   document.getElementById('btn-import-json-trigger').addEventListener('click', async () => {
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const fileData = await window.electronAPI.openFileDialog();
+        const fileData = await fileStorage.openFileDialog();
         if (fileData) {
           const { filePath, content, filename } = fileData;
           const parsed = JSON.parse(content);
