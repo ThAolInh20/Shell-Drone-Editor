@@ -21,3 +21,5 @@
 ## Terminology & Glossary
 - **Terminology Reference**: Always refer to [GLOSSARY.md](../GLOSSARY.md) for naming conventions and definitions of timeline/editor components (such as Playhead, Anchor Head, Beat, Snap-to-beat). Do not invent new terms or mix names (e.g. do not call Anchor Head "playhead cursor" or "timeline pointer").
 
+## Documentation & Markdown Rules
+- **Relative Markdown Links**: Always prioritize using relative links (for example, `./src/main.js`) instead of absolute file paths (such as `file:///...`) when writing links inside workspace documentation and files (such as `STRUCTURE.md`).
