@@ -3,7 +3,7 @@ import { CameraManager } from './core/CameraManager.js';
 import { SceneManager } from './core/SceneManager.js';
 import { Renderer } from './core/Renderer.js';
 import { PostProcessingPipeline } from './core/PostProcessingPipeline.js';
-import { InputSystem } from './controllers/InputSystem.js';
+import { InputSystem } from './systems/InputSystem.js';
 import { MovementSystem } from './systems/MovementSystem.js';
 import { FireworkSystem } from './systems/FireworkSystem.js';
 import { TrailSystem } from './systems/TrailSystem.js';
@@ -130,4 +130,4 @@ animate();
 fileStorage.onChangeLanguage((lang) => {
   setLanguage(lang);
   window.location.reload();
-});
+});
