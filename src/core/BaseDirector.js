@@ -86,7 +86,71 @@ export class BaseDirector {
     // Hotkey manager with context derived from subclass.
     this.hotkeyManager = new HotkeyManager();
     const ctx = this.getHotkeyContext();
-    if (ctx) this.hotkeyManager.setActiveContext(ctx);
+    if (ctx) {
+      this.hotkeyManager.setActiveContext(ctx);
+
+      // Register arrow key shortcuts for viewport transform
+      const keys = [
+        'arrowup',
+        'arrowdown',
+        'arrowleft',
+        'arrowright'
+      ];
+      for (const key of keys) {
+        this.hotkeyManager.register(
+          ctx,
+          `ctrl+${key}`,
+          (e) => {
+            this.gizmoSystem.handleArrowKeyTransform(
+              e.key,
+              false
+            );
+          }
+        );
+        this.hotkeyManager.register(
+          ctx,
+          `ctrl+shift+${key}`,
+          (e) => {
+            this.gizmoSystem.handleArrowKeyTransform(
+              e.key,
+              true
+            );
+          }
+        );
+      }
+
+      const updateGizmoUI = (mode) => {
+        const btns = document.querySelectorAll('.gizmo-btn');
+        btns.forEach((btn) => {
+          if (btn.dataset.mode === mode) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      };
+
+      // Register Ctrl + G to cycle sequentially through Gizmo modes
+      const modesOrder = [
+        'translate',
+        'rotate',
+        'scale'
+      ];
+
+      this.hotkeyManager.register(
+        ctx,
+        'ctrl+g',
+        () => {
+          const currentMode = this.gizmoSystem.transformControl.getMode();
+          const currentIndex = modesOrder.indexOf(currentMode);
+          const nextIndex = (currentIndex + 1) % modesOrder.length;
+          const nextMode = modesOrder[nextIndex];
+
+          this.gizmoSystem.setMode(nextMode);
+          updateGizmoUI(nextMode);
+        }
+      );
+    }
 
     // Subclass can add additional event listeners.
     if (typeof this.setupEvents === 'function') {
