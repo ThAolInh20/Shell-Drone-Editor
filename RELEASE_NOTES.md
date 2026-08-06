@@ -1,19 +1,19 @@
-# Release Notes - v2.2.1
+# Release Notes - v2.2.2
 
 ## Features
-- Added audio beat detection to automatically sync drone and firework animations with music.
-- Added a visual property inspector for editing drone and firework parameters directly in the user interface.
-- Updated the timeline editor with audio track visualization, timeline zooming, and snap-to-beat controls.
-- Added project glossary documentation.
+- Added keyboard shortcuts (Ctrl + Arrow keys) to quickly translate, rotate, and scale selection in viewport space.
+- Added a keyboard shortcut (Ctrl + G) to cycle sequentially through Gizmo modes (Translate -> Rotate -> Scale).
+- Added diagonal scale handles in the viewport for uniform scaling on all axes.
+- Added a configuration file (editor.js) allowing step size customization for Gizmo translation, rotation, and scaling.
 
 ## Bug Fixes
-- Fixed layout and formatting alignment in the project read-me document.
+- Fixed a ghosting display issue where selected drones left shadows or visual artifacts of their old positions after being rotated, scaled, or during undo/redo actions.
+- Prevented the standard axes (X, Y, Z) from highlighting yellow when hovering over or interacting with the diagonal scale handles.
 
 ## Updates
-- Improved performance and visual smoothness for drone flight trails.
-- Restructured and organized the core show director codebase.
-- Enhanced comet effects with customizable strobe settings.
-- Updated interface text translations for English, Vietnamese, Japanese, and Chinese.
+- Removed the separate Undo/Redo buttons from the Gizmo Panel since they are standard keyboard actions.
+- Reorganized project directory structure and updated application configurations for better stability.
+- Updated project documentation with relative file path conventions and structure guidelines.
 
 ## Chores
-- Updated internal build configurations and project structure documentation.
+- Cleaned up language translation files to remove emojis and clean up hardcoded UI texts.
