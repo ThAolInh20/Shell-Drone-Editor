@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { editorConfig } from '../../config/editor.js';
 
 export class GizmoSystem {
   constructor(scene, camera, domElement, orbitControls, state) {
@@ -26,6 +27,7 @@ export class GizmoSystem {
 
     // TransformControls initialization
     this.transformControl = new TransformControls(this.camera, this.domElement);
+    this.addDiagonalScaleHandles();
     this.transformControl.addEventListener('dragging-changed', (event) => {
       this.orbitControls.enabled = !event.value;
       if (!event.value) {
@@ -199,35 +201,82 @@ export class GizmoSystem {
       }
     }
 
+    // Calculate bounding box center to place the group pivot
+    const center = new THREE.Vector3();
+    for (const id of selected) {
+      center.add(this.state.positions[id]);
+    }
+    center.divideScalar(selected.length);
+
     if (needsRebuild) {
       this.clearProxies();
       
-      // Calculate bounding box center to place the group pivot
-      const center = new THREE.Vector3();
-      for (const id of selected) {
-        center.add(this.state.positions[id]);
-      }
-      center.divideScalar(selected.length);
-      
       this.proxyGroup.position.copy(center);
-      this.proxyGroup.rotation.set(0, 0, 0);
-      this.proxyGroup.scale.set(1, 1, 1);
+      this.proxyGroup.rotation.set(
+        0,
+        0,
+        0
+      );
+      this.proxyGroup.scale.set(
+        1,
+        1,
+        1
+      );
       this.proxyGroup.updateMatrixWorld();
 
       // Create proxies relative to group center
       for (const id of selected) {
-        const mesh = new THREE.Mesh(this.proxyGeometry, this.proxyMaterial);
+        const mesh = new THREE.Mesh(
+          this.proxyGeometry,
+          this.proxyMaterial
+        );
         const worldPos = this.state.positions[id];
         
         // Local position relative to group
         mesh.position.copy(worldPos).sub(center);
+        mesh.scale.set(
+          1,
+          1,
+          1
+        );
         
         this.proxyGroup.add(mesh);
-        this.proxyMeshes.set(id, mesh);
+        this.proxyMeshes.set(
+          id,
+          mesh
+        );
       }
       
       this.transformControl.attach(this.proxyGroup);
       this.updateGizmoVisibility();
+    } else {
+      // If selection is the same, just update positions & reset group transforms!
+      this.proxyGroup.position.copy(center);
+      this.proxyGroup.rotation.set(
+        0,
+        0,
+        0
+      );
+      this.proxyGroup.scale.set(
+        1,
+        1,
+        1
+      );
+      
+      for (const id of selected) {
+        const mesh = this.proxyMeshes.get(id);
+        if (mesh) {
+          const worldPos = this.state.positions[id];
+          mesh.position.copy(worldPos).sub(center);
+          mesh.scale.set(
+            1,
+            1,
+            1
+          );
+        }
+      }
+      
+      this.proxyGroup.updateMatrixWorld(true);
     }
   }
 
@@ -594,5 +643,308 @@ export class GizmoSystem {
     }
 
     this.state.updatePositions(updates);
+  }
+
+  addDiagonalScaleHandles() {
+    const transformGizmo = this.transformControl._gizmo;
+    if (!transformGizmo) return;
+
+    const gizmoScale = transformGizmo.gizmo['scale'];
+    const pickerScale = transformGizmo.picker['scale'];
+    if (!gizmoScale || !pickerScale) return;
+
+    // Override updateMatrixWorld to prevent highlighting standard X, Y, Z handles when axis is 'XYZ'
+    const originalUpdateMatrixWorld = transformGizmo.updateMatrixWorld;
+    transformGizmo.updateMatrixWorld = (force) => {
+      originalUpdateMatrixWorld.call(
+        transformGizmo,
+        force
+      );
+
+      if (
+        transformGizmo.axis === 'XYZ' &&
+        transformGizmo.mode === 'scale'
+      ) {
+        let handles = [];
+        if (
+          transformGizmo.picker &&
+          transformGizmo.picker['scale']
+        ) {
+          handles = handles.concat(transformGizmo.picker['scale'].children);
+        }
+        if (
+          transformGizmo.gizmo &&
+          transformGizmo.gizmo['scale']
+        ) {
+          handles = handles.concat(transformGizmo.gizmo['scale'].children);
+        }
+
+        for (const handle of handles) {
+          if (
+            handle.name === 'X' ||
+            handle.name === 'Y' ||
+            handle.name === 'Z'
+          ) {
+            if (
+              handle.material &&
+              handle.material._color
+            ) {
+              handle.material.color.copy(handle.material._color);
+              handle.material.opacity = handle.material._opacity;
+            }
+          }
+        }
+      }
+    };
+
+    const len = 0.35;
+    const cos45 = Math.cos(Math.PI / 4);
+    const sin45 = Math.sin(Math.PI / 4);
+    const endX = len * cos45;
+    const endY = len * sin45;
+
+    const quadrants = [
+      [1, 1],
+      [-1, 1],
+      [-1, -1],
+      [1, -1]
+    ];
+
+    for (const [qx, qy] of quadrants) {
+      const qEndX = endX * qx;
+      const qEndY = endY * qy;
+
+      const matLine = new THREE.LineBasicMaterial({
+        color: 0xcccccc,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+        transparent: true,
+        opacity: 0.8
+      });
+
+      const lineGeo = new THREE.BufferGeometry();
+      lineGeo.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(
+          [
+            0,
+            0,
+            0,
+            qEndX,
+            qEndY,
+            0
+          ],
+          3
+        )
+      );
+
+      const line = new THREE.Line(
+        lineGeo,
+        matLine
+      );
+      line.name = 'XYZ';
+      line.renderOrder = Infinity;
+      gizmoScale.add(line);
+
+      const matBox = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+        transparent: true,
+        opacity: 0.8
+      });
+
+      const boxGeo = new THREE.BoxGeometry(
+        0.06,
+        0.06,
+        0.06
+      );
+      const box = new THREE.Mesh(
+        boxGeo,
+        matBox
+      );
+      box.position.set(
+        qEndX,
+        qEndY,
+        0
+      );
+      box.name = 'XYZ';
+      box.renderOrder = Infinity;
+      gizmoScale.add(box);
+
+      const pickerGeo = new THREE.BoxGeometry(
+        0.12,
+        len,
+        0.12
+      );
+      const matPicker = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        opacity: 0.15,
+        transparent: true,
+        visible: false
+      });
+
+      const picker = new THREE.Mesh(
+        pickerGeo,
+        matPicker
+      );
+      picker.position.set(
+        qEndX / 2,
+        qEndY / 2,
+        0
+      );
+      const angle = (qx * qy > 0) ? -Math.PI / 4 : Math.PI / 4;
+      picker.rotation.set(
+        0,
+        0,
+        angle
+      );
+      picker.name = 'XYZ';
+      picker.renderOrder = Infinity;
+      pickerScale.add(picker);
+    }
+  }
+
+  handleArrowKeyTransform(key, shiftKey) {
+    const selected = Array.from(this.state.selectedIndices);
+    if (selected.length === 0) return;
+
+    // Calculate center of selection
+    const center = new THREE.Vector3();
+    for (const id of selected) {
+      center.add(this.state.positions[id]);
+    }
+    center.divideScalar(selected.length);
+
+    const mode = this.transformControl.getMode();
+    const updates = [];
+
+    if (shiftKey) {
+      // Mirroring / Flipping (Đảo trục) relative to selection center
+      let scaleX = 1;
+      let scaleY = 1;
+
+      if (key === 'ArrowLeft' || key === 'ArrowRight') {
+        scaleX = -1;
+      } else if (key === 'ArrowUp' || key === 'ArrowDown') {
+        scaleY = -1;
+      }
+
+      for (const id of selected) {
+        const pos = this.state.positions[id].clone();
+        const dx = pos.x - center.x;
+        const dy = pos.y - center.y;
+
+        pos.x = center.x + dx * scaleX;
+        pos.y = center.y + dy * scaleY;
+        updates.push({
+          index: id,
+          pos
+        });
+      }
+    } else {
+      if (mode === 'translate') {
+        const step = editorConfig.gizmo.keyboardTranslateStep;
+        const delta = new THREE.Vector3();
+
+        if (key === 'ArrowLeft') {
+          delta.x = -step;
+        } else if (key === 'ArrowRight') {
+          delta.x = step;
+        } else if (key === 'ArrowUp') {
+          delta.y = step;
+        } else if (key === 'ArrowDown') {
+          delta.y = -step;
+        }
+
+        for (const id of selected) {
+          const pos = this.state.positions[id].clone().add(delta);
+          updates.push({
+            index: id,
+            pos
+          });
+        }
+      } else if (mode === 'scale') {
+        let factorX = 1;
+        let factorY = 1;
+        const scaleStep = editorConfig.gizmo.keyboardScaleStep;
+        const scaleStepInv = 1 / scaleStep;
+
+        if (key === 'ArrowLeft') {
+          factorX = scaleStepInv;
+        } else if (key === 'ArrowRight') {
+          factorX = scaleStep;
+        } else if (key === 'ArrowUp') {
+          factorY = scaleStep;
+        } else if (key === 'ArrowDown') {
+          factorY = scaleStepInv;
+        }
+
+        for (const id of selected) {
+          const pos = this.state.positions[id].clone();
+          const dx = pos.x - center.x;
+          const dy = pos.y - center.y;
+
+          pos.x = center.x + dx * factorX;
+          pos.y = center.y + dy * factorY;
+          updates.push({
+            index: id,
+            pos
+          });
+        }
+      } else if (mode === 'rotate') {
+        const angle = THREE.MathUtils.degToRad(
+          editorConfig.gizmo.keyboardRotateStep
+        );
+        let deltaAngle = 0;
+        let axis = 'X';
+
+        if (key === 'ArrowUp') {
+          deltaAngle = angle;
+        } else if (key === 'ArrowDown') {
+          deltaAngle = -angle;
+        } else if (key === 'ArrowRight') {
+          deltaAngle = angle;
+          axis = 'Y';
+        } else if (key === 'ArrowLeft') {
+          deltaAngle = -angle;
+          axis = 'Y';
+        }
+
+        const cos = Math.cos(deltaAngle);
+        const sin = Math.sin(deltaAngle);
+
+        for (const id of selected) {
+          const pos = this.state.positions[id].clone();
+          if (axis === 'X') {
+            const dy = pos.y - center.y;
+            const dz = pos.z - center.z;
+            pos.y = center.y + (dy * cos - dz * sin);
+            pos.z = center.z + (dy * sin + dz * cos);
+          } else {
+            const dx = pos.x - center.x;
+            const dz = pos.z - center.z;
+            pos.x = center.x + (dx * cos - dz * sin);
+            pos.z = center.z + (dx * sin + dz * cos);
+          }
+          updates.push({
+            index: id,
+            pos
+          });
+        }
+      }
+    }
+
+    if (updates.length > 0) {
+      this.state.updatePositions(updates);
+      if (typeof this.state.saveCurrentStep === 'function') {
+        this.state.saveCurrentStep();
+      }
+      this.state.saveStateToHistory();
+    }
   }
 }

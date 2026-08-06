@@ -1,4 +1,5 @@
 import { t } from '../../../config/lang/i18n.js';
+import { editorConfig } from '../../../config/editor.js';
 
 export function renderFilePanel() {
   return `
@@ -86,10 +87,6 @@ export function renderGizmoPanel() {
       <div style="margin-top: 10px; font-size: 12px; color: #888;">
         ${t('editor.gizmoPanel.multiselectHelp')}
       </div>
-      <div style="margin-top: 10px; display: flex; gap: 5px;">
-        <button class="btn btn-secondary" id="btn-undo" style="margin-bottom: 0; padding: 5px;">${t('editor.gizmoPanel.undo')}</button>
-        <button class="btn btn-secondary" id="btn-redo" style="margin-bottom: 0; padding: 5px;">${t('editor.gizmoPanel.redo')}</button>
-      </div>
       <label style="display: block; margin-top: 10px; font-size: 14px; cursor: pointer;">
         <input type="checkbox" id="ui-select-group" checked /> ${t('editor.gizmoPanel.selectGroupCheckbox')}
       </label>
@@ -137,15 +134,15 @@ export function renderSelectionPanel() {
         <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #00ffff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; grid-column: span 2;">Scale (Ratio)</div>
         <div class="input-group">
           <label>Scale X</label>
-          <input type="number" id="ui-scale-x" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-x" step="${editorConfig.gizmo.uiScaleInputStep}" value="1.0" />
         </div>
         <div class="input-group">
           <label>Scale Y</label>
-          <input type="number" id="ui-scale-y" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-y" step="${editorConfig.gizmo.uiScaleInputStep}" value="1.0" />
         </div>
         <div class="input-group">
           <label>Scale Z</label>
-          <input type="number" id="ui-scale-z" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-z" step="${editorConfig.gizmo.uiScaleInputStep}" value="1.0" />
         </div>
         
         <div class="input-group" style="margin-top: 10px;">

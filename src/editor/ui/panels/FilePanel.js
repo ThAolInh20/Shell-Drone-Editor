@@ -1,5 +1,6 @@
 import { t } from '../../../config/lang/i18n.js';
 import { customAlert } from '../utils/Modal.js';
+import { fileStorage } from '../../../core/FileStorageAdapter.js';
 
 import { renderFilePanel } from '../templates/EditorTemplates.js';
 export { renderFilePanel };
@@ -10,9 +11,12 @@ export function setupFilePanel(state) {
     const data = state.exportFormat();
     const content = JSON.stringify(data, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const res = await window.electronAPI.saveFileDialog(content, `${state.name}.json`);
+        const res = await fileStorage.saveFileDialog(
+          content,
+          `${state.name}.json`
+        );
         if (res) {
           state.currentFilePath = res.filePath;
           state.name = res.filename.replace('.json', '');
@@ -34,9 +38,9 @@ export function setupFilePanel(state) {
   });
 
   document.getElementById('btn-import').addEventListener('click', async () => {
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const fileData = await window.electronAPI.openFileDialog();
+        const fileData = await fileStorage.openFileDialog();
         if (fileData) {
           const { filePath, content, filename } = fileData;
           const data = JSON.parse(content);
@@ -75,9 +79,9 @@ export function setupFilePanel(state) {
   });
 
   document.getElementById('btn-import-append')?.addEventListener('click', async () => {
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const fileData = await window.electronAPI.openFileDialog();
+        const fileData = await fileStorage.openFileDialog();
         if (fileData) {
           const { filePath, content, filename } = fileData;
           const data = JSON.parse(content);

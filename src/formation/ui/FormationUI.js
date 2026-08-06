@@ -5,8 +5,8 @@ import { renderGizmoPanel, setupGizmoPanel } from '../../editor/ui/panels/GizmoP
 import { renderGroupPanel, setupGroupPanel } from '../../editor/ui/panels/GroupPanel.js';
 import { t } from '../../config/lang/i18n.js';
 
-export function setupFormationUI(state, director) {
-  setupBaseEditorUI(state, director, {
+export function setupFormationUI(state, uiBridge) {
+  setupBaseEditorUI(state, uiBridge, {
     title: t('editor.formationPanel.title'),
     subtitle: t('editor.formationPanel.subtitle'),
     resetViewText: t('editor.formationPanel.viewMain'),
@@ -23,9 +23,9 @@ export function setupFormationUI(state, director) {
       return titleText.includes('group') || titleText.includes('selection') || titleText.includes('nhóm') || titleText.includes('chọn');
     },
     setupPanels: () => {
-      setupFormationShapePanel(state, director);
+      setupFormationShapePanel(state, uiBridge);
       setupGroupPanel(state);
-      setupGizmoPanel(state, director);
+      setupGizmoPanel(state, uiBridge);
       setupFormationPropertiesPanel(state);
     }
   });

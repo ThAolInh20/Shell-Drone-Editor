@@ -7,6 +7,8 @@ import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
 import { customAlert } from './ui/utils/Modal.js';
 import { HotkeyManager } from '../core/HotkeyManager.js';
 import { BaseDirector } from '../core/BaseDirector.js';
+import { fileStorage } from '../core/FileStorageAdapter.js';
+import { SelectionSolver } from '../core/SelectionSolver.js';
 
 export class EditorDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -175,10 +177,12 @@ export class EditorDirector extends BaseDirector {
   }
 
   handleCanvasClick(event) {
+    console.log('handleCanvasClick triggered in EditorDirector, event clientX/Y:', event.clientX, event.clientY);
     // Calculate mouse position in normalized device coordinates
     // (-1 to +1) for both components
-    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const rect = this.renderer.instance.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.cameraManager.instance);
 
@@ -191,86 +195,28 @@ export class EditorDirector extends BaseDirector {
     }
 
     const intersects = this.raycaster.intersectObject(this.instancedMesh);
-
-    if (intersects.length > 0) {
-      const instanceId = intersects[0].instanceId;
-      const multiSelect = event.shiftKey || event.ctrlKey;
-
-      const selectGroupUI = document.getElementById('ui-select-group');
-      if (selectGroupUI && selectGroupUI.checked) {
-        const groupName = this.state.particleGroups[instanceId];
-        if (groupName) {
-          // Check if this group already has ANY selected drones
-          let groupHasSelection = false;
-          for (const idx of this.state.selectedIndices) {
-            if (this.state.particleGroups[idx] === groupName) {
-              groupHasSelection = true;
-              break;
-            }
-          }
-
-          if (groupHasSelection) {
-            // Group is already "active", drill down to individual particle
-            if (multiSelect && this.state.selectedIndices.has(instanceId)) {
-              this.state.deselect(instanceId);
-            } else {
-              this.state.select(instanceId, multiSelect);
-            }
-          } else {
-            // Group is not active, select the entire group
-            this.state.selectGroup(groupName, multiSelect);
-          }
-        }
-      } else {
-        // Strict individual selection mode
-        if (multiSelect && this.state.selectedIndices.has(instanceId)) {
-          this.state.deselect(instanceId);
-        } else {
-          this.state.select(instanceId, multiSelect);
-        }
-      }
-    } else {
-      const multiSelect = event.shiftKey || event.ctrlKey;
-      if (!multiSelect) {
-        this.state.clearSelection();
-      }
-    }
+    SelectionSolver.solveClickSelection({
+      intersects,
+      event,
+      state: this.state
+    });
   }
 
-  performBoxSelection(startX, startY, endX, endY) {
-    const minX = Math.min(startX, endX);
-    const maxX = Math.max(startX, endX);
-    const minY = Math.min(startY, endY);
-    const maxY = Math.max(startY, endY);
-
-    const rect = this.renderer.instance.domElement.getBoundingClientRect();
-    const camera = this.cameraManager.instance;
-    const positions = this.state.positions;
-
-    const selectedList = [];
-
-    for (let i = 0; i < positions.length; i++) {
-      const pos = positions[i];
-
-      // Project to camera/view space
-      const viewV = this.scratchVec1.copy(pos).applyMatrix4(camera.matrixWorldInverse);
-      if (viewV.z > 0) {
-        // Behind camera
-        continue;
-      }
-
-      // Project view space to NDC
-      viewV.applyMatrix4(camera.projectionMatrix);
-
-      // Convert NDC to client screen coords
-      const x = rect.left + (viewV.x * 0.5 + 0.5) * rect.width;
-      const y = rect.top + (-viewV.y * 0.5 + 0.5) * rect.height;
-
-      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-        selectedList.push(i);
-      }
-    }
-
+  performBoxSelection(
+    startX,
+    startY,
+    endX,
+    endY
+  ) {
+    const selectedList = SelectionSolver.solveBoxSelection({
+      startX,
+      startY,
+      endX,
+      endY,
+      domElement: this.renderer.instance.domElement,
+      camera: this.cameraManager.instance,
+      positions: this.state.positions
+    });
     this.state.selectMultiple(selectedList);
   }
 
@@ -280,10 +226,13 @@ export class EditorDirector extends BaseDirector {
     const data = this.state.exportFormat();
     const content = JSON.stringify(data, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       if (this.state.currentFilePath) {
         try {
-          await window.electronAPI.saveFileAbsolute(this.state.currentFilePath, content);
+          await fileStorage.saveFileAbsolute(
+            this.state.currentFilePath,
+            content
+          );
           await customAlert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
         } catch (err) {
           await customAlert("Lỗi khi lưu file trực tiếp: " + err.message);
@@ -291,7 +240,10 @@ export class EditorDirector extends BaseDirector {
       } else {
         // Save As
         try {
-          const res = await window.electronAPI.saveFileDialog(content, `${this.state.name}.json`);
+          const res = await fileStorage.saveFileDialog(
+            content,
+            `${this.state.name}.json`
+          );
           if (res) {
             this.state.currentFilePath = res.filePath;
             this.state.name = res.filename.replace('.json', '');

@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { DroneFormationFactory } from '../../factories/DroneFormationFactory.js';
 import { t } from '../../config/lang/i18n.js';
-
+import { fileStorage } from '../../core/FileStorageAdapter.js';
 
 import { renderFormationShapePanel } from './templates/FormationTemplates.js';
 export { renderFormationShapePanel };
 
-export function setupFormationShapePanel(state, director) {
+export function setupFormationShapePanel(state, uiBridge) {
   // Helper to load parsed formation JSON data safely
   function loadFormationFromData(parsed, filename, filePath = null) {
     let droneData = [];
@@ -69,8 +69,8 @@ export function setupFormationShapePanel(state, director) {
         if (importedConfig.rotationY !== undefined) state.ghostModelConfig.rotationY = importedConfig.rotationY;
         if (importedConfig.opacity !== undefined) state.ghostModelConfig.opacity = importedConfig.opacity;
         if (importedConfig.wireframe !== undefined) state.ghostModelConfig.wireframe = importedConfig.wireframe;
-        if (director && typeof director.updateGhostModelTransform === 'function') {
-          director.updateGhostModelTransform();
+        if (uiBridge && typeof uiBridge.updateGhostModelTransform === 'function') {
+          uiBridge.updateGhostModelTransform();
         }
       }
 
@@ -86,8 +86,8 @@ export function setupFormationShapePanel(state, director) {
         if (importedRefConfig.rotationY !== undefined) state.referenceImageConfig.rotationY = importedRefConfig.rotationY;
         if (importedRefConfig.opacity !== undefined) state.referenceImageConfig.opacity = importedRefConfig.opacity;
         if (importedRefConfig.orientation !== undefined) state.referenceImageConfig.orientation = importedRefConfig.orientation;
-        if (director && typeof director.updateReferenceImageTransform === 'function') {
-          director.updateReferenceImageTransform();
+        if (uiBridge && typeof uiBridge.updateReferenceImageTransform === 'function') {
+          uiBridge.updateReferenceImageTransform();
         }
       }
 
@@ -162,9 +162,12 @@ export function setupFormationShapePanel(state, director) {
 
     const content = JSON.stringify(exportObject, null, 2);
 
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const res = await window.electronAPI.saveFileDialog(content, `${state.name}.json`);
+        const res = await fileStorage.saveFileDialog(
+          content,
+          `${state.name}.json`
+        );
         if (res) {
           state.currentFilePath = res.filePath;
           state.name = res.filename.replace('.json', '');
@@ -186,9 +189,9 @@ export function setupFormationShapePanel(state, director) {
 
   // Import JSON Trigger
   document.getElementById('btn-import-json-trigger').addEventListener('click', async () => {
-    if (window.electronAPI) {
+    if (fileStorage.isElectron) {
       try {
-        const fileData = await window.electronAPI.openFileDialog();
+        const fileData = await fileStorage.openFileDialog();
         if (fileData) {
           const { filePath, content, filename } = fileData;
           const parsed = JSON.parse(content);
@@ -405,8 +408,8 @@ export function setupFormationShapePanel(state, director) {
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      if (director && typeof director.loadGhostModel === 'function') {
-        director.loadGhostModel(file);
+      if (uiBridge && typeof uiBridge.loadGhostModel === 'function') {
+        uiBridge.loadGhostModel(file);
       }
     });
   }
@@ -544,8 +547,8 @@ export function setupFormationShapePanel(state, director) {
       if (bezierYVal) bezierYVal.textContent = val;
       state.bezierControlPoints[1].y = val;
       
-      if (director && typeof director.recalculateBezierDrones === 'function') {
-        director.recalculateBezierDrones();
+      if (uiBridge && typeof uiBridge.recalculateBezierDrones === 'function') {
+        uiBridge.recalculateBezierDrones();
       }
       state.notify();
     });
@@ -593,8 +596,8 @@ export function setupFormationShapePanel(state, director) {
           state.ghostModelConfig[sliderDef.prop] = val;
         }
 
-        if (director && typeof director.updateGhostModelTransform === 'function') {
-          director.updateGhostModelTransform();
+        if (uiBridge && typeof uiBridge.updateGhostModelTransform === 'function') {
+          uiBridge.updateGhostModelTransform();
         }
       });
     }
@@ -604,8 +607,8 @@ export function setupFormationShapePanel(state, director) {
   if (wireframeCheckbox) {
     wireframeCheckbox.addEventListener('change', (e) => {
       state.ghostModelConfig.wireframe = e.target.checked;
-      if (director && typeof director.updateGhostModelTransform === 'function') {
-        director.updateGhostModelTransform();
+      if (uiBridge && typeof uiBridge.updateGhostModelTransform === 'function') {
+        uiBridge.updateGhostModelTransform();
       }
     });
   }
@@ -613,8 +616,8 @@ export function setupFormationShapePanel(state, director) {
   const btnClearGhost = document.getElementById('btn-clear-ghost');
   if (btnClearGhost) {
     btnClearGhost.addEventListener('click', () => {
-      if (director && typeof director.clearGhostModel === 'function') {
-        director.clearGhostModel();
+      if (uiBridge && typeof uiBridge.clearGhostModel === 'function') {
+        uiBridge.clearGhostModel();
       }
       const fileInput = document.getElementById('ui-ghost-model-file');
       if (fileInput) fileInput.value = '';
@@ -626,8 +629,8 @@ export function setupFormationShapePanel(state, director) {
     refFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      if (director && typeof director.loadReferenceImage === 'function') {
-        director.loadReferenceImage(file);
+      if (uiBridge && typeof uiBridge.loadReferenceImage === 'function') {
+        uiBridge.loadReferenceImage(file);
       }
     });
   }
@@ -646,8 +649,8 @@ export function setupFormationShapePanel(state, director) {
           state.referenceImageConfig[sliderDef.prop] = val;
         }
 
-        if (director && typeof director.updateReferenceImageTransform === 'function') {
-          director.updateReferenceImageTransform();
+        if (uiBridge && typeof uiBridge.updateReferenceImageTransform === 'function') {
+          uiBridge.updateReferenceImageTransform();
         }
       });
       el.addEventListener('change', () => {
@@ -660,8 +663,8 @@ export function setupFormationShapePanel(state, director) {
   if (orientationSelect) {
     orientationSelect.addEventListener('change', (e) => {
       state.referenceImageConfig.orientation = e.target.value;
-      if (director && typeof director.updateReferenceImageTransform === 'function') {
-        director.updateReferenceImageTransform();
+      if (uiBridge && typeof uiBridge.updateReferenceImageTransform === 'function') {
+        uiBridge.updateReferenceImageTransform();
       }
       state.saveStateToHistory();
     });
@@ -670,8 +673,8 @@ export function setupFormationShapePanel(state, director) {
   const btnClearRef = document.getElementById('btn-clear-ref-image');
   if (btnClearRef) {
     btnClearRef.addEventListener('click', () => {
-      if (director && typeof director.clearReferenceImage === 'function') {
-        director.clearReferenceImage();
+      if (uiBridge && typeof uiBridge.clearReferenceImage === 'function') {
+        uiBridge.clearReferenceImage();
       }
       const refFileInput = document.getElementById('ui-ref-image-file');
       if (refFileInput) refFileInput.value = '';
