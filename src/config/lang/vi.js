@@ -169,7 +169,11 @@ export default {
       eventBlock: "{preset} ({count})",
       playLabel: "Phát",
       pauseLabel: "Tạm dừng",
-      addStepBtn: "Thêm bước +"
+      addStepBtn: "Thêm bước +",
+      groupBtn: "Gom nhóm",
+      ungroupBtn: "Hủy nhóm",
+      groupBlockName: "Nhóm sự kiện",
+      groupBlock: "{name} ({count} sự kiện)"
     },
     stepPanel: {
       title: "Thuộc tính Bước Step",
@@ -284,10 +288,13 @@ export default {
         cometConfig: "Cấu hình Comet",
         visualEffects: "Hiệu ứng ánh sáng",
         geometryOffsets: "Tọa độ & Căn lề",
-        beatSettings: "Biên tập nhịp Beat"
+        beatSettings: "Biên tập nhịp Beat",
+        groupSettings: "Cấu hình nhóm",
+        groupChildren: "Danh sách sự kiện con"
       },
       fields: {
         time: "Thời gian bắt đầu s",
+        name: "Tên nhóm",
         volume: "Âm lượng",
         url: "Đường dẫn file",
         type: "Loại",
@@ -326,7 +333,8 @@ export default {
           sequence: "Bắn chuỗi",
           cometsequence: "Bắn chuỗi Comet",
           finale: "Đại kết cục Finale",
-          audio: "Âm thanh"
+          audio: "Âm thanh",
+          group: "Nhóm"
         },
         pattern: {
           random: "Ngẫu nhiên",

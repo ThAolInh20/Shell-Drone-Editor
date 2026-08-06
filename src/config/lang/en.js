@@ -169,7 +169,11 @@ export default {
       eventBlock: "{preset} ({count})",
       playLabel: "Play",
       pauseLabel: "Pause",
-      addStepBtn: "Add Step +"
+      addStepBtn: "Add Step +",
+      groupBtn: "Group",
+      ungroupBtn: "Ungroup",
+      groupBlockName: "Event Group",
+      groupBlock: "{name} ({count} events)"
     },
     stepPanel: {
       title: "Step Properties",
@@ -284,10 +288,13 @@ export default {
         cometConfig: "Comet Config",
         visualEffects: "Visual Effects",
         geometryOffsets: "Geometry & Offsets",
-        beatSettings: "Beat Editor"
+        beatSettings: "Beat Editor",
+        groupSettings: "Group Settings",
+        groupChildren: "Grouped Events"
       },
       fields: {
         time: "Start Time s",
+        name: "Group Name",
         volume: "Volume",
         url: "File URL",
         type: "Type",
@@ -326,7 +333,8 @@ export default {
           sequence: "Sequence",
           cometsequence: "Comet Sequence",
           finale: "Finale",
-          audio: "Audio"
+          audio: "Audio",
+          group: "Group"
         },
         pattern: {
           random: "Random",

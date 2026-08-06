@@ -79,6 +79,15 @@ export class PropertyInspector {
           customRender: true
         }
       ],
+      group: [
+        {
+          groupKey: 'groupSettings',
+          fields: [
+            { name: 'time', labelKey: 'time', type: 'number', step: '0.1' },
+            { name: 'name', labelKey: 'name', type: 'text', span: 2 }
+          ]
+        }
+      ],
       event: [
         {
           groupKey: 'coreSettings',
@@ -135,12 +144,18 @@ export class PropertyInspector {
       return;
     }
 
-    // Default sectorId to 'center' if undefined for non-audio
-    if (this.selectedEvent.type !== 'audio' && this.selectedEvent.sectorId === undefined) {
+    // Default sectorId to 'center' if undefined for non-audio and non-group
+    if (
+      this.selectedEvent.type !== 'audio' &&
+      this.selectedEvent.type !== 'group' &&
+      this.selectedEvent.sectorId === undefined
+    ) {
       this.selectedEvent.sectorId = 'center';
     }
 
-    const typeKey = this.selectedEvent.type === 'audio' ? 'audio' : 'event';
+    const typeKey = this.selectedEvent.type === 'audio'
+      ? 'audio'
+      : (this.selectedEvent.type === 'group' ? 'group' : 'event');
     const groups = this.getSchema()[typeKey];
 
     groups.forEach(group => {
