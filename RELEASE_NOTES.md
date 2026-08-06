@@ -2,7 +2,7 @@
 
 ## Features
 - Added keyboard shortcuts (Ctrl + Arrow keys) to quickly translate, rotate, and scale selection in viewport space.
-- Added a keyboard shortcut (Ctrl + G) to cycle sequentially through Gizmo modes (Translate -> Rotate -> Scale).
+- Added a keyboard shortcut (Ctrl + G) to cycle sequentially through Gizmo modes (move -> Rotate -> Scale).
 - Added diagonal scale handles in the viewport for uniform scaling on all axes.
 - Added a configuration file (editor.js) allowing step size customization for Gizmo translation, rotation, and scaling.
 

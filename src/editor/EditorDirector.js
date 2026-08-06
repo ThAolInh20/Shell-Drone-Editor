@@ -132,6 +132,13 @@ export class EditorDirector extends BaseDirector {
         this.selectionBoxEl.style.display = 'none';
 
         // Re-enable OrbitControls
+        if (this.controls) {
+          this.controls.disconnect();
+          this.controls._pointers = [];
+          this.controls._pointerPositions = {};
+          this.controls.state = -1;
+          this.controls.connect(this.renderer.instance.domElement);
+        }
         this.controls.enabled = true;
 
         const endX = upEvent.clientX;

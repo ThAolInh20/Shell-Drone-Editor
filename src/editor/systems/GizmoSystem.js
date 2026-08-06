@@ -31,6 +31,13 @@ export class GizmoSystem {
     this.transformControl.addEventListener('dragging-changed', (event) => {
       this.orbitControls.enabled = !event.value;
       if (!event.value) {
+        if (this.orbitControls) {
+          this.orbitControls.disconnect();
+          this.orbitControls._pointers = [];
+          this.orbitControls._pointerPositions = {};
+          this.orbitControls.state = -1;
+          this.orbitControls.connect(this.domElement);
+        }
         // Drag ended, save state
         if (this.isDeformModeActive) {
           this.updateDeformLine();

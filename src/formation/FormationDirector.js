@@ -143,7 +143,7 @@ export class FormationDirector extends BaseDirector {
   }
 
   setupEvents() {
-    this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.renderer.instance.domElement.addEventListener('pointerdown', this.onPointerDown.bind(this), true);
     this.renderer.instance.domElement.addEventListener('contextmenu', this.onContextMenu.bind(this));
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
@@ -232,6 +232,13 @@ export class FormationDirector extends BaseDirector {
         this.selectionBoxHelper.hide();
 
         // Re-enable OrbitControls
+        if (this.controls) {
+          this.controls.disconnect();
+          this.controls._pointers = [];
+          this.controls._pointerPositions = {};
+          this.controls.state = -1;
+          this.controls.connect(this.renderer.instance.domElement);
+        }
         this.controls.enabled = true;
 
         const endX = upEvent.clientX;
