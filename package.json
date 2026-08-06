@@ -28,7 +28,8 @@
       "package.json"
     ],
     "win": {
-      "icon": "public/icon2.ico",
+      "icon": "public/icon.ico",
+      "sign": null,
       "target": [
         {
           "target": "nsis",
