@@ -137,15 +137,15 @@ export function renderSelectionPanel() {
         <div style="font-weight: bold; margin-top: 10px; margin-bottom: 5px; color: #00ffff; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 2px; grid-column: span 2;">Scale (Ratio)</div>
         <div class="input-group">
           <label>Scale X</label>
-          <input type="number" id="ui-scale-x" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-x" step="0.01" value="1.0" />
         </div>
         <div class="input-group">
           <label>Scale Y</label>
-          <input type="number" id="ui-scale-y" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-y" step="0.01" value="1.0" />
         </div>
         <div class="input-group">
           <label>Scale Z</label>
-          <input type="number" id="ui-scale-z" step="0.1" value="1.0" />
+          <input type="number" id="ui-scale-z" step="0.01" value="1.0" />
         </div>
         
         <div class="input-group" style="margin-top: 10px;">

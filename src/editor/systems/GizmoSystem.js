@@ -26,6 +26,7 @@ export class GizmoSystem {
 
     // TransformControls initialization
     this.transformControl = new TransformControls(this.camera, this.domElement);
+    this.addDiagonalScaleHandles();
     this.transformControl.addEventListener('dragging-changed', (event) => {
       this.orbitControls.enabled = !event.value;
       if (!event.value) {
@@ -594,5 +595,125 @@ export class GizmoSystem {
     }
 
     this.state.updatePositions(updates);
+  }
+
+  addDiagonalScaleHandles() {
+    const transformGizmo = this.transformControl._gizmo;
+    if (!transformGizmo) return;
+
+    const gizmoScale = transformGizmo.gizmo['scale'];
+    const pickerScale = transformGizmo.picker['scale'];
+    if (!gizmoScale || !pickerScale) return;
+
+    const len = 0.35;
+    const cos45 = Math.cos(Math.PI / 4);
+    const sin45 = Math.sin(Math.PI / 4);
+    const endX = len * cos45;
+    const endY = len * sin45;
+
+    const quadrants = [
+      [1, 1],
+      [-1, 1],
+      [-1, -1],
+      [1, -1]
+    ];
+
+    for (const [qx, qy] of quadrants) {
+      const qEndX = endX * qx;
+      const qEndY = endY * qy;
+
+      const matLine = new THREE.LineBasicMaterial({
+        color: 0xcccccc,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+        transparent: true,
+        opacity: 0.8
+      });
+
+      const lineGeo = new THREE.BufferGeometry();
+      lineGeo.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(
+          [
+            0,
+            0,
+            0,
+            qEndX,
+            qEndY,
+            0
+          ],
+          3
+        )
+      );
+
+      const line = new THREE.Line(
+        lineGeo,
+        matLine
+      );
+      line.name = 'XYZ';
+      line.renderOrder = Infinity;
+      gizmoScale.add(line);
+
+      const matBox = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,
+        depthTest: false,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+        transparent: true,
+        opacity: 0.8
+      });
+
+      const boxGeo = new THREE.BoxGeometry(
+        0.06,
+        0.06,
+        0.06
+      );
+      const box = new THREE.Mesh(
+        boxGeo,
+        matBox
+      );
+      box.position.set(
+        qEndX,
+        qEndY,
+        0
+      );
+      box.name = 'XYZ';
+      box.renderOrder = Infinity;
+      gizmoScale.add(box);
+
+      const pickerGeo = new THREE.BoxGeometry(
+        0.12,
+        len,
+        0.12
+      );
+      const matPicker = new THREE.MeshBasicMaterial({
+        color: 0xffff00,
+        opacity: 0.15,
+        transparent: true,
+        visible: false
+      });
+
+      const picker = new THREE.Mesh(
+        pickerGeo,
+        matPicker
+      );
+      picker.position.set(
+        qEndX / 2,
+        qEndY / 2,
+        0
+      );
+      const angle = (qx * qy > 0) ? -Math.PI / 4 : Math.PI / 4;
+      picker.rotation.set(
+        0,
+        0,
+        angle
+      );
+      picker.name = 'XYZ';
+      picker.renderOrder = Infinity;
+      pickerScale.add(picker);
+    }
   }
 }
