@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { editorConfig } from '../../config/editor.js';
 
 export class GizmoSystem {
   constructor(scene, camera, domElement, orbitControls, state) {
@@ -847,7 +848,7 @@ export class GizmoSystem {
       }
     } else {
       if (mode === 'translate') {
-        const step = 0.5;
+        const step = editorConfig.gizmo.keyboardTranslateStep;
         const delta = new THREE.Vector3();
 
         if (key === 'ArrowLeft') {
@@ -870,15 +871,17 @@ export class GizmoSystem {
       } else if (mode === 'scale') {
         let factorX = 1;
         let factorY = 1;
+        const scaleStep = editorConfig.gizmo.keyboardScaleStep;
+        const scaleStepInv = 1 / scaleStep;
 
         if (key === 'ArrowLeft') {
-          factorX = 0.95;
+          factorX = scaleStepInv;
         } else if (key === 'ArrowRight') {
-          factorX = 1.05;
+          factorX = scaleStep;
         } else if (key === 'ArrowUp') {
-          factorY = 1.05;
+          factorY = scaleStep;
         } else if (key === 'ArrowDown') {
-          factorY = 0.95;
+          factorY = scaleStepInv;
         }
 
         for (const id of selected) {
@@ -894,7 +897,9 @@ export class GizmoSystem {
           });
         }
       } else if (mode === 'rotate') {
-        const angle = THREE.MathUtils.degToRad(5);
+        const angle = THREE.MathUtils.degToRad(
+          editorConfig.gizmo.keyboardRotateStep
+        );
         let deltaAngle = 0;
         let axis = 'X';
 

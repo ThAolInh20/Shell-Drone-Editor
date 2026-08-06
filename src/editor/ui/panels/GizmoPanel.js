@@ -4,9 +4,6 @@ import { renderGizmoPanel } from '../templates/EditorTemplates.js';
 export { renderGizmoPanel };
 
 export function setupGizmoPanel(state, director) {
-  document.getElementById('btn-undo')?.addEventListener('click', () => state.undo());
-  document.getElementById('btn-redo')?.addEventListener('click', () => state.redo());
-
   // Bind Mode buttons dynamically
   const bindGizmoModes = () => {
     const gizmoBtns = document.querySelectorAll('.gizmo-btn');
