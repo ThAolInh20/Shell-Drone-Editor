@@ -16,5 +16,9 @@ export const renderingConfig = {
       enabled: false,
       mode: 'fxaa'
     }
+  },
+  performance: {
+    fpsThreshold: 70,
+    minFrameCount: 40
   }
 };
