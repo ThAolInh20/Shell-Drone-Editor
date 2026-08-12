@@ -17,12 +17,16 @@ export class CometEntity {
     this.preset = preset;
     this.age = 0;
     this.decayTime = 0;
-    this.maxDecayTime = preset?.maxDecayTime ?? 1.4;
+    this.maxDecayTime = preset?.maxDecayTime ?? 0.8;
     this.state = CometEntity.STATE.INIT;
     this.mesh = new THREE.Group();
     this.coreColor = color.clone();
     this.initialVy = velocity.y;
     this.launchY = position.y;
+    this.timeToApex = this.initialVy / 30;
+    const fadeStartRatio = 0.65 + Math.random() * 0.3;
+    this.fadeStartTime = this.timeToApex * fadeStartRatio;
+    this.isFading = false;
 
     if (this.preset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
       this.color1 = color.clone();
@@ -178,14 +182,23 @@ export class CometEntity {
       if (this.velocity.lengthSq() > 0.01) {
         this.updateRotation();
       }
+    }
 
+    // Fading logic
+    if (
+      !this.isFading &&
+      (this.age >= this.fadeStartTime || this.state === CometEntity.STATE.DECAYING)
+    ) {
+      this.isFading = true;
+    }
+
+    if (this.isFading) {
       this.decayTime += deltaTime;
-      const decayRatio = this.decayTime / this.maxDecayTime;
-      
+      const decayRatio = Math.min(1.0, this.decayTime / this.maxDecayTime);
+
       if (decayRatio >= 1.0) {
         this.state = CometEntity.STATE.DEAD;
       } else {
-        // Tốc độ tàn nhanh dần (accelerated fading)
         const fadeRatio = Math.pow(decayRatio, 2.2);
         // Fade out opacity
         this.coreMesh.material.opacity = 1.0 - fadeRatio;
@@ -194,7 +207,11 @@ export class CometEntity {
         if (this.preset?.shellType !== 'comet_cluster_notrail') {
           const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
           const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
-          this.coreMesh.scale.set(baseScaleX * scale, baseScaleY * scale, baseScaleX * scale);
+          this.coreMesh.scale.set(
+            baseScaleX * scale,
+            baseScaleY * scale,
+            baseScaleX * scale
+          );
         }
       }
     }
@@ -205,7 +222,8 @@ export class CometEntity {
 
     const isStrobeActive = this.preset?.strobe && 
                            this.state === CometEntity.STATE.LAUNCHING && 
-                           heightRatio >= 0.5;
+                           heightRatio >= 0.5 &&
+                           !this.isFading;
 
     // Hiệu ứng lung linh (shimmer/twinkle) bằng cách dao động liên tục opacity và scale của lõi comet
     if (isStrobeActive) {
@@ -233,12 +251,15 @@ export class CometEntity {
         this.coreMesh.material.color.b = this.coreColor.b + (1.0 - this.coreColor.b) * blendFactor;
       }
     } else {
-      this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING) : true;
+      this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING || this.isFading) : true;
       if (this.coreMesh.material && this.coreMesh.material.color) {
-        this.coreMesh.material.color.copy(this.coreColor);
+        this.coreMesh.material.color.copy(this.color);
       }
       // Khôi phục scale gốc
-      if (this.preset?.shellType !== 'comet_cluster_notrail') {
+      if (
+        !this.isFading &&
+        this.preset?.shellType !== 'comet_cluster_notrail'
+      ) {
         const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
         const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
         this.coreMesh.scale.set(
