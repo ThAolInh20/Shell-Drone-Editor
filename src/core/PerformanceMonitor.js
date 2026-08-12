@@ -1,3 +1,5 @@
+import { renderingConfig } from '../config/rendering.js';
+
 export class PerformanceMonitor {
   constructor() {
     this.fps = 0;
@@ -5,6 +7,8 @@ export class PerformanceMonitor {
     this.memory = null;
     this.deltaAccumulator = 0;
     this.frameCount = 0;
+    this.totalFrames = 0;
+    this.fpsDropCount = 0;
     this.createOverlay();
   }
 
@@ -22,12 +26,13 @@ export class PerformanceMonitor {
     this.overlay.style.borderRadius = '8px';
     this.overlay.style.zIndex = '999';
     this.overlay.style.pointerEvents = 'none';
-    this.overlay.innerHTML = 'FPS: --<br>Frame: -- ms<br>Memory: --';
+    this.overlay.innerHTML = 'FPS: --<br>Frame: -- ms<br>Memory: --<br>FPS Drops: 0';
     document.body.appendChild(this.overlay);
   }
 
   update(deltaTime) {
     this.frameCount += 1;
+    this.totalFrames += 1;
     this.deltaAccumulator += deltaTime;
     this.frameTime = Math.round(deltaTime * 1000);
 
@@ -38,6 +43,18 @@ export class PerformanceMonitor {
 
     if (this.deltaAccumulator >= 1.0) {
       this.fps = Math.round((this.frameCount / this.deltaAccumulator) * 10) / 10;
+      
+      const perfConfig = renderingConfig.performance || {
+        fpsThreshold: 70,
+        minFrameCount: 40
+      };
+      
+      if (this.totalFrames > perfConfig.minFrameCount) {
+        if (this.fps < perfConfig.fpsThreshold) {
+          this.fpsDropCount += 1;
+        }
+      }
+
       this.deltaAccumulator = 0;
       this.frameCount = 0;
       this.renderStats();
@@ -45,7 +62,7 @@ export class PerformanceMonitor {
   }
 
   renderStats() {
-    this.overlay.innerHTML = `FPS: ${this.getFPS()}<br>Frame: ${this.getFrameTime()} ms<br>Memory: ${this.getMemoryUsage()}`;
+    this.overlay.innerHTML = `FPS: ${this.getFPS()}<br>Frame: ${this.getFrameTime()} ms<br>Memory: ${this.getMemoryUsage()}<br>FPS Drops: ${this.fpsDropCount}`;
   }
 
   getFPS() {

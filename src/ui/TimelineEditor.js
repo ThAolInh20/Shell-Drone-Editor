@@ -338,10 +338,30 @@ export class TimelineEditor {
     this.fileIndicator.style.marginLeft = '10px';
     this.updateFileIndicator();
 
+    const groupBtn = document.createElement('button');
+    groupBtn.textContent = t('editor.timelinePanel.groupBtn') || 'Group';
+    groupBtn.addEventListener(
+      'click',
+      () => {
+        this.groupSelected();
+      }
+    );
+
+    const ungroupBtn = document.createElement('button');
+    ungroupBtn.textContent = t('editor.timelinePanel.ungroupBtn') || 'Ungroup';
+    ungroupBtn.addEventListener(
+      'click',
+      () => {
+        this.ungroupSelected();
+      }
+    );
+
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
     toolbar.appendChild(addFileDropdownContainer);
+    toolbar.appendChild(groupBtn);
+    toolbar.appendChild(ungroupBtn);
     toolbar.appendChild(this.fileIndicator);
     toolbar.appendChild(importBtn);
     toolbar.appendChild(saveBtn);
@@ -618,6 +638,22 @@ export class TimelineEditor {
 
       this.hotkeyManager.register(
         'timeline',
+        'g',
+        () => {
+          this.groupSelected();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'shift+g',
+        () => {
+          this.ungroupSelected();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
         '[',
         () => {
           this.seekToPreviousBeat();
@@ -666,6 +702,113 @@ export class TimelineEditor {
         }
       }
     });
+  }
+
+  groupSelected() {
+    if (
+      !this.selectedEvents ||
+      this.selectedEvents.length < 2
+    ) {
+      return;
+    }
+
+    this.saveHistoryState();
+
+    const minTime = Math.min(
+      ...this.selectedEvents.map((s) => {
+        return s.time;
+      })
+    );
+
+    const maxEndTime = Math.max(
+      ...this.selectedEvents.map((s) => {
+        const visualDurationVal = s.uiDuration !== undefined
+          ? s.uiDuration
+          : (s.duration || 0);
+        return s.time + visualDurationVal;
+      })
+    );
+
+    const duration = maxEndTime - minTime;
+
+    const groupBlock = {
+      time: Math.round(minTime * 10) / 10,
+      type: 'group',
+      name: t('editor.timelinePanel.groupBlockName') || 'Event Group',
+      duration: Math.round(duration * 10) / 10,
+      uiDuration: Math.round(duration * 10) / 10,
+      children: this.selectedEvents.map((s) => {
+        const clone = JSON.parse(
+          JSON.stringify(s)
+        );
+        clone.timeOffset = Math.round((s.time - minTime) * 10) / 10;
+        return clone;
+      })
+    };
+
+    // Remove selected events from sequences and push the new group block
+    this.sequences = this.sequences.filter((s) => {
+      return !this.selectedEvents.includes(s);
+    });
+    this.sequences.push(groupBlock);
+    this.selectedEvents = [groupBlock];
+
+    this.renderTracks();
+    this.inspector.show(groupBlock);
+
+    this.showDirector.loadScript(this.getFlattenedSequences());
+  }
+
+  ungroupSelected() {
+    if (
+      !this.selectedEvents ||
+      this.selectedEvents.length === 0
+    ) {
+      return;
+    }
+
+    const groups = this.selectedEvents.filter((s) => {
+      return s.type === 'group';
+    });
+
+    if (groups.length === 0) {
+      return;
+    }
+
+    this.saveHistoryState();
+    const newSelected = [];
+
+    groups.forEach((group) => {
+      if (group.children) {
+        group.children.forEach((child) => {
+          const restoredChild = JSON.parse(
+            JSON.stringify(child)
+          );
+          restoredChild.time = Math.round(
+            (group.time + (child.timeOffset || 0)) * 10
+          ) / 10;
+          delete restoredChild.timeOffset;
+          this.sequences.push(restoredChild);
+          newSelected.push(restoredChild);
+        });
+      }
+      this.sequences = this.sequences.filter((s) => {
+        return s !== group;
+      });
+    });
+
+    this.selectedEvents = newSelected;
+    this.renderTracks();
+
+    if (this.selectedEvents.length > 0) {
+      this.inspector.show(
+        this.selectedEvents[this.selectedEvents.length - 1]
+      );
+    } else {
+      this.inspector.hide();
+    }
+
+    this.showDirector.loadScript(this.getFlattenedSequences());
   }
 
   changeZoom() {
@@ -845,6 +988,33 @@ export class TimelineEditor {
     }
   }
 
+  getFlattenedSequences() {
+    const result = [];
+    this.sequences.forEach((seq) => {
+      if (seq._deleted) {
+        return;
+      }
+      if (
+        seq.type === 'group' &&
+        seq.children
+      ) {
+        seq.children.forEach((child) => {
+          if (child._deleted) {
+            return;
+          }
+          const childTime = seq.time + (child.timeOffset || 0);
+          result.push({
+            ...child,
+            time: Math.round(childTime * 10) / 10
+          });
+        });
+      } else {
+        result.push(seq);
+      }
+    });
+    return result;
+  }
+
   seek(time) {
     this.autoScrollEnabled = true;
     if (this.followBtn) {
@@ -853,7 +1023,7 @@ export class TimelineEditor {
     }
 
     this.sequences = this.sequences.filter(s => !s._deleted);
-    this.showDirector.loadScript(this.sequences);
+    this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(time);
     this.playhead.style.left = (time * this.pixelsPerSecond) + 'px';
   }
@@ -908,7 +1078,7 @@ export class TimelineEditor {
 
       // Let showDirector know we loaded a new audio file so it can prep playback if needed
       const currentTime = this.showDirector.elapsedTime;
-      this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+      this.showDirector.loadScript(this.getFlattenedSequences());
       this.showDirector.seek(currentTime);
     });
 
@@ -972,7 +1142,7 @@ export class TimelineEditor {
     this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
 
     const currentTime = this.showDirector.elapsedTime;
-    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
   }
 
@@ -1003,7 +1173,7 @@ export class TimelineEditor {
     this.trackContainer.scrollLeft = Math.max(0, scrollPos - 100);
 
     const currentTime = this.showDirector.elapsedTime;
-    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
     alert(`Đã chèn nối tiếp kịch bản "${fileName}" thành công tại ${time.toFixed(1)}s!`);
   }
@@ -1090,7 +1260,34 @@ export class TimelineEditor {
       block.style.whiteSpace = 'nowrap';
       block.style.userSelect = 'none';
 
-      if (seq.type === 'cometsequence') {
+      if (seq.type === 'group') {
+        const getBlockColor = (type) => {
+          if (type === 'cometsequence') {
+            return '#d84315';
+          }
+          if (type === 'finale') {
+            return '#c2185b';
+          }
+          if (type === 'audio') {
+            return '#673ab7';
+          }
+          if (type === 'droneshow') {
+            return '#00b4db';
+          }
+          return '#1565c0';
+        };
+        const childColors = (seq.children || []).map((child) => {
+          return getBlockColor(child.type);
+        });
+        const uniqueColors = [...new Set(childColors)];
+        if (uniqueColors.length > 1) {
+          block.style.background = `linear-gradient(90deg, ${uniqueColors.join(', ')})`;
+        } else if (uniqueColors.length === 1) {
+          block.style.background = `linear-gradient(90deg, ${uniqueColors[0]}, ${uniqueColors[0]})`;
+        } else {
+          block.style.background = 'linear-gradient(90deg, #555, #777)';
+        }
+      } else if (seq.type === 'cometsequence') {
         block.style.background = 'linear-gradient(90deg, #d84315, #ff9800)';
       } else if (seq.type === 'finale') {
         block.style.background = 'linear-gradient(90deg, #c2185b, #e91e63)';
@@ -1105,7 +1302,9 @@ export class TimelineEditor {
       const textSpan = document.createElement('span');
       textSpan.style.pointerEvents = 'none';
 
-      if (seq.type === 'audio') {
+      if (seq.type === 'group') {
+        textSpan.textContent = seq.name || t('editor.timelinePanel.groupBlockName') || 'Event Group';
+      } else if (seq.type === 'audio') {
         textSpan.textContent = t(
           'editor.timelinePanel.audioBlock',
           {
@@ -1402,7 +1601,7 @@ export class TimelineEditor {
         this.currentFilePath = filePath;
         this.updateFileIndicator();
         this.renderTracks();
-        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+        this.showDirector.loadScript(this.getFlattenedSequences());
         alert(t('editor.timelinePanel.importSuccess', { filename }));
       }
 
@@ -1434,7 +1633,7 @@ export class TimelineEditor {
         this.filename = file.name;
         this.updateFileIndicator();
         this.renderTracks();
-        this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+        this.showDirector.loadScript(this.getFlattenedSequences());
         alert("Import thành công!");
       } catch (err) {
         alert("Lỗi khi đọc file JSON: " + err.message);
@@ -1444,11 +1643,20 @@ export class TimelineEditor {
     reader.readAsText(file);
   }
 
+  cleanSequence(s) {
+    const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
+    if (cleanObj.type === 'group' && cleanObj.children) {
+      cleanObj.children = cleanObj.children.map((child) => {
+        return this.cleanSequence(child);
+      });
+    }
+    return cleanObj;
+  }
+
   async saveSequence() {
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
-      const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
-      return cleanObj;
+      return this.cleanSequence(s);
     });
 
     const content = JSON.stringify(cleanSeqs, null, 2);
@@ -1520,8 +1728,7 @@ export class TimelineEditor {
 
     // Cleanup temporary variables
     const cleanSeqs = sourceEvents.filter(s => !s._deleted).map(s => {
-      const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
-      return cleanObj;
+      return this.cleanSequence(s);
     });
 
     const content = JSON.stringify(cleanSeqs, null, 2);
@@ -1578,7 +1785,7 @@ export class TimelineEditor {
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
-    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
     this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
 
@@ -1601,7 +1808,7 @@ export class TimelineEditor {
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
-    this.showDirector.loadScript(this.sequences.filter(s => !s._deleted));
+    this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
     this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
 

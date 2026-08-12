@@ -9,6 +9,7 @@
 ## Bug Fixes
 - Fixed a ghosting display issue where selected drones left shadows or visual artifacts of their old positions after being rotated, scaled, or during undo/redo actions.
 - Prevented the standard axes (X, Y, Z) from highlighting yellow when hovering over or interacting with the diagonal scale handles.
+- Fixed a bug where the Gizmo was not visible when the application was launched in formation mode.
 
 ## Updates
 - Removed the separate Undo/Redo buttons from the Gizmo Panel since they are standard keyboard actions.
