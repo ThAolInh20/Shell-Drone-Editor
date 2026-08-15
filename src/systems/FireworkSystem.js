@@ -768,7 +768,7 @@ export class FireworkSystem {
       let clusterCount;
       if (item.shellType === 'bouquetCometSphere') {
         // Needs a lot more particles to form a recognizable sphere
-        clusterCount = 70 + Math.floor(Math.random() * 20); // 45 to 65
+        clusterCount = 35 + Math.floor(Math.random() * 20); // 45 to 65
       } else {
         clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
       }
@@ -786,9 +786,9 @@ export class FireworkSystem {
           const t = (i + 0.5) / clusterCount;
           const phi = Math.acos(1 - 2 * t);
           const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-          
+
           // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
-          const speed = 55 + Math.random() * 5; 
+          const speed = 55 + Math.random() * 5;
 
           vx = Math.cos(theta) * Math.sin(phi) * speed;
           vy = Math.cos(phi) * speed;

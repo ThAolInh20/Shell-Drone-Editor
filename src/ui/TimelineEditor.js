@@ -23,6 +23,7 @@ export class TimelineEditor {
     this.initialDuration = 0;
     this.filename = 'demoShow.json';
     this.anchorTime = 0;
+    this.lastBPressTime = 0;
     this.autoScrollEnabled = true;
     this.currentFilePath = null;
     this.undoStack = [];
@@ -1861,31 +1862,66 @@ export class TimelineEditor {
       relativeTime >= 0 &&
       relativeTime <= (audioSeq.duration || 9999)
     ) {
-      this.saveHistoryState();
-      if (!audioSeq.beats) {
-        audioSeq.beats = [];
-      }
-      
-      const roundedTime =
-        Math.round(relativeTime * 100) / 100;
-      const isDuplicate = audioSeq.beats.some(
-        (b) => {
-          return Math.abs(b - roundedTime) < 0.1;
-        }
-      );
+      const now = Date.now();
+      const isDoublePress = now - (this.lastBPressTime || 0) < 400;
+      this.lastBPressTime = now;
 
-      if (!isDuplicate) {
-        audioSeq.beats.push(roundedTime);
-        audioSeq.beats.sort(
-          (a, b) => {
-            return a - b;
+      if (isDoublePress) {
+        // Tìm beat gần nhất trong khoảng 0.4s để xóa
+        let closestBeat = null;
+        let minDiff = 0.4;
+        if (audioSeq.beats) {
+          audioSeq.beats.forEach((b) => {
+            const diff = Math.abs(b - relativeTime);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestBeat = b;
+            }
+          });
+        }
+
+        if (closestBeat !== null) {
+          this.saveHistoryState();
+          audioSeq.beats = audioSeq.beats.filter(
+            (b) => {
+              return b !== closestBeat;
+            }
+          );
+          this.renderTracks();
+          if (
+            this.inspector.selectedEvent === audioSeq
+          ) {
+            this.inspector.render();
+          }
+        }
+      } else {
+        // Single press: Thêm beat
+        this.saveHistoryState();
+        if (!audioSeq.beats) {
+          audioSeq.beats = [];
+        }
+        
+        const roundedTime =
+          Math.round(relativeTime * 100) / 100;
+        const isDuplicate = audioSeq.beats.some(
+          (b) => {
+            return Math.abs(b - roundedTime) < 0.1;
           }
         );
-        this.renderTracks();
-        if (
-          this.inspector.selectedEvent === audioSeq
-        ) {
-          this.inspector.render();
+
+        if (!isDuplicate) {
+          audioSeq.beats.push(roundedTime);
+          audioSeq.beats.sort(
+            (a, b) => {
+              return a - b;
+            }
+          );
+          this.renderTracks();
+          if (
+            this.inspector.selectedEvent === audioSeq
+          ) {
+            this.inspector.render();
+          }
         }
       }
     }
