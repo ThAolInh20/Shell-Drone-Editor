@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
-const GRAVITY = -30;
+const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
 
-const MAX_PARTICLES = 50000;
+const MAX_PARTICLES = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
 
 export class TrailSystem {
   constructor(scene) {
