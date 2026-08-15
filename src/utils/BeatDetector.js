@@ -60,7 +60,70 @@ export class BeatDetector {
     // Now analyze the filtered buffer
     const channelData = filteredBuffer.getChannelData(0);
     const sampleRate = filteredBuffer.sampleRate;
-    
+
+    // Check if we can offload calculations to Web Worker
+    if (typeof window !== 'undefined' && window.Worker) {
+      return new Promise((resolve, reject) => {
+        try {
+          const worker = new Worker(
+            new URL(
+              '../workers/beatDetector.worker.js',
+              import.meta.url
+            ),
+            {
+              type: 'module'
+            }
+          );
+
+          worker.onmessage = (event) => {
+            resolve(event.data);
+            worker.terminate();
+          };
+
+          worker.onerror = (err) => {
+            reject(err);
+            worker.terminate();
+          };
+
+          // Transfer channelData buffer to avoid memory copies
+          worker.postMessage(
+            {
+              channelData,
+              sampleRate,
+              threshold
+            },
+            [
+              channelData.buffer
+            ]
+          );
+        } catch (err) {
+          // Gracefully fallback to inline computation if worker creation fails
+          console.warn(
+            'Worker creation failed, falling back to inline beat detection:',
+            err
+          );
+          resolve(this.detectBeatsInline(
+            channelData,
+            sampleRate,
+            threshold
+          ));
+        }
+      });
+    }
+
+    // Fallback to inline processing (Node.js tests, etc.)
+    return this.detectBeatsInline(
+      channelData,
+      sampleRate,
+      threshold
+    );
+  }
+
+  static detectBeatsInline(
+    channelData,
+    sampleRate,
+    threshold
+  ) {
     // Divide the audio into windows of 50ms
     const windowSizeMs = 50;
     const samplesPerWindow = Math.round(
