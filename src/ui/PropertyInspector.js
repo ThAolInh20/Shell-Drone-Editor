@@ -60,8 +60,8 @@ export class PropertyInspector {
 
   getSchema() {
     const isCometPreset = (event) => {
-      return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet')) 
-          || (typeof event.preset === 'string' && (event.preset.startsWith('comet_cluster') || event.preset.includes('comet')));
+      return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet'))
+        || (typeof event.preset === 'string' && (event.preset.startsWith('comet_cluster') || event.preset.includes('comet')));
     };
 
     return {
@@ -170,7 +170,7 @@ export class PropertyInspector {
       const header = document.createElement('div');
       const isCollapsed = this.collapsedGroups[group.groupKey] === true;
       header.className = `inspector-accordion-header ${!isCollapsed ? 'active' : ''}`;
-      
+
       const titleWrapper = document.createElement('div');
       titleWrapper.style.display = 'flex';
       titleWrapper.style.alignItems = 'center';
@@ -185,7 +185,7 @@ export class PropertyInspector {
         helpIcon.className = 'inspector-help-icon';
         helpIcon.textContent = '❓';
         helpIcon.title = t('editor.inspector.help.geometryOffsetsTooltip') || 'Help';
-        
+
         helpIcon.addEventListener('click', (e) => {
           e.stopPropagation();
           this.showHelpState[group.groupKey] = !this.showHelpState[group.groupKey];
@@ -202,7 +202,7 @@ export class PropertyInspector {
 
       header.appendChild(titleWrapper);
       header.appendChild(arrowSpan);
-      
+
       header.addEventListener('click', () => {
         this.collapsedGroups[group.groupKey] = !isCollapsed;
         this.render();
@@ -308,7 +308,7 @@ export class PropertyInspector {
       if (field.type === 'number') {
         val = val === '' ? undefined : parseFloat(val);
       }
-      
+
       this.triggerUpdate('beforeChange');
 
       if (val === '' || val === undefined) {
@@ -507,7 +507,7 @@ export class PropertyInspector {
 
     // Position dial pointer initially
     const currentRad = (rad !== undefined && rad !== null) ? rad : 0;
-    dialLine.style.transform = `translate(-50%, -50%) rotate(${currentRad - Math.PI/2}rad)`;
+    dialLine.style.transform = `translate(-50%, -50%) rotate(${currentRad - Math.PI / 2}rad)`;
 
     // Dial mouse/pointer interaction
     dial.addEventListener('pointerdown', (e) => {
@@ -519,7 +519,7 @@ export class PropertyInspector {
       const updateAngle = (pe) => {
         const dx = pe.clientX - centerX;
         const dy = pe.clientY - centerY;
-        
+
         // Deflection angle from vertical (straight up is 0 rad)
         let deflectionRad = Math.atan2(dx, -dy);
         const maxLimitRad = 80 * Math.PI / 180;
@@ -529,7 +529,7 @@ export class PropertyInspector {
         this.selectedEvent.angle = deflectionRad;
         this.triggerUpdate();
 
-        dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI/2}rad)`;
+        dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
         angleInput.value = Math.round(90 - (deflectionRad * 180 / Math.PI));
       };
 
@@ -562,7 +562,7 @@ export class PropertyInspector {
       const deflectionRad = (offsetDeg * Math.PI) / 180;
 
       this.selectedEvent.angle = deflectionRad;
-      dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI/2}rad)`;
+      dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
       this.triggerUpdate();
     });
 
@@ -611,7 +611,7 @@ export class PropertyInspector {
       const currentDegVal = 90 - Math.round(rad * 180 / Math.PI);
       if (angleInput.value != currentDegVal && document.activeElement !== angleInput) {
         angleInput.value = currentDegVal;
-        dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI/2}rad)`;
+        dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI / 2}rad)`;
       }
     }
   }
@@ -624,9 +624,8 @@ export class PropertyInspector {
       event.beats = [];
     }
 
-    /*
     const threshWrapper = document.createElement('div');
-    threshWrapper.className = 'input-group';
+    threshWrapper.className = 'input-group inspector-field-span-2';
     threshWrapper.style.flexDirection = 'column';
     threshWrapper.style.alignItems = 'stretch';
     threshWrapper.style.marginBottom = '12px';
@@ -672,32 +671,14 @@ export class PropertyInspector {
     threshWrapper.appendChild(threshLabel);
     threshWrapper.appendChild(sliderContainer);
     parent.appendChild(threshWrapper);
-    */
 
     const btnContainer = document.createElement('div');
+    btnContainer.className = 'inspector-field-span-2';
     btnContainer.style.display = 'flex';
     btnContainer.style.flexDirection = 'column';
     btnContainer.style.gap = '8px';
     btnContainer.style.marginBottom = '12px';
 
-    const tapBtn = document.createElement('button');
-    tapBtn.className = 'btn';
-    tapBtn.style.background = '#ffd700';
-    tapBtn.style.color = '#000';
-    tapBtn.textContent =
-      t('editor.inspector.fields.tapBeatBtn') ||
-      'Go nhip thu cong (Phim B)';
-    tapBtn.addEventListener(
-      'click',
-      () => {
-        window.dispatchEvent(
-          new CustomEvent('timeline:tap-beat')
-        );
-      }
-    );
-    btnContainer.appendChild(tapBtn);
-
-    /*
     const autoBtn = document.createElement('button');
     autoBtn.className = 'btn';
     autoBtn.style.background = '#9c27b0';
@@ -705,7 +686,7 @@ export class PropertyInspector {
     autoBtn.textContent =
       t('editor.inspector.fields.autoBeatBtn') ||
       'Tu dong tao nhip (Auto)';
-    
+
     const loadingText = document.createElement('div');
     loadingText.style.fontSize = '12px';
     loadingText.style.color = '#ffd700';
@@ -726,7 +707,7 @@ export class PropertyInspector {
           event._beatThreshold !== undefined
             ? event._beatThreshold
             : 1.3;
-        
+
         autoBtn.disabled = true;
         autoBtn.style.opacity = '0.5';
         loadingText.style.display = 'block';
@@ -739,7 +720,7 @@ export class PropertyInspector {
             source,
             threshold
           );
-          
+
           this.triggerUpdate('beforeChange');
           event.beats = beats;
           this.triggerUpdate();
@@ -748,7 +729,7 @@ export class PropertyInspector {
           alert(
             (t('editor.inspector.fields.analyzeError') ||
               'Loi khi phan tich am thanh: ') +
-              err.message
+            err.message
           );
         } finally {
           autoBtn.disabled = false;
@@ -759,7 +740,6 @@ export class PropertyInspector {
     );
     btnContainer.appendChild(autoBtn);
     btnContainer.appendChild(loadingText);
-    */
 
     const clearBtn = document.createElement('button');
     clearBtn.className = 'btn btn-secondary';
@@ -772,7 +752,7 @@ export class PropertyInspector {
         if (
           confirm(
             t('editor.inspector.fields.confirmClearBeats') ||
-              'Ban co chac chan muon xoa toan bo diem nhip?'
+            'Ban co chac chan muon xoa toan bo diem nhip?'
           )
         ) {
           this.triggerUpdate('beforeChange');
