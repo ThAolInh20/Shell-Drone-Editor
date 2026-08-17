@@ -9,7 +9,7 @@
 ## 下载与安装指南
 
 ### 方法 1: 使用 Git (推荐)
-如果您的计算机已安装 Git，请打开终端（或命令提示符/PowerShell）并运行以下命令：
+如果您的计算机已安装 [Git](https://git-scm.com/)（如果需要，请在[这里](https://git-scm.com/downloads)下载 Git），请打开终端（或命令提示符/PowerShell）并运行以下命令：
 ```bash
 git clone https://github.com/ThAolInh20/Shell-Drone-Editor.git
 cd shell-drone-animation
@@ -24,7 +24,7 @@ cd shell-drone-animation
 
 ## 环境设置与运行应用程序
 
-该项目需要 **Node.js** 18 或更高版本。在继续之前，请确保已安装 Node.js。
+该项目需要 **[Node.js](https://nodejs.org/)** 18 或更高版本（如果需要，请在[这里](https://nodejs.org/en/download)下载 Node.js）。在继续之前，请确保已安装 Node.js。
 
 ### 步骤 1: 安装依赖项
 在项目的根文件夹 (`shell-drone-animation`) 打开终端并执行：

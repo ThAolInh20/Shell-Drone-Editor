@@ -9,7 +9,7 @@ Dự án này là một ứng dụng mô phỏng và biên tập trình diễn p
 ## Hướng dẫn Tải và Cài đặt mã nguồn
 
 ### Cách 1: Sử dụng Git (Khuyên dùng)
-Nếu máy bạn đã cài đặt Git, hãy mở Terminal (hoặc Command Prompt/PowerShell) và chạy lệnh sau:
+Nếu máy bạn đã cài đặt [Git](https://git-scm.com/) (bạn có thể tải Git [tại đây](https://git-scm.com/downloads)), hãy mở Terminal (hoặc Command Prompt/PowerShell) và chạy lệnh sau:
 ```bash
 git clone https://github.com/ThAolInh20/Shell-Drone-Editor.git
 cd shell-drone-animation
@@ -24,7 +24,7 @@ cd shell-drone-animation
 
 ## Cài đặt Môi trường & Chạy Ứng dụng
 
-Dự án yêu cầu **Node.js** phiên bản 18 trở lên. Hãy đảm bảo bạn đã cài đặt Node.js trước khi tiếp tục.
+Dự án yêu cầu **[Node.js](https://nodejs.org/)** phiên bản 18 trở lên (bạn có thể tải Node.js [tại đây](https://nodejs.org/en/download)). Hãy đảm bảo bạn đã cài đặt Node.js trước khi tiếp tục.
 
 ### Bước 1: Cài đặt các Thư viện Phụ thuộc (Dependencies)
 Mở terminal tại thư mục gốc của dự án (`shell-drone-animation`) và thực hiện lệnh:

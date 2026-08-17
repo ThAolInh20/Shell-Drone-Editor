@@ -9,7 +9,7 @@ This project is a 3D firework & drone animation simulation and editing applicati
 ## Download and Installation Guide
 
 ### Method 1: Using Git (Recommended)
-If you have Git installed, open your Terminal (or Command Prompt/PowerShell) and run the following commands:
+If you have [Git](https://git-scm.com/) installed (you can download Git [here](https://git-scm.com/downloads)), open your Terminal (or Command Prompt/PowerShell) and run the following commands:
 ```bash
 git clone https://github.com/ThAolInh20/Shell-Drone-Editor.git
 cd shell-drone-animation
@@ -24,7 +24,7 @@ cd shell-drone-animation
 
 ## Environment Setup & Running the Application
 
-The project requires **Node.js** version 18 or higher. Please ensure Node.js is installed before proceeding.
+The project requires **[Node.js](https://nodejs.org/)** version 18 or higher (you can download Node.js [here](https://nodejs.org/en/download)). Please ensure Node.js is installed before proceeding.
 
 ### Step 1: Install Dependencies
 Open the terminal at the project's root folder (`shell-drone-animation`) and execute:
