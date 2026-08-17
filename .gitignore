@@ -23,10 +23,8 @@ dist-electron/
 *.njsproj
 *.sln
 *.sw?
-.agent
 _bmad
 .github
-.agents
 
 public/
 dist-electron.zip

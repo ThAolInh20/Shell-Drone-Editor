@@ -43,3 +43,6 @@
 
 ## 开源许可
 - 本软件基于 **[MIT 许可证](https://github.com/ThAolInh20/Shell-Drone_3d/blob/main/LICENSE)** 提供
+
+## 相关
+- **[指南](https://drone-shell-wiki.netlify.app/)**

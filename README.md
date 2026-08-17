@@ -43,3 +43,6 @@ This is free open-source software, and you can inspect the code directly on the 
 
 ## License
 - The software is licensed under the **[MIT License](https://github.com/ThAolInh20/Shell-Drone_3d/blob/main/LICENSE)**
+
+## Related
+- **[Guide](https://drone-shell-wiki.netlify.app/)**

@@ -43,3 +43,6 @@
 
 ## ライセンス
 - 本ソフトウェアは**[MITライセンス](https://github.com/ThAolInh20/Shell-Drone_3d/blob/main/LICENSE)**の下で提供されています。
+
+## 関連
+- **[ガイド](https://drone-shell-wiki.netlify.app/)**

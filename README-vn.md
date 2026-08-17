@@ -40,3 +40,6 @@ Lưu ý: Quá trình cài đặt có thể cảnh báo bảo mật của Windows
 
 ## Giấy phép
 - Phần mềm được cấp giấy phép **[Mit](https://github.com/ThAolInh20/Shell-Drone_3d/blob/main/LICENSE)**
+
+## Liên quan
+- **[Hướng dẫn](https://drone-shell-wiki.netlify.app/)**
