@@ -1,20 +1,18 @@
-# Release Notes - v2.2.2
+# Release Notes - v2.2.3
 
 ## Features
-- Added keyboard shortcuts (Ctrl + Arrow keys) to quickly translate, rotate, and scale selection in viewport space.
-- Added a keyboard shortcut (Ctrl + G) to cycle sequentially through Gizmo modes (move -> Rotate -> Scale).
-- Added diagonal scale handles in the viewport for uniform scaling on all axes.
-- Added a configuration file (editor.js) allowing step size customization for Gizmo translation, rotation, and scaling.
+- Offloaded audio analysis and beat detection to prevent the user interface from freezing during playback.
+- Added configuration settings for audio controls.
+- Centralized configuration settings for the firework shell system.
+- Added a keyboard shortcut (double-pressing 'B') to toggle beat checks in the timeline editor.
+- Added tracking and monitoring for dropped frames to analyze performance.
+- Added support for grouping and ungrouping blocks in the timeline editor.
 
 ## Bug Fixes
-- Fixed a ghosting display issue where selected drones left shadows or visual artifacts of their old positions after being rotated, scaled, or during undo/redo actions.
-- Prevented the standard axes (X, Y, Z) from highlighting yellow when hovering over or interacting with the diagonal scale handles.
-- Fixed a bug where the Gizmo was not visible when the application was launched in formation mode.
+- Fixed an issue where the screen or editor could freeze or display static on startup.
 
 ## Updates
-- Removed the separate Undo/Redo buttons from the Gizmo Panel since they are standard keyboard actions.
-- Reorganized project directory structure and updated application configurations for better stability.
-- Updated project documentation with relative file path conventions and structure guidelines.
+- Improved the visual effects of comet and cluster firework shells.
 
 ## Chores
-- Cleaned up language translation files to remove emojis and clean up hardcoded UI texts.
+- Disabled local Windows code signing for development builds.
