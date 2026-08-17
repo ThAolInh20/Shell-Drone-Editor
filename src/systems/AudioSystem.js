@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
+import { AUDIO_CONFIG } from '../config/audio.js';
 
 export class AudioSystem {
   constructor(cameraManager, audioContext = null, eventBus = null) {
     this.cameraManager = cameraManager;
-    this.baseURLLegacy = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/329180/';
-    this.baseURLNew = 'https://shellsound.s3.ap-southeast-2.amazonaws.com/effect/';
+    this.baseURLLegacy = AUDIO_CONFIG.baseURL.legacy;
+    this.baseURLNew = AUDIO_CONFIG.baseURL.new;
     this.eventBus = eventBus || globalEventBus;
 
     if (audioContext) {
@@ -15,7 +16,7 @@ export class AudioSystem {
       this.ctx = AudioContextClass ? new AudioContextClass() : null;
     }
 
-    this.speedOfSound = 343; // units/second, assuming 1 unit = 1 meter
+    this.speedOfSound = AUDIO_CONFIG.physics.speedOfSound; // units/second, assuming 1 unit = 1 meter
 
     this.sources = {
       lift: {

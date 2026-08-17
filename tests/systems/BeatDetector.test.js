@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BeatDetector } from '../../src/utils/BeatDetector.js';
 
-describe.skip('BeatDetector', () => {
+describe('BeatDetector', () => {
   beforeEach(() => {
     global.window = global.window || {};
     

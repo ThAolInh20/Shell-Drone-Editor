@@ -6,30 +6,24 @@ import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
 import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
-const GRAVITY = -30;
-const BASE_BURST_PARTICLES = 110;
-const MIN_BURST_PARTICLES = 60;
-const MAX_BURST_PARTICLES = 220;
-const BURST_SPEED = 65;
-const BURST_LIFE = 2.3;
-const BURST_DISSOLVE_START = 0.62;
+const GRAVITY = FIREWORK_CONFIG.GRAVITY;
+const BASE_BURST_PARTICLES = FIREWORK_CONFIG.BURST.baseParticles;
+const MIN_BURST_PARTICLES = FIREWORK_CONFIG.BURST.minParticles;
+const MAX_BURST_PARTICLES = FIREWORK_CONFIG.BURST.maxParticles;
+const BURST_SPEED = FIREWORK_CONFIG.BURST.baseSpeed;
+const BURST_LIFE = FIREWORK_CONFIG.BURST.baseLife;
+const BURST_DISSOLVE_START = FIREWORK_CONFIG.BURST.dissolveStart;
 
-const FIREWORK_COLORS = [
-  0xffd700, // vàng (gold)
-  0xff4500, // cam đỏ (orange red)
-  0x00bfff, // xanh da trời (deep sky blue)
-  0xff69b4, // hồng (hot pink)
-  0x7fffd4, // xanh ngọc (aquamarine)
-  0x8a2be2  // tím (blue violet)
-];
+const FIREWORK_COLORS = FIREWORK_CONFIG.SYSTEM.colors;
 
-const BURST_FADE_EXPONENT = 2.15;
-const CRACKLE_CLOUD_SPEED = 24;
-const BASE_BURST_POINT_SIZE = 26;
+const BURST_FADE_EXPONENT = FIREWORK_CONFIG.SYSTEM.burstFadeExponent;
+const CRACKLE_CLOUD_SPEED = FIREWORK_CONFIG.SYSTEM.crackleCloudSpeed;
+const BASE_BURST_POINT_SIZE = FIREWORK_CONFIG.SYSTEM.baseBurstPointSize;
 
-const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
-const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
+const DEFAULT_TRAIL_COLOR = FIREWORK_CONFIG.SYSTEM.defaultTrailColor;
+const CRACKLE_SPARK_COLOR = FIREWORK_CONFIG.SYSTEM.crackleSparkColor;
 
 export class FireworkSystem {
   constructor(scene, trailSystem, shellPresetFactory = null) {
@@ -67,7 +61,7 @@ export class FireworkSystem {
     this.instancedShellRenderer = new InstancedShellRenderer(scene);
 
     // Global Burst Particle System (Option 2)
-    this.maxBurstParticles = 6000;
+    this.maxBurstParticles = FIREWORK_CONFIG.SYSTEM.maxBurstParticles;
     this.burstParticles = [];
 
     this.burstPositionsArray = new Float32Array(this.maxBurstParticles * 3);
@@ -350,7 +344,7 @@ export class FireworkSystem {
   }
 
   resolveLaunchVelocity(burstHeight) {
-    const gravity = 30; // Trọng lực được định nghĩa là 30 trong update()
+    const gravity = Math.abs(FIREWORK_CONFIG.GRAVITY); // Trọng lực được định nghĩa là 30 trong update()
     const groundY = this.launchZone.center.y;
     const h = Math.max(burstHeight - groundY, 5);
 
@@ -408,33 +402,9 @@ export class FireworkSystem {
       return 10 + Math.floor(Math.random() * 6); // 10-15 particles for sparse comet ring
     }
 
-    const shapeMultiplier = {
-      sphere: 1,
-      ring: 1.08,
-      heart: 1.4,
-      flower: 1.22,
-      cat: 1.2,
-      fish: 1.14,
-      smiley: 1.2,
-      oval: 1.12,
-      willow: 1.18,
-      lightning: 1.16,
-      star: 1.14
-    };
+    const shapeMultiplier = FIREWORK_CONFIG.SHAPE_MULTIPLIERS;
 
-    const effectMultiplier = {
-      standard: 1,
-      crackle: 1.15,
-      floral: 1.18,
-      'falling-leaves': 1.04,
-      heart: 1.22,
-      strobe: 1.08,
-      wave: 1.1,
-      flow: 1.08,
-      snow: 1.08,
-      oval: 1.08,
-      flower: 1.12
-    };
+    const effectMultiplier = FIREWORK_CONFIG.EFFECT_MULTIPLIERS;
 
     const presetMultiplier = Math.max(0.7, Math.min(2.2, preset?.particleCountMultiplier ?? 1));
     const renderModeMultiplier = (
@@ -743,7 +713,11 @@ export class FireworkSystem {
   handleShellUpdate(item, deltaTime, finished) {
     const shouldBurst = item.update(deltaTime);
 
-    if (Math.random() < 0.4) {
+    const activeTrailChance = item.preset?.trailChance !== undefined
+      ? item.preset.trailChance
+      : 0.4;
+
+    if (Math.random() < activeTrailChance) {
       let customLife = null;
       if (item.preset?.noBurst && item.preset?.starLife) {
         const lifeTime = item.preset.starLife / 1000;
@@ -767,10 +741,11 @@ export class FireworkSystem {
     ) {
       let clusterCount;
       if (item.shellType === 'bouquetCometSphere') {
-        // Needs a lot more particles to form a recognizable sphere
-        clusterCount = 70 + Math.floor(Math.random() * 20); // 45 to 65
+        const cfg = FIREWORK_CONFIG.BOUQUET.cometSphere;
+        clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
       } else {
-        clusterCount = 10 + Math.floor(Math.random() * 11); // 10 to 20
+        const cfg = FIREWORK_CONFIG.BOUQUET.default;
+        clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
       }
 
       for (let i = 0; i < clusterCount; i++) {
@@ -786,9 +761,9 @@ export class FireworkSystem {
           const t = (i + 0.5) / clusterCount;
           const phi = Math.acos(1 - 2 * t);
           const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-          
+
           // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
-          const speed = 55 + Math.random() * 5; 
+          const speed = 55 + Math.random() * 5;
 
           vx = Math.cos(theta) * Math.sin(phi) * speed;
           vy = Math.cos(phi) * speed;
@@ -812,12 +787,18 @@ export class FireworkSystem {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
-          subPreset.starLife = 3500; // Increased life time for much longer flight
+          subPreset.starLife = item.shellType === 'bouquetCometSphere'
+            ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
+            : FIREWORK_CONFIG.BOUQUET.default.starLife;
+          subPreset.trailChance = item.shellType === 'bouquetCometSphere'
+            ? FIREWORK_CONFIG.BOUQUET.cometSphere.trailChance
+            : FIREWORK_CONFIG.BOUQUET.default.trailChance;
         } else {
           subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
           subPreset.color = colorHex;
           subPreset.shellType = 'floral-child';
           subPreset.particleCountMultiplier = 0.5; // save FPS
+          subPreset.trailChance = FIREWORK_CONFIG.BOUQUET.default.trailChance;
         }
 
         const subShell = this.createShell(
@@ -853,7 +834,8 @@ export class FireworkSystem {
     }
 
     if (item.shellType === 'bouquetv2') {
-      const clusterCount = 12 + Math.floor(Math.random() * 11); // 12 to 22 child shells
+      const cfg = FIREWORK_CONFIG.BOUQUET.v2;
+      const clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
       const colorMode = item.preset?.colorMode ?? 'parent';
 
       for (let i = 0; i < clusterCount; i++) {
@@ -876,8 +858,9 @@ export class FireworkSystem {
         const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5);
         subPreset.color = colorHex;
         subPreset.shellType = 'floral-child';
-        subPreset.particleCountMultiplier = 0.65; // More glitter particles
+        subPreset.particleCountMultiplier = cfg.particleCountMultiplier; // More glitter particles
         subPreset.launchTrail = true; // Enable trails for children for maximum sparkles
+        subPreset.trailChance = cfg.trailChance;
 
         const subShell = this.createShell(
           burstPosition.clone(),

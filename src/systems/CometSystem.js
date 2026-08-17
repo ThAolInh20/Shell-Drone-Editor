@@ -273,7 +273,10 @@ export class CometSystem {
           });
         }
       }
-      if (comet.state === CometEntity.STATE.DECAYING) {
+      if (
+        comet.state === CometEntity.STATE.DECAYING ||
+        comet.isFading
+      ) {
         if (comet.preset?.sparkleAtEnd) {
           const decayRatio = comet.decayTime / comet.maxDecayTime;
           if (decayRatio > 0.4) {
