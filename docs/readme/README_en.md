@@ -38,7 +38,7 @@ You can run the application using two different methods depending on your needs:
 
 #### Method A: Run as a Desktop App with Electron (Recommended)
 This method launches an independent Desktop application using Electron. Running it this way unlocks advanced native features:
-*   **Direct File Saving (`Shift + S`):** Instantly save edits directly to the source `.json` file **without** going through the browser's download dialog (a seamless experience like professional Notepad).
+*   **Direct File Saving (`Ctrl + S`):** Instantly save edits directly to the source `.json` file **without** going through the browser's download dialog.
 *   **Quick Navigation Menu:** Quickly switch between the 3 editing toolsets via the application's system menu or shortcuts (`Ctrl + 1`, `Ctrl + 2`, `Ctrl + 3`).
 
 To run the application in Desktop mode, use the command:
@@ -56,10 +56,10 @@ Then, access the local address displayed on the terminal (default is `http://loc
 
 ---
 
-## Production Build
+## Compilation and Packaging
 
-### B. Package Desktop Application (.EXE with Electron)
-When you want to package the entire project into an independent Desktop installer software for Windows (`.exe`):
+### B. Package Desktop Application
+When you want to package the entire project into an independent Desktop installer software running on Windows:
 
 1. **Run the Build Command:**
    Run the single command below to automatically compile the source code via Vite and package it with `electron-builder`:
