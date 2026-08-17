@@ -9,9 +9,9 @@ describe('BeatDetector', () => {
       return {
         decodeAudioData: vi.fn().mockResolvedValue({
           numberOfChannels: 1,
-          length: 44100,
+          length: 132300,
           sampleRate: 44100,
-          getChannelData: vi.fn().mockReturnValue(new Float32Array(44100))
+          getChannelData: vi.fn().mockReturnValue(new Float32Array(132300))
         })
       };
     });
@@ -32,13 +32,28 @@ describe('BeatDetector', () => {
       destination: {},
       startRendering: vi.fn().mockResolvedValue({
         numberOfChannels: 1,
-        length: 44100,
+        length: 132300,
         sampleRate: 44100,
         getChannelData: vi.fn().mockImplementation(() => {
-          const data = new Float32Array(44100);
-          const peakSample1 = Math.round(0.5 * 44100);
-          for (let i = -10; i <= 10; i++) {
-            data[peakSample1 + i] = 1.0;
+          const data = new Float32Array(132300);
+          const sampleRate = 44100;
+          const peakTimes = [
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            2.5
+          ];
+          for (const time of peakTimes) {
+            const peakSample = Math.round(time * sampleRate);
+            for (let i = -10; i <= 10; i++) {
+              if (
+                peakSample + i >= 0 &&
+                peakSample + i < data.length
+              ) {
+                data[peakSample + i] = 1.0;
+              }
+            }
           }
           return data;
         })
@@ -53,7 +68,7 @@ describe('BeatDetector', () => {
     global.OfflineAudioContext = global.window.OfflineAudioContext;
   });
 
-  it('should decode audio and return detected beats', async () => {
+  it('should decode audio and return detected beat grid', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(100))
     });
@@ -66,5 +81,9 @@ describe('BeatDetector', () => {
     expect(beats).toBeInstanceOf(Array);
     expect(beats.length).toBeGreaterThan(0);
     expect(beats).toContain(0.5);
+    expect(beats).toContain(1.0);
+    expect(beats).toContain(1.5);
+    expect(beats).toContain(2.0);
+    expect(beats).toContain(2.5);
   });
 });
