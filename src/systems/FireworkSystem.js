@@ -221,14 +221,34 @@ export class FireworkSystem {
     const finalColor = new THREE.Color(finalColorHex);
 
     if (shellPreset.instantBurst) {
-      const burstPos = new THREE.Vector3(position.x, targetHeight, position.z);
-      this.createBurst(
-        burstPos,
-        finalColor,
-        shellPreset.shapeType ?? 'willow',
-        shellPreset,
-        shellId
+      const burstPos = new THREE.Vector3(
+        position.x,
+        targetHeight,
+        position.z
       );
+      const isBouquet = (
+        shellPreset.shellType === 'bouquet'
+        || shellPreset.shellType === 'bouquetComet'
+        || shellPreset.shellType === 'bouquetCometSphere'
+        || shellPreset.shellType === 'bouquetv2'
+      );
+
+      if (isBouquet) {
+        this.triggerBouquetBurst(
+          burstPos,
+          finalColor,
+          shellPreset,
+          shellId
+        );
+      } else {
+        this.createBurst(
+          burstPos,
+          finalColor,
+          shellPreset.shapeType ?? 'willow',
+          shellPreset,
+          shellId
+        );
+      }
       this.diagnostics.bursted += 1;
 
       for (const warning of shellPreset.__contract?.warnings ?? []) {
@@ -237,18 +257,26 @@ export class FireworkSystem {
 
       this.emitDiagnostics();
 
-      const normalizedEnergy = 0.35 + ((shellPreset.shellSize ?? 1 - 1) / 5) * 0.65;
+      const shellSizeVal = shellPreset.shellSize ?? 1;
+      const normalizedEnergy = 0.35 + ((shellSizeVal - 1) / 5) * 0.65;
 
-      this.emitFireworkEvent('firework:burst', {
-        shellId,
-        shellType: shellPreset.shellType ?? shellPreset.shapeType,
-        shapeType: shellPreset.shapeType,
-        effectType: shellPreset.effectType,
-        colorHex: finalColor.getHex(),
-        position: { x: burstPos.x, y: burstPos.y, z: burstPos.z },
-        intensity: normalizedEnergy,
-        duration: 1.25 + normalizedEnergy * 1.1
-      });
+      this.emitFireworkEvent(
+        'firework:burst',
+        {
+          shellId,
+          shellType: shellPreset.shellType ?? shellPreset.shapeType,
+          shapeType: shellPreset.shapeType,
+          effectType: shellPreset.effectType,
+          colorHex: finalColor.getHex(),
+          position: {
+            x: burstPos.x,
+            y: burstPos.y,
+            z: burstPos.z
+          },
+          intensity: normalizedEnergy,
+          duration: 1.25 + normalizedEnergy * 1.1
+        }
+      );
       return;
     }
 
@@ -394,6 +422,166 @@ export class FireworkSystem {
       shapeType: preset?.shapeType ?? shellShape,
       preset
     });
+  }
+
+  triggerBouquetBurst(burstPosition, color, preset, shellId) {
+    const shellType = preset.shellType;
+
+    if (
+      shellType === 'bouquet'
+      || shellType === 'bouquetComet'
+      || shellType === 'bouquetCometSphere'
+    ) {
+      let clusterCount;
+      if (shellType === 'bouquetCometSphere') {
+        const cfg = FIREWORK_CONFIG.BOUQUET.cometSphere;
+        clusterCount = cfg.clusterCountMin + Math.floor(
+          Math.random() * (
+            cfg.clusterCountMax - cfg.clusterCountMin + 1
+          )
+        );
+      } else {
+        const cfg = FIREWORK_CONFIG.BOUQUET.default;
+        clusterCount = cfg.clusterCountMin + Math.floor(
+          Math.random() * (
+            cfg.clusterCountMax - cfg.clusterCountMin + 1
+          )
+        );
+      }
+
+      for (let i = 0; i < clusterCount; i++) {
+        const colorHex = (
+          shellType === 'bouquetComet'
+          || shellType === 'bouquetCometSphere'
+        )
+          ? color.getHex()
+          : FIREWORK_COLORS[
+              Math.floor(
+                Math.random() * FIREWORK_COLORS.length
+              )
+            ];
+        const subColor = new THREE.Color(colorHex);
+
+        let vx, vy, vz;
+
+        if (shellType === 'bouquetCometSphere') {
+          // Use Fibonacci sphere for a perfectly even and clear spherical shell
+          const t = (i + 0.5) / clusterCount;
+          const phi = Math.acos(1 - 2 * t);
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+          // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
+          const speed = 55 + Math.random() * 5;
+
+          vx = Math.cos(theta) * Math.sin(phi) * speed;
+          vy = Math.cos(phi) * speed;
+          vz = Math.sin(theta) * Math.sin(phi) * speed;
+        } else {
+          // Upward spray
+          const speed = 35 + Math.random() * 30; // Increased speed for wider spread
+          const angleY = Math.random() * Math.PI / 2.2;
+          const angleXZ = Math.random() * Math.PI * 2;
+
+          vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+          vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+          vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+        }
+
+        const velocity = new THREE.Vector3(
+          vx,
+          vy,
+          vz
+        );
+        const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
+
+        let subPreset;
+        if (
+          shellType === 'bouquetComet'
+          || shellType === 'bouquetCometSphere'
+        ) {
+          subPreset = this.shellPresetFactory.basePreset(0.5);
+          subPreset.noBurst = true;
+          subPreset.shellType = 'floral-child';
+          subPreset.starLife = shellType === 'bouquetCometSphere'
+            ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
+            : FIREWORK_CONFIG.BOUQUET.default.starLife;
+          subPreset.trailChance = shellType === 'bouquetCometSphere'
+            ? FIREWORK_CONFIG.BOUQUET.cometSphere.trailChance
+            : FIREWORK_CONFIG.BOUQUET.default.trailChance;
+        } else {
+          subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
+          subPreset.color = colorHex;
+          subPreset.shellType = 'floral-child';
+          subPreset.particleCountMultiplier = 0.5; // save FPS
+          subPreset.trailChance = FIREWORK_CONFIG.BOUQUET.default.trailChance;
+        }
+
+        const subShell = this.createShell(
+          burstPosition.clone(),
+          velocity,
+          targetHeight,
+          subColor,
+          subPreset,
+          shellId + '-c' + i
+        );
+
+        this.activeFireworks.push(subShell);
+        this.diagnostics.launched += 1;
+      }
+    } else if (shellType === 'bouquetv2') {
+      const cfg = FIREWORK_CONFIG.BOUQUET.v2;
+      const clusterCount = cfg.clusterCountMin + Math.floor(
+        Math.random() * (
+          cfg.clusterCountMax - cfg.clusterCountMin + 1
+        )
+      );
+      const colorMode = preset?.colorMode ?? 'parent';
+
+      for (let i = 0; i < clusterCount; i++) {
+        const colorHex = colorMode === 'random'
+          ? FIREWORK_COLORS[
+              Math.floor(
+                Math.random() * FIREWORK_COLORS.length
+              )
+            ]
+          : color.getHex();
+        const subColor = new THREE.Color(colorHex);
+
+        const speed = 40 + Math.random() * 35; // Wider spread
+        const angleY = Math.random() * Math.PI / 2.2;
+        const angleXZ = Math.random() * Math.PI * 2;
+
+        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+        const vy = Math.cos(angleY) * speed + 38; // Upward boost
+
+        const velocity = new THREE.Vector3(
+          vx,
+          vy,
+          vz
+        );
+        const targetHeight = burstPosition.y + 1000;
+
+        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5);
+        subPreset.color = colorHex;
+        subPreset.shellType = 'floral-child';
+        subPreset.particleCountMultiplier = cfg.particleCountMultiplier; // More glitter particles
+        subPreset.launchTrail = true; // Enable trails for children for maximum sparkles
+        subPreset.trailChance = cfg.trailChance;
+
+        const subShell = this.createShell(
+          burstPosition.clone(),
+          velocity,
+          targetHeight,
+          subColor,
+          subPreset,
+          shellId + '-c2-' + i
+        );
+
+        this.activeFireworks.push(subShell);
+        this.diagnostics.launched += 1;
+      }
+    }
   }
 
 
@@ -738,81 +926,14 @@ export class FireworkSystem {
       item.shellType === 'bouquet'
       || item.shellType === 'bouquetComet'
       || item.shellType === 'bouquetCometSphere'
+      || item.shellType === 'bouquetv2'
     ) {
-      let clusterCount;
-      if (item.shellType === 'bouquetCometSphere') {
-        const cfg = FIREWORK_CONFIG.BOUQUET.cometSphere;
-        clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
-      } else {
-        const cfg = FIREWORK_CONFIG.BOUQUET.default;
-        clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
-      }
-
-      for (let i = 0; i < clusterCount; i++) {
-        const colorHex = (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere')
-          ? item.color.getHex()
-          : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
-        const subColor = new THREE.Color(colorHex);
-
-        let vx, vy, vz;
-
-        if (item.shellType === 'bouquetCometSphere') {
-          // Use Fibonacci sphere for a perfectly even and clear spherical shell
-          const t = (i + 0.5) / clusterCount;
-          const phi = Math.acos(1 - 2 * t);
-          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-
-          // Use a mostly uniform speed with very slight jitter to maintain the spherical shape
-          const speed = 55 + Math.random() * 5;
-
-          vx = Math.cos(theta) * Math.sin(phi) * speed;
-          vy = Math.cos(phi) * speed;
-          vz = Math.sin(theta) * Math.sin(phi) * speed;
-        } else {
-          // Upward spray
-          const speed = 35 + Math.random() * 30; // Increased speed for wider spread
-          const angleY = Math.random() * Math.PI / 2.2;
-          const angleXZ = Math.random() * Math.PI * 2;
-
-          vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
-          vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-          vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
-        }
-
-        const velocity = new THREE.Vector3(vx, vy, vz);
-        const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
-
-        let subPreset;
-        if (item.shellType === 'bouquetComet' || item.shellType === 'bouquetCometSphere') {
-          subPreset = this.shellPresetFactory.basePreset(0.5);
-          subPreset.noBurst = true;
-          subPreset.shellType = 'floral-child';
-          subPreset.starLife = item.shellType === 'bouquetCometSphere'
-            ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
-            : FIREWORK_CONFIG.BOUQUET.default.starLife;
-          subPreset.trailChance = item.shellType === 'bouquetCometSphere'
-            ? FIREWORK_CONFIG.BOUQUET.cometSphere.trailChance
-            : FIREWORK_CONFIG.BOUQUET.default.trailChance;
-        } else {
-          subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
-          subPreset.color = colorHex;
-          subPreset.shellType = 'floral-child';
-          subPreset.particleCountMultiplier = 0.5; // save FPS
-          subPreset.trailChance = FIREWORK_CONFIG.BOUQUET.default.trailChance;
-        }
-
-        const subShell = this.createShell(
-          burstPosition.clone(),
-          velocity,
-          targetHeight,
-          subColor,
-          subPreset,
-          item.shellId + '-c' + i
-        );
-
-        this.activeFireworks.push(subShell);
-        this.diagnostics.launched += 1;
-      }
+      this.triggerBouquetBurst(
+        burstPosition,
+        item.color,
+        item.preset,
+        item.shellId
+      );
 
       item.markBursted?.();
       finished.push(item);
@@ -820,77 +941,23 @@ export class FireworkSystem {
       const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
       const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
 
-      this.emitFireworkEvent('firework:burst', {
-        shellId: item.shellId,
-        shellType: item.shellType ?? item.shape,
-        shapeType: item.shapeType ?? item.shape,
-        effectType: item.preset?.effectType ?? item.shape,
-        colorHex: item.color.getHex(),
-        position: { x: burstPosition.x, y: burstPosition.y, z: burstPosition.z },
-        intensity: normalizedEnergy,
-        duration: 1.25 + normalizedEnergy * 1.1
-      });
-      return;
-    }
-
-    if (item.shellType === 'bouquetv2') {
-      const cfg = FIREWORK_CONFIG.BOUQUET.v2;
-      const clusterCount = cfg.clusterCountMin + Math.floor(Math.random() * (cfg.clusterCountMax - cfg.clusterCountMin + 1));
-      const colorMode = item.preset?.colorMode ?? 'parent';
-
-      for (let i = 0; i < clusterCount; i++) {
-        const colorHex = colorMode === 'random'
-          ? FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]
-          : item.color.getHex();
-        const subColor = new THREE.Color(colorHex);
-
-        const speed = 40 + Math.random() * 35; // Wider spread
-        const angleY = Math.random() * Math.PI / 2.2;
-        const angleXZ = Math.random() * Math.PI * 2;
-
-        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
-        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-        const vy = Math.cos(angleY) * speed + 38; // Upward boost
-
-        const velocity = new THREE.Vector3(vx, vy, vz);
-        const targetHeight = burstPosition.y + 1000;
-
-        const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5);
-        subPreset.color = colorHex;
-        subPreset.shellType = 'floral-child';
-        subPreset.particleCountMultiplier = cfg.particleCountMultiplier; // More glitter particles
-        subPreset.launchTrail = true; // Enable trails for children for maximum sparkles
-        subPreset.trailChance = cfg.trailChance;
-
-        const subShell = this.createShell(
-          burstPosition.clone(),
-          velocity,
-          targetHeight,
-          subColor,
-          subPreset,
-          item.shellId + '-c2-' + i
-        );
-
-        this.activeFireworks.push(subShell);
-        this.diagnostics.launched += 1;
-      }
-
-      item.markBursted?.();
-      finished.push(item);
-
-      const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
-      const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
-
-      this.emitFireworkEvent('firework:burst', {
-        shellId: item.shellId,
-        shellType: item.shellType ?? item.shape,
-        shapeType: item.shapeType ?? item.shape,
-        effectType: item.preset?.effectType ?? item.shape,
-        colorHex: item.color.getHex(),
-        position: { x: burstPosition.x, y: burstPosition.y, z: burstPosition.z },
-        intensity: normalizedEnergy,
-        duration: 1.25 + normalizedEnergy * 1.1
-      });
+      this.emitFireworkEvent(
+        'firework:burst',
+        {
+          shellId: item.shellId,
+          shellType: item.shellType ?? item.shape,
+          shapeType: item.shapeType ?? item.shape,
+          effectType: item.preset?.effectType ?? item.shape,
+          colorHex: item.color.getHex(),
+          position: {
+            x: burstPosition.x,
+            y: burstPosition.y,
+            z: burstPosition.z
+          },
+          intensity: normalizedEnergy,
+          duration: 1.25 + normalizedEnergy * 1.1
+        }
+      );
       return;
     }
 
