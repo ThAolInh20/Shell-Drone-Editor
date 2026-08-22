@@ -20,13 +20,13 @@ export class AudioSystem {
 
     this.sources = {
       lift: {
-        volume: 0.8,
+        volume: AUDIO_CONFIG.volumes.lift,
         playbackRateMin: 0.85,
         playbackRateMax: 0.95,
         fileNames: ['lift1.mp3', 'lift2.mp3', 'lift3.mp3']
       },
       burst: {
-        volume: 0.9,
+        volume: AUDIO_CONFIG.volumes.burst,
         playbackRateMin: 0.8,
         playbackRateMax: 0.9,
         fileNames: [
@@ -37,19 +37,19 @@ export class AudioSystem {
         ]
       },
       burstSmall: {
-        volume: 0.4,
+        volume: AUDIO_CONFIG.volumes.burstSmall,
         playbackRateMin: 0.8,
         playbackRateMax: 1,
         fileNames: ['burst-sm-1.mp3', 'burst-sm-2.mp3']
       },
       crackle: {
-        volume: 0.3,
+        volume: AUDIO_CONFIG.volumes.crackle,
         playbackRateMin: 1,
         playbackRateMax: 1,
         fileNames: ['crackle1.mp3']
       },
       crackleSmall: {
-        volume: 0.4,
+        volume: AUDIO_CONFIG.volumes.crackleSmall,
         playbackRateMin: 1,
         playbackRateMax: 1,
         fileNames: ['crackle-sm-1.mp3']
@@ -187,10 +187,11 @@ export class AudioSystem {
     const source = this.sources[type];
     if (!source || !source.buffers || source.buffers.length === 0) return;
 
+    const masterVolume = AUDIO_CONFIG.volumes.master ?? 1.0;
     const initialVolume = source.volume;
     const initialPlaybackRate = this.random(source.playbackRateMin, source.playbackRateMax);
 
-    const scaledVolume = initialVolume * volumeScale;
+    const scaledVolume = initialVolume * volumeScale * masterVolume;
     const scaledPlaybackRate = initialPlaybackRate * playbackRateScale;
 
     // Don't play if volume is extremely low (except when unlocking context with 0 volume)
