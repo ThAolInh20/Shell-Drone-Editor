@@ -7,5 +7,14 @@ export const editorConfig = {
 
     // Step size for UI inputs (Scale X, Y, Z in properties panels)
     uiScaleInputStep: 0.05       // default: 0.05
+  },
+  colorMap: {
+    'red': '#ff3333',
+    'gold': '#ffd700',
+    'white': '#ffffff',
+    'blue': '#00bfff',
+    'green': '#4dfb4dff',
+    'purple': '#b567ffff',
+    'pink': '#ff9fcfff'
   }
 };

@@ -1,4 +1,5 @@
 import { t } from '../config/lang/i18n.js';
+import { editorConfig } from '../config/editor.js';
 
 export class PropertyInspector {
   constructor(container, onUpdate, presetOptions = ['random']) {
@@ -368,15 +369,7 @@ export class PropertyInspector {
     label.textContent = t('editor.inspector.fields.color');
     parent.appendChild(label);
 
-    const COLOR_MAP = {
-      'red': '#ff3333',
-      'gold': '#ffd700',
-      'white': '#ffffff',
-      'blue': '#00bfff',
-      'green': '#00ff00',
-      'purple': '#8a2be2',
-      'pink': '#ff69b4'
-    };
+    const COLOR_MAP = editorConfig.colorMap;
 
     const container = document.createElement('div');
     container.className = 'color-badge-container';

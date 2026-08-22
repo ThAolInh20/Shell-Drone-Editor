@@ -221,7 +221,7 @@ export class TimelineEditor {
       exportDropdown.appendChild(itemSelected);
 
       exportContainer.appendChild(exportDropdown);
-      
+
       setTimeout(() => {
         document.addEventListener('click', closeExportDropdown);
       }, 50);
@@ -921,7 +921,7 @@ export class TimelineEditor {
 
     const scrollLeft = this.trackContainer.scrollLeft;
     const viewportWidth = this.trackContainer.clientWidth || window.innerWidth;
-    
+
     // Thêm biên (margin) 2 giây trước và sau viewport để cuộn mượt
     const startTime = Math.max(0, Math.floor(scrollLeft / this.pixelsPerSecond) - 2);
     const endTime = Math.min(600, Math.ceil((scrollLeft + viewportWidth) / this.pixelsPerSecond) + 2);
@@ -1034,10 +1034,10 @@ export class TimelineEditor {
     const newSeq = {
       time: Math.round(time * 10) / 10,
       type: 'sequence',
-      pattern: 'random',
-      count: 10,
-      duration: 2.0,
-      preset: 'strobe'
+      pattern: 'sweep-left',
+      count: 5,
+      duration: 0.1,
+      preset: 'crysanthemum'
     };
     this.sequences.push(newSeq);
     this.selectedEvents = [newSeq];
@@ -1900,7 +1900,7 @@ export class TimelineEditor {
         if (!audioSeq.beats) {
           audioSeq.beats = [];
         }
-        
+
         const roundedTime =
           Math.round(relativeTime * 100) / 100;
         const isDuplicate = audioSeq.beats.some(
