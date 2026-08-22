@@ -34,9 +34,9 @@ export default {
     filePanel: {
       title: "ファイル",
       formatName: "シナリオ名",
-      exportBtn: "ステップ・フォーメーション書き出し",
-      importBtn: "ステップ・フォーメーション読み込み",
-      importAppendBtn: "ステップ・フォーメーションの追加読み込み",
+      exportBtn: "書き出し",
+      importBtn: "読み込み",
+      importAppendBtn: "追加読み込み",
       alertExportSuccess: "ファイルを正常に保存しました: {filename}",
       alertExportError: "ファイル保存エラー: {error}",
       alertImportSuccess: "ファイルから正常にインポートしました: {filename}",

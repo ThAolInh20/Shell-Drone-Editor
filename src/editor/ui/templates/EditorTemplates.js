@@ -9,11 +9,19 @@ export function renderFilePanel() {
         <label>${t('editor.filePanel.formatName')}</label>
         <input type="text" id="ui-name" value="NewFormat" style="width: 120px;" />
       </div>
-      <button class="btn" id="btn-export">${t('editor.filePanel.exportBtn')}</button>
+      <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+        <button class="btn" id="btn-export" style="flex: 1;">
+          ${t('editor.filePanel.exportBtn')}
+        </button>
+        <button class="btn btn-secondary" id="btn-import" style="flex: 1;">
+          ${t('editor.filePanel.importBtn')}
+        </button>
+      </div>
       <input type="file" id="file-import" accept=".json" style="display: none;" />
-      <button class="btn btn-secondary" id="btn-import">${t('editor.filePanel.importBtn')}</button>
       <input type="file" id="file-import-append" accept=".json" style="display: none;" />
-      <button class="btn btn-secondary" id="btn-import-append" style="margin-top: 5px;">${t('editor.filePanel.importAppendBtn')}</button>
+      <button class="btn btn-secondary" id="btn-import-append" style="width: 100%;">
+        ${t('editor.filePanel.importAppendBtn')}
+      </button>
     </div>
   `;
 }
@@ -182,16 +190,16 @@ export function renderSelectionPanel() {
         </div>
       </div>
       
-      <div class="checkbox-group" style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
+      <div class="checkbox-group" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px 16px; font-size: 12px; margin-top: 5px;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ccc;">
           <input type="checkbox" id="ui-show-center" checked style="cursor: pointer;" />
           ${t('editor.selectionPanel.showCenterCheckbox')}
         </label>
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ccc;">
           <input type="checkbox" id="ui-show-pivot-lines" style="cursor: pointer;" />
           ${t('editor.selectionPanel.pivotLinesCheckbox')}
         </label>
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ccc;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ccc;">
           <input type="checkbox" id="ui-show-onion-skin" style="cursor: pointer;" />
           ${t('editor.selectionPanel.showOnionSkin') || 'Show Previous Step (Onion Skin)'}
         </label>

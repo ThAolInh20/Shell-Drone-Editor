@@ -32,9 +32,9 @@ export default {
     filePanel: {
       title: "Tệp tin",
       formatName: "Tên kịch bản",
-      exportBtn: "Xuất step-formation",
-      importBtn: "Nhập step-formation",
-      importAppendBtn: "Nhập nối tiếp kịch bản",
+      exportBtn: "Xuất",
+      importBtn: "Nhập",
+      importAppendBtn: "Nhập nối tiếp",
       alertExportSuccess: "Đã lưu file thành công: {filename}",
       alertExportError: "Lỗi khi lưu file: {error}",
       alertImportSuccess: "Import thành công từ file: {filename}",

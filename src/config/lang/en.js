@@ -32,8 +32,8 @@ export default {
     filePanel: {
       title: "File",
       formatName: "Format Name",
-      exportBtn: "Export step-formation",
-      importBtn: "Import step-formation",
+      exportBtn: "Export",
+      importBtn: "Import",
       importAppendBtn: "Import Append Sequence",
       alertExportSuccess: "Successfully saved file: {filename}",
       alertExportError: "Error saving file: {error}",

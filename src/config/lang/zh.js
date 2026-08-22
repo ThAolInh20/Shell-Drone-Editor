@@ -34,9 +34,9 @@ export default {
     filePanel: {
       title: "文件",
       formatName: "剧本名称",
-      exportBtn: "导出阵列步骤",
-      importBtn: "导入阵列步骤",
-      importAppendBtn: "导入追加阵列步骤",
+      exportBtn: "导出",
+      importBtn: "导入",
+      importAppendBtn: "追加导入",
       alertExportSuccess: "成功保存文件：{filename}",
       alertExportError: "保存文件时出错：{error}",
       alertImportSuccess: "成功从文件导入：{filename}",
