@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { AUDIO_CONFIG } from '../config/audio.js';
+import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 
 export class AudioSystem {
   constructor(cameraManager, audioContext = null, eventBus = null) {
     this.cameraManager = cameraManager;
-    this.baseURLLegacy = AUDIO_CONFIG.baseURL.legacy;
-    this.baseURLNew = AUDIO_CONFIG.baseURL.new;
+    this.baseURL = AUDIO_CONFIG.baseURL;
     this.eventBus = eventBus || globalEventBus;
 
     if (audioContext) {
@@ -29,8 +29,12 @@ export class AudioSystem {
         volume: 0.9,
         playbackRateMin: 0.8,
         playbackRateMax: 0.9,
-        // fileNames: ['burst1.mp3', 'burst2.mp3', 'burst4.mp3', 'burst5.mp3']
-        fileNames: ['burst1.mp3', 'burst2.mp3']
+        fileNames: [
+          'burst1.mp3',
+          'burst2.mp3',
+          'burst4.mp3',
+          'burst5.mp3'
+        ]
       },
       burstSmall: {
         volume: 0.4,
@@ -88,9 +92,7 @@ export class AudioSystem {
     for (const type of types) {
       const source = this.sources[type];
       const filePromises = source.fileNames.map(fileName => {
-        const numMatch = fileName.match(/\d+/);
-        const num = numMatch ? parseInt(numMatch[0], 10) : 1;
-        const fileURL = (num >= 4) ? (this.baseURLNew + fileName) : (this.baseURLLegacy + fileName);
+        const fileURL = this.baseURL + fileName;
         const promise = fetch(fileURL)
           .then(checkStatus)
           .then(response => response.arrayBuffer())
@@ -162,7 +164,7 @@ export class AudioSystem {
 
       // Tính góc lệch ngang so với hướng nhìn trực diện
       const angle = Math.atan2(viewPos.x, depth);
-      
+
       // Camera Perspective mặc định có FOV là 75 độ, nửa góc nhìn ngang khoảng 37.5 độ (0.65 radian)
       // Chia cho 0.65 để pan đạt tối đa ở rìa màn hình, giới hạn ở mức [-0.85, 0.85]
       const pan = this.clamp(angle / 0.65, -0.85, 0.85);
@@ -173,7 +175,14 @@ export class AudioSystem {
     }
   }
 
-  playSoundBase(type, volumeScale = 1, playbackRateScale = 1, delay = 0, position = null) {
+  playSoundBase(
+    type,
+    volumeScale = 1,
+    playbackRateScale = 1,
+    delay = 0,
+    position = null,
+    bufferIndex = null
+  ) {
     if (!this.ctx) return;
     const source = this.sources[type];
     if (!source || !source.buffers || source.buffers.length === 0) return;
@@ -187,7 +196,12 @@ export class AudioSystem {
     // Don't play if volume is extremely low (except when unlocking context with 0 volume)
     if (volumeScale > 0 && scaledVolume < 0.01) return;
 
-    const buffer = this.randomChoice(source.buffers);
+    let buffer = null;
+    if (bufferIndex !== null && bufferIndex >= 0 && bufferIndex < source.buffers.length) {
+      buffer = source.buffers[bufferIndex];
+    } else {
+      buffer = this.randomChoice(source.buffers);
+    }
 
     const playLogic = () => {
       const gainNode = this.ctx.createGain();
@@ -249,7 +263,32 @@ export class AudioSystem {
     // Scale down volume for smaller intensity, but speed up playback
     const playbackRateScale = this.clamp(2 - scale, 1, 1.5);
 
-    this.playSoundBase('burst', scale, playbackRateScale, delay, position);
+    const minBurstY = LAUNCH_ZONE_CONFIG.minBurstY;
+    const maxBurstY = LAUNCH_ZONE_CONFIG.maxBurstY;
+    const height = position && typeof position.y === 'number' ? position.y : 0;
+    const heightRatio = this.clamp(
+      (height - minBurstY) / Math.max(maxBurstY - minBurstY, 1),
+      0,
+      1
+    );
+
+    let bufferIndex = null;
+    if (heightRatio < 0.3) {
+      bufferIndex = 2; // burst4.mp3
+    } else if (heightRatio > 0.8) {
+      bufferIndex = 3; // burst5.mp3
+    } else {
+      bufferIndex = Math.floor(Math.random() * 2); // burst1.mp3 or burst2.mp3
+    }
+
+    this.playSoundBase(
+      'burst',
+      scale,
+      playbackRateScale,
+      delay,
+      position,
+      bufferIndex
+    );
   }
 
   handleCrackle(detail) {

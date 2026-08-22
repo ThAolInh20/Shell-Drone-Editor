@@ -51,7 +51,7 @@ describe('AudioSystem', () => {
     // Set buffer mock to verify playSoundBase calls inside resume
     audioSystem.sources.lift.buffers = [{}];
     audioSystem.resume();
-    
+
     // Resume has a setTimeout, so let's verify resume is scheduled
     setTimeout(() => {
       expect(mockAudioContext.resume).toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('AudioSystem', () => {
     // Firework burst positioned to the right (X = 10, Z = -10)
     const position = new THREE.Vector3(10, 0, -10);
     const pan = audioSystem.calculatePan(position);
-    
+
     // Panned to the right, so should be positive
     expect(pan).toBeGreaterThan(0);
     expect(pan).toBeLessThanOrEqual(0.85); // Clamped limit
@@ -76,7 +76,7 @@ describe('AudioSystem', () => {
 
   it('should trigger sound playbases on eventBus events', () => {
     const playSpy = vi.spyOn(audioSystem, 'playSoundBase');
-    
+
     // Set buffers to mock play
     audioSystem.sources.lift.buffers = [{}];
     audioSystem.sources.burst.buffers = [{}];
@@ -86,6 +86,6 @@ describe('AudioSystem', () => {
     expect(playSpy).toHaveBeenCalledWith('lift', 1, 1, 0, expect.any(Object));
 
     mockEventBus.emit('firework:burst', { position: new THREE.Vector3(0, 0, -10), intensity: 0.25 });
-    expect(playSpy).toHaveBeenCalledWith('burst', 0.5, 1.5, 0, expect.any(Object));
+    expect(playSpy).toHaveBeenCalledWith('burst', 0.5, 1.5, 0, expect.any(Object), 2);
   });
 });
