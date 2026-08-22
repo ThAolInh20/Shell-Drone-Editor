@@ -1,5 +1,5 @@
 ---
-name: lang-sync
+name: ds-lang-sync
 description: Use this skill when the user asks to synchronize translation files or propagate additions, removals, and changes of translation keys between en.js, vi.js, zh.js, and ja.js.
 ---
 
