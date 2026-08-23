@@ -26,6 +26,14 @@ describe('ShellPresetFactory', () => {
     expect(preset.nestedBurst).toBe(true);
   });
 
+  it('should create valid strobeDyingEmbers preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('strobeDyingEmbers');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('strobeDyingEmbers');
+    expect(preset.strobe).toBe(true);
+  });
+
   it('should create valid ring preset', () => {
     const factory = new ShellPresetFactory();
     const preset = factory.createPresetByKey('ring');

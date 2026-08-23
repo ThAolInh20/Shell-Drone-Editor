@@ -847,7 +847,8 @@ export class FireworkSystem {
           preset?.shellSize ?? 1
         )
       );
-      const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale;
+      const isDyingEmber = preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5;
+      const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale * (isDyingEmber ? 0.85 : 1.0);
 
       const normDir = direction.clone().normalize();
       const velocityVal = direction.multiplyScalar(speed);
@@ -888,6 +889,7 @@ export class FireworkSystem {
           + nz * effectState.ghostAxis.z;
       }
 
+      const baseMaxLife = BURST_LIFE * (0.8 + Math.random() * 0.4);
       newParticles.push({
         position: position.clone(),
         velocity: velocityVal.clone(),
@@ -895,7 +897,7 @@ export class FireworkSystem {
         baseColor: finalColorVal.clone(),
         color2: color2Scaled ? color2Scaled.clone() : null,
         age: 0,
-        maxLife: BURST_LIFE * (0.8 + Math.random() * 0.4),
+        maxLife: isDyingEmber ? baseMaxLife * 2.0 : baseMaxLife,
         effectType: normalizedEffect,
         crackle: crackleEnabled || normalizedEffect === 'crackle',
         crackleTriggered: false,
@@ -906,7 +908,8 @@ export class FireworkSystem {
         ghostDot: ghostDotVal,
         particleIndex: i,
         totalParticleCount: burstParticleCount,
-        shellId: shellId ?? Math.floor(Math.random() * 100000000)
+        shellId: shellId ?? Math.floor(Math.random() * 100000000),
+        isDyingEmber: isDyingEmber
       });
     }
 
@@ -1111,11 +1114,17 @@ export class FireworkSystem {
         p.baseColor.setRGB(0, 0, 0);
       }
 
+      let finalGravityScale = gravityScale;
+      if (p.isDyingEmber) {
+        finalGravityScale = gravityScale * 1.3;
+        p.velocity.multiplyScalar(0.994);
+      }
+
       p.position.addScaledVector(
         p.velocity,
         deltaTime
       );
-      p.velocity.y += GRAVITY * deltaTime * gravityScale;
+      p.velocity.y += GRAVITY * deltaTime * finalGravityScale;
 
       // 2. Spawn Side Effects (sparks, trails, smoke)
       if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
@@ -1345,6 +1354,21 @@ export class FireworkSystem {
         g = blink;
         b = blink;
       } else if (
+        p.isDyingEmber
+        || (p.preset?.shellType === 'crysanthemumNestedChild' && p.preset?.strobe)
+      ) {
+        const timeMs = (p.age + p.phase) * 1000;
+        const strobeFreq = 120 * strobeFreqMultiplier;
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 7 === 0;
+        const blink = isBlinking ? 1.5 : 0.06;
+
+        const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
+        const coolFactor = Math.pow(1.0 - lifeRatio, 0.85);
+
+        r = p.baseColor.r * blink * coolFactor;
+        g = p.baseColor.g * blink * coolFactor;
+        b = p.baseColor.b * blink * coolFactor;
+      } else if (
         (p.effectType === 'strobe' || p.preset?.strobe)
         && p.preset?.shellType !== 'crysanthemumNested'
       ) {
@@ -1415,7 +1439,7 @@ export class FireworkSystem {
           shellType: 'crysanthemumNestedChild',
           shapeType: 'sphere',
           effectType: 'standard',
-          shellSize: 0.2,
+          shellSize: 0.7,
           particleSize: 16.0,
           starLife: 400 + Math.random() * 300,
           particleCountMultiplier: 0.1,

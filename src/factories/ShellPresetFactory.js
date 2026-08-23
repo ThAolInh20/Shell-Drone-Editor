@@ -30,6 +30,7 @@ export class ShellPresetFactory {
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
+      { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking (Ember Decay)' },
       { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
       { key: 'crackle', label: 'Crackle' },
@@ -90,6 +91,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
     this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
+    this.presetsRegistry.set('strobeDyingEmbers', (size) => this.strobeDyingEmbersShell(size));
     this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
     this.presetsRegistry.set('glitterStrobe', (size) => this.glitterStrobeShell(size));
     this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
@@ -442,6 +444,18 @@ export class ShellPresetFactory {
       starLife: 1000 + size * 150,
       particleCountMultiplier: 1.25,
       pistil: Math.random() < 0.4
+    };
+  }
+
+  strobeDyingEmbersShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'strobeDyingEmbers',
+      shapeType: 'sphere',
+      effectType: 'strobe',
+      strobe: true,
+      starLife: 2000 + size * 400,
+      particleCountMultiplier: 0.85
     };
   }
 
