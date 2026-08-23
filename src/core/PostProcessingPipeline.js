@@ -34,6 +34,13 @@ export class PostProcessingPipeline {
     }
 
     this.setSize(window.innerWidth, window.innerHeight, this.renderer.getPixelRatio());
+    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
+  }
+
+  setGraphicsQuality(quality) {
+    if (this.bloomPass) {
+      this.bloomPass.enabled = (quality !== 'low');
+    }
   }
 
   setSize(width, height, pixelRatio) {

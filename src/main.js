@@ -23,6 +23,7 @@ import './style.css';
 import { setLanguage } from './config/lang/i18n.js';
 import { HotkeyManager } from './core/HotkeyManager.js';
 import { fileStorage } from './core/FileStorageAdapter.js';
+import { globalEventBus } from './core/EventBus.js';
 
 // Initialize Core ECS Boilerplate
 const clock = new Clock();
@@ -45,7 +46,16 @@ if (postProcessing) {
   renderer.addResizeListener((width, height, pixelRatio) => {
     postProcessing.setSize(width, height, pixelRatio);
   });
+
+  const initialQuality = localStorage.getItem('graphics_quality') || 'medium';
+  postProcessing.setGraphicsQuality(initialQuality);
 }
+
+globalEventBus.on('graphics:quality', (quality) => {
+  if (postProcessing) {
+    postProcessing.setGraphicsQuality(quality);
+  }
+});
 
 
 // Initialize Systems

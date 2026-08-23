@@ -61,13 +61,15 @@ export class FireworkSystem {
     this.instancedShellRenderer = new InstancedShellRenderer(scene);
 
     // Global Burst Particle System (Option 2)
-    this.maxBurstParticles = FIREWORK_CONFIG.SYSTEM.maxBurstParticles;
+    this.allocatedMaxBurstParticles = 10000; // Pre-allocate for High quality limit
+    this.maxBurstParticles = 6000;
+    this.graphicsQualityMultiplier = 1.0;
     this.burstParticles = [];
 
-    this.burstPositionsArray = new Float32Array(this.maxBurstParticles * 3);
-    this.burstColorsArray = new Float32Array(this.maxBurstParticles * 3);
-    this.burstSizesArray = new Float32Array(this.maxBurstParticles);
-    this.burstOpacitiesArray = new Float32Array(this.maxBurstParticles);
+    this.burstPositionsArray = new Float32Array(this.allocatedMaxBurstParticles * 3);
+    this.burstColorsArray = new Float32Array(this.allocatedMaxBurstParticles * 3);
+    this.burstSizesArray = new Float32Array(this.allocatedMaxBurstParticles);
+    this.burstOpacitiesArray = new Float32Array(this.allocatedMaxBurstParticles);
 
     this.globalBurstGeometry = new THREE.BufferGeometry();
     this.globalBurstGeometry.setAttribute(
@@ -168,6 +170,24 @@ export class FireworkSystem {
     );
     this.globalBurstPoints.frustumCulled = false;
     this.scene.add(this.globalBurstPoints);
+
+    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
+    globalEventBus.on('graphics:quality', (quality) => {
+      this.setGraphicsQuality(quality);
+    });
+  }
+
+  setGraphicsQuality(quality) {
+    if (quality === 'low') {
+      this.graphicsQualityMultiplier = 0.5;
+      this.maxBurstParticles = 3000;
+    } else if (quality === 'medium') {
+      this.graphicsQualityMultiplier = 1.0;
+      this.maxBurstParticles = 6000;
+    } else if (quality === 'high') {
+      this.graphicsQualityMultiplier = 1.5;
+      this.maxBurstParticles = 10000;
+    }
   }
 
   emitFireworkEvent(type, detail) {
@@ -618,9 +638,11 @@ export class FireworkSystem {
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier;
+    const minParticles = Math.round(MIN_BURST_PARTICLES * this.graphicsQualityMultiplier);
+    const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
 
-    return Math.max(MIN_BURST_PARTICLES, Math.min(MAX_BURST_PARTICLES, Math.round(rawCount)));
+    return Math.max(minParticles, Math.min(maxParticles, Math.round(rawCount)));
   }
 
   createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
@@ -1378,7 +1400,7 @@ export class FireworkSystem {
     }
 
     // Hide remaining spots
-    for (let i = count; i < this.maxBurstParticles; i++) {
+    for (let i = count; i < this.allocatedMaxBurstParticles; i++) {
       this.burstPositionsArray[i * 3] = 0;
       this.burstPositionsArray[i * 3 + 1] = -99999;
       this.burstPositionsArray[i * 3 + 2] = 0;

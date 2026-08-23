@@ -267,6 +267,10 @@ export default {
       saveNewError: "新規保存エラー: {error}",
       exportSuccessBrowser: "スクリプトの書き出しに成功しました: {filename}！"
     },
+    graphicsQuality: "画質設定",
+    graphicsLow: "低",
+    graphicsMedium: "中",
+    graphicsHigh: "高",
     inspector: {
       title: "属性インスペクタ",
       empty: "オブジェクトが選択されていません。",

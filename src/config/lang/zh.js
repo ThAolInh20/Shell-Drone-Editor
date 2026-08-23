@@ -267,6 +267,10 @@ export default {
       saveNewError: "保存新编队失败：{error}",
       exportSuccessBrowser: "成功导出剧本到 {filename}！"
     },
+    graphicsQuality: "画质设置",
+    graphicsLow: "低",
+    graphicsMedium: "中",
+    graphicsHigh: "高",
     inspector: {
       title: "属性面板",
       empty: "未选择任何对象。",
