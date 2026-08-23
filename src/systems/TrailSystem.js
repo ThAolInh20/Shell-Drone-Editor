@@ -14,8 +14,9 @@ export class TrailSystem {
     this.trailParticles = [];
     this.eventSubscriptions = [];
 
-    this.allocatedMaxTrailParticles = 80000; // Pre-allocate for High quality limit
-    this.maxTrailParticles = 50000;
+    const baseMax = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
+    this.allocatedMaxTrailParticles = Math.max(100000, Math.round(baseMax * 2.0)); // Pre-allocate with safety margin
+    this.maxTrailParticles = baseMax;
 
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
@@ -110,12 +111,13 @@ export class TrailSystem {
   }
 
   setGraphicsQuality(quality) {
+    const baseMax = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
     if (quality === 'low') {
-      this.maxTrailParticles = 20000;
+      this.maxTrailParticles = Math.round(baseMax * 0.4);
     } else if (quality === 'medium') {
-      this.maxTrailParticles = 50000;
+      this.maxTrailParticles = baseMax;
     } else if (quality === 'high') {
-      this.maxTrailParticles = 80000;
+      this.maxTrailParticles = Math.round(baseMax * 1.6);
     }
   }
 

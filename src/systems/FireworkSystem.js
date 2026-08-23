@@ -178,15 +178,17 @@ export class FireworkSystem {
   }
 
   setGraphicsQuality(quality) {
+    this.graphicsQuality = quality;
+    const baseMax = FIREWORK_CONFIG.SYSTEM.maxBurstParticles;
     if (quality === 'low') {
       this.graphicsQualityMultiplier = 0.5;
-      this.maxBurstParticles = 3000;
+      this.maxBurstParticles = Math.round(baseMax * 0.5);
     } else if (quality === 'medium') {
       this.graphicsQualityMultiplier = 1.0;
-      this.maxBurstParticles = 6000;
+      this.maxBurstParticles = baseMax;
     } else if (quality === 'high') {
       this.graphicsQualityMultiplier = 1.5;
-      this.maxBurstParticles = 10000;
+      this.maxBurstParticles = Math.round(baseMax * 1.6667);
     }
   }
 
@@ -629,10 +631,12 @@ export class FireworkSystem {
     const activeBurstCount = uniqueShells.size;
 
     let performanceScale = 1;
-    if (activeBurstCount > 12) {
-      performanceScale = 0.72;
-    } else if (activeBurstCount > 8) {
-      performanceScale = 0.86;
+    if (this.graphicsQuality !== 'high') {
+      if (activeBurstCount > 12) {
+        performanceScale = 0.72;
+      } else if (activeBurstCount > 8) {
+        performanceScale = 0.86;
+      }
     }
 
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
@@ -1031,7 +1035,7 @@ export class FireworkSystem {
       )
     );
     const activeBurstCount = uniqueShells.size;
-    const strobeFreqMultiplier = activeBurstCount > 8 ? 1.6 : 1.0;
+    const strobeFreqMultiplier = activeBurstCount > 8 ? 1.25 : 1.0;
 
     for (let idx = 0; idx < this.burstParticles.length; idx++) {
       const p = this.burstParticles[idx];
