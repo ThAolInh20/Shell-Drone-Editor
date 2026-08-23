@@ -89,7 +89,7 @@ export const FIREWORK_CONFIG = {
       // Thời gian bay của pháo con (mili-giây)
       starLife: 3500,
       // Xác suất tạo hạt trail trên mỗi frame bay của pháo con
-      trailChance: 0.4
+      trailChance: 1.0
     },
     // Cấu hình pháo chùm dạng cầu (được tối ưu giảm tải tránh lag khi nổ 5 quả cùng lúc)
     cometSphere: {
@@ -100,7 +100,7 @@ export const FIREWORK_CONFIG = {
       // Thời gian bay của pháo con
       starLife: 3500,
       // Xác suất tạo hạt trail (giảm xuống để tránh quá tải draw calls trên GPU)
-      trailChance: 0.25
+      trailChance: 0.9
     },
     // Cấu hình bouquet phiên bản 2
     v2: {
@@ -111,7 +111,7 @@ export const FIREWORK_CONFIG = {
       // Hệ số nhân lượng hạt lấp lánh (glitter) của pháo con
       particleCountMultiplier: 0.65,
       // Xác suất tạo hạt trail
-      trailChance: 0.4
+      trailChance: 1.0
     }
   }
 };

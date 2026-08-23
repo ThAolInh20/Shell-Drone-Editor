@@ -939,7 +939,14 @@ export class FireworkSystem {
         const baseTrailLife = (2 + Math.random() * 3) * 0.5;
         customLife = Math.min(baseTrailLife, remainingLife);
       }
-      this.trailSystem.spawnTrailParticle(item.mesh.position.clone(), item.color, 0.5, false, customLife);
+      const scale = item.preset?.shellType === 'floral-child' ? 0.95 : 0.5;
+      this.trailSystem.spawnTrailParticle(
+        item.mesh.position.clone(),
+        item.color,
+        scale,
+        false,
+        customLife
+      );
     }
 
     if (!shouldBurst) {
