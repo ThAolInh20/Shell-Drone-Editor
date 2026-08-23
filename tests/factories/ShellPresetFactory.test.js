@@ -18,6 +18,14 @@ describe('ShellPresetFactory', () => {
     expect(preset.effectType).toBe('standard');
   });
 
+  it('should create valid crysanthemumNested preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crysanthemumNested');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crysanthemumNested');
+    expect(preset.nestedBurst).toBe(true);
+  });
+
   it('should create valid ring preset', () => {
     const factory = new ShellPresetFactory();
     const preset = factory.createPresetByKey('ring');

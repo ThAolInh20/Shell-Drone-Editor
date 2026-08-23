@@ -478,10 +478,10 @@ export class FireworkSystem {
         )
           ? color.getHex()
           : FIREWORK_COLORS[
-              Math.floor(
-                Math.random() * FIREWORK_COLORS.length
-              )
-            ];
+          Math.floor(
+            Math.random() * FIREWORK_COLORS.length
+          )
+          ];
         const subColor = new THREE.Color(colorHex);
 
         let vx, vy, vz;
@@ -500,13 +500,13 @@ export class FireworkSystem {
           vz = Math.sin(theta) * Math.sin(phi) * speed;
         } else {
           // Upward spray with higher height variance
-          const speed = 25 + Math.random() * 50; 
+          const speed = 25 + Math.random() * 50;
           const angleY = Math.random() * Math.PI / 2.2;
           const angleXZ = Math.random() * Math.PI * 2;
 
           vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
           vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-          vy = (Math.cos(angleY) * speed + 30) * (0.75 + Math.random() * 0.5); 
+          vy = (Math.cos(angleY) * speed + 30) * (0.75 + Math.random() * 0.5);
         }
 
         const velocity = new THREE.Vector3(
@@ -566,10 +566,10 @@ export class FireworkSystem {
       for (let i = 0; i < clusterCount; i++) {
         const colorHex = colorMode === 'random'
           ? FIREWORK_COLORS[
-              Math.floor(
-                Math.random() * FIREWORK_COLORS.length
-              )
-            ]
+          Math.floor(
+            Math.random() * FIREWORK_COLORS.length
+          )
+          ]
           : color.getHex();
         const subColor = new THREE.Color(colorHex);
 
@@ -1038,6 +1038,7 @@ export class FireworkSystem {
 
   updateBurstParticles(deltaTime) {
     const activeParticles = [];
+    const nestedBurstsToSpawn = [];
 
     // Strobe frequency adjustment based on active burst count
     const uniqueShells = new Set(
@@ -1053,6 +1054,16 @@ export class FireworkSystem {
       p.age += deltaTime;
 
       if (p.age >= p.maxLife) {
+        if (p.preset?.nestedBurst && !p.preset?.isNestedChild) {
+          if (Math.random() < 0.2) {
+            nestedBurstsToSpawn.push({
+              position: p.position.clone(),
+              color: p.color.clone(),
+              shellId: p.shellId,
+              strobe: Boolean(p.preset?.strobe)
+            });
+          }
+        }
         continue;
       }
 
@@ -1333,7 +1344,10 @@ export class FireworkSystem {
         r = blink;
         g = blink;
         b = blink;
-      } else if (p.effectType === 'strobe' || p.preset?.strobe) {
+      } else if (
+        (p.effectType === 'strobe' || p.preset?.strobe)
+        && p.preset?.shellType !== 'crysanthemumNested'
+      ) {
         const timeMs = (p.age + p.phase) * 1000;
         const strobeFreq = 150 * strobeFreqMultiplier;
         const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
@@ -1393,6 +1407,41 @@ export class FireworkSystem {
     }
 
     this.burstParticles = activeParticles;
+
+    if (nestedBurstsToSpawn.length > 0) {
+      for (let i = 0; i < nestedBurstsToSpawn.length; i++) {
+        const burst = nestedBurstsToSpawn[i];
+        const childPreset = {
+          shellType: 'crysanthemumNestedChild',
+          shapeType: 'sphere',
+          effectType: 'standard',
+          shellSize: 0.2,
+          particleSize: 16.0,
+          starLife: 400 + Math.random() * 300,
+          particleCountMultiplier: 0.1,
+          isNestedChild: true,
+          strobe: burst.strobe
+        };
+        this.createBurst(
+          burst.position,
+          burst.color,
+          'sphere',
+          childPreset,
+          burst.shellId + '-nested-child'
+        );
+        this.emitFireworkEvent(
+          'firework:crackle',
+          {
+            position: {
+              x: burst.position.x,
+              y: burst.position.y,
+              z: burst.position.z
+            }
+          }
+        );
+      }
+    }
+
     const count = Math.min(
       this.burstParticles.length,
       this.maxBurstParticles

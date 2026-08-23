@@ -29,6 +29,7 @@ export class ShellPresetFactory {
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
+      { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
       { key: 'sparking', label: 'Sparking (Ember Decay)' },
       { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
       { key: 'crackle', label: 'Crackle' },
@@ -84,6 +85,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
     this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
     this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
@@ -211,6 +213,22 @@ export class ShellPresetFactory {
       shellType: 'crysanthemum',
       shapeType: 'sphere',
       effectType: 'standard',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumNestedShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumNested',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      nestedBurst: true,
+      starLife: 1000 + size * 150,
       flower: false,
       smiley: false,
       hearth: false,
