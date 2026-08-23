@@ -499,14 +499,14 @@ export class FireworkSystem {
           vy = Math.cos(phi) * speed;
           vz = Math.sin(theta) * Math.sin(phi) * speed;
         } else {
-          // Upward spray
-          const speed = 35 + Math.random() * 30; // Increased speed for wider spread
+          // Upward spray with higher height variance
+          const speed = 25 + Math.random() * 50; 
           const angleY = Math.random() * Math.PI / 2.2;
           const angleXZ = Math.random() * Math.PI * 2;
 
           vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
           vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-          vy = Math.cos(angleY) * speed + 35; // Larger upward boost for longer flight time
+          vy = (Math.cos(angleY) * speed + 30) * (0.75 + Math.random() * 0.5); 
         }
 
         const velocity = new THREE.Vector3(
@@ -524,9 +524,10 @@ export class FireworkSystem {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
-          subPreset.starLife = shellType === 'bouquetCometSphere'
+          const baseStarLife = shellType === 'bouquetCometSphere'
             ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
             : FIREWORK_CONFIG.BOUQUET.default.starLife;
+          subPreset.starLife = baseStarLife * (0.75 + Math.random() * 0.5);
           subPreset.trailChance = shellType === 'bouquetCometSphere'
             ? FIREWORK_CONFIG.BOUQUET.cometSphere.trailChance
             : FIREWORK_CONFIG.BOUQUET.default.trailChance;
@@ -535,6 +536,9 @@ export class FireworkSystem {
           subPreset.color = colorHex;
           subPreset.shellType = 'floral-child';
           subPreset.particleCountMultiplier = 0.5; // save FPS
+          if (subPreset.starLife) {
+            subPreset.starLife = subPreset.starLife * (0.75 + Math.random() * 0.5);
+          }
           subPreset.trailChance = FIREWORK_CONFIG.BOUQUET.default.trailChance;
         }
 

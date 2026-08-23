@@ -24,6 +24,7 @@ export class ShellPresetFactory {
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'comet_cluster_cc', label: 'Comet Cluster (Color Change)' },
+      { key: 'comet_cluster_thick', label: 'Comet Cluster (Thick Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
@@ -120,6 +121,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('comet_cluster', (size) => this.cometCluster(size));
     this.presetsRegistry.set('comet_cluster_notrail', (size) => this.cometClusterNoTrail(size));
     this.presetsRegistry.set('comet_cluster_cc', (size) => this.cometClusterCC(size));
+    this.presetsRegistry.set('comet_cluster_thick', (size) => this.cometClusterThick(size));
     this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
     this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
   }
@@ -700,6 +702,20 @@ export class ShellPresetFactory {
       crackle: false,
       launchTrail: true,
       launchSmoke: true
+    };
+  }
+
+  cometClusterThick(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_thick',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 8 + Math.floor(Math.random() * 4),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true,
+      thickTrail: true
     };
   }
 

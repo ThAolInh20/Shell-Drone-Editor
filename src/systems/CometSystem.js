@@ -67,13 +67,13 @@ export class CometSystem {
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
       // Giảm độ cao xuống còn 2/3 so với ban đầu
-      const targetHeight = this.resolveBurstHeight(preset, ratioY) * 0.66 * (0.98 + Math.random() * 0.04);
+      const targetHeight = this.resolveBurstHeight(preset, ratioY) * 0.66 * (0.8 + Math.random() * 0.4);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
       
       // Spread the cluster more laterally
-      velocity.x += (Math.random() - 0.5) * 5; // Reduced spread for single streak
-      velocity.z += (Math.random() - 0.5) * 5; // Reduced spread for single streak
-      velocity.y *= (0.85 + Math.random() * 0.3);
+      velocity.x += (Math.random() - 0.5) * 5; 
+      velocity.z += (Math.random() - 0.5) * 5; 
+      velocity.y *= (0.7 + Math.random() * 0.6);
 
       // Slightly vary color
       const cometColor = clusterColor.clone().offsetHSL(
@@ -199,19 +199,35 @@ export class CometSystem {
             // vy / 30 chính là thời gian còn lại để đạt đỉnh (trọng lực g = 30)
             // Nhân thêm 0.85 để hạt tắt trước đỉnh một chút, giúp phần đuôi thu gọn lại gọn gàng khi đạt đỉnh
             const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
-            if (Math.random() < 0.5) {
+            if (comet.preset?.thickTrail) {
               this.trailSystem.spawnTrailParticle(
                 comet.mesh.position.clone(),
                 comet.color,
-                1.0,
-                true,
+                1.5,
+                false,
                 customLife,
-                0.12,
+                0.9,
                 false
               );
-            }
-            if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
-              this.trailSystem.spawnEffectSpark(comet.mesh.position.clone(), comet.color, false);
+            } else {
+              if (Math.random() < 0.5) {
+                this.trailSystem.spawnTrailParticle(
+                  comet.mesh.position.clone(),
+                  comet.color,
+                  1.0,
+                  true,
+                  customLife,
+                  0.12,
+                  false
+                );
+              }
+              if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
+                this.trailSystem.spawnEffectSpark(
+                  comet.mesh.position.clone(),
+                  comet.color,
+                  false
+                );
+              }
             }
           }
         } else {

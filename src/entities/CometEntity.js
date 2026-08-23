@@ -17,7 +17,8 @@ export class CometEntity {
     this.preset = preset;
     this.age = 0;
     this.decayTime = 0;
-    this.maxDecayTime = preset?.maxDecayTime ?? 0.8;
+    const baseDecay = preset?.maxDecayTime ?? 0.8;
+    this.maxDecayTime = baseDecay * (0.8 + Math.random() * 0.4); // Randomize decay time (+/- 20%)
     this.state = CometEntity.STATE.INIT;
     this.mesh = new THREE.Group();
     this.coreColor = color.clone();
