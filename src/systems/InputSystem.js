@@ -19,7 +19,8 @@ export class InputSystem {
       forward: false,
       backward: false,
       left: false,
-      right: false
+      right: false,
+      shift: false
     };
     this.status = {
       moving: false,
@@ -110,7 +111,7 @@ export class InputSystem {
     this.instructions.style.fontFamily = 'monospace';
     this.instructions.style.fontSize = '18px';
     this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
+    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move (Shift+W/S to fly up/down)<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
 
@@ -495,6 +496,10 @@ export class InputSystem {
 
     if (!this.controls.isLocked || this.paused) return;
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.shift = true;
+        break;
       case 'ArrowUp':
       case 'KeyW':
         this.keys.forward = true;
@@ -533,6 +538,10 @@ export class InputSystem {
 
   onKeyUp(event) {
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.shift = false;
+        break;
       case 'ArrowUp':
       case 'KeyW':
         this.keys.forward = false;

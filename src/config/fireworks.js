@@ -8,9 +8,9 @@ export const FIREWORK_CONFIG = {
   // Các hằng số hệ thống liên quan đến hiển thị và hiệu năng
   SYSTEM: {
     // Giới hạn số lượng hạt nổ tối đa hiển thị đồng thời để tránh quá tải GPU
-    maxBurstParticles: 10000,
+    maxBurstParticles: 20000,
     // Giới hạn số lượng hạt đuôi (trail) tối đa hiển thị đồng thời
-    maxTrailParticles: 80000,
+    maxTrailParticles: 150000,
     // Vận tốc mở rộng của đám mây hiệu ứng nổ crackle
     crackleCloudSpeed: 24,
     // Kích thước hiển thị cơ bản của điểm hạt nổ pháo hoa

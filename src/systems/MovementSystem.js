@@ -17,23 +17,40 @@ export class MovementSystem {
 
     // Apply friction to slow down over time
     this.velocity.x -= this.velocity.x * this.friction * deltaTime;
+    this.velocity.y -= this.velocity.y * this.friction * deltaTime;
     this.velocity.z -= this.velocity.z * this.friction * deltaTime;
 
+    const shift = this.input.keys.shift;
+
     // Determine target direction based on inputs
-    this.direction.z = Number(this.input.keys.forward) - Number(this.input.keys.backward);
     this.direction.x = Number(this.input.keys.right) - Number(this.input.keys.left);
+    if (shift) {
+      this.direction.y = Number(this.input.keys.forward) - Number(this.input.keys.backward);
+      this.direction.z = 0;
+    } else {
+      this.direction.y = 0;
+      this.direction.z = Number(this.input.keys.forward) - Number(this.input.keys.backward);
+    }
     this.direction.normalize(); // Ensure consistent speed in all directions (e.g., diagonally)
 
-    if (this.input.keys.forward || this.input.keys.backward) {
-      this.velocity.z -= this.direction.z * this.speed * deltaTime;
-    }
     if (this.input.keys.left || this.input.keys.right) {
       this.velocity.x -= this.direction.x * this.speed * deltaTime;
     }
+    
+    if (shift && (this.input.keys.forward || this.input.keys.backward)) {
+      this.velocity.y += this.direction.y * this.speed * deltaTime;
+    } else if (this.input.keys.forward || this.input.keys.backward) {
+      this.velocity.z -= this.direction.z * this.speed * deltaTime;
+    }
 
     const directions = [];
-    if (this.input.keys.forward) directions.push('forward');
-    if (this.input.keys.backward) directions.push('backward');
+    if (shift) {
+      if (this.input.keys.forward) directions.push('up');
+      if (this.input.keys.backward) directions.push('down');
+    } else {
+      if (this.input.keys.forward) directions.push('forward');
+      if (this.input.keys.backward) directions.push('backward');
+    }
     if (this.input.keys.left) directions.push('left');
     if (this.input.keys.right) directions.push('right');
     this.input.setMovementStatus(directions.join(' + '));
@@ -41,6 +58,7 @@ export class MovementSystem {
     // PointerLockControls uses moveRight and moveForward which applies math relative to the current viewing angle
     this.input.controls.moveRight(-this.velocity.x * deltaTime);
     this.input.controls.moveForward(-this.velocity.z * deltaTime);
+    this.camera.position.y += this.velocity.y * deltaTime;
 
     // this.constrainToLaunchViewZone();
   }
