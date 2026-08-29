@@ -24,6 +24,7 @@ import { setLanguage } from './config/lang/i18n.js';
 import { HotkeyManager } from './core/HotkeyManager.js';
 import { fileStorage } from './core/FileStorageAdapter.js';
 import { globalEventBus } from './core/EventBus.js';
+import { loadAndApplySettings } from './config/settings.js';
 
 // Initialize Core ECS Boilerplate
 const clock = new Clock();
@@ -57,9 +58,22 @@ globalEventBus.on('graphics:quality', (quality) => {
   }
 });
 
+// Apply saved settings
+loadAndApplySettings({
+  renderer,
+  postProcessing,
+  audioSystem
+});
 
 // Initialize Systems
-const inputSystem = new InputSystem(cameraManager.instance, renderer.instance.domElement, fireworkSystem);
+const inputSystem = new InputSystem(
+  cameraManager.instance,
+  renderer.instance.domElement,
+  fireworkSystem,
+  renderer,
+  postProcessing,
+  audioSystem
+);
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 
 const droneSystem = new DroneSystem(sceneManager);
