@@ -24,10 +24,13 @@ export class ShellPresetFactory {
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
       { key: 'comet_cluster_cc', label: 'Comet Cluster (Color Change)' },
+      { key: 'comet_cluster_thick', label: 'Comet Cluster (Thick Trail)' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
+      { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
+      { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking (Ember Decay)' },
       { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
       { key: 'crackle', label: 'Crackle' },
@@ -83,10 +86,12 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
     this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
     this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
     this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
+    this.presetsRegistry.set('strobeDyingEmbers', (size) => this.strobeDyingEmbersShell(size));
     this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
     this.presetsRegistry.set('glitterStrobe', (size) => this.glitterStrobeShell(size));
     this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
@@ -120,6 +125,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('comet_cluster', (size) => this.cometCluster(size));
     this.presetsRegistry.set('comet_cluster_notrail', (size) => this.cometClusterNoTrail(size));
     this.presetsRegistry.set('comet_cluster_cc', (size) => this.cometClusterCC(size));
+    this.presetsRegistry.set('comet_cluster_thick', (size) => this.cometClusterThick(size));
     this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
     this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
   }
@@ -209,6 +215,22 @@ export class ShellPresetFactory {
       shellType: 'crysanthemum',
       shapeType: 'sphere',
       effectType: 'standard',
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumNestedShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumNested',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      nestedBurst: true,
+      starLife: 1000 + size * 150,
       flower: false,
       smiley: false,
       hearth: false,
@@ -422,6 +444,18 @@ export class ShellPresetFactory {
       starLife: 1000 + size * 150,
       particleCountMultiplier: 1.25,
       pistil: Math.random() < 0.4
+    };
+  }
+
+  strobeDyingEmbersShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'strobeDyingEmbers',
+      shapeType: 'sphere',
+      effectType: 'strobe',
+      strobe: true,
+      starLife: 2000 + size * 400,
+      particleCountMultiplier: 0.85
     };
   }
 
@@ -700,6 +734,20 @@ export class ShellPresetFactory {
       crackle: false,
       launchTrail: true,
       launchSmoke: true
+    };
+  }
+
+  cometClusterThick(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_thick',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 8 + Math.floor(Math.random() * 4),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true,
+      thickTrail: true
     };
   }
 

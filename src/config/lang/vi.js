@@ -278,6 +278,10 @@ export default {
       saveNewError: "Lỗi khi lưu đội hình mới: {error}",
       exportSuccessBrowser: "Đã xuất kịch bản thành file {filename}!"
     },
+    graphicsQuality: "Chất lượng đồ họa",
+    graphicsLow: "Thấp",
+    graphicsMedium: "Trung bình",
+    graphicsHigh: "Cao",
     inspector: {
       title: "Thông tin thuộc tính",
       empty: "Chưa chọn đối tượng nào.",

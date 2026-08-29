@@ -14,15 +14,19 @@ export class TrailSystem {
     this.trailParticles = [];
     this.eventSubscriptions = [];
 
+    const baseMax = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
+    this.allocatedMaxTrailParticles = Math.max(100000, Math.round(baseMax * 2.0)); // Pre-allocate with safety margin
+    this.maxTrailParticles = baseMax;
+
     // Trail particles geometry
     this.trailGeometry = new THREE.BufferGeometry();
 
     // Pre-allocate buffers for GPU upload
     this.positionsArray = new Float32Array(
-      MAX_PARTICLES * 3
+      this.allocatedMaxTrailParticles * 3
     );
     this.colorsArray = new Float32Array(
-      MAX_PARTICLES * 4
+      this.allocatedMaxTrailParticles * 4
     );
 
     this.positionsAttr = new THREE.BufferAttribute(
@@ -99,6 +103,22 @@ export class TrailSystem {
     this.eventSubscriptions.push(
       globalEventBus.on('firework:clear', () => this.clear())
     );
+
+    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
+    this.eventSubscriptions.push(
+      globalEventBus.on('graphics:quality', (quality) => this.setGraphicsQuality(quality))
+    );
+  }
+
+  setGraphicsQuality(quality) {
+    const baseMax = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
+    if (quality === 'low') {
+      this.maxTrailParticles = Math.round(baseMax * 0.4);
+    } else if (quality === 'medium') {
+      this.maxTrailParticles = baseMax;
+    } else if (quality === 'high') {
+      this.maxTrailParticles = Math.round(baseMax * 1.6);
+    }
   }
 
   destroy() {
@@ -242,7 +262,7 @@ export class TrailSystem {
       particle.age += deltaTime;
 
       if (particle.age < particle.life) {
-        if (activeCount < MAX_PARTICLES) {
+        if (activeCount < this.maxTrailParticles) {
           // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
           const lifeRatio = particle.age / particle.life;
           let alpha =

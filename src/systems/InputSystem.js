@@ -1,6 +1,7 @@
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { sequences } from '../config/sequences/index.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { t } from '../config/lang/i18n.js';
 
 export class InputSystem {
   constructor(camera, domElement, fireworkSystem = null) {
@@ -18,7 +19,8 @@ export class InputSystem {
       forward: false,
       backward: false,
       left: false,
-      right: false
+      right: false,
+      shift: false
     };
     this.status = {
       moving: false,
@@ -109,7 +111,7 @@ export class InputSystem {
     this.instructions.style.fontFamily = 'monospace';
     this.instructions.style.fontSize = '18px';
     this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
+    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move (Shift+W/S to fly up/down)<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
     this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
     document.body.appendChild(this.instructions);
 
@@ -203,6 +205,50 @@ export class InputSystem {
     seqLabel.textContent = 'Sequence (Press Enter to play)';
     seqLabel.appendChild(this.sequenceSelect);
 
+    const qualityLabel = document.createElement('label');
+    qualityLabel.className = 'firework-pause-label';
+    qualityLabel.textContent = t('editor.graphicsQuality') || 'Graphics Quality';
+
+    this.qualitySelect = document.createElement('select');
+    this.qualitySelect.className = 'firework-pause-select';
+
+    const qualityOptions = [
+      {
+        key: 'low',
+        label: t('editor.graphicsLow') || 'Low'
+      },
+      {
+        key: 'medium',
+        label: t('editor.graphicsMedium') || 'Medium'
+      },
+      {
+        key: 'high',
+        label: t('editor.graphicsHigh') || 'High'
+      }
+    ];
+
+    for (const option of qualityOptions) {
+      const optionElement = document.createElement('option');
+      optionElement.value = option.key;
+      optionElement.textContent = option.label;
+      this.qualitySelect.appendChild(optionElement);
+    }
+
+    this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
+    this.qualitySelect.addEventListener('change', () => {
+      const quality = this.qualitySelect.value;
+      localStorage.setItem(
+        'graphics_quality',
+        quality
+      );
+      globalEventBus.emit(
+        'graphics:quality',
+        quality
+      );
+    });
+
+    qualityLabel.appendChild(this.qualitySelect);
+
     const buttonRow = document.createElement('div');
     buttonRow.className = 'firework-pause-actions';
 
@@ -232,6 +278,7 @@ export class InputSystem {
     panel.appendChild(description);
     panel.appendChild(label);
     panel.appendChild(seqLabel);
+    panel.appendChild(qualityLabel);
     panel.appendChild(buttonRow);
 
     // Section "Tools & Navigation" to switch other editor sites (requested by USER inside pause menu)
@@ -426,14 +473,33 @@ export class InputSystem {
   }
 
   onKeyDown(event) {
+    const target = event.target;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+
     if (event.code === 'Escape') {
       event.preventDefault();
-      this.togglePause();
+      if (this.timelineEditor && this.timelineEditor.visible) {
+        this.timelineEditor.toggle();
+      } else {
+        this.togglePause();
+      }
       return;
     }
 
     if (!this.controls.isLocked || this.paused) return;
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.shift = true;
+        break;
       case 'ArrowUp':
       case 'KeyW':
         this.keys.forward = true;
@@ -472,6 +538,10 @@ export class InputSystem {
 
   onKeyUp(event) {
     switch (event.code) {
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.shift = false;
+        break;
       case 'ArrowUp':
       case 'KeyW':
         this.keys.forward = false;

@@ -278,6 +278,10 @@ export default {
       saveNewError: "Error saving new formation: {error}",
       exportSuccessBrowser: "Successfully exported script into {filename}!"
     },
+    graphicsQuality: "Graphics Quality",
+    graphicsLow: "Low",
+    graphicsMedium: "Medium",
+    graphicsHigh: "High",
     inspector: {
       title: "Property Inspector",
       empty: "No sequence selected.",
