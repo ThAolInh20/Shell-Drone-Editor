@@ -847,7 +847,9 @@ export class FireworkSystem {
           preset?.shellSize ?? 1
         )
       );
-      const isDyingEmber = preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5;
+      const isDyingEmber =
+        (preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5) ||
+        Math.random() < 0.05;
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale * (isDyingEmber ? 0.85 : 1.0);
 
       const normDir = direction.clone().normalize();
