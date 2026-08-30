@@ -67,13 +67,15 @@ export class CometSystem {
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
       // Giảm độ cao xuống còn 2/3 so với ban đầu
-      const targetHeight = this.resolveBurstHeight(preset, ratioY) * 0.66 * (0.8 + Math.random() * 0.4);
+      const targetHeight = this.resolveBurstHeight(preset, ratioY) *
+        0.66 *
+        (0.95 + Math.random() * 0.1);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
 
       // Spread the cluster more laterally
       velocity.x += (Math.random() - 0.5) * 5;
       velocity.z += (Math.random() - 0.5) * 5;
-      velocity.y *= (0.7 + Math.random() * 0.6);
+      velocity.y *= (0.95 + Math.random() * 0.1);
 
       // Slightly vary color
       const cometColor = clusterColor.clone().offsetHSL(
@@ -193,20 +195,7 @@ export class CometSystem {
 
       // Thicker trails for comets during launch (before reaching 50% height or if no strobe)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-        // 25% số hạt có thời gian sống cực lâu và ở lại vị trí lấp lánh (strobe)
-        if (comet.preset?.launchTrail !== false && Math.random() < 1) {
-          this.trailSystem.spawnTrailParticle(
-            comet.mesh.position.clone(),
-            comet.color,
-            1.0,
-            true,
-            3.0 + Math.random() * 2.0,
-            1.0,
-            true,
-            null,
-            0.0
-          );
-        }
+
 
         if (!isStrobeActive) {
           const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;

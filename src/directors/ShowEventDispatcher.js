@@ -38,6 +38,7 @@ export class ShowEventDispatcher {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.instantBurst = true;
           } else if (evt.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;

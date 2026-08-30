@@ -199,9 +199,16 @@ export class PropertyInspector {
       const presetName = typeof this.selectedEvent.preset === 'string'
         ? this.selectedEvent.preset
         : (this.selectedEvent.preset?.shellType || '');
-      this.selectedEvent.cometTrail = presetName.includes('thick')
-        ? 'thick'
-        : 'normal';
+      if (
+        presetName.includes('notrail') ||
+        presetName.includes('no_trail')
+      ) {
+        this.selectedEvent.cometTrail = 'none';
+      } else if (presetName.includes('thick')) {
+        this.selectedEvent.cometTrail = 'thick';
+      } else {
+        this.selectedEvent.cometTrail = 'normal';
+      }
     }
     const groups = this.getSchema()[typeKey];
 

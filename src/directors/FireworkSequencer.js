@@ -119,6 +119,7 @@ export class FireworkSequencer {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.instantBurst = true;
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
@@ -244,6 +245,7 @@ export class FireworkSequencer {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.instantBurst = true;
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
