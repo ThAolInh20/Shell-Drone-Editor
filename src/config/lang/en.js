@@ -308,6 +308,7 @@ export default {
         duration: "Duration s",
         sectorId: "Sector ID",
         angle: "Launch Angle",
+        cometTrail: "Launch Trail",
         color: "Shell Color",
         customColor: "Custom Color",
         shellSize: "Shell Size",
@@ -366,6 +367,11 @@ export default {
         },
         preset: {
           random: "Random"
+        },
+        cometTrail: {
+          none: "None",
+          normal: "Normal",
+          thick: "Light"
         }
       },
       colors: {

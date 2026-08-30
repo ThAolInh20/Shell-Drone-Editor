@@ -308,6 +308,7 @@ export default {
         duration: "Thời gian chạy s",
         sectorId: "Phân khu Sector",
         angle: "Góc bắn",
+        cometTrail: "Hiệu ứng tia đuôi",
         color: "Màu sắc pháo",
         customColor: "Màu tùy chỉnh",
         shellSize: "Kích thước shell",
@@ -366,6 +367,11 @@ export default {
         },
         preset: {
           random: "Ngẫu nhiên"
+        },
+        cometTrail: {
+          none: "Không có",
+          normal: "Bình thường",
+          thick: "Nhẹ"
         }
       },
       colors: {

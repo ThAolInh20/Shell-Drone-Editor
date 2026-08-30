@@ -25,7 +25,8 @@ export class ShowEventDispatcher {
         || evt.shellSize !== undefined 
         || evt.strobe !== undefined 
         || evt.crackle !== undefined 
-        || evt.pistil !== undefined) 
+        || evt.pistil !== undefined
+        || evt.cometTrail !== undefined) 
       {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
@@ -33,6 +34,18 @@ export class ShowEventDispatcher {
         if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
         if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
+        if (evt.cometTrail !== undefined) {
+          if (evt.cometTrail === 'none') {
+            overrides.launchTrail = false;
+            overrides.thickTrail = false;
+          } else if (evt.cometTrail === 'thick') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = true;
+          } else if (evt.cometTrail === 'normal') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+          }
+        }
       }
 
       const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 

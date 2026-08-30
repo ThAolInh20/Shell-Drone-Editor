@@ -294,6 +294,7 @@ export default {
         duration: "持续时间",
         sectorId: "分区 ID",
         angle: "发射角度",
+        cometTrail: "Comet",
         color: "烟花颜色",
         customColor: "自定义颜色",
         shellSize: "烟花大小",
@@ -351,6 +352,11 @@ export default {
         },
         preset: {
           random: "随机"
+        },
+        cometTrail: {
+          none: "无",
+          normal: "普通",
+          thick: "轻微"
         }
       },
       colors: {

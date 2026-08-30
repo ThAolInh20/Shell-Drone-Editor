@@ -59,6 +59,25 @@ export class PropertyInspector {
     }, 250);
   }
 
+  isCometEvent(event) {
+    if (!event) {
+      return false;
+    }
+    if (event.type === 'cometsequence') {
+      return true;
+    }
+    const preset = event.preset;
+    if (!preset) {
+      return false;
+    }
+    if (typeof preset === 'string') {
+      return preset.startsWith('comet_cluster')
+        || preset.includes('comet');
+    }
+    return preset.type === 'comet_cluster'
+      || preset.type === 'comet';
+  }
+
   getSchema() {
     const isCometPreset = (event) => {
       return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet'))
@@ -104,9 +123,13 @@ export class PropertyInspector {
         },
         {
           groupKey: 'cometConfig',
-          visibleIf: (event) => event.type === 'cometsequence' || (event.type === 'single' && isCometPreset(event)),
+          visibleIf: (event) => this.isCometEvent(event),
           fields: [
-            { name: 'angle', labelKey: 'angle', type: 'angle' }
+            {
+              name: 'angle',
+              labelKey: 'angle',
+              type: 'angle'
+            }
           ]
         },
         {
@@ -114,6 +137,16 @@ export class PropertyInspector {
           fields: [
             { name: 'color', labelKey: 'color', type: 'color-badges' },
             { name: 'shellSize', labelKey: 'shellSize', type: 'number', step: '0.1' },
+            {
+              name: 'cometTrail',
+              labelKey: 'cometTrail',
+              type: 'select',
+              options: [
+                'normal',
+                'thick',
+                'none'
+              ]
+            },
             { name: 'pistil', labelKey: 'pistil', type: 'checkbox' },
             { name: 'instantBurst', labelKey: 'instantBurst', type: 'checkbox' },
             { name: 'strobe', labelKey: 'strobe', type: 'checkbox' },
@@ -157,6 +190,19 @@ export class PropertyInspector {
     const typeKey = this.selectedEvent.type === 'audio'
       ? 'audio'
       : (this.selectedEvent.type === 'group' ? 'group' : 'event');
+
+    // Default cometTrail based on preset if undefined
+    if (
+      typeKey === 'event' &&
+      this.selectedEvent.cometTrail === undefined
+    ) {
+      const presetName = typeof this.selectedEvent.preset === 'string'
+        ? this.selectedEvent.preset
+        : (this.selectedEvent.preset?.shellType || '');
+      this.selectedEvent.cometTrail = presetName.includes('thick')
+        ? 'thick'
+        : 'normal';
+    }
     const groups = this.getSchema()[typeKey];
 
     groups.forEach(group => {
