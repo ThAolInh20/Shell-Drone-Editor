@@ -17,6 +17,11 @@ export const renderingConfig = {
       mode: 'fxaa'
     }
   },
+  smoke: {
+    quality: 'medium',
+    density: 1.0,
+    windSpeed: 1.0
+  },
   performance: {
     fpsThreshold: 70,
     minFrameCount: 40

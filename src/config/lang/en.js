@@ -282,6 +282,9 @@ export default {
     graphicsLow: "Low",
     graphicsMedium: "Medium",
     graphicsHigh: "High",
+    smokeQuality: "Smoke Quality",
+    smokeDensity: "Smoke Density",
+    smokeWindSpeed: "Smoke Wind Speed",
     inspector: {
       title: "Property Inspector",
       empty: "No sequence selected.",

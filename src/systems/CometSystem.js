@@ -233,6 +233,20 @@ export class CometSystem {
                 );
               }
             }
+
+            if (this.smokeSystem && Math.random() < 0.35) {
+              this.smokeSystem.addSmokePoint(
+                comet.mesh.position,
+                comet.velocity.clone().multiplyScalar(-0.12),
+                {
+                  life: 1.5 + Math.random() * 0.7,
+                  scale: 4.8 + Math.random() * 2.2,
+                  growth: 3.2,
+                  opacity: 0.22,
+                  color: comet.color.clone()
+                }
+              );
+            }
           }
         } else {
           // Hiệu ứng lấp lánh khi đạt 50% độ cao trên đường bay

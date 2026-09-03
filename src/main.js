@@ -33,8 +33,8 @@ const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 const performanceMonitor = new PerformanceMonitor();
 const trailSystem = new TrailSystem(sceneManager.instance);
-const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem);
 const smokeSystem = new SmokeSystem(sceneManager);
+const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem, smokeSystem);
 const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
 const cometSystem = new CometSystem(sceneManager.instance, trailSystem, smokeSystem);
 const audioSystem = new AudioSystem(cameraManager);
@@ -62,7 +62,8 @@ globalEventBus.on('graphics:quality', (quality) => {
 loadAndApplySettings({
   renderer,
   postProcessing,
-  audioSystem
+  audioSystem,
+  smokeSystem
 });
 
 // Initialize Systems

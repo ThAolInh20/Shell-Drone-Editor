@@ -1,29 +1,40 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
+import { renderingConfig } from '../config/rendering.js';
 
-const MAX_SMOKE_PUFFS = 150; // Reduced from 1200 to keep particle count minimal
+const QUALITY_CAPACITIES = {
+  off: 0,
+  low: 600,
+  medium: 1800,
+  high: 4000
+};
 
 export class SmokeSystem {
   constructor(sceneManager) {
     this.scene = sceneManager.instance;
-    this.maxPuffs = MAX_SMOKE_PUFFS;
+    this.quality = renderingConfig.smoke?.quality ?? 'medium';
+    this.density = renderingConfig.smoke?.density ?? 1.0;
+    this.windSpeed = renderingConfig.smoke?.windSpeed ?? 1.0;
+    this.maxPuffs = QUALITY_CAPACITIES[this.quality] ?? 1800;
 
     this.smokeTexture = this.createSmokeTexture();
     this.puffs = [];
     this.eventSubscriptions = [];
+    this.activePuffCount = 0;
 
-    // Hướng gió mặc định (thổi ngang sang phải X và hơi đẩy về sau Z)
-    this.wind = new THREE.Vector3(
+    // Hướng gió mặc định (thổi ngang X và đẩy z)
+    this.baseWind = new THREE.Vector3(
       5.5,
       0.8,
       2.5
     );
+    this.currentWind = this.baseWind.clone().multiplyScalar(this.windSpeed);
 
-    // Pre-allocate arrays for geometry buffers to prevent Garbage Collection pauses
-    this.positionsArray = new Float32Array(this.maxPuffs * 3);
-    this.colorsArray = new Float32Array(this.maxPuffs * 3);
-    this.sizesArray = new Float32Array(this.maxPuffs);
-    this.opacitiesArray = new Float32Array(this.maxPuffs);
+    // Pre-allocated Float32Array ring buffers to eliminate GC pauses
+    this.positionsArray = new Float32Array(QUALITY_CAPACITIES.high * 3);
+    this.colorsArray = new Float32Array(QUALITY_CAPACITIES.high * 3);
+    this.sizesArray = new Float32Array(QUALITY_CAPACITIES.high);
+    this.opacitiesArray = new Float32Array(QUALITY_CAPACITIES.high);
 
     this.smokeGeometry = new THREE.BufferGeometry();
     this.smokeGeometry.setAttribute(
@@ -59,12 +70,12 @@ export class SmokeSystem {
       map: this.smokeTexture,
       transparent: true,
       depthWrite: false,
-      depthTest: true, // Cho phép vật thể đặc (như drone) che khuất khói tự nhiên
+      depthTest: true,
       blending: THREE.NormalBlending,
       vertexColors: true
     });
 
-    // Custom shader modifications to support per-point size and opacity
+    // Custom GLSL shader with per-point size, opacity, and atmospheric haze
     this.smokeMaterial.onBeforeCompile = (shader) => {
       shader.vertexShader = `
         attribute float aSize;
@@ -100,6 +111,10 @@ export class SmokeSystem {
     this.smokePoints.frustumCulled = false;
     this.scene.add(this.smokePoints);
 
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
     this.eventSubscriptions.push(
       globalEventBus.on(
         'firework:launch',
@@ -126,6 +141,26 @@ export class SmokeSystem {
         }
       )
     );
+  }
+
+  setQuality(qualityStr) {
+    this.quality = qualityStr;
+    this.maxPuffs = QUALITY_CAPACITIES[qualityStr] ?? 1800;
+    if (this.quality === 'off') {
+      this.clear();
+      this.smokePoints.visible = false;
+    } else {
+      this.smokePoints.visible = true;
+    }
+  }
+
+  setDensity(densityVal) {
+    this.density = Math.max(0.1, densityVal);
+  }
+
+  setWindSpeed(speedVal) {
+    this.windSpeed = Math.max(0, speedVal);
+    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
   }
 
   destroy() {
@@ -186,7 +221,15 @@ export class SmokeSystem {
     return texture;
   }
 
+  // Fast direct particle injection method (bypasses EventBus for high performance)
+  addSmokePoint(origin, velocity, options = {}) {
+    if (this.quality === 'off' || this.maxPuffs === 0) return;
+    this.spawnPuff(origin, velocity, options);
+  }
+
   spawnPuff(origin, velocity, options = {}) {
+    if (this.quality === 'off' || this.maxPuffs === 0) return;
+
     if (this.puffs.length >= this.maxPuffs) {
       this.puffs.shift();
     }
@@ -198,19 +241,20 @@ export class SmokeSystem {
       life: options.life ?? 2.2,
       growth: options.growth ?? 4.4,
       color: options.color ?? new THREE.Color(0x8892a3),
-      baseScale: options.scale ?? 8,
-      baseOpacity: options.opacity ?? 0.24
+      baseScale: (options.scale ?? 8) * this.density,
+      baseOpacity: (options.opacity ?? 0.24) * this.density
     });
   }
 
   onLaunch(detail = {}) {
+    if (this.quality === 'off') return;
     const launchPos = new THREE.Vector3(
       detail.position?.x ?? 0,
       (detail.position?.y ?? -50) + 2,
       detail.position?.z ?? 0
     );
 
-    const count = 2; // Reduced from 8 to minimize smoke
+    const count = this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4);
 
     for (let i = 0; i < count; i++) {
       const drift = new THREE.Vector3(
@@ -238,15 +282,7 @@ export class SmokeSystem {
   }
 
   onBurst(detail = {}) {
-    // Kích hoạt khói vụ nổ cho Chrysanthemum Smoke, Sparking và Sparking V2 để tạo quầng sáng trung mềm mại
-    if (
-      detail.effectType !== 'crysanthemum-smoke' &&
-      detail.shellType !== 'crysanthemumSmoke' &&
-      detail.effectType !== 'sparking' &&
-      detail.effectType !== 'sparking-v2'
-    ) {
-      return;
-    }
+    if (this.quality === 'off') return;
 
     const burstPos = new THREE.Vector3(
       detail.position?.x ?? 0,
@@ -257,14 +293,16 @@ export class SmokeSystem {
     const burstColor = new THREE.Color(detail.colorHex ?? 0xffffff);
     const smokeColor = new THREE.Color(0x646d7d).lerp(
       burstColor,
-      0.1
+      0.15
     );
     const intensity = THREE.MathUtils.clamp(
       detail.intensity ?? 0.45,
       0.1,
       1
     );
-    const count = Math.round(2 + intensity * 4); // Reduced from 22 + intensity * 30 to minimize smoke
+
+    const baseCount = this.quality === 'high' ? 12 : (this.quality === 'low' ? 3 : 6);
+    const count = Math.round(baseCount + intensity * baseCount);
 
     for (let i = 0; i < count; i++) {
       const azimuth = Math.random() * Math.PI * 2;
@@ -295,6 +333,13 @@ export class SmokeSystem {
   }
 
   update(deltaTime) {
+    if (this.quality === 'off') {
+      if (this.activePuffCount > 0) {
+        this.clear();
+      }
+      return;
+    }
+
     const elapsed = performance.now() / 1000;
     const alive = [];
 
@@ -304,13 +349,13 @@ export class SmokeSystem {
       puff.age += deltaTime;
 
       if (puff.age < puff.life) {
-        // Hạt khói dần dần hòa vào tốc độ của gió (lerp) để tạo cảm giác bị cuốn đi
+        // Particles lerp towards wind speed
         puff.velocity.lerp(
-          this.wind,
+          this.currentWind,
           deltaTime * 1.2
         );
 
-        // Khói vẫn giữ một chút lực nổi tự nhiên (bốc lên trên) kết hợp nhiễu động nhẹ (turbulence)
+        // Natural buoyancy and curl noise turbulence
         const noiseX = Math.sin(elapsed * 3.0 + puff.age * 5.0) * 0.4;
         const noiseZ = Math.cos(elapsed * 2.5 + puff.age * 4.0) * 0.4;
         puff.velocity.x += noiseX * deltaTime;
@@ -326,6 +371,7 @@ export class SmokeSystem {
     }
 
     this.puffs = alive;
+    this.activePuffCount = this.puffs.length;
 
     // Update geometry buffers
     const activeCount = this.puffs.length;
@@ -367,6 +413,7 @@ export class SmokeSystem {
 
   clear() {
     this.puffs = [];
+    this.activePuffCount = 0;
     if (this.smokeGeometry) {
       this.smokeGeometry.setDrawRange(
         0,

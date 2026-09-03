@@ -115,6 +115,75 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_quality',
+    label: 'Smoke Quality',
+    type: 'select',
+    options: [
+      'off',
+      'low',
+      'medium',
+      'high'
+    ],
+    category: 'graphics',
+    default: 'medium',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.quality = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setQuality(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_density',
+    label: 'Smoke Density',
+    type: 'slider',
+    category: 'graphics',
+    min: 0.1,
+    max: 2.0,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.density = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setDensity(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_wind_speed',
+    label: 'Smoke Wind Speed',
+    type: 'slider',
+    category: 'graphics',
+    min: 0.0,
+    max: 2.0,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.windSpeed = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setWindSpeed(value);
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',
@@ -269,6 +338,10 @@ export function loadAndApplySettings(
         setting.type === 'checkbox'
       ) {
         val = savedStr === 'true';
+      } else if (
+        setting.type === 'select'
+      ) {
+        val = savedStr;
       } else {
         val = parseFloat(
           savedStr

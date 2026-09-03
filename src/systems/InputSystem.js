@@ -218,7 +218,7 @@ export class InputSystem {
         if (saved !== null) {
           currentVal = item.type === 'checkbox'
             ? saved === 'true'
-            : parseFloat(saved);
+            : (item.type === 'select' ? saved : parseFloat(saved));
         }
 
         if (item.type === 'slider') {
@@ -227,7 +227,7 @@ export class InputSystem {
 
           const labelSpan = document.createElement('span');
           labelSpan.className = 'settings-label';
-          labelSpan.textContent = item.label;
+          labelSpan.textContent = t(`editor.${item.key}`) || item.label;
 
           const valSpan = document.createElement('span');
           valSpan.className = 'settings-value';
@@ -281,13 +281,48 @@ export class InputSystem {
             item.apply(val, this.settingsContext);
           });
 
-          const labelText = document.createTextNode(' ' + item.label);
+          const labelText = document.createTextNode(' ' + (t(`editor.${item.key}`) || item.label));
 
           cbLabel.appendChild(checkbox);
           cbLabel.appendChild(labelText);
           row.appendChild(cbLabel);
 
           item.inputElement = checkbox;
+        } else if (item.type === 'select') {
+          const header = document.createElement('div');
+          header.className = 'settings-slider-header';
+          header.style.marginBottom = '6px';
+
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'settings-label';
+          labelSpan.textContent = t(`editor.${item.key}`) || item.label;
+          header.appendChild(labelSpan);
+          row.appendChild(header);
+
+          const select = document.createElement('select');
+          select.className = 'firework-pause-select';
+
+          for (const optKey of (item.options || [])) {
+            const optionElement = document.createElement('option');
+            optionElement.value = optKey;
+            optionElement.textContent = t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) || t(`editor.${optKey}`) || optKey.toUpperCase();
+            if (optKey === currentVal) {
+              optionElement.selected = true;
+            }
+            select.appendChild(optionElement);
+          }
+
+          select.addEventListener('change', () => {
+            const val = select.value;
+            localStorage.setItem(
+              `settings_${item.key}`,
+              val
+            );
+            item.apply(val, this.settingsContext);
+          });
+
+          row.appendChild(select);
+          item.inputElement = select;
         }
 
         section.appendChild(row);

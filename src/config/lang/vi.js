@@ -282,6 +282,9 @@ export default {
     graphicsLow: "Thấp",
     graphicsMedium: "Trung bình",
     graphicsHigh: "Cao",
+    smokeQuality: "Chất lượng khói",
+    smokeDensity: "Mật độ khói",
+    smokeWindSpeed: "Tốc độ gió khói",
     inspector: {
       title: "Thông tin thuộc tính",
       empty: "Chưa chọn đối tượng nào.",

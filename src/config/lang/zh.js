@@ -271,6 +271,9 @@ export default {
     graphicsLow: "低",
     graphicsMedium: "中",
     graphicsHigh: "高",
+    smokeQuality: "烟雾质量",
+    smokeDensity: "烟雾密度",
+    smokeWindSpeed: "烟雾风速",
     inspector: {
       title: "属性面板",
       empty: "未选择任何对象。",

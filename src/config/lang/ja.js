@@ -271,6 +271,9 @@ export default {
     graphicsLow: "低",
     graphicsMedium: "中",
     graphicsHigh: "高",
+    smokeQuality: "スモーク品質",
+    smokeDensity: "スモーク密度",
+    smokeWindSpeed: "スモーク風速",
     inspector: {
       title: "属性インスペクタ",
       empty: "オブジェクトが選択されていません。",

@@ -26,9 +26,10 @@ const DEFAULT_TRAIL_COLOR = FIREWORK_CONFIG.SYSTEM.defaultTrailColor;
 const CRACKLE_SPARK_COLOR = FIREWORK_CONFIG.SYSTEM.crackleSparkColor;
 
 export class FireworkSystem {
-  constructor(scene, trailSystem, shellPresetFactory = null) {
+  constructor(scene, trailSystem, smokeSystem = null, shellPresetFactory = null) {
     this.scene = scene;
     this.trailSystem = trailSystem;
+    this.smokeSystem = smokeSystem;
     this.activeFireworks = [];
     this.shellPresetFactory = shellPresetFactory || new ShellPresetFactory();
     this.launchZone = LAUNCH_ZONE_CONFIG;
@@ -963,6 +964,21 @@ export class FireworkSystem {
         opacity,
         false
       );
+
+      if (this.smokeSystem && Math.random() < 0.4) {
+        const ascVel = item.velocity ? item.velocity.clone().multiplyScalar(-0.15) : new THREE.Vector3(0, -1.2, 0);
+        this.smokeSystem.addSmokePoint(
+          item.mesh.position,
+          ascVel,
+          {
+            life: 1.6 + Math.random() * 0.8,
+            scale: 5.2 + Math.random() * 2.5,
+            growth: 3.4,
+            opacity: 0.25,
+            color: item.color.clone()
+          }
+        );
+      }
     }
 
     if (!shouldBurst) {
@@ -1184,29 +1200,40 @@ export class FireworkSystem {
         }
       }
 
-      if (spawnSmoke && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+      if (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const spawnChance = lifeRatio < 0.12
           ? 1.0
           : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
 
-        if (p.particleIndex % 12 === 0 && Math.random() < spawnChance) {
+        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 2 : (spawnSmoke ? 3 : 5);
+        if (p.particleIndex % moduloCheck === 0 && Math.random() < spawnChance) {
           const particleColor = p.baseColor.clone();
           const smokeVel = p.velocity.clone().multiplyScalar(0.12);
+          const densityMult = spawnSmoke ? 1.4 : 1.0;
+          const smokeOptions = {
+            life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
+            scale: (3.2 + Math.random() * 2.2) * densityMult,
+            growth: 2.8,
+            opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
+            color: particleColor
+          };
 
-          globalEventBus.emit(
-            'smoke:spawn',
-            {
-              position: p.position.clone(),
-              velocity: smokeVel,
-              options: {
-                life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
-                scale: 3.2 + Math.random() * 2.2,
-                growth: 2.8,
-                opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0),
-                color: particleColor
+          if (this.smokeSystem) {
+            this.smokeSystem.addSmokePoint(
+              p.position,
+              smokeVel,
+              smokeOptions
+            );
+          } else {
+            globalEventBus.emit(
+              'smoke:spawn',
+              {
+                position: p.position.clone(),
+                velocity: smokeVel,
+                options: smokeOptions
               }
-            }
-          );
+            );
+          }
         }
       }
 
