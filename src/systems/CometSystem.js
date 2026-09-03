@@ -29,7 +29,7 @@ export class CometSystem {
 
   launchRandom(preset = null, options = {}) {
     const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color, effectOverrides } = options;
-    
+
     // Nếu preset là tên key (string), phân giải thành object preset
     let resolvedPreset = preset;
     if (typeof preset === 'string') {
@@ -37,16 +37,16 @@ export class CometSystem {
     } else if (preset === null) {
       resolvedPreset = this.shellPresetFactory.createPresetByKey('comet_cluster');
     }
-    
+
     // Áp dụng ghi đè cấu hình hiệu ứng từ sequence
     let finalPreset = resolvedPreset;
     if (effectOverrides && typeof effectOverrides === 'object') {
       finalPreset = { ...(resolvedPreset || {}), ...effectOverrides };
     }
-    
+
     const clusterCount = finalPreset?.clusterCount ?? 1;
     const basePosition = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
-    
+
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.
     const clusterColor = color ? new THREE.Color(color) : new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
 
@@ -67,13 +67,15 @@ export class CometSystem {
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
       // Giảm độ cao xuống còn 2/3 so với ban đầu
-      const targetHeight = this.resolveBurstHeight(preset, ratioY) * 0.66 * (0.8 + Math.random() * 0.4);
+      const targetHeight = this.resolveBurstHeight(preset, ratioY) *
+        0.66 *
+        (0.95 + Math.random() * 0.1);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
-      
+
       // Spread the cluster more laterally
-      velocity.x += (Math.random() - 0.5) * 5; 
-      velocity.z += (Math.random() - 0.5) * 5; 
-      velocity.y *= (0.7 + Math.random() * 0.6);
+      velocity.x += (Math.random() - 0.5) * 5;
+      velocity.z += (Math.random() - 0.5) * 5;
+      velocity.y *= (0.95 + Math.random() * 0.1);
 
       // Slightly vary color
       const cometColor = clusterColor.clone().offsetHSL(
@@ -132,7 +134,7 @@ export class CometSystem {
     const finalRadius = arcRadius + thicknessOffset;
 
     const x = finalRadius * Math.cos(baseAngle);
-    const z = -finalRadius * Math.sin(baseAngle); 
+    const z = -finalRadius * Math.sin(baseAngle);
 
     return this.launchZone.center.clone().add(new THREE.Vector3(x, 0, z));
   }
@@ -151,13 +153,13 @@ export class CometSystem {
     const gravity = 30;
     const groundY = this.launchZone.center.y; // -50
     const h = Math.max(burstHeight - groundY, 5); // Đảm bảo bay lên tối thiểu 5 unit
-    
+
     const requiredVy = Math.sqrt(2 * gravity * h);
-    
+
     const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
-    
+
     const forwardSpeed = 15;
-    
+
     // vy luôn đảm bảo đạt đủ độ cao
     const vy = requiredVy;
     // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle)
@@ -187,12 +189,14 @@ export class CometSystem {
       const currentHeight = comet.mesh.position.y - (comet.launchY ?? 0);
       const heightRatio = H_max > 0 ? (currentHeight / H_max) : 0;
 
-      const isStrobeActive = comet.preset?.strobe && 
-                             comet.state === CometEntity.STATE.LAUNCHING && 
-                             heightRatio >= 0.5;
+      const isStrobeActive = comet.preset?.strobe &&
+        comet.state === CometEntity.STATE.LAUNCHING &&
+        heightRatio >= 0.5;
 
       // Thicker trails for comets during launch (before reaching 50% height or if no strobe)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
+
+
         if (!isStrobeActive) {
           const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;
           if (comet.preset?.launchTrail !== false && isCoreVisible) {
@@ -272,7 +276,7 @@ export class CometSystem {
             }
           });
         }
-        
+
         // Thêm hiệu ứng khói ở đuôi
         if (this.smokeSystem && comet.preset?.launchSmoke && Math.random() < 0.2) {
           const drift = new THREE.Vector3(

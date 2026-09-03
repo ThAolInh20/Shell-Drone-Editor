@@ -2,11 +2,36 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { sequences } from '../config/sequences/index.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { t } from '../config/lang/i18n.js';
+import {
+  SETTINGS_DEFINITION,
+  applySetting,
+  resetSettings
+} from '../config/settings.js';
 
 export class InputSystem {
-  constructor(camera, domElement, fireworkSystem = null) {
-    this.controls = new PointerLockControls(camera, domElement);
+  constructor(
+    camera,
+    domElement,
+    fireworkSystem = null,
+    renderer = null,
+    postProcessing = null,
+    audioSystem = null
+  ) {
+    this.controls = new PointerLockControls(
+      camera,
+      domElement
+    );
     this.fireworkSystem = fireworkSystem;
+    this.renderer = renderer;
+    this.postProcessing = postProcessing;
+    this.audioSystem = audioSystem;
+
+    this.settingsContext = {
+      renderer: this.renderer,
+      postProcessing: this.postProcessing,
+      audioSystem: this.audioSystem
+    };
+
     this.paused = false;
     this.selectedPresetKey = 'random';
     this.eventSubscriptions = [];
@@ -157,100 +182,176 @@ export class InputSystem {
 
     const title = document.createElement('div');
     title.className = 'firework-pause-title';
-    title.textContent = 'Firework Selector';
+    title.textContent = 'Settings & Controls';
 
     const description = document.createElement('div');
     description.className = 'firework-pause-description';
-    description.textContent = 'Press ESC to resume, or choose a firework type before clicking to launch.';
+    description.textContent = 'Press ESC to resume. Adjust settings below:';
 
-    const label = document.createElement('label');
-    label.className = 'firework-pause-label';
-    label.textContent = 'Type';
+    panel.appendChild(title);
+    panel.appendChild(description);
 
-    this.presetSelect = document.createElement('select');
-    this.presetSelect.className = 'firework-pause-select';
-    for (const option of this.presetOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.key;
-      optionElement.textContent = option.label;
-      this.presetSelect.appendChild(optionElement);
-    }
-    this.presetSelect.value = this.selectedPresetKey;
-    this.presetSelect.addEventListener('change', () => {
-      this.selectedPresetKey = this.presetSelect.value;
-      this.updateSelectedPresetHighlight();
-      this.updateStatusOverlay();
-    });
+    const categories = {
+      graphics: 'Đồ họa & Hậu kỳ',
+      audio: 'Âm thanh (Volumes)'
+    };
 
-    this.selectedPresetHighlight = document.createElement('div');
-    this.selectedPresetHighlight.className = 'firework-pause-selected';
-    this.selectedPresetHighlight.innerHTML = '<span class="firework-pause-selected-label">Selected</span><span class="firework-pause-selected-value"></span>';
+    for (const [catKey, catTitle] of Object.entries(categories)) {
+      const section = document.createElement('div');
+      section.className = 'settings-section';
 
-    this.sequenceSelect = document.createElement('select');
-    this.sequenceSelect.className = 'firework-pause-select';
-    for (const option of this.sequenceOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.key;
-      optionElement.textContent = option.label;
-      this.sequenceSelect.appendChild(optionElement);
-    }
-    this.sequenceSelect.value = this.selectedSequenceKey;
-    this.sequenceSelect.addEventListener('change', () => {
-      this.selectedSequenceKey = this.sequenceSelect.value;
-      this.updateStatusOverlay();
-    });
+      const secHeader = document.createElement('div');
+      secHeader.className = 'settings-section-title';
+      secHeader.textContent = catTitle;
+      section.appendChild(secHeader);
 
-    const seqLabel = document.createElement('label');
-    seqLabel.className = 'firework-pause-label';
-    seqLabel.textContent = 'Sequence (Press Enter to play)';
-    seqLabel.appendChild(this.sequenceSelect);
+      const catItems = SETTINGS_DEFINITION.filter(
+        (s) => s.category === catKey
+      );
 
-    const qualityLabel = document.createElement('label');
-    qualityLabel.className = 'firework-pause-label';
-    qualityLabel.textContent = t('editor.graphicsQuality') || 'Graphics Quality';
+      for (const item of catItems) {
+        const row = document.createElement('div');
+        row.className = 'settings-row';
 
-    this.qualitySelect = document.createElement('select');
-    this.qualitySelect.className = 'firework-pause-select';
+        const saved = localStorage.getItem(`settings_${item.key}`);
+        let currentVal = item.default;
+        if (saved !== null) {
+          currentVal = item.type === 'checkbox'
+            ? saved === 'true'
+            : parseFloat(saved);
+        }
 
-    const qualityOptions = [
-      {
-        key: 'low',
-        label: t('editor.graphicsLow') || 'Low'
-      },
-      {
-        key: 'medium',
-        label: t('editor.graphicsMedium') || 'Medium'
-      },
-      {
-        key: 'high',
-        label: t('editor.graphicsHigh') || 'High'
+        if (item.type === 'slider') {
+          const header = document.createElement('div');
+          header.className = 'settings-slider-header';
+
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'settings-label';
+          labelSpan.textContent = item.label;
+
+          const valSpan = document.createElement('span');
+          valSpan.className = 'settings-value';
+          valSpan.textContent = currentVal.toFixed(2);
+
+          header.appendChild(labelSpan);
+          header.appendChild(valSpan);
+          row.appendChild(header);
+
+          const slider = document.createElement('input');
+          slider.type = 'range';
+          slider.className = 'settings-slider';
+          slider.min = item.min;
+          slider.max = item.max;
+          slider.step = item.step;
+          slider.value = currentVal;
+
+          slider.addEventListener('input', () => {
+            const val = parseFloat(slider.value);
+            valSpan.textContent = val.toFixed(2);
+            item.apply(val, this.settingsContext);
+          });
+
+          slider.addEventListener('change', () => {
+            const val = parseFloat(slider.value);
+            localStorage.setItem(
+              `settings_${item.key}`,
+              val.toString()
+            );
+          });
+
+          row.appendChild(slider);
+
+          item.inputElement = slider;
+          item.valueDisplayElement = valSpan;
+        } else if (item.type === 'checkbox') {
+          const cbLabel = document.createElement('label');
+          cbLabel.className = 'settings-checkbox-label';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'settings-checkbox';
+          checkbox.checked = currentVal;
+
+          checkbox.addEventListener('change', () => {
+            const val = checkbox.checked;
+            localStorage.setItem(
+              `settings_${item.key}`,
+              val.toString()
+            );
+            item.apply(val, this.settingsContext);
+          });
+
+          const labelText = document.createTextNode(' ' + item.label);
+
+          cbLabel.appendChild(checkbox);
+          cbLabel.appendChild(labelText);
+          row.appendChild(cbLabel);
+
+          item.inputElement = checkbox;
+        }
+
+        section.appendChild(row);
       }
-    ];
 
-    for (const option of qualityOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = option.key;
-      optionElement.textContent = option.label;
-      this.qualitySelect.appendChild(optionElement);
+      // Add Quality Select specifically at the bottom of the graphics section
+      if (catKey === 'graphics') {
+        const row = document.createElement('div');
+        row.className = 'settings-row';
+
+        const qLabel = document.createElement('div');
+        qLabel.className = 'settings-label';
+        qLabel.style.marginBottom = '6px';
+        qLabel.textContent = t('editor.graphicsQuality') || 'Graphics Quality';
+        row.appendChild(qLabel);
+
+        this.qualitySelect = document.createElement('select');
+        this.qualitySelect.className = 'firework-pause-select';
+
+        const qualityOptions = [
+          {
+            key: 'low',
+            label: t('editor.graphicsLow') || 'Low'
+          },
+          {
+            key: 'medium',
+            label: t('editor.graphicsMedium') || 'Medium'
+          },
+          {
+            key: 'high',
+            label: t('editor.graphicsHigh') || 'High'
+          }
+        ];
+
+        for (const option of qualityOptions) {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.key;
+          optionElement.textContent = option.label;
+          this.qualitySelect.appendChild(optionElement);
+        }
+
+        this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
+        this.qualitySelect.addEventListener('change', () => {
+          const quality = this.qualitySelect.value;
+          localStorage.setItem(
+            'graphics_quality',
+            quality
+          );
+          globalEventBus.emit(
+            'graphics:quality',
+            quality
+          );
+        });
+
+        row.appendChild(this.qualitySelect);
+        section.appendChild(row);
+      }
+
+      panel.appendChild(section);
     }
-
-    this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
-    this.qualitySelect.addEventListener('change', () => {
-      const quality = this.qualitySelect.value;
-      localStorage.setItem(
-        'graphics_quality',
-        quality
-      );
-      globalEventBus.emit(
-        'graphics:quality',
-        quality
-      );
-    });
-
-    qualityLabel.appendChild(this.qualitySelect);
 
     const buttonRow = document.createElement('div');
     buttonRow.className = 'firework-pause-actions';
+    buttonRow.style.gap = '10px';
 
     this.resumeButton = document.createElement('button');
     this.resumeButton.type = 'button';
@@ -258,30 +359,43 @@ export class InputSystem {
     this.resumeButton.textContent = 'Resume';
     this.resumeButton.addEventListener('click', () => this.resume());
 
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'firework-pause-button';
+    resetBtn.style.backgroundColor = '#d32f2f';
+    resetBtn.style.color = '#fff';
+    resetBtn.style.boxShadow = '0 8px 20px rgba(211, 47, 47, 0.22)';
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', () => {
+      resetSettings(this.settingsContext);
+
+      for (const item of SETTINGS_DEFINITION) {
+        if (item.type === 'slider') {
+          item.inputElement.value = item.default;
+          item.valueDisplayElement.textContent = item.default.toFixed(2);
+        } else if (item.type === 'checkbox') {
+          item.inputElement.checked = item.default;
+        }
+      }
+    });
+
     this.timelineButton = document.createElement('button');
     this.timelineButton.type = 'button';
     this.timelineButton.className = 'firework-pause-button';
     this.timelineButton.textContent = 'Timeline (Ctrl+T)';
-    this.timelineButton.style.marginLeft = '10px';
-    this.timelineButton.style.backgroundColor = '#1976d2'; // distinct color
+    this.timelineButton.style.backgroundColor = '#1976d2';
+    this.timelineButton.style.boxShadow = '0 8px 20px rgba(25, 118, 210, 0.22)';
     this.timelineButton.addEventListener('click', () => {
       if (this.timelineEditor) {
         this.timelineEditor.toggle();
       }
     });
 
-    buttonRow.appendChild(this.resumeButton);
+    buttonRow.appendChild(resetBtn);
     buttonRow.appendChild(this.timelineButton);
-    label.appendChild(this.presetSelect);
-    panel.appendChild(this.selectedPresetHighlight);
-    panel.appendChild(title);
-    panel.appendChild(description);
-    panel.appendChild(label);
-    panel.appendChild(seqLabel);
-    panel.appendChild(qualityLabel);
+    buttonRow.appendChild(this.resumeButton);
     panel.appendChild(buttonRow);
 
-    // Section "Tools & Navigation" to switch other editor sites (requested by USER inside pause menu)
     const navSection = document.createElement('div');
     navSection.style.marginTop = '20px';
     navSection.style.paddingTop = '16px';
@@ -313,7 +427,7 @@ export class InputSystem {
     btnTimeline.style.borderRadius = '999px';
     btnTimeline.style.cursor = 'pointer';
     btnTimeline.style.transition = 'all 0.3s ease';
-    btnTimeline.innerHTML = '🎞️ Timeline Editor';
+    btnTimeline.innerHTML = 'Timeline Editor';
     btnTimeline.addEventListener('mouseover', () => {
       btnTimeline.style.filter = 'brightness(1.15)';
       btnTimeline.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.4)';
@@ -340,7 +454,7 @@ export class InputSystem {
     btnStatic.style.borderRadius = '999px';
     btnStatic.style.cursor = 'pointer';
     btnStatic.style.transition = 'all 0.3s ease';
-    btnStatic.innerHTML = '📐 Static Editor';
+    btnStatic.innerHTML = 'Static Editor';
     btnStatic.addEventListener('mouseover', () => {
       btnStatic.style.filter = 'brightness(1.15)';
       btnStatic.style.boxShadow = '0 0 15px rgba(170, 59, 255, 0.4)';
@@ -361,7 +475,6 @@ export class InputSystem {
 
     this.pauseOverlay.appendChild(panel);
     document.body.appendChild(this.pauseOverlay);
-    this.updateSelectedPresetHighlight();
   }
 
   getSelectedPresetKey() {
@@ -424,11 +537,29 @@ export class InputSystem {
       return;
     }
 
-    this.presetSelect.value = this.selectedPresetKey;
-    if (this.sequenceSelect) {
-      this.sequenceSelect.value = this.selectedSequenceKey;
+    for (const item of SETTINGS_DEFINITION) {
+      const saved = localStorage.getItem(`settings_${item.key}`);
+      let currentVal = item.default;
+      if (saved !== null) {
+        currentVal = item.type === 'checkbox'
+          ? saved === 'true'
+          : parseFloat(saved);
+      }
+
+      if (item.type === 'slider' && item.inputElement) {
+        item.inputElement.value = currentVal;
+        if (item.valueDisplayElement) {
+          item.valueDisplayElement.textContent = currentVal.toFixed(2);
+        }
+      } else if (item.type === 'checkbox' && item.inputElement) {
+        item.inputElement.checked = currentVal;
+      }
     }
-    this.updateSelectedPresetHighlight();
+
+    if (this.qualitySelect) {
+      this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
+    }
+
     this.pauseOverlay.style.display = 'flex';
   }
 
@@ -438,16 +569,6 @@ export class InputSystem {
     }
 
     this.pauseOverlay.style.display = 'none';
-  }
-
-  updateSelectedPresetHighlight() {
-    if (!this.selectedPresetHighlight) {
-      return;
-    }
-
-    const label = this.getSelectedPresetLabel();
-    this.selectedPresetHighlight.querySelector('.firework-pause-selected-value').textContent = label;
-    this.selectedPresetHighlight.dataset.preset = this.selectedPresetKey;
   }
 
   updateStatusOverlay() {

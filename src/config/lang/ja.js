@@ -294,6 +294,7 @@ export default {
         duration: "持続時間",
         sectorId: "セクター ID",
         angle: "発射角度",
+        cometTrail: "Comet",
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
@@ -351,6 +352,11 @@ export default {
         },
         preset: {
           random: "ランダム"
+        },
+        cometTrail: {
+          none: "なし",
+          normal: "通常",
+          thick: "ライト"
         }
       },
       colors: {

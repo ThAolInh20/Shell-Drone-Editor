@@ -847,7 +847,9 @@ export class FireworkSystem {
           preset?.shellSize ?? 1
         )
       );
-      const isDyingEmber = preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5;
+      const isDyingEmber =
+        (preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5) ||
+        Math.random() < 0.05;
       const speed = baseSpeed * (useContourMagnitude ? 1.15 : 1) * shellSizeScale * (isDyingEmber ? 0.85 : 1.0);
 
       const normDir = direction.clone().normalize();
@@ -934,11 +936,12 @@ export class FireworkSystem {
   handleShellUpdate(item, deltaTime, finished) {
     const shouldBurst = item.update(deltaTime);
 
+    const launchTrail = item.preset?.launchTrail !== false;
     const activeTrailChance = item.preset?.trailChance !== undefined
       ? item.preset.trailChance
       : 0.4;
 
-    if (Math.random() < activeTrailChance) {
+    if (launchTrail && Math.random() < activeTrailChance) {
       let customLife = null;
       if (item.preset?.noBurst && item.preset?.starLife) {
         const lifeTime = item.preset.starLife / 1000;
@@ -946,13 +949,19 @@ export class FireworkSystem {
         const baseTrailLife = (2 + Math.random() * 3) * 0.5;
         customLife = Math.min(baseTrailLife, remainingLife);
       }
-      const scale = item.preset?.shellType === 'floral-child' ? 0.95 : 0.5;
+      const isThick = item.preset?.thickTrail;
+      const lifeMultiplier = isThick
+        ? 0.25
+        : (item.preset?.shellType === 'floral-child' ? 0.95 : 0.5);
+      const opacity = isThick ? 0.9 : 1.0;
       this.trailSystem.spawnTrailParticle(
         item.mesh.position.clone(),
         item.color,
-        scale,
+        lifeMultiplier,
         false,
-        customLife
+        customLife,
+        opacity,
+        false
       );
     }
 
