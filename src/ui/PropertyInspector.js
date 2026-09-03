@@ -78,6 +78,20 @@ export class PropertyInspector {
       || preset.type === 'comet';
   }
 
+  hasAngleConfig(event) {
+    if (!event) {
+      return false;
+    }
+    if (this.isCometEvent(event)) {
+      return true;
+    }
+    if (event.type === 'sequence') {
+      const pattern = event.pattern;
+      return typeof pattern === 'string' && (pattern.startsWith('sweep') || pattern.startsWith('fan-sweep'));
+    }
+    return false;
+  }
+
   getSchema() {
     const isCometPreset = (event) => {
       return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet'))
@@ -114,7 +128,26 @@ export class PropertyInspector {
           fields: [
             { name: 'time', labelKey: 'time', type: 'number', step: '0.1' },
             { name: 'type', labelKey: 'type', type: 'select', options: ['sequence', 'cometsequence'] },
-            { name: 'pattern', labelKey: 'pattern', type: 'select', options: ['random', 'sweep-left', 'sweep-right', 'sweep-arc-left', 'sweep-arc-right', 'sweep-arc-out-left', 'sweep-arc-out-right', 'converge', 'diverge', 'zigzag', 'fan', 'continuous', 'fan-sweep-left', 'fan-sweep-right', 'fan-sweep-continuous', 'fan-burst'], span: 2 },
+            {
+              name: 'pattern',
+              labelKey: 'pattern',
+              type: 'select',
+              options: [
+                'random',
+                'sweep',
+                'sweep-arc',
+                'sweep-arc-out',
+                'fan',
+                'fan-sweep',
+                'fan-sweep-continuous',
+                'fan-burst',
+                'converge',
+                'diverge',
+                'zigzag',
+                'continuous'
+              ],
+              span: 2
+            },
             { name: 'preset', labelKey: 'preset', type: 'select', options: this.presetOptions, span: 2 },
             { name: 'count', labelKey: 'count', type: 'number', step: '1' },
             { name: 'duration', labelKey: 'duration', type: 'number', step: '0.1' },
@@ -122,13 +155,23 @@ export class PropertyInspector {
           ]
         },
         {
-          groupKey: 'cometConfig',
-          visibleIf: (event) => this.isCometEvent(event),
+          groupKey: (this.selectedEvent && this.isCometEvent(this.selectedEvent))
+            ? 'cometConfig'
+            : 'angleConfig',
+          visibleIf: (event) => this.hasAngleConfig(event),
           fields: [
+            ...(this.selectedEvent && !this.isCometEvent(this.selectedEvent) ? [
+              {
+                name: 'useAngle',
+                labelKey: 'useAngle',
+                type: 'checkbox'
+              }
+            ] : []),
             {
               name: 'angle',
               labelKey: 'angle',
-              type: 'angle'
+              type: 'angle',
+              visibleIf: (event) => this.isCometEvent(event) || !!event.useAngle
             }
           ]
         },
@@ -281,6 +324,10 @@ export class PropertyInspector {
           }
         } else if (group.fields) {
           group.fields.forEach(field => {
+            if (field.visibleIf && !field.visibleIf(this.selectedEvent)) {
+              return;
+            }
+
             const fieldWrapper = document.createElement('div');
             if (field.span === 2) {
               fieldWrapper.className = 'inspector-field-span-2';
@@ -403,10 +450,17 @@ export class PropertyInspector {
       this.onUpdate('beforeChange');
       if (e.target.checked) {
         this.selectedEvent[field.name] = true;
+        if (field.name === 'useAngle' && this.selectedEvent.angle === undefined) {
+          this.selectedEvent.angle = 0;
+        }
       } else {
         delete this.selectedEvent[field.name];
+        if (field.name === 'useAngle') {
+          delete this.selectedEvent.angle;
+        }
       }
       this.onUpdate();
+      this.render();
     });
 
     container.appendChild(input);

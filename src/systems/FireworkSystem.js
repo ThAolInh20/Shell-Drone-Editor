@@ -211,7 +211,15 @@ export class FireworkSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides } = options;
+    const {
+      ratioX,
+      ratioY,
+      ratioZ,
+      sectorId,
+      color,
+      angleOffset = 0,
+      effectOverrides
+    } = options;
 
     // Nếu preset được truyền vào là tên loại pháo (string), phân giải nó thành object preset
     let resolvedPreset = preset;
@@ -238,7 +246,10 @@ export class FireworkSystem {
     const heightScale = THREE.MathUtils.lerp(0.6, 1.0, normalizedHeight);
     shellPreset.shellSize = (shellPreset.shellSize ?? 1) * heightScale;
 
-    const velocity = this.resolveLaunchVelocity(targetHeight);
+    const velocity = this.resolveLaunchVelocity(
+      targetHeight,
+      angleOffset
+    );
 
     const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
@@ -394,7 +405,7 @@ export class FireworkSystem {
     return THREE.MathUtils.clamp(baseHeight + (Math.random() - 0.5) * jitter, this.launchZone.minBurstY, this.launchZone.maxBurstY);
   }
 
-  resolveLaunchVelocity(burstHeight) {
+  resolveLaunchVelocity(burstHeight, angleOffset = 0) {
     const gravity = Math.abs(FIREWORK_CONFIG.GRAVITY); // Trọng lực được định nghĩa là 30 trong update()
     const groundY = this.launchZone.center.y;
     const h = Math.max(burstHeight - groundY, 5);
@@ -410,14 +421,24 @@ export class FireworkSystem {
     const lateralSpread = THREE.MathUtils.lerp(5, 9, 1 - normalizedHeight);
 
     // Fan out effect based on the arc position (shoot outwards from center)
-    const angle = this._lastLaunchAngle || (Math.PI / 2);
-    const fanSpeedX = Math.cos(angle) * 20;
-    const fanSpeedZ = -Math.sin(angle) * 20;
+    const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
+    const forwardSpeed = 20;
+
+    // Vận tốc tạt nghiêng theo angleOffset (tính bằng tan(angleOffset))
+    const tiltLateral = launchSpeedY * Math.tan(angleOffset);
+
+    const vx = forwardSpeed * Math.cos(baseAngle) +
+      tiltLateral * Math.sin(baseAngle) +
+      (Math.random() - 0.5) * lateralSpread;
+    const vy = launchSpeedY;
+    const vz = -forwardSpeed * Math.sin(baseAngle) +
+      tiltLateral * Math.cos(baseAngle) +
+      (Math.random() - 0.5) * lateralSpread;
 
     return new THREE.Vector3(
-      fanSpeedX + (Math.random() - 0.5) * lateralSpread,
-      launchSpeedY,
-      fanSpeedZ + (Math.random() - 0.5) * lateralSpread
+      vx,
+      vy,
+      vz
     );
   }
 

@@ -25,7 +25,22 @@ export class FireworkSequencer {
   }
 
   playPattern(pattern, config) {
-    const { count = 10, duration = 2.0, preset = null, sectorId, color, x1, x2, y1, y2, effectOverrides, instantBurst, shellSize } = config;
+    const {
+      count = 10,
+      duration = 2.0,
+      preset = null,
+      sectorId,
+      color,
+      x1,
+      x2,
+      y1,
+      y2,
+      angle,
+      useAngle,
+      effectOverrides,
+      instantBurst,
+      shellSize
+    } = config;
 
     for (let i = 0; i < count; i++) {
       const progress = count > 1 ? i / (count - 1) : 0;
@@ -35,13 +50,42 @@ export class FireworkSequencer {
       const delay = progress * duration;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
 
+      // CHỈ khi useAngle === true thì mới bắn theo góc chỉ định, nếu không check thì luôn bắn ngẫu nhiên
+      const hasCustomAngle = useAngle === true && angle !== undefined;
+      const resolvedAngle = hasCustomAngle
+        ? (Math.abs(angle) > Math.PI ? (angle * Math.PI / 180) : angle)
+        : undefined;
+
+      // Góc xiên ngẫu nhiên tự do hoàn toàn cho từng quả pháo hoa nếu không tick chọn góc
+      let angleOffset = (Math.random() - 0.5) * 2 * 0.28;
+
       switch (pattern) {
-        case 'sweep-left': // Right to left
-          ratioX = 1.0 - progress;
+        case 'sweep':
+        case 'sweep-right':
+        case 'sweep-left': {
+          const defaultX1 = (pattern === 'sweep-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          ratioX = startX + progress * (endX - startX);
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle;
+          } else {
+            angleOffset = (Math.random() - 0.5) * 2 * 0.28;
+          }
           break;
-        case 'sweep-right': // Left to right
-          ratioX = progress;
+        }
+        case 'sweep-random-tilt':
+        case 'sweep-random-tilt-right':
+        case 'sweep-random-tilt-left': {
+          const defaultX1 = (pattern === 'sweep-random-tilt-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-random-tilt-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          ratioX = startX + progress * (endX - startX);
+          angleOffset = (Math.random() - 0.5) * 2 * 0.28;
           break;
+        }
         case 'converge': // Outside to inside
           ratioX = i % 2 === 0 ? progress / 2 : 1.0 - (progress / 2);
           break;
@@ -56,23 +100,40 @@ export class FireworkSequencer {
         case 'fan': // Arching from left to right, middle is highest
           ratioX = progress;
           ratioY = 0.4 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.4);
+          angleOffset = (0.28 - 0.56 * progress) + (Math.random() - 0.5) * 0.12;
           break;
+        case 'sweep-arc':
         case 'sweep-arc-right':
-          ratioX = progress;
+        case 'sweep-arc-left': {
+          const defaultX1 = (pattern === 'sweep-arc-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-arc-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          ratioX = startX + progress * (endX - startX);
           ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle;
+          } else {
+            angleOffset = (Math.random() - 0.5) * 2 * 0.28;
+          }
           break;
-        case 'sweep-arc-left':
-          ratioX = 1.0 - progress;
-          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
-          break;
+        }
+        case 'sweep-arc-out':
         case 'sweep-arc-out-right':
-          ratioX = progress;
+        case 'sweep-arc-out-left': {
+          const defaultX1 = (pattern === 'sweep-arc-out-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-arc-out-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          ratioX = startX + progress * (endX - startX);
           ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle;
+          } else {
+            angleOffset = (Math.random() - 0.5) * 2 * 0.28;
+          }
           break;
-        case 'sweep-arc-out-left':
-          ratioX = 1.0 - progress;
-          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
-          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = Math.random();
@@ -80,20 +141,29 @@ export class FireworkSequencer {
           break;
       }
 
-      // Remap ratioX to [x1, x2] range if provided
-      if (x1 !== undefined && x2 !== undefined) {
+      // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
+      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        let t = progress;
-        if (pattern === 'random') {
-          t = ratioY;
-        } else if (pattern.startsWith('sweep-arc') || pattern === 'fan') {
-          t = Math.sin(progress * Math.PI);
+        if (pattern.startsWith('sweep')) {
+          const minY = Math.min(y1, y2);
+          const maxY = Math.max(y1, y2);
+          ratioY = minY + Math.random() * (maxY - minY);
+        } else {
+          let t = progress;
+          if (pattern === 'random') {
+            t = ratioY;
+          } else if (
+            pattern.startsWith('sweep-arc') ||
+            pattern === 'fan'
+          ) {
+            t = Math.sin(progress * Math.PI);
+          }
+          ratioY = y1 + t * (y2 - y1);
         }
-        ratioY = y1 + t * (y2 - y1);
       } else if (config.ratioY !== undefined) {
         const hasSinRatioY = pattern.startsWith('sweep-arc') || pattern === 'fan';
         if (!hasSinRatioY) {
@@ -133,7 +203,15 @@ export class FireworkSequencer {
       this.activeTasks.push({
         timeToLaunch: delay,
         preset,
-        options: { ratioX, ratioY, ratioZ, sectorId, color, effectOverrides: overrides }
+        options: {
+          ratioX,
+          ratioY,
+          ratioZ,
+          angleOffset,
+          sectorId,
+          color,
+          effectOverrides: overrides
+        }
       });
     }
   }
@@ -158,14 +236,19 @@ export class FireworkSequencer {
           // Thêm độ lệch ngẫu nhiên nhỏ để trông tự nhiên hơn (khoảng +/- 5 độ)
           angleOffset = (Math.random() - 0.5) * 0.47;
           break;
+        case 'fan-sweep':
         case 'fan-sweep-right':
-          // Sweeps left to right
-          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+        case 'fan-sweep-left': {
+          const defaultX1 = (pattern === 'fan-sweep-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'fan-sweep-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          angleOffset = isMovingRight
+            ? maxAngleOffset - (2 * maxAngleOffset) * progress
+            : -maxAngleOffset + (2 * maxAngleOffset) * progress;
           break;
-        case 'fan-sweep-left':
-          // Sweeps right to left
-          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
-          break;
+        }
         case 'fan-sweep-continuous':
           // Sweeps back and forth `sweepCount` times
           angleOffset = Math.cos(progress * Math.PI * sweepCount) * maxAngleOffset;
@@ -175,36 +258,59 @@ export class FireworkSequencer {
           angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           delay = 0; // All fired at same time
           break;
+        case 'sweep':
         case 'sweep-right':
-          // Bắn dọc theo x1 -> x2 (trái qua phải), nghiêng cố định
-          ratioX = progress;
-          angleOffset = angle !== undefined ? angle : Math.PI / 12; // Mặc định nghiêng sang phải 15 độ
+        case 'sweep-left': {
+          const defaultX1 = (pattern === 'sweep-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+          angleOffset = angle !== undefined ? angle : (isMovingRight ? Math.PI / 12 : -Math.PI / 12);
           break;
-        case 'sweep-left':
-          // Bắn dọc theo x2 -> x1 (phải qua trái), nghiêng cố định
-          ratioX = 1.0 - progress;
-          angleOffset = angle !== undefined ? angle : -Math.PI / 12; // Mặc định nghiêng sang trái 15 độ
+        }
+        case 'sweep-random-tilt':
+        case 'sweep-random-tilt-right':
+        case 'sweep-random-tilt-left': {
+          const defaultX1 = (pattern === 'sweep-random-tilt-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-random-tilt-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          ratioX = startX + progress * (endX - startX);
+          angleOffset = (Math.random() - 0.5) * 2 * maxAngleOffset;
           break;
+        }
+        case 'sweep-arc':
         case 'sweep-arc-right':
-          ratioX = progress;
+        case 'sweep-arc-left': {
+          const defaultX1 = (pattern === 'sweep-arc-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-arc-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
           ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
-          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+          angleOffset = isMovingRight
+            ? maxAngleOffset - (2 * maxAngleOffset) * progress
+            : -maxAngleOffset + (2 * maxAngleOffset) * progress;
           break;
-        case 'sweep-arc-left':
-          ratioX = 1.0 - progress;
-          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
-          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
-          break;
+        }
+        case 'sweep-arc-out':
         case 'sweep-arc-out-right':
-          ratioX = progress;
+        case 'sweep-arc-out-left': {
+          const defaultX1 = (pattern === 'sweep-arc-out-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'sweep-arc-out-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
           ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
-          angleOffset = -maxAngleOffset + (2 * maxAngleOffset) * progress;
+          angleOffset = isMovingRight
+            ? -maxAngleOffset + (2 * maxAngleOffset) * progress
+            : maxAngleOffset - (2 * maxAngleOffset) * progress;
           break;
-        case 'sweep-arc-out-left':
-          ratioX = 1.0 - progress;
-          ratioY = 0.3 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.3);
-          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
-          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = Math.random();
@@ -213,20 +319,26 @@ export class FireworkSequencer {
           break;
       }
 
-      // Remap ratioX to [x1, x2] range if provided
-      if (x1 !== undefined && x2 !== undefined) {
+      // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
+      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        let t = progress;
-        if (pattern === 'random') {
-          t = ratioY;
-        } else if (pattern.startsWith('sweep-arc')) {
-          t = Math.sin(progress * Math.PI);
+        if (pattern.startsWith('sweep')) {
+          const minY = Math.min(y1, y2);
+          const maxY = Math.max(y1, y2);
+          ratioY = minY + Math.random() * (maxY - minY);
+        } else {
+          let t = progress;
+          if (pattern === 'random') {
+            t = ratioY;
+          } else if (pattern.startsWith('sweep-arc')) {
+            t = Math.sin(progress * Math.PI);
+          }
+          ratioY = y1 + t * (y2 - y1);
         }
-        ratioY = y1 + t * (y2 - y1);
       }
 
       let overrides = effectOverrides;
