@@ -42,17 +42,22 @@ export class ShellEntity {
     const ascentCfg = FIREWORK_CONFIG.ASCENT;
     this.wobbleEnabled = ascentCfg?.wobbleEnabled !== false;
     this.wobblePhase = Math.random() * Math.PI * 2;
-    const freqJitter = ascentCfg?.freqJitterRatio ?? 0.22;
-    this.wobbleFreq = (ascentCfg?.baseWobbleFreq ?? 34.0) * (
-      1.0 + (Math.random() - 0.5) * 2 * freqJitter
-    );
-    let maxAmp = ascentCfg?.maxWobbleAmp ?? 1.35;
+    // Tần số xoay xoắn ốc ngẫu nhiên cho từng quả, lấy baseWobbleFreq làm mốc max
+    const maxFreq = ascentCfg?.baseWobbleFreq ?? 15.0;
+    this.wobbleFreq = maxFreq * (0.45 + Math.random() * 0.55);
+
+    // Bán kính xoắn ngẫu nhiên cho từng quả, lấy maxWobbleAmp làm mốc max
+    let maxAmp = ascentCfg?.maxWobbleAmp ?? 1.15;
     if (this.shellType === 'floral-child') {
       maxAmp *= 0.3;
     }
-    this.wobbleMaxAmp = maxAmp * (0.85 + Math.random() * 0.3);
+    this.wobbleMaxAmp = maxAmp * (0.35 + Math.random() * 0.65);
+
     this.heightExponent = ascentCfg?.heightExponent ?? 1.4;
-    this.midWobbleBoost = ascentCfg?.midWobbleBoost ?? 1.5;
+
+    // Hệ số phình to bầu dục ở giai đoạn giữa, lấy midWobbleBoost làm mốc max
+    const maxMidBoost = Math.max(1.0, ascentCfg?.midWobbleBoost ?? 1.5);
+    this.midWobbleBoost = 1.0 + Math.random() * (maxMidBoost - 1.0);
 
     // Các tham số ngẫu nhiên hóa và phi đối xứng tự nhiên (hỗn loạn khí động học)
     this.spinDirection = Math.random() < 0.5 ? 1 : -1;

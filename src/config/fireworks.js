@@ -119,12 +119,12 @@ export const FIREWORK_CONFIG = {
   ASCENT: {
     // Bật hiệu ứng xoắn ốc tự nhiên khi pháo bay lên
     wobbleEnabled: true,
-    // Bán kính xoắn cơ sở (độ mở của vòng xoáy)
+    // Bán kính xoắn cơ sở cực đại (mốc max, mỗi quả shell random từ 35% đến 100% mốc này)
     maxWobbleAmp: 1.15,
-    // Hệ số phình to biên độ ở giai đoạn giữa (tạo dáng con thoi / bầu dục thay vì đường thẳng)
+    // Hệ số phình to cực đại ở giai đoạn giữa (mốc max dáng bầu dục, random từ 1.0 đến mốc này)
     midWobbleBoost: 1.5,
-    // Tần số xoay xoắn ốc cơ bản (rad/s, tần suất cao ~5.5 vòng/giây)
-    baseWobbleFreq: 34.0,
+    // Tần số xoay xoắn ốc cực đại (mốc max rad/s, random từ 45% đến 100% mốc này)
+    baseWobbleFreq: 15.0,
     // Độ ngẫu nhiên hóa tần số xoay giữa các quả pháo
     freqJitterRatio: 0.22,
     // Độ biến thiên vận tốc xoay trong quá trình bay (lúc nhanh lúc chậm)
