@@ -42,13 +42,41 @@ export class ShellEntity {
     const ascentCfg = FIREWORK_CONFIG.ASCENT;
     this.wobbleEnabled = ascentCfg?.wobbleEnabled !== false;
     this.wobblePhase = Math.random() * Math.PI * 2;
-    this.wobbleFreq = (ascentCfg?.baseWobbleFreq ?? 34.0) * (0.92 + Math.random() * 0.16);
+    const freqJitter = ascentCfg?.freqJitterRatio ?? 0.22;
+    this.wobbleFreq = (ascentCfg?.baseWobbleFreq ?? 34.0) * (
+      1.0 + (Math.random() - 0.5) * 2 * freqJitter
+    );
     let maxAmp = ascentCfg?.maxWobbleAmp ?? 1.35;
     if (this.shellType === 'floral-child') {
       maxAmp *= 0.3;
     }
     this.wobbleMaxAmp = maxAmp * (0.85 + Math.random() * 0.3);
     this.heightExponent = ascentCfg?.heightExponent ?? 1.4;
+    this.midWobbleBoost = ascentCfg?.midWobbleBoost ?? 1.5;
+
+    // Các tham số ngẫu nhiên hóa và phi đối xứng tự nhiên (hỗn loạn khí động học)
+    this.spinDirection = Math.random() < 0.5 ? 1 : -1;
+    this.spinAngle = this.wobblePhase;
+    this.speedModulationAmp = ascentCfg?.speedModulationAmp ?? 0.22;
+    this.phaseMod1 = Math.random() * Math.PI * 2;
+    this.phaseMod2 = Math.random() * Math.PI * 2;
+
+    const eccMin = ascentCfg?.eccentricityMin ?? 0.12;
+    const eccMax = ascentCfg?.eccentricityMax ?? 0.32;
+    this.eccentricity = eccMin + Math.random() * (eccMax - eccMin);
+
+    const harmMin = ascentCfg?.harmonicRatioMin ?? 0.18;
+    const harmMax = ascentCfg?.harmonicRatioMax ?? 0.32;
+    this.harmonicRatio = harmMin + Math.random() * (harmMax - harmMin);
+    this.harmonicPhase = Math.random() * Math.PI * 2;
+    this.harmonicMultiplier = 1.9 + Math.random() * 0.5;
+
+    this.jitterPhase1 = Math.random() * Math.PI * 2;
+    this.jitterPhase2 = Math.random() * Math.PI * 2;
+
+    this.axisDriftAmp = (ascentCfg?.axisDriftAmp ?? 0.38) * this.wobbleMaxAmp;
+    this.driftPhaseX = Math.random() * Math.PI * 2;
+    this.driftPhaseZ = Math.random() * Math.PI * 2;
 
     // Cấu hình 3 giai đoạn vệt comet khi bay lên: vừa bắn lên (nhạt) -> ở giữa (sáng nhất) -> gần burst (tắt/giảm)
     const phaseCfg = FIREWORK_CONFIG.SHELL_COMET_PHASES;
@@ -224,11 +252,43 @@ export class ShellEntity {
     this.currentTrailIntensity = intensity;
 
     if (this.wobbleEnabled) {
-      const radius = this.wobbleMaxAmp * (0.2 + 0.8 * Math.pow(progress, this.heightExponent));
-      const spinAngle = this.age * this.wobbleFreq + this.wobblePhase;
+      // Tích lũy góc quay biến thiên vận tốc (lúc tăng lúc giảm tự nhiên theo động lực học)
+      const freqMod = 1.0 +
+        this.speedModulationAmp * Math.sin(this.age * 12.0 + this.phaseMod1) +
+        (this.speedModulationAmp * 0.6) * Math.cos(this.age * 5.5 + this.phaseMod2);
+      this.spinAngle += this.spinDirection * this.wobbleFreq * freqMod * deltaTime;
 
-      const wobbleX = Math.cos(spinAngle) * radius;
-      const wobbleZ = Math.sin(spinAngle) * radius;
+      // Dáng bầu dục (oval envelope): hẹp ở bệ phóng, nở rộng nhất ở giữa (con thoi), thon gọn lại gần đỉnh
+      const ovalFactor = Math.sin(Math.PI * progress);
+      const baseRadius = this.wobbleMaxAmp * (
+        0.28 + (this.midWobbleBoost - 0.28) * Math.pow(ovalFactor, 0.9)
+      );
+
+      // Biến động bán kính từng vòng quay (radius jitter) để các vòng to nhỏ tự nhiên
+      const radiusJitter = 1.0 +
+        0.18 * Math.sin(this.spinAngle * 0.45 + this.jitterPhase1) +
+        0.12 * Math.cos(this.age * 15.0 + this.jitterPhase2);
+      const currentRadius = baseRadius * Math.max(0.25, radiusJitter);
+
+      // Sóng hài bậc 2 tạo độ nấc và lượn lách phi tuyến tính
+      const harmonicAngle = this.spinAngle * this.harmonicMultiplier + this.harmonicPhase;
+      const harmonicAmp = currentRadius * this.harmonicRatio;
+
+      // Bán kính lệch tâm elip
+      const rx = currentRadius * (1.0 + this.eccentricity);
+      const rz = currentRadius * (1.0 - this.eccentricity);
+
+      // Độ trôi dạt trục trung tâm (axis drift) do gió và mất cân bằng lực đẩy
+      const driftX = Math.sin(this.age * 3.8 + this.driftPhaseX) * (this.axisDriftAmp * ovalFactor);
+      const driftZ = Math.cos(this.age * 3.2 + this.driftPhaseZ) * (this.axisDriftAmp * ovalFactor);
+
+      const wobbleX = Math.cos(this.spinAngle) * rx +
+        Math.sin(harmonicAngle) * harmonicAmp +
+        driftX;
+
+      const wobbleZ = Math.sin(this.spinAngle) * rz +
+        Math.cos(harmonicAngle) * harmonicAmp +
+        driftZ;
 
       this.mesh.position.set(
         this.basePosition.x + wobbleX,

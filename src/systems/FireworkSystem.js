@@ -981,16 +981,33 @@ export class FireworkSystem {
       const opacity = (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity;
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
-      const dispersion = (ascentCfg?.trailDispersion ?? 0.2) * Math.pow(progress, 1.4);
+      const ovalFactor = Math.sin(Math.PI * progress);
 
-      // Sinh hạt nội suy dọc theo cung đường di chuyển trong frame để vệt xoắn sáng đậm và liền mạch
-      const subSteps = ascentCfg?.subSteps ?? 2;
+      const baseDispersion = ascentCfg?.trailDispersion ?? 0.22;
+      const midDispBoost = ascentCfg?.midDispersionBoost ?? 2.2;
+      // Bung rộng phân tán ở giai đoạn giữa (ovalFactor cao) để vệt trông tròn trịa/bầu dục
+      const dispersion = baseDispersion * (
+        0.5 + midDispBoost * Math.pow(ovalFactor, 0.9)
+      );
+
+      // Số bước hạt sinh tăng lên rõ rệt ở giai đoạn giữa
+      const baseSubSteps = ascentCfg?.subSteps ?? 2;
+      const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
+      const subSteps = baseSubSteps + Math.round(
+        midBonus * Math.pow(ovalFactor, 0.85)
+      );
+
       const prevPos = item.prevPosition || item.mesh.position;
       const currPos = item.mesh.position;
+      const extraChance = (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85);
 
       for (let s = 1; s <= subSteps; s++) {
         const t = s / subSteps;
-        const spawnPos = new THREE.Vector3().lerpVectors(prevPos, currPos, t);
+        const spawnPos = new THREE.Vector3().lerpVectors(
+          prevPos,
+          currPos,
+          t
+        );
         if (dispersion > 0.02) {
           spawnPos.x += (Math.random() - 0.5) * dispersion;
           spawnPos.z += (Math.random() - 0.5) * dispersion;
@@ -1006,9 +1023,32 @@ export class FireworkSystem {
           false
         );
 
+        // Ở giai đoạn giữa, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
+        if (extraChance > 0.2 && Math.random() < extraChance) {
+          const sidePos = spawnPos.clone();
+          const angle = Math.random() * Math.PI * 2;
+          const lateralR = (0.25 + 0.75 * Math.random()) * dispersion;
+          sidePos.x += Math.cos(angle) * lateralR;
+          sidePos.z += Math.sin(angle) * lateralR;
+
+          this.trailSystem.spawnTrailParticle(
+            sidePos,
+            item.color,
+            lifeMultiplier * 0.9,
+            false,
+            customLife,
+            opacity * 0.85,
+            false
+          );
+        }
+
         // Ở giai đoạn giữa sáng nhất (trailIntensity >= 0.85), sinh thêm hạt tia lửa sáng chói ở lõi
-        if (trailIntensity >= 0.85 && Math.random() < 0.22) {
-          const sparkColor = item.color.clone().offsetHSL(0, 0, 0.2);
+        if (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor)) {
+          const sparkColor = item.color.clone().offsetHSL(
+            0,
+            0,
+            0.2
+          );
           this.trailSystem.spawnEffectSpark(
             spawnPos,
             sparkColor,

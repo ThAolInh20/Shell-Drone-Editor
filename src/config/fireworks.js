@@ -119,16 +119,36 @@ export const FIREWORK_CONFIG = {
   ASCENT: {
     // Bật hiệu ứng xoắn ốc tự nhiên khi pháo bay lên
     wobbleEnabled: true,
-    // Bán kính xoắn cực đại ở đỉnh (độ mở của vòng xoáy)
-    maxWobbleAmp: 1.35,
-    // Tần số xoay xoắn ốc cơ bản (rad/s, tần suất cao ~5.5 vòng/giây tạo vệt xoắn dày san sát nhau)
+    // Bán kính xoắn cơ sở (độ mở của vòng xoáy)
+    maxWobbleAmp: 1.15,
+    // Hệ số phình to biên độ ở giai đoạn giữa (tạo dáng con thoi / bầu dục thay vì đường thẳng)
+    midWobbleBoost: 1.5,
+    // Tần số xoay xoắn ốc cơ bản (rad/s, tần suất cao ~5.5 vòng/giây)
     baseWobbleFreq: 34.0,
-    // Hệ số lũy thừa theo độ cao (tầm thấp hẹp, lên cao mở rộng đều)
+    // Độ ngẫu nhiên hóa tần số xoay giữa các quả pháo
+    freqJitterRatio: 0.22,
+    // Độ biến thiên vận tốc xoay trong quá trình bay (lúc nhanh lúc chậm)
+    speedModulationAmp: 0.22,
+    // Khoảng lệch tâm elip của vòng xoắn (không tròn hoàn hảo)
+    eccentricityMin: 0.12,
+    eccentricityMax: 0.32,
+    // Tỉ lệ biên độ sóng hài bậc 2 tạo nấc lắc tự nhiên
+    harmonicRatioMin: 0.18,
+    harmonicRatioMax: 0.32,
+    // Biên độ chao đảo trôi trục trung tâm (drift)
+    axisDriftAmp: 0.38,
+    // Hệ số lũy thừa theo độ cao
     heightExponent: 1.4,
-    // Độ phân tán vi mô của luồng hạt
-    trailDispersion: 0.2,
-    // Số bước hạt sinh trên mỗi frame để vệt sáng đậm đặc và liền mạch
+    // Độ phân tán vi mô cơ bản của luồng hạt
+    trailDispersion: 0.22,
+    // Hệ số bung rộng phân tán ở giai đoạn giữa để vệt phình to hình bầu dục
+    midDispersionBoost: 2.2,
+    // Số bước hạt sinh cơ bản trên mỗi frame
     subSteps: 2,
+    // Số bước hạt bổ sung ở giai đoạn giữa để vệt dày đặc hình bầu dục
+    midSubStepsBonus: 2,
+    // Xác suất sinh thêm hạt tỏa rộng hai bên ở giai đoạn giữa
+    midExtraParticleChance: 0.75,
     // Hệ số thời gian sống của hạt đuôi khi bay lên để tạo dải sáng kéo dài
     trailLifeMultiplier: 0.65,
     // Độ đậm quang học của hạt đuôi
