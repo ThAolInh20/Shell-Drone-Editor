@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 const SHELL_CORE_SIZE = 0.6;
 const SHELL_HALO_COUNT = 10;
@@ -13,7 +14,16 @@ export class ShellEntity {
     DEAD: 'dead'
   };
 
-  constructor({ position, velocity, burstHeight, color, shape, shellType = null, shapeType = null, preset = null }) {
+  constructor({
+    position,
+    velocity,
+    burstHeight,
+    color,
+    shape,
+    shellType = null,
+    shapeType = null,
+    preset = null
+  }) {
     this.type = 'shell';
     this.velocity = velocity;
     this.burstHeight = burstHeight;
@@ -24,6 +34,21 @@ export class ShellEntity {
     this.preset = preset;
     this.age = 0;
     this.state = ShellEntity.STATE.INIT;
+
+    // Vị trí gốc và các tham số chuyển động xoắn ốc (spiral) khi bay lên
+    this.basePosition = position.clone();
+    this.prevPosition = position.clone();
+    this.initialY = position.y;
+    const ascentCfg = FIREWORK_CONFIG.ASCENT;
+    this.wobbleEnabled = ascentCfg?.wobbleEnabled !== false;
+    this.wobblePhase = Math.random() * Math.PI * 2;
+    this.wobbleFreq = (ascentCfg?.baseWobbleFreq ?? 34.0) * (0.92 + Math.random() * 0.16);
+    let maxAmp = ascentCfg?.maxWobbleAmp ?? 1.35;
+    if (this.shellType === 'floral-child') {
+      maxAmp *= 0.3;
+    }
+    this.wobbleMaxAmp = maxAmp * (0.85 + Math.random() * 0.3);
+    this.heightExponent = ascentCfg?.heightExponent ?? 1.4;
 
     this.mesh = new THREE.Group();
 
@@ -88,14 +113,40 @@ export class ShellEntity {
     this.state = ShellEntity.STATE.LAUNCHING;
   }
 
+  getProgress() {
+    const totalAscent = Math.max(15, this.burstHeight - this.initialY);
+    const currentAscent = Math.max(0, this.basePosition.y - this.initialY);
+    return Math.min(1.0, Math.max(0, currentAscent / totalAscent));
+  }
+
   update(deltaTime) {
     if (this.state !== ShellEntity.STATE.LAUNCHING) {
       return false;
     }
 
     this.velocity.y += -30 * deltaTime;
-    this.mesh.position.addScaledVector(this.velocity, deltaTime);
+    this.basePosition.addScaledVector(this.velocity, deltaTime);
     this.age += deltaTime;
+
+    this.prevPosition.copy(this.mesh.position);
+
+    if (this.wobbleEnabled) {
+      const progress = this.getProgress();
+      const radius = this.wobbleMaxAmp * (0.2 + 0.8 * Math.pow(progress, this.heightExponent));
+      const spinAngle = this.age * this.wobbleFreq + this.wobblePhase;
+
+      const wobbleX = Math.cos(spinAngle) * radius;
+      const wobbleZ = Math.sin(spinAngle) * radius;
+
+      this.mesh.position.set(
+        this.basePosition.x + wobbleX,
+        this.basePosition.y,
+        this.basePosition.z + wobbleZ
+      );
+    } else {
+      this.mesh.position.copy(this.basePosition);
+    }
+
     this.mesh.scale.setScalar(1 + Math.sin(this.age * 12) * 0.05);
 
     if (this.coreMesh.material) {
@@ -114,7 +165,7 @@ export class ShellEntity {
       const lifeTime = (this.preset.starLife / 1000) || 2.5; // starLife is usually in ms
       return this.age >= lifeTime;
     }
-    return this.mesh.position.y >= this.burstHeight || this.velocity.y <= 0;
+    return this.basePosition.y >= this.burstHeight || this.velocity.y <= 0;
   }
 
   markBursted() {

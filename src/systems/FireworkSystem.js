@@ -961,7 +961,7 @@ export class FireworkSystem {
     const launchTrail = item.preset?.launchTrail !== false;
     const activeTrailChance = item.preset?.trailChance !== undefined
       ? item.preset.trailChance
-      : 0.4;
+      : 1.0;
 
     if (launchTrail && Math.random() < activeTrailChance) {
       let customLife = null;
@@ -972,21 +972,51 @@ export class FireworkSystem {
         customLife = Math.min(baseTrailLife, remainingLife);
       }
       const isThick = item.preset?.thickTrail;
-      const lifeMultiplier = isThick
-        ? 0.25
-        : (item.preset?.shellType === 'floral-child' ? 0.95 : 0.5);
-      const opacity = isThick ? 0.9 : 1.0;
-      this.trailSystem.spawnTrailParticle(
-        item.mesh.position.clone(),
-        item.color,
-        lifeMultiplier,
-        false,
-        customLife,
-        opacity,
-        false
-      );
+      const ascentCfg = FIREWORK_CONFIG.ASCENT;
+      const lifeMultiplier = ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55);
+      const opacity = ascentCfg?.trailOpacity ?? 1.0;
 
-      if (this.smokeSystem && Math.random() < 0.4) {
+      const progress = item.getProgress ? item.getProgress() : 0.5;
+      const dispersion = (ascentCfg?.trailDispersion ?? 0.2) * Math.pow(progress, 1.4);
+
+      // Sinh hạt nội suy dọc theo cung đường di chuyển trong frame để vệt xoắn sáng đậm và liền mạch
+      const subSteps = ascentCfg?.subSteps ?? 2;
+      const prevPos = item.prevPosition || item.mesh.position;
+      const currPos = item.mesh.position;
+
+      for (let s = 1; s <= subSteps; s++) {
+        const t = s / subSteps;
+        const spawnPos = new THREE.Vector3().lerpVectors(prevPos, currPos, t);
+        if (dispersion > 0.02) {
+          spawnPos.x += (Math.random() - 0.5) * dispersion;
+          spawnPos.z += (Math.random() - 0.5) * dispersion;
+        }
+
+        this.trailSystem.spawnTrailParticle(
+          spawnPos,
+          item.color,
+          lifeMultiplier,
+          false,
+          customLife,
+          opacity,
+          false
+        );
+
+        // Thêm hạt tia lửa sáng chói ở lõi để vệt sáng rực rỡ và đậm đà hơn
+        if (Math.random() < 0.22) {
+          const sparkColor = item.color.clone().offsetHSL(0, 0, 0.2);
+          this.trailSystem.spawnEffectSpark(
+            spawnPos,
+            sparkColor,
+            false,
+            null,
+            0,
+            0.6 + Math.random() * 0.5
+          );
+        }
+      }
+
+      if (this.smokeSystem && Math.random() < 0.35) {
         const ascVel = item.velocity ? item.velocity.clone().multiplyScalar(-0.15) : new THREE.Vector3(0, -1.2, 0);
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
@@ -995,7 +1025,7 @@ export class FireworkSystem {
             life: 1.6 + Math.random() * 0.8,
             scale: 5.2 + Math.random() * 2.5,
             growth: 3.4,
-            opacity: 0.25,
+            opacity: 0.22,
             color: item.color.clone()
           }
         );

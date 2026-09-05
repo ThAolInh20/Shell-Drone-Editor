@@ -195,8 +195,6 @@ export class CometSystem {
 
       // Thicker trails for comets during launch (before reaching 50% height or if no strobe)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-
-
         if (!isStrobeActive) {
           const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;
           if (comet.preset?.launchTrail !== false && isCoreVisible) {
@@ -281,7 +279,10 @@ export class CometSystem {
 
         // Hiệu ứng crackle (tiếng nổ lách tách) dọc theo đường bay
         if (comet.preset?.crackle && Math.random() < 0.12) {
-          this.trailSystem.spawnMicroCrackle(comet.mesh.position.clone(), comet.color);
+          this.trailSystem.spawnMicroCrackle(
+            spawnPos,
+            comet.color
+          );
           this.emitFireworkEvent('firework:crackle', {
             position: {
               x: comet.mesh.position.x,

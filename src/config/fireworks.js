@@ -113,5 +113,25 @@ export const FIREWORK_CONFIG = {
       // Xác suất tạo hạt trail
       trailChance: 1.0
     }
+  },
+
+  // Cấu hình quỹ đạo bay lên dạng xoắn ốc (spiral) tần suất cao và vệt sáng đậm
+  ASCENT: {
+    // Bật hiệu ứng xoắn ốc tự nhiên khi pháo bay lên
+    wobbleEnabled: true,
+    // Bán kính xoắn cực đại ở đỉnh (độ mở của vòng xoáy)
+    maxWobbleAmp: 1.35,
+    // Tần số xoay xoắn ốc cơ bản (rad/s, tần suất cao ~5.5 vòng/giây tạo vệt xoắn dày san sát nhau)
+    baseWobbleFreq: 34.0,
+    // Hệ số lũy thừa theo độ cao (tầm thấp hẹp, lên cao mở rộng đều)
+    heightExponent: 1.4,
+    // Độ phân tán vi mô của luồng hạt
+    trailDispersion: 0.2,
+    // Số bước hạt sinh trên mỗi frame để vệt sáng đậm đặc và liền mạch
+    subSteps: 2,
+    // Hệ số thời gian sống của hạt đuôi khi bay lên để tạo dải sáng kéo dài
+    trailLifeMultiplier: 0.65,
+    // Độ đậm quang học của hạt đuôi
+    trailOpacity: 1.0
   }
 };
