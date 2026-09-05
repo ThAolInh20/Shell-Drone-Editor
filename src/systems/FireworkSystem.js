@@ -720,6 +720,11 @@ export class FireworkSystem {
       return 10 + Math.floor(Math.random() * 6); // 10-15 particles for sparse comet ring
     }
 
+    if (preset?.isNestedChild) {
+      // Điểm nổ con của hoa cúc lồng: 10-12 hạt nhỏ lấp lánh (bỏ qua minParticles = 60 để chống tụt FPS)
+      return Math.round((10 + Math.floor(Math.random() * 3)) * this.graphicsQualityMultiplier);
+    }
+
     const shapeMultiplier = FIREWORK_CONFIG.SHAPE_MULTIPLIERS;
 
     const effectMultiplier = FIREWORK_CONFIG.EFFECT_MULTIPLIERS;
@@ -900,6 +905,21 @@ export class FireworkSystem {
       ? color2Blend.clone().multiplyScalar(brightnessIntensity)
       : null;
 
+    const isNestedParent = Boolean(
+      preset?.nestedBurst && !preset?.isNestedChild
+    );
+    const nestedTriggerIndices = new Set();
+    const NESTED_CHILD_COUNT = 8;
+    if (isNestedParent) {
+      for (let k = 0; k < NESTED_CHILD_COUNT; k++) {
+        const triggerIdx = Math.floor(
+          (k + 0.5) * (burstParticleCount / NESTED_CHILD_COUNT)
+        );
+        nestedTriggerIndices.add(triggerIdx);
+      }
+    }
+    const nestedBurstDelay = BURST_LIFE * 0.82;
+
     const newParticles = [];
 
     for (let i = 0; i < burstParticleCount; i++) {
@@ -995,19 +1015,40 @@ export class FireworkSystem {
           + nz * effectState.ghostAxis.z;
       }
 
-      const baseMaxLife = BURST_LIFE * (0.8 + Math.random() * 0.4);
+      const isNestedTrigger = isNestedParent && nestedTriggerIndices.has(i);
+      let particleMaxLife;
+      let particleVelocity = velocityVal;
+
+      if (isNestedTrigger) {
+        // Tất cả hạt pháo con có cùng chính xác thời gian sống để nổ đồng loạt
+        particleMaxLife = nestedBurstDelay;
+        const triggerSpeed = BURST_SPEED * 1.0 * shellSizeScale;
+        particleVelocity = direction.clone().normalize().multiplyScalar(
+          triggerSpeed
+        );
+      } else {
+        const baseMaxLife = BURST_LIFE * (0.8 + Math.random() * 0.4);
+        particleMaxLife = isDyingEmber
+          ? baseMaxLife * 2.0
+          : baseMaxLife;
+      }
+
       newParticles.push({
         position: position.clone(),
-        velocity: velocityVal.clone(),
+        velocity: particleVelocity.clone(),
         color: finalColorVal.clone(),
         baseColor: finalColorVal.clone(),
-        color2: color2Scaled ? color2Scaled.clone() : null,
+        color2: color2Scaled
+          ? color2Scaled.clone()
+          : null,
         age: 0,
-        maxLife: isDyingEmber ? baseMaxLife * 2.0 : baseMaxLife,
+        maxLife: particleMaxLife,
         effectType: normalizedEffect,
         crackle: crackleEnabled || normalizedEffect === 'crackle',
         crackleTriggered: false,
-        phase: effectState.phase ? effectState.phase[i] : 0,
+        phase: effectState.phase
+          ? effectState.phase[i]
+          : 0,
         preset,
         heightProfile,
         effectState,
@@ -1015,7 +1056,8 @@ export class FireworkSystem {
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
-        isDyingEmber: isDyingEmber
+        isDyingEmber: isDyingEmber,
+        isNestedTrigger: isNestedTrigger
       });
     }
 
@@ -1086,7 +1128,7 @@ export class FireworkSystem {
       const baseSubSteps = ascentCfg?.subSteps ?? 2;
       const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
       const subSteps = isBouquetComet
-        ? 4
+        ? 2
         : (baseSubSteps + Math.round(
           midBonus * Math.pow(ovalFactor, 0.85)
         ));
@@ -1295,15 +1337,13 @@ export class FireworkSystem {
       p.age += deltaTime;
 
       if (p.age >= p.maxLife) {
-        if (p.preset?.nestedBurst && !p.preset?.isNestedChild) {
-          if (Math.random() < 0.2) {
-            nestedBurstsToSpawn.push({
-              position: p.position.clone(),
-              color: p.color.clone(),
-              shellId: p.shellId,
-              strobe: Boolean(p.preset?.strobe)
-            });
-          }
+        if (p.isNestedTrigger) {
+          nestedBurstsToSpawn.push({
+            position: p.position.clone(),
+            color: p.color.clone(),
+            shellId: p.shellId,
+            strobe: Boolean(p.preset?.strobe)
+          });
         }
         continue;
       }
@@ -1682,15 +1722,28 @@ export class FireworkSystem {
     this.burstParticles = activeParticles;
 
     if (nestedBurstsToSpawn.length > 0) {
+      // Chỉ phát 1 sự kiện crackle đại diện để bảo vệ EventBus và AudioEngine
+      const firstBurst = nestedBurstsToSpawn[0];
+      this.emitFireworkEvent(
+        'firework:crackle',
+        {
+          position: {
+            x: firstBurst.position.x,
+            y: firstBurst.position.y,
+            z: firstBurst.position.z
+          }
+        }
+      );
+
       for (let i = 0; i < nestedBurstsToSpawn.length; i++) {
         const burst = nestedBurstsToSpawn[i];
         const childPreset = {
           shellType: 'crysanthemumNestedChild',
           shapeType: 'sphere',
           effectType: 'standard',
-          shellSize: 0.7,
-          particleSize: 16.0,
-          starLife: 400 + Math.random() * 300,
+          shellSize: 0.55,
+          particleSize: 18.0,
+          starLife: 350,
           particleCountMultiplier: 0.1,
           isNestedChild: true,
           strobe: burst.strobe
@@ -1700,17 +1753,7 @@ export class FireworkSystem {
           burst.color,
           'sphere',
           childPreset,
-          burst.shellId + '-nested-child'
-        );
-        this.emitFireworkEvent(
-          'firework:crackle',
-          {
-            position: {
-              x: burst.position.x,
-              y: burst.position.y,
-              z: burst.position.z
-            }
-          }
+          burst.shellId + '-nested-child-' + i
         );
       }
     }
