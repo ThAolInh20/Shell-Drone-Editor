@@ -172,7 +172,7 @@ export const FIREWORK_CONFIG = {
     // Bật hiện tượng cháy đứt quãng ngẫu nhiên (sputter / micro-gaps)
     sputterEnabled: true,
     // Tỉ lệ quả shell xuất hiện hiện tượng đứt quãng
-    sputterShellChance: 0.7,
+    sputterShellChance: 0.4,
     // Khoảng cách thời gian giữa các đợt đứt quãng (giây)
     sputterIntervalMin: 0.22,
     sputterIntervalMax: 0.48,

@@ -268,11 +268,16 @@ export class FireworkSystem {
       );
 
       if (isBouquet) {
+        const burstDir = velocity && velocity.lengthSq() > 0.001
+          ? velocity.clone().normalize()
+          : new THREE.Vector3(0, 1, 0);
         this.triggerBouquetBurst(
           burstPos,
           finalColor,
           shellPreset,
-          shellId
+          shellId,
+          burstDir,
+          velocity
         );
       } else {
         this.createBurst(
@@ -468,8 +473,39 @@ export class FireworkSystem {
     });
   }
 
-  triggerBouquetBurst(burstPosition, color, preset, shellId) {
+  triggerBouquetBurst(
+    burstPosition,
+    color,
+    preset,
+    shellId,
+    burstDirection = null,
+    parentVelocity = null
+  ) {
     const shellType = preset.shellType;
+
+    // Xác định hướng nổ từ hướng bay của pháo mẹ
+    const defaultUp = new THREE.Vector3(0, 1, 0);
+    const effectiveDir = new THREE.Vector3(0, 1, 0);
+    let hasDirection = false;
+
+    if (burstDirection && burstDirection.lengthSq() > 0.001) {
+      effectiveDir.copy(burstDirection);
+      const horizSq = effectiveDir.x * effectiveDir.x + effectiveDir.z * effectiveDir.z;
+      // Nếu pháo bay gần như thẳng đứng và đã qua đỉnh rơi xuống, giữ hướng nổ hướng lên trời
+      if (horizSq < 0.04 && effectiveDir.y <= 0) {
+        effectiveDir.set(0, 1, 0);
+      } else if (effectiveDir.y < -0.25) {
+        // Tránh để chùm comet chĩa thẳng xuống đất
+        effectiveDir.y = -0.25;
+        effectiveDir.normalize();
+      }
+      hasDirection = true;
+    }
+
+    const orientQuat = new THREE.Quaternion();
+    if (hasDirection) {
+      orientQuat.setFromUnitVectors(defaultUp, effectiveDir);
+    }
 
     if (
       shellType === 'bouquet'
@@ -520,6 +556,22 @@ export class FireworkSystem {
           vx = Math.cos(theta) * Math.sin(phi) * speed;
           vy = Math.cos(phi) * speed;
           vz = Math.sin(theta) * Math.sin(phi) * speed;
+        } else if (hasDirection) {
+          // Chùm nón định hướng theo vector bay của pháo mẹ
+          const speed = 35 + Math.random() * 45;
+          const angleCone = 0.05 + Math.random() * 0.65;
+          const angleAzimuth = Math.random() * Math.PI * 2;
+
+          const localDir = new THREE.Vector3(
+            Math.sin(angleCone) * Math.cos(angleAzimuth),
+            Math.cos(angleCone),
+            Math.sin(angleCone) * Math.sin(angleAzimuth)
+          );
+          localDir.applyQuaternion(orientQuat);
+
+          vx = localDir.x * speed;
+          vy = localDir.y * speed;
+          vz = localDir.z * speed;
         } else {
           // Upward spray with higher height variance
           const speed = 25 + Math.random() * 50;
@@ -536,6 +588,13 @@ export class FireworkSystem {
           vy,
           vz
         );
+
+        // Kế thừa quán tính vận tốc từ pháo mẹ
+        if (parentVelocity) {
+          const momentumScale = shellType === 'bouquetCometSphere' ? 0.25 : 0.35;
+          velocity.addScaledVector(parentVelocity, momentumScale);
+        }
+
         const targetHeight = burstPosition.y + 1000; // rely on peak height (velocity.y <= 0) to burst
 
         let subPreset;
@@ -546,13 +605,13 @@ export class FireworkSystem {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
+          subPreset.isBouquetComet = true;
+          subPreset.thickTrail = true;
           const baseStarLife = shellType === 'bouquetCometSphere'
             ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
             : FIREWORK_CONFIG.BOUQUET.default.starLife;
-          subPreset.starLife = baseStarLife * (0.75 + Math.random() * 0.5);
-          subPreset.trailChance = shellType === 'bouquetCometSphere'
-            ? FIREWORK_CONFIG.BOUQUET.cometSphere.trailChance
-            : FIREWORK_CONFIG.BOUQUET.default.trailChance;
+          subPreset.starLife = baseStarLife * (0.8 + Math.random() * 0.4);
+          subPreset.trailChance = 1.0;
         } else {
           subPreset = this.shellPresetFactory.glitterStrobeShell(0.45); // smaller sparkling spheres
           subPreset.color = colorHex;
@@ -595,19 +654,42 @@ export class FireworkSystem {
           : color.getHex();
         const subColor = new THREE.Color(colorHex);
 
-        const speed = 40 + Math.random() * 35; // Wider spread
-        const angleY = Math.random() * Math.PI / 2.2;
-        const angleXZ = Math.random() * Math.PI * 2;
+        let vx, vy, vz;
+        if (hasDirection) {
+          const speed = 40 + Math.random() * 35;
+          const angleCone = 0.05 + Math.random() * 0.72;
+          const angleAzimuth = Math.random() * Math.PI * 2;
 
-        const vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
-        const vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
-        const vy = Math.cos(angleY) * speed + 38; // Upward boost
+          const localDir = new THREE.Vector3(
+            Math.sin(angleCone) * Math.cos(angleAzimuth),
+            Math.cos(angleCone),
+            Math.sin(angleCone) * Math.sin(angleAzimuth)
+          );
+          localDir.applyQuaternion(orientQuat);
+
+          vx = localDir.x * speed;
+          vy = localDir.y * speed;
+          vz = localDir.z * speed;
+        } else {
+          const speed = 40 + Math.random() * 35; // Wider spread
+          const angleY = Math.random() * Math.PI / 2.2;
+          const angleXZ = Math.random() * Math.PI * 2;
+
+          vx = Math.sin(angleY) * Math.cos(angleXZ) * speed;
+          vz = Math.sin(angleY) * Math.sin(angleXZ) * speed;
+          vy = Math.cos(angleY) * speed + 38; // Upward boost
+        }
 
         const velocity = new THREE.Vector3(
           vx,
           vy,
           vz
         );
+
+        if (parentVelocity) {
+          velocity.addScaledVector(parentVelocity, 0.3);
+        }
+
         const targetHeight = burstPosition.y + 1000;
 
         const subPreset = this.shellPresetFactory.glitterStrobeShell(0.5);
@@ -974,11 +1056,19 @@ export class FireworkSystem {
         const baseTrailLife = (2 + Math.random() * 3) * 0.5;
         customLife = Math.min(baseTrailLife, remainingLife);
       }
-      const isThick = item.preset?.thickTrail;
+      const isFloralChild = item.shellType === 'floral-child';
+      const isBouquetComet = item.preset?.isBouquetComet || (isFloralChild && item.preset?.thickTrail);
+
+      const isThick = item.preset?.thickTrail || isBouquetComet;
       const ascentCfg = FIREWORK_CONFIG.ASCENT;
-      const baseLifeMul = ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55);
+      const baseLifeMul = isBouquetComet
+        ? 0.95
+        : (ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55));
       const lifeMultiplier = baseLifeMul * (0.6 + 0.4 * trailIntensity);
-      const opacity = (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity;
+      const opacity = Math.min(
+        1.0,
+        (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : 1.0)
+      );
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
       const ovalFactor = Math.sin(Math.PI * progress);
@@ -986,20 +1076,31 @@ export class FireworkSystem {
       const baseDispersion = ascentCfg?.trailDispersion ?? 0.22;
       const midDispBoost = ascentCfg?.midDispersionBoost ?? 2.2;
       // Bung rộng phân tán ở giai đoạn giữa (ovalFactor cao) để vệt trông tròn trịa/bầu dục
-      const dispersion = baseDispersion * (
-        0.5 + midDispBoost * Math.pow(ovalFactor, 0.9)
-      );
+      const dispersion = isBouquetComet
+        ? 0.35 + Math.random() * 0.2
+        : baseDispersion * (
+          0.5 + midDispBoost * Math.pow(ovalFactor, 0.9)
+        );
 
-      // Số bước hạt sinh tăng lên rõ rệt ở giai đoạn giữa
+      // Số bước hạt sinh: bouquet comet tăng lên 4 bước để vệt dày đặc và sáng rực
       const baseSubSteps = ascentCfg?.subSteps ?? 2;
       const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
-      const subSteps = baseSubSteps + Math.round(
-        midBonus * Math.pow(ovalFactor, 0.85)
-      );
+      const subSteps = isBouquetComet
+        ? 4
+        : (baseSubSteps + Math.round(
+          midBonus * Math.pow(ovalFactor, 0.85)
+        ));
 
       const prevPos = item.prevPosition || item.mesh.position;
       const currPos = item.mesh.position;
-      const extraChance = (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85);
+      const extraChance = isBouquetComet
+        ? 0.85
+        : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85);
+
+      // Nâng độ sáng màu sắc cho vệt bouquet comet
+      const particleColor = isBouquetComet
+        ? item.color.clone().offsetHSL(0, 0, 0.15)
+        : item.color;
 
       for (let s = 1; s <= subSteps; s++) {
         const t = s / subSteps;
@@ -1015,7 +1116,7 @@ export class FireworkSystem {
 
         this.trailSystem.spawnTrailParticle(
           spawnPos,
-          item.color,
+          particleColor,
           lifeMultiplier,
           false,
           customLife,
@@ -1023,7 +1124,7 @@ export class FireworkSystem {
           false
         );
 
-        // Ở giai đoạn giữa, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
+        // Ở giai đoạn giữa hoặc với bouquet comet, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
         if (extraChance > 0.2 && Math.random() < extraChance) {
           const sidePos = spawnPos.clone();
           const angle = Math.random() * Math.PI * 2;
@@ -1033,22 +1134,32 @@ export class FireworkSystem {
 
           this.trailSystem.spawnTrailParticle(
             sidePos,
-            item.color,
+            particleColor,
             lifeMultiplier * 0.9,
             false,
             customLife,
-            opacity * 0.85,
+            opacity * 0.95,
             false
           );
         }
 
-        // Ở giai đoạn giữa sáng nhất (trailIntensity >= 0.85), sinh thêm hạt tia lửa sáng chói ở lõi
-        if (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor)) {
-          const sparkColor = item.color.clone().offsetHSL(
-            0,
-            0,
-            0.2
-          );
+        // Sinh thêm hạt tia lửa sáng chói dọc theo đường bay của bouquet comet (hoặc giai đoạn giữa của shell mẹ)
+        const shouldSpawnSpark = isBouquetComet
+          ? Math.random() < 0.35
+          : (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor));
+
+        if (shouldSpawnSpark) {
+          const sparkColor = isBouquetComet
+            ? item.color.clone().offsetHSL(
+              0,
+              0,
+              0.35
+            )
+            : item.color.clone().offsetHSL(
+              0,
+              0,
+              0.2
+            );
           this.trailSystem.spawnEffectSpark(
             spawnPos,
             sparkColor,
@@ -1088,11 +1199,18 @@ export class FireworkSystem {
       || item.shellType === 'bouquetCometSphere'
       || item.shellType === 'bouquetv2'
     ) {
+      const parentVel = item.velocity ? item.velocity.clone() : null;
+      const burstDir = parentVel && parentVel.lengthSq() > 0.001
+        ? parentVel.clone().normalize()
+        : new THREE.Vector3(0, 1, 0);
+
       this.triggerBouquetBurst(
         burstPosition,
         item.color,
         item.preset,
-        item.shellId
+        item.shellId,
+        burstDir,
+        parentVel
       );
 
       item.markBursted?.();

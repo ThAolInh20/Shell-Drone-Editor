@@ -106,6 +106,10 @@ export class ShellEntity {
     this.sputterEnabled = phaseCfg?.sputterEnabled !== false;
     const sputterShellChance = phaseCfg?.sputterShellChance ?? 0.7;
     this.hasSputter = this.sputterEnabled && (Math.random() < sputterShellChance);
+    if (this.shellType === 'floral-child') {
+      this.hasSputter = false;
+      this.launchStartIntensity = 1.0;
+    }
     this.sputterTimer = 0;
     this.sputterIntervalMin = phaseCfg?.sputterIntervalMin ?? 0.22;
     this.sputterIntervalMax = phaseCfg?.sputterIntervalMax ?? 0.48;
@@ -180,6 +184,10 @@ export class ShellEntity {
   }
 
   getProgress() {
+    if (this.shellType === 'floral-child') {
+      const maxLife = this.preset?.starLife ? (this.preset.starLife / 1000) : 2.5;
+      return Math.min(1.0, Math.max(0, this.age / maxLife));
+    }
     const totalAscent = Math.max(15, this.burstHeight - this.initialY);
     const currentAscent = Math.max(0, this.basePosition.y - this.initialY);
     return Math.min(1.0, Math.max(0, currentAscent / totalAscent));
@@ -227,7 +235,14 @@ export class ShellEntity {
     // 2. Ở giữa sáng nhất
     // 3. Gần burst tắt hẳn hoặc giảm độ sáng
     let intensity = 1.0;
-    if (progress < this.launchEndRatio) {
+    if (this.shellType === 'floral-child') {
+      if (progress > 0.85) {
+        const t = (progress - 0.85) / 0.15;
+        intensity = THREE.MathUtils.lerp(1.0, 0.25, t);
+      } else {
+        intensity = 1.0;
+      }
+    } else if (progress < this.launchEndRatio) {
       const t = progress / Math.max(0.01, this.launchEndRatio);
       intensity = THREE.MathUtils.lerp(this.launchStartIntensity, 1.0, t);
     } else if (progress < this.endFadeStart) {
