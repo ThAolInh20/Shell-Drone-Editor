@@ -133,5 +133,33 @@ export const FIREWORK_CONFIG = {
     trailLifeMultiplier: 0.65,
     // Độ đậm quang học của hạt đuôi
     trailOpacity: 1.0
+  },
+
+  // Cấu hình 3 giai đoạn vệt comet của shell: vừa bắn lên (nhạt) -> ở giữa (sáng nhất) -> gần burst (tắt hẳn hoặc giảm sáng)
+  SHELL_COMET_PHASES: {
+    // Ngưỡng kết thúc giai đoạn 1 (tỉ lệ độ cao từ 0 đến launchEndRatio là giai đoạn nhạt)
+    launchEndRatio: 0.35,
+    // Độ sáng ban đầu khi vừa rời bệ phóng
+    launchStartIntensity: 0.25,
+    // Ngưỡng bắt đầu giai đoạn 3 (gần burst của shell)
+    fadeStartMin: 0.72,
+    fadeStartMax: 0.82,
+    // Tỉ lệ xác suất ưu tiên tắt hẳn về 0 (0.75 = 75% tắt hoàn toàn trước khi burst, 25% giảm độ sáng)
+    turnOffChance: 0.75,
+    // Mức độ sáng khi giảm cho các trường hợp không tắt hẳn
+    dimTargetMin: 0.15,
+    dimTargetMax: 0.25,
+    // Bật hiện tượng cháy đứt quãng ngẫu nhiên (sputter / micro-gaps)
+    sputterEnabled: true,
+    // Tỉ lệ quả shell xuất hiện hiện tượng đứt quãng
+    sputterShellChance: 0.7,
+    // Khoảng cách thời gian giữa các đợt đứt quãng (giây)
+    sputterIntervalMin: 0.22,
+    sputterIntervalMax: 0.48,
+    // Thời lượng mỗi nhịp đứt quãng (giây, tương đương 2-4 frame tạo khoảng hở 1.5 - 3 mét)
+    sputterDurationMin: 0.035,
+    sputterDurationMax: 0.075,
+    // Bập bùng nhấp nháy trước khi tắt hẳn ở giai đoạn cuối
+    endFlicker: true
   }
 };

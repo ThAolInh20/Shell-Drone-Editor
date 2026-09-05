@@ -278,9 +278,9 @@ export class CometSystem {
         }
 
         // Hiệu ứng crackle (tiếng nổ lách tách) dọc theo đường bay
-        if (comet.preset?.crackle && Math.random() < 0.12) {
+        if (comet.preset?.crackle && intensity > 0.1 && Math.random() < 0.12) {
           this.trailSystem.spawnMicroCrackle(
-            spawnPos,
+            comet.mesh.position.clone(),
             comet.color
           );
           this.emitFireworkEvent('firework:crackle', {

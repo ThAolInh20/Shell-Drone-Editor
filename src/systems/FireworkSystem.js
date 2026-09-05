@@ -963,7 +963,10 @@ export class FireworkSystem {
       ? item.preset.trailChance
       : 1.0;
 
-    if (launchTrail && Math.random() < activeTrailChance) {
+    const trailIntensity = item.getTrailIntensity ? item.getTrailIntensity() : 1.0;
+
+    // Nếu gần burst tắt hẳn về 0 (trailIntensity <= 0.01) thì không sinh thêm vệt comet
+    if (launchTrail && trailIntensity > 0.01 && Math.random() < activeTrailChance) {
       let customLife = null;
       if (item.preset?.noBurst && item.preset?.starLife) {
         const lifeTime = item.preset.starLife / 1000;
@@ -973,8 +976,9 @@ export class FireworkSystem {
       }
       const isThick = item.preset?.thickTrail;
       const ascentCfg = FIREWORK_CONFIG.ASCENT;
-      const lifeMultiplier = ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55);
-      const opacity = ascentCfg?.trailOpacity ?? 1.0;
+      const baseLifeMul = ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55);
+      const lifeMultiplier = baseLifeMul * (0.6 + 0.4 * trailIntensity);
+      const opacity = (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity;
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
       const dispersion = (ascentCfg?.trailDispersion ?? 0.2) * Math.pow(progress, 1.4);
@@ -1002,8 +1006,8 @@ export class FireworkSystem {
           false
         );
 
-        // Thêm hạt tia lửa sáng chói ở lõi để vệt sáng rực rỡ và đậm đà hơn
-        if (Math.random() < 0.22) {
+        // Ở giai đoạn giữa sáng nhất (trailIntensity >= 0.85), sinh thêm hạt tia lửa sáng chói ở lõi
+        if (trailIntensity >= 0.85 && Math.random() < 0.22) {
           const sparkColor = item.color.clone().offsetHSL(0, 0, 0.2);
           this.trailSystem.spawnEffectSpark(
             spawnPos,
@@ -1016,16 +1020,16 @@ export class FireworkSystem {
         }
       }
 
-      if (this.smokeSystem && Math.random() < 0.35) {
+      if (this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
         const ascVel = item.velocity ? item.velocity.clone().multiplyScalar(-0.15) : new THREE.Vector3(0, -1.2, 0);
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
           ascVel,
           {
-            life: 1.6 + Math.random() * 0.8,
-            scale: 5.2 + Math.random() * 2.5,
+            life: (1.6 + Math.random() * 0.8) * trailIntensity,
+            scale: (5.2 + Math.random() * 2.5) * (0.6 + 0.4 * trailIntensity),
             growth: 3.4,
-            opacity: 0.22,
+            opacity: 0.22 * trailIntensity,
             color: item.color.clone()
           }
         );
