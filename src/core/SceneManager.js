@@ -4,6 +4,7 @@ import { globalEventBus } from './EventBus.js';
 import { SkyDome } from '../environment/SkyDome.js';
 import { DistantMountains } from '../environment/DistantMountains.js';
 import { PlanarReflector } from '../environment/PlanarReflector.js';
+import { WaterSurface } from '../environment/WaterSurface.js';
 
 export class SceneManager {
   constructor(eventBus = null) {
@@ -46,6 +47,14 @@ export class SceneManager {
       resolutionScale: 0.5
     });
 
+    // Initialize Water Surface (Lake Plane with dynamic wave reflection shader)
+    this.waterSurface = new WaterSurface({
+      planarReflector: this.planarReflector,
+      size: 3500,
+      waterY: 0.0
+    });
+    this.instance.add(this.waterSurface.mesh);
+
     // Subtle ambient light
     this.ambientLight = new THREE.AmbientLight(
       0xffffff,
@@ -59,9 +68,6 @@ export class SceneManager {
       this.baseHemisphereIntensity
     );
     this.instance.add(this.hemisphereLight);
-
-    // Add checkerboard floor
-    this.addCheckerboardFloor();
 
     // Add launch pad for fireworks
     this.launchPadGroup = new THREE.Group();
@@ -83,6 +89,9 @@ export class SceneManager {
     if (this.skyDome) {
       this.skyDome.update(deltaTime);
     }
+    if (this.waterSurface) {
+      this.waterSurface.update(deltaTime);
+    }
   }
 
   renderReflection(renderer, mainCamera) {
@@ -99,6 +108,9 @@ export class SceneManager {
     if (this.planarReflector) {
       this.planarReflector.setSize(width, height);
     }
+    if (this.waterSurface) {
+      this.waterSurface.setResolution(width, height);
+    }
   }
 
   destroy() {
@@ -107,6 +119,9 @@ export class SceneManager {
     }
     if (this.distantMountains) {
       this.distantMountains.dispose();
+    }
+    if (this.waterSurface) {
+      this.waterSurface.dispose();
     }
     if (this.planarReflector) {
       this.planarReflector.dispose();

@@ -57,11 +57,12 @@ Tài liệu này xác định kiến trúc kỹ thuật, ranh giới hệ thốn
 - [x] Tích hợp pass phản chiếu và xử lý resize vào `SceneManager.js`, `main.js`, `editor/main.js` và `formation/main.js`.
 
 ### Giai Đoạn 3: Shader Mặt Nước & Biến Dạng Sóng (Dynamic Water Shader)
-- [ ] Xây dựng class `WaterSurface.js` với `PlaneGeometry` đặt nằm ngang tại $Y=0$.
-- [ ] Tạo `ShaderMaterial` nhận sampler2D từ `PlanarReflector.renderTarget.texture`.
-- [ ] Tích hợp 2 lớp Normal Map cuộn ngược hướng nhau với tốc độ khác nhau để mô phỏng sóng lăn tăn.
-- [ ] Cài đặt thuật toán biến dạng tọa độ chiếu (Distorted Projected UV) theo vector pháp tuyến sóng $\vec{N}_{xz}$.
-- [ ] Cài đặt hiệu ứng Schlick Fresnel để pha trộn tự nhiên giữa màu xanh sâu của nước và hình ảnh phản chiếu pháo hoa theo góc nhìn.
+- [x] Xây dựng class `WaterSurface.js` với `PlaneGeometry` đặt nằm ngang tại $Y=0$.
+- [x] Tạo `ShaderMaterial` nhận sampler2D từ `PlanarReflector.renderTarget.texture`.
+- [x] Tích hợp 2 lớp Normal Map cuộn ngược hướng nhau với tốc độ khác nhau để mô phỏng sóng lăn tăn tự nhiên.
+- [x] Cài đặt thuật toán biến dạng tọa độ chiếu (Distorted Projected UV) theo vector pháp tuyến sóng $\vec{N}_{xz}$ với giảm dần theo khoảng cách chân trời.
+- [x] Cài đặt hiệu ứng Schlick Fresnel kết hợp Moonlight Specular Trail để pha trộn tự nhiên giữa màu xanh sâu của nước và vệt sáng phản chiếu pháo hoa.
+- [x] Tích hợp vào `SceneManager.js`, thay thế sàn caro cũ và đồng bộ vòng lặp cập nhật `update(deltaTime)`.
 
 ### Giai Đoạn 4: Hậu Kỳ & Tích Hợp Toàn Cục (Post-Processing & Composition)
 - [ ] Đồng bộ camera góc thấp ($Y \approx 3 - 8$), hướng chếch lên vùng nổ pháo hoa để đạt bố cục 50% trời - 50% hồ.
