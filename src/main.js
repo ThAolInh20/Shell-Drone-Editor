@@ -43,11 +43,14 @@ const postProcessing = renderingConfig.post.enabled
   ? new PostProcessingPipeline(renderer.instance, sceneManager.instance, cameraManager.instance, renderingConfig)
   : null;
 
-if (postProcessing) {
-  renderer.addResizeListener((width, height, pixelRatio) => {
+renderer.addResizeListener((width, height, pixelRatio) => {
+  sceneManager.onResize(width, height);
+  if (postProcessing) {
     postProcessing.setSize(width, height, pixelRatio);
-  });
+  }
+});
 
+if (postProcessing) {
   const initialQuality = localStorage.getItem('graphics_quality') || 'medium';
   postProcessing.setGraphicsQuality(initialQuality);
 }
@@ -140,6 +143,9 @@ function animate() {
     skyLightReactionSystem.update(clock.deltaTime);
     smokeSystem.update(clock.deltaTime);
   }
+
+  // Reflection render pass
+  sceneManager.renderReflection(renderer.instance, cameraManager.instance);
 
   // Render loop
   if (postProcessing) {

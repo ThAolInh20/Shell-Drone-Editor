@@ -7,6 +7,7 @@ import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const BASE_BURST_PARTICLES = FIREWORK_CONFIG.BURST.baseParticles;
@@ -170,6 +171,7 @@ export class FireworkSystem {
       this.globalBurstMaterial
     );
     this.globalBurstPoints.frustumCulled = false;
+    this.globalBurstPoints.layers.enable(LAYER_REFLECTION);
     this.scene.add(this.globalBurstPoints);
 
     this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');

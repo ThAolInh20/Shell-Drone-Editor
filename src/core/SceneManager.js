@@ -3,6 +3,7 @@ import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { globalEventBus } from './EventBus.js';
 import { SkyDome } from '../environment/SkyDome.js';
 import { DistantMountains } from '../environment/DistantMountains.js';
+import { PlanarReflector } from '../environment/PlanarReflector.js';
 
 export class SceneManager {
   constructor(eventBus = null) {
@@ -38,6 +39,12 @@ export class SceneManager {
       maxHeight: 160
     });
     this.instance.add(this.distantMountains.group);
+
+    // Initialize Planar Reflector for water surface
+    this.planarReflector = new PlanarReflector({
+      waterY: 0.0,
+      resolutionScale: 0.5
+    });
 
     // Subtle ambient light
     this.ambientLight = new THREE.AmbientLight(
@@ -78,12 +85,31 @@ export class SceneManager {
     }
   }
 
+  renderReflection(renderer, mainCamera) {
+    if (this.planarReflector) {
+      this.planarReflector.update(
+        renderer,
+        this.instance,
+        mainCamera
+      );
+    }
+  }
+
+  onResize(width, height) {
+    if (this.planarReflector) {
+      this.planarReflector.setSize(width, height);
+    }
+  }
+
   destroy() {
     if (this.skyDome) {
       this.skyDome.dispose();
     }
     if (this.distantMountains) {
       this.distantMountains.dispose();
+    }
+    if (this.planarReflector) {
+      this.planarReflector.dispose();
     }
     for (const unsubscribe of this.eventSubscriptions) {
       unsubscribe();

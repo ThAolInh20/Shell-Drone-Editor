@@ -50,10 +50,11 @@ Tài liệu này xác định kiến trúc kỹ thuật, ranh giới hệ thốn
 - [x] Tích hợp vào `SceneManager.js` và đồng bộ với hệ thống chớp sáng pháo hoa `SkyLightReactionSystem`.
 
 ### Giai Đoạn 2: Hạ Tầng Phản Chiếu Phẳng (Planar Reflector Pipeline)
-- [ ] Xây dựng class `PlanarReflector.js` khởi tạo `THREE.WebGLRenderTarget` với độ phân giải `0.5x` màn hình thực tế.
-- [ ] Thiết lập `THREE.PerspectiveCamera` phản chiếu đối xứng qua mặt phẳng $Y=0$.
-- [ ] Tính toán Oblique Near-Plane Clipping Matrix để loại bỏ hoàn toàn các vật thể nằm phía dưới mặt nước khỏi RenderTarget.
-- [ ] Thiết lập cơ chế Layer Masking để Reflection Camera chỉ render Bầu trời, Sao, Núi và Hạt pháo hoa (bỏ qua mặt hồ, bệ phóng, drone và UI).
+- [x] Xây dựng class `PlanarReflector.js` khởi tạo `THREE.WebGLRenderTarget` với độ phân giải `0.5x` màn hình thực tế (Linear Filter, HalfFloatType).
+- [x] Thiết lập `THREE.PerspectiveCamera` phản chiếu đối xứng qua mặt phẳng $Y=0$.
+- [x] Tính toán Oblique Near-Plane Clipping Matrix để loại bỏ hoàn toàn các vật thể nằm phía dưới mặt nước khỏi RenderTarget.
+- [x] Thiết lập cơ chế Layer Masking (`LAYER_REFLECTION = 1`) để Reflection Camera chỉ render Bầu trời, Sao, Núi và Hạt pháo hoa (bỏ qua mặt hồ, bệ phóng, drone helper và UI).
+- [x] Tích hợp pass phản chiếu và xử lý resize vào `SceneManager.js`, `main.js`, `editor/main.js` và `formation/main.js`.
 
 ### Giai Đoạn 3: Shader Mặt Nước & Biến Dạng Sóng (Dynamic Water Shader)
 - [ ] Xây dựng class `WaterSurface.js` với `PlaneGeometry` đặt nằm ngang tại $Y=0$.

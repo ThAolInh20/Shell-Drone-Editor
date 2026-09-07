@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 export class DistantMountains {
   constructor(options = {}) {
@@ -11,6 +12,7 @@ export class DistantMountains {
     this.maxHeight = options.maxHeight || 160;
 
     this._createMountainRange();
+    this.setLayer(LAYER_REFLECTION);
   }
 
   _createMountainRange() {

@@ -12,6 +12,10 @@ const renderer = new Renderer();
 const cameraManager = new CameraManager();
 const sceneManager = new SceneManager();
 
+renderer.addResizeListener((width, height) => {
+  sceneManager.onResize(width, height);
+});
+
 const formationDirector = new FormationDirector(sceneManager, cameraManager, renderer);
 
 function animate() {
@@ -22,6 +26,9 @@ function animate() {
   
   // Update Director
   formationDirector.update(clock.deltaTime);
+
+  // Reflection render pass
+  sceneManager.renderReflection(renderer.instance, cameraManager.instance);
 
   // Render loop
   renderer.render(sceneManager.instance, cameraManager.instance);

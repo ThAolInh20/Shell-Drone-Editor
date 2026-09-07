@@ -15,6 +15,10 @@ const performanceMonitor = new PerformanceMonitor();
 // Di chuyển camera về gần tâm điểm để tiện nhìn khối
 cameraManager.instance.position.set(0, 50, 150);
 
+renderer.addResizeListener((width, height) => {
+  sceneManager.onResize(width, height);
+});
+
 const editorDirector = new EditorDirector(sceneManager, cameraManager, renderer);
 
 function animate() {
@@ -25,6 +29,9 @@ function animate() {
   sceneManager.update(clock.deltaTime);
   
   editorDirector.update(clock.deltaTime);
+
+  // Reflection render pass
+  sceneManager.renderReflection(renderer.instance, cameraManager.instance);
 
   // Render loop
   renderer.render(sceneManager.instance, cameraManager.instance);

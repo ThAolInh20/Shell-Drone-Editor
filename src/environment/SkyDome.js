@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 export class SkyDome {
   constructor(options = {}) {
@@ -15,6 +16,8 @@ export class SkyDome {
     this._createDome();
     this._createStarfield();
     this._createMoon();
+
+    this.setLayer(LAYER_REFLECTION);
   }
 
   _createDome() {
