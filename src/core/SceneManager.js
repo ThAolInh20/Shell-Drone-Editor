@@ -1,78 +1,56 @@
 import * as THREE from 'three';
 import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { globalEventBus } from './EventBus.js';
+import { SkyDome } from '../environment/SkyDome.js';
+import { DistantMountains } from '../environment/DistantMountains.js';
 
 export class SceneManager {
   constructor(eventBus = null) {
     this.instance = new THREE.Scene();
-    this.baseSkyColor = new THREE.Color(0x050510);
-    this.baseFogDensity = 0.002;
-    this.baseAmbientIntensity = 0.1;
+    this.baseSkyColor = new THREE.Color(0x02020a);
+    this.baseFogDensity = 0.0015;
+    this.baseAmbientIntensity = 0.12;
     this.baseHemisphereIntensity = 0.08;
     this.eventSubscriptions = [];
     this.eventBus = eventBus || globalEventBus;
 
-    // Set a very dark blue/black color for night sky void
+    // Set background and subtle atmospheric fog
     this.instance.background = this.baseSkyColor.clone();
-    this.instance.fog = new THREE.FogExp2(this.baseSkyColor.clone(), this.baseFogDensity);
+    this.instance.fog = new THREE.FogExp2(
+      new THREE.Color(0x060c1d),
+      this.baseFogDensity
+    );
 
-    // Create subtle background stars to give the void some reference points
-    const starGeo = new THREE.BufferGeometry();
-    const starCounts = 1500;
-    const starPositions = new Float32Array(starCounts * 3);
-    const starColors = new Float32Array(starCounts * 3);
-
-    for (let i = 0; i < starCounts; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      const radius = 900 + Math.random() * 100;
-      const x = Math.sin(phi) * Math.cos(theta) * radius;
-      const y = Math.sin(phi) * Math.sin(theta) * radius;
-      const z = Math.cos(phi) * radius;
-
-      starPositions[i * 3 + 0] = x;
-      starPositions[i * 3 + 1] = y;
-      starPositions[i * 3 + 2] = z;
-
-      const colorVariation = Math.random() * 0.2;
-      const baseColor = new THREE.Color(0xeeeeff).lerp(new THREE.Color(0xfff8e5), colorVariation);
-      starColors[i * 3 + 0] = baseColor.r;
-      starColors[i * 3 + 1] = baseColor.g;
-      starColors[i * 3 + 2] = baseColor.b;
-    }
-
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-    starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-    const starMat = new THREE.PointsMaterial({
-      vertexColors: true,
-      size: 0.8,
-      sizeAttenuation: true,
-      transparent: true,
-      opacity: 0.9
+    // Initialize 3D Sky Dome with twinkling starfield and moon
+    this.skyDome = new SkyDome({
+      radius: 1400,
+      topColor: 0x02020a,
+      bottomColor: 0x070e24,
+      starCount: 2200
     });
-    const stars = new THREE.Points(starGeo, starMat);
-    this.instance.add(stars);
+    this.instance.add(this.skyDome.group);
 
-    // Moon reference point in the sky
-    const moonGeometry = new THREE.SphereGeometry(32, 32, 32);
-    const moonMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xffffff,
-      emissiveIntensity: 1.5
+    // Initialize Distant Mountains Silhouette
+    this.distantMountains = new DistantMountains({
+      radius: 850,
+      segments: 128,
+      baseY: -20,
+      maxHeight: 160
     });
-    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-    moon.position.set(0, 300, -700);
-    this.instance.add(moon);
+    this.instance.add(this.distantMountains.group);
 
-    const moonGlow = new THREE.PointLight(0xffffff, 1.0, 1500, 1.5);
-    moonGlow.position.copy(moon.position);
-    this.instance.add(moonGlow);
-
-    // Optional: subtle ambient light
-    this.ambientLight = new THREE.AmbientLight(0xffffff, this.baseAmbientIntensity);
+    // Subtle ambient light
+    this.ambientLight = new THREE.AmbientLight(
+      0xffffff,
+      this.baseAmbientIntensity
+    );
     this.instance.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x5d6ea8, 0x080c18, this.baseHemisphereIntensity);
+    this.hemisphereLight = new THREE.HemisphereLight(
+      0x5d6ea8,
+      0x080c18,
+      this.baseHemisphereIntensity
+    );
     this.instance.add(this.hemisphereLight);
 
     // Add checkerboard floor
@@ -94,7 +72,19 @@ export class SceneManager {
     // this.addBurstHeightGuides();
   }
 
+  update(deltaTime) {
+    if (this.skyDome) {
+      this.skyDome.update(deltaTime);
+    }
+  }
+
   destroy() {
+    if (this.skyDome) {
+      this.skyDome.dispose();
+    }
+    if (this.distantMountains) {
+      this.distantMountains.dispose();
+    }
     for (const unsubscribe of this.eventSubscriptions) {
       unsubscribe();
     }

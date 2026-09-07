@@ -120,6 +120,7 @@ function animate() {
 
   clock.update();
   performanceMonitor.update(clock.deltaTime);
+  sceneManager.update(clock.deltaTime);
   
   // Systems update
   if (!inputSystem.isPaused()) {

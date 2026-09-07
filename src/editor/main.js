@@ -22,6 +22,7 @@ function animate() {
 
   clock.update();
   performanceMonitor.update(clock.deltaTime);
+  sceneManager.update(clock.deltaTime);
   
   editorDirector.update(clock.deltaTime);
 

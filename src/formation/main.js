@@ -18,6 +18,7 @@ function animate() {
   requestAnimationFrame(animate);
 
   clock.update();
+  sceneManager.update(clock.deltaTime);
   
   // Update Director
   formationDirector.update(clock.deltaTime);

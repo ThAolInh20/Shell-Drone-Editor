@@ -124,6 +124,12 @@ export class SkyLightReactionSystem {
 
     this.scene.background.copy(skyTarget);
     this.scene.fog.color.copy(fogTarget);
+    if (this.sceneManager.skyDome) {
+      this.sceneManager.skyDome.setSkyColors(
+        skyTarget,
+        fogTarget
+      );
+    }
     this.sceneManager.ambientLight.intensity = this.baseAmbientIntensity + ambientBoost;
     this.sceneManager.hemisphereLight.intensity = this.baseHemisphereIntensity + hemiBoost;
     this.sceneManager.hemisphereLight.color.copy(skyTarget);
@@ -143,6 +149,12 @@ export class SkyLightReactionSystem {
     const lerpAlpha = 1 - Math.exp(-4 * deltaTime);
     this.scene.background.lerp(this.baseSkyColor, lerpAlpha);
     this.scene.fog.color.lerp(this.baseSkyColor, lerpAlpha);
+    if (this.sceneManager.skyDome) {
+      this.sceneManager.skyDome.setSkyColors(
+        this.scene.background,
+        this.scene.fog.color
+      );
+    }
     this.sceneManager.ambientLight.intensity = THREE.MathUtils.lerp(
       this.sceneManager.ambientLight.intensity,
       this.baseAmbientIntensity,
