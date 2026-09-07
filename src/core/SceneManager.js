@@ -5,6 +5,7 @@ import { SkyDome } from '../environment/SkyDome.js';
 import { DistantMountains } from '../environment/DistantMountains.js';
 import { PlanarReflector } from '../environment/PlanarReflector.js';
 import { WaterSurface } from '../environment/WaterSurface.js';
+import { LaunchBarge } from '../environment/LaunchBarge.js';
 
 export class SceneManager {
   constructor(eventBus = null) {
@@ -40,6 +41,10 @@ export class SceneManager {
       maxHeight: 160
     });
     this.instance.add(this.distantMountains.group);
+
+    // Initialize Floating Launch Barges on the lake
+    this.launchBarge = new LaunchBarge();
+    this.instance.add(this.launchBarge.group);
 
     // Initialize Planar Reflector for water surface
     this.planarReflector = new PlanarReflector({
@@ -89,6 +94,9 @@ export class SceneManager {
     if (this.skyDome) {
       this.skyDome.update(deltaTime);
     }
+    if (this.launchBarge) {
+      this.launchBarge.update(deltaTime);
+    }
     if (this.waterSurface) {
       this.waterSurface.update(deltaTime);
     }
@@ -119,6 +127,9 @@ export class SceneManager {
     }
     if (this.distantMountains) {
       this.distantMountains.dispose();
+    }
+    if (this.launchBarge) {
+      this.launchBarge.dispose();
     }
     if (this.waterSurface) {
       this.waterSurface.dispose();
