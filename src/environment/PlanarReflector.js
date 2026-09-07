@@ -5,6 +5,7 @@ export class PlanarReflector {
   constructor(options = {}) {
     this.waterY = options.waterY || 0.0;
     this.resolutionScale = options.resolutionScale || 0.5;
+    this.clipBias = options.clipBias || 0.0;
 
     const initialWidth = Math.floor(
       (typeof window !== 'undefined' ? window.innerWidth : 1280) * this.resolutionScale
@@ -31,18 +32,19 @@ export class PlanarReflector {
     this.reflectionCamera.layers.disableAll();
     this.reflectionCamera.layers.enable(LAYER_REFLECTION);
 
+    this.textureMatrix = new THREE.Matrix4();
+
     // Reusable math objects
-    this._reflectorPlane = new THREE.Plane(
-      new THREE.Vector3(0, 1, 0),
-      -this.waterY
-    );
+    this._reflectorPlane = new THREE.Plane();
     this._normal = new THREE.Vector3(0, 1, 0);
-    this._clipPlane = new THREE.Plane();
-    this._clipVector = new THREE.Vector4();
-    this._q = new THREE.Vector4();
+    this._reflectorWorldPos = new THREE.Vector3(0, this.waterY, 0);
     this._cameraWorldPos = new THREE.Vector3();
-    this._cameraDirection = new THREE.Vector3();
-    this._targetWorldPos = new THREE.Vector3();
+    this._lookAtPos = new THREE.Vector3();
+    this._view = new THREE.Vector3();
+    this._target = new THREE.Vector3();
+    this._rotMatrix = new THREE.Matrix4();
+    this._clipPlane = new THREE.Vector4();
+    this._q = new THREE.Vector4();
   }
 
   get texture() {
@@ -70,60 +72,83 @@ export class PlanarReflector {
       return;
     }
 
-    // Sync camera parameters
-    this.reflectionCamera.fov = mainCamera.fov;
-    this.reflectionCamera.aspect = mainCamera.aspect;
+    this._reflectorWorldPos.set(0, this.waterY, 0);
+    this._cameraWorldPos.setFromMatrixPosition(mainCamera.matrixWorld);
+
+    // Plane normal in world space is Y up
+    this._normal.set(0, 1, 0);
+
+    this._view.subVectors(this._reflectorWorldPos, this._cameraWorldPos);
+    // Avoid rendering when camera is behind plane
+    if (this._view.dot(this._normal) > 0) {
+      return;
+    }
+
+    this._view.reflect(this._normal).negate();
+    this._view.add(this._reflectorWorldPos);
+
+    this._rotMatrix.extractRotation(mainCamera.matrixWorld);
+
+    this._lookAtPos.set(0, 0, -1);
+    this._lookAtPos.applyMatrix4(this._rotMatrix);
+    this._lookAtPos.add(this._cameraWorldPos);
+
+    this._target.subVectors(this._reflectorWorldPos, this._lookAtPos);
+    this._target.reflect(this._normal).negate();
+    this._target.add(this._reflectorWorldPos);
+
+    this.reflectionCamera.position.copy(this._view);
+    this.reflectionCamera.up.set(0, 1, 0);
+    this.reflectionCamera.up.applyMatrix4(this._rotMatrix);
+    this.reflectionCamera.up.reflect(this._normal);
+    this.reflectionCamera.lookAt(this._target);
+
     this.reflectionCamera.near = mainCamera.near;
     this.reflectionCamera.far = mainCamera.far;
-    this.reflectionCamera.updateProjectionMatrix();
-
-    // Calculate reflected position
-    this._cameraWorldPos.setFromMatrixPosition(mainCamera.matrixWorld);
-    const reflectedY = 2.0 * this.waterY - this._cameraWorldPos.y;
-    this.reflectionCamera.position.set(
-      this._cameraWorldPos.x,
-      reflectedY,
-      this._cameraWorldPos.z
-    );
-
-    // Calculate reflected look-at target
-    mainCamera.getWorldDirection(this._cameraDirection);
-    this._cameraDirection.y *= -1.0;
-    this._targetWorldPos.copy(this.reflectionCamera.position).add(this._cameraDirection);
-
-    // Up vector inverted on Y
-    this.reflectionCamera.up.set(0, 1, 0);
-    this.reflectionCamera.lookAt(this._targetWorldPos);
     this.reflectionCamera.updateMatrixWorld();
+    this.reflectionCamera.projectionMatrix.copy(mainCamera.projectionMatrix);
+
+    // Update the texture matrix for projective texture mapping
+    this.textureMatrix.set(
+      0.5, 0.0, 0.0, 0.5,
+      0.0, 0.5, 0.0, 0.5,
+      0.0, 0.0, 0.5, 0.5,
+      0.0, 0.0, 0.0, 1.0
+    );
+    this.textureMatrix.multiply(this.reflectionCamera.projectionMatrix);
+    this.textureMatrix.multiply(this.reflectionCamera.matrixWorldInverse);
 
     // Oblique Near-Plane Clipping
-    this._clipPlane.copy(this._reflectorPlane).applyMatrix4(
-      this.reflectionCamera.matrixWorldInverse
+    this._reflectorPlane.setFromNormalAndCoplanarPoint(
+      this._normal,
+      this._reflectorWorldPos
     );
-    this._clipVector.set(
-      this._clipPlane.normal.x,
-      this._clipPlane.normal.y,
-      this._clipPlane.normal.z,
-      this._clipPlane.constant
+    this._reflectorPlane.applyMatrix4(this.reflectionCamera.matrixWorldInverse);
+
+    this._clipPlane.set(
+      this._reflectorPlane.normal.x,
+      this._reflectorPlane.normal.y,
+      this._reflectorPlane.normal.z,
+      this._reflectorPlane.constant
     );
 
-    const projectionMatrix = this.reflectionCamera.projectionMatrix;
-    this._q.x = (Math.sign(this._clipVector.x) + projectionMatrix.elements[8]) / projectionMatrix.elements[0];
-    this._q.y = (Math.sign(this._clipVector.y) + projectionMatrix.elements[9]) / projectionMatrix.elements[5];
+    const projMatrix = this.reflectionCamera.projectionMatrix;
+    this._q.x = (Math.sign(this._clipPlane.x) + projMatrix.elements[8]) / projMatrix.elements[0];
+    this._q.y = (Math.sign(this._clipPlane.y) + projMatrix.elements[9]) / projMatrix.elements[5];
     this._q.z = -1.0;
-    this._q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
+    this._q.w = (1.0 + projMatrix.elements[10]) / projMatrix.elements[14];
 
     // Scale clip plane
-    this._clipVector.multiplyScalar(
-      2.0 / this._clipVector.dot(this._q)
+    this._clipPlane.multiplyScalar(
+      2.0 / this._clipPlane.dot(this._q)
     );
 
-    projectionMatrix.elements[2] = this._clipVector.x;
-    projectionMatrix.elements[6] = this._clipVector.y;
-    projectionMatrix.elements[10] = this._clipVector.z + 1.0;
-    projectionMatrix.elements[14] = this._clipVector.w;
+    projMatrix.elements[2] = this._clipPlane.x;
+    projMatrix.elements[6] = this._clipPlane.y;
+    projMatrix.elements[10] = this._clipPlane.z + 1.0 - this.clipBias;
+    projMatrix.elements[14] = this._clipPlane.w;
 
-    // Render into target
+    // Render reflection scene into renderTarget
     const currentRenderTarget = renderer.getRenderTarget();
     const currentAutoClear = renderer.autoClear;
 

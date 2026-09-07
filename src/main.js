@@ -66,7 +66,8 @@ loadAndApplySettings({
   renderer,
   postProcessing,
   audioSystem,
-  smokeSystem
+  smokeSystem,
+  sceneManager
 });
 
 // Initialize Systems
@@ -76,7 +77,8 @@ const inputSystem = new InputSystem(
   fireworkSystem,
   renderer,
   postProcessing,
-  audioSystem
+  audioSystem,
+  sceneManager
 );
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 

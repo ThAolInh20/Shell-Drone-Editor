@@ -65,10 +65,11 @@ Tài liệu này xác định kiến trúc kỹ thuật, ranh giới hệ thốn
 - [x] Tích hợp vào `SceneManager.js`, thay thế sàn caro cũ và đồng bộ vòng lặp cập nhật `update(deltaTime)`.
 
 ### Giai Đoạn 4: Hậu Kỳ & Tích Hợp Toàn Cục (Post-Processing & Composition)
-- [ ] Đồng bộ camera góc thấp ($Y \approx 3 - 8$), hướng chếch lên vùng nổ pháo hoa để đạt bố cục 50% trời - 50% hồ.
-- [ ] Cấu hình `UnrealBloomPass` trong `PostProcessingPipeline.js` để bắt sáng đồng thời cả vệt pháo hoa trên trời và vệt phản chiếu trên mặt hồ.
-- [ ] Tích hợp `SkyLightReactionSystem` để ánh chớp pháo hoa làm bừng sáng nhẹ cả vòm trời và mặt nước đồng bộ.
-- [ ] Kiểm tra và xử lý resize sự kiện cửa sổ cho cả Main Renderer và Reflection RenderTarget.
+- [x] Đồng bộ camera góc thấp ($Y = 6, Z = 420$), hướng chếch lên vùng nổ pháo hoa để đạt bố cục 50% trời - 50% hồ.
+- [x] Cài đặt khóa kẹp cao độ ($Y \ge 2.0$) trong `MovementSystem.js` để tránh camera chui xuống dưới mặt hồ.
+- [x] Cấu hình `UnrealBloomPass` trong `rendering.js` để bắt sáng đồng thời cả vệt pháo hoa trên trời và vệt phản chiếu trên mặt hồ.
+- [x] Tích hợp `SkyLightReactionSystem` để ánh chớp pháo hoa làm bừng sáng nhẹ cả vòm trời và mặt nước đồng bộ.
+- [x] Đồng bộ resize sự kiện cửa sổ cho cả Main Renderer và Reflection RenderTarget.
 
 ### Giai Đoạn 5: Tối Ưu Hóa & Đánh Giá Hiệu Năng
 - [ ] Tối ưu hóa bộ nhớ: Hủy giải phóng (dispose) textures, render targets, geometries khi chuyển đổi scene hoặc resize.

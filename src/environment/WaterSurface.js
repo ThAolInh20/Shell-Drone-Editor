@@ -17,6 +17,9 @@ export class WaterSurface {
       uReflectionTexture: {
         value: this.planarReflector ? this.planarReflector.texture : null
       },
+      uTextureMatrix: {
+        value: this.planarReflector ? this.planarReflector.textureMatrix : new THREE.Matrix4()
+      },
       uNormalMap: {
         value: this.normalTexture
       },
@@ -46,6 +49,9 @@ export class WaterSurface {
       },
       uWaveSpeed: {
         value: 0.025
+      },
+      uMirrorEnabled: {
+        value: 1.0
       }
     };
 
@@ -129,13 +135,17 @@ export class WaterSurface {
     );
 
     const vertexShader = `
+      varying vec4 vProjectedCoord;
       varying vec3 vWorldPosition;
       varying vec2 vUv;
+
+      uniform mat4 uTextureMatrix;
 
       void main() {
         vUv = uv;
         vec4 worldPos = modelMatrix * vec4(position, 1.0);
         vWorldPosition = worldPos.xyz;
+        vProjectedCoord = uTextureMatrix * worldPos;
         gl_Position = projectionMatrix * viewMatrix * worldPos;
       }
     `;
@@ -152,7 +162,9 @@ export class WaterSurface {
       uniform float uDistortionStrength;
       uniform float uWaveScale;
       uniform float uWaveSpeed;
+      uniform float uMirrorEnabled;
 
+      varying vec4 vProjectedCoord;
       varying vec3 vWorldPosition;
       varying vec2 vUv;
 
@@ -172,16 +184,16 @@ export class WaterSurface {
         // View direction
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
 
-        // Screen-space coordinates for planar reflection sampling
-        vec2 screenUV = gl_FragCoord.xy / uResolution;
+        // Projective coordinates for planar reflection sampling
+        vec2 baseCoord = vProjectedCoord.xy / vProjectedCoord.w;
 
-        // Distance attenuation to prevent shimmering at the far horizon
+        // Distance attenuation to prevent excessive shimmering at the far horizon
         float distToCam = length(cameraPosition - vWorldPosition);
-        float distFactor = clamp(400.0 / distToCam, 0.15, 1.0);
+        float distFactor = clamp(350.0 / distToCam, 0.15, 1.0);
 
         // Distort UV by wave normal
         vec2 distortion = normal.xz * uDistortionStrength * distFactor;
-        vec2 reflectUV = clamp(screenUV + distortion, vec2(0.001), vec2(0.999));
+        vec2 reflectUV = clamp(baseCoord + distortion, vec2(0.001), vec2(0.999));
 
         // Sample reflected image
         vec4 reflectionColor = texture2D(uReflectionTexture, reflectUV);
@@ -197,9 +209,14 @@ export class WaterSurface {
         float specular = pow(NdotH, 90.0) * 0.75;
         vec3 specColor = uMoonColor * specular;
 
-        // Combine deep water body color with surface reflection
-        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.4);
-        vec3 finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.35, 0.08, 0.98));
+        // Base water body color
+        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.35);
+
+        // Specular Mirror Reflection Component
+        vec3 finalColor = baseWater;
+        if (uMirrorEnabled > 0.5) {
+          finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.45, 0.1, 1.0));
+        }
         finalColor += specColor;
 
         gl_FragColor = vec4(finalColor, 1.0);
@@ -223,6 +240,14 @@ export class WaterSurface {
     this.mesh.layers.set(LAYER_DEFAULT);
   }
 
+  setMirrorReflection(enabled) {
+    this.uniforms.uMirrorEnabled.value = enabled ? 1.0 : 0.0;
+  }
+
+  setWaveDistortion(strength) {
+    this.uniforms.uDistortionStrength.value = strength;
+  }
+
   setResolution(width, height) {
     this.uniforms.uResolution.value.set(width, height);
   }
@@ -230,8 +255,11 @@ export class WaterSurface {
   update(deltaTime) {
     this.time += deltaTime;
     this.uniforms.uTime.value = this.time;
-    if (this.planarReflector && this.uniforms.uReflectionTexture.value !== this.planarReflector.texture) {
-      this.uniforms.uReflectionTexture.value = this.planarReflector.texture;
+    if (this.planarReflector) {
+      if (this.uniforms.uReflectionTexture.value !== this.planarReflector.texture) {
+        this.uniforms.uReflectionTexture.value = this.planarReflector.texture;
+      }
+      this.uniforms.uTextureMatrix.value = this.planarReflector.textureMatrix;
     }
   }
 

@@ -15,7 +15,8 @@ export class InputSystem {
     fireworkSystem = null,
     renderer = null,
     postProcessing = null,
-    audioSystem = null
+    audioSystem = null,
+    sceneManager = null
   ) {
     this.controls = new PointerLockControls(
       camera,
@@ -25,11 +26,13 @@ export class InputSystem {
     this.renderer = renderer;
     this.postProcessing = postProcessing;
     this.audioSystem = audioSystem;
+    this.sceneManager = sceneManager;
 
     this.settingsContext = {
       renderer: this.renderer,
       postProcessing: this.postProcessing,
-      audioSystem: this.audioSystem
+      audioSystem: this.audioSystem,
+      sceneManager: this.sceneManager
     };
 
     this.paused = false;
