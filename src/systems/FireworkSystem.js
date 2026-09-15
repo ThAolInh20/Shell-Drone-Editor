@@ -1223,16 +1223,25 @@ export class FireworkSystem {
               -1.2,
               0
             );
+        const smokeCfg = FIREWORK_CONFIG.SMOKE;
+        const trailLife = (
+          smokeCfg.trailLifeMin +
+          Math.random() * (smokeCfg.trailLifeMax - smokeCfg.trailLifeMin)
+        ) * trailIntensity;
+
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
           ascVel,
           {
-            life: (1.6 + Math.random() * 0.8) * trailIntensity,
-            scale: (5.2 + Math.random() * 2.5) * (0.6 + 0.4 * trailIntensity),
-            growth: 3.4,
-            drag: 1.8,
-            buoyancy: 0.35,
-            opacity: 0.22 * trailIntensity,
+            life: trailLife,
+            scale: (
+              smokeCfg.trailBaseScale * 0.8 +
+              Math.random() * 2.5
+            ) * (0.6 + 0.4 * trailIntensity),
+            growth: smokeCfg.trailGrowth,
+            drag: smokeCfg.trailDrag,
+            buoyancy: smokeCfg.trailBuoyancy,
+            opacity: smokeCfg.trailOpacity * trailIntensity,
             color: item.color.clone()
           }
         );
@@ -1473,13 +1482,19 @@ export class FireworkSystem {
           const particleColor = p.baseColor.clone();
           const smokeVel = p.velocity.clone().multiplyScalar(0.12);
           const densityMult = spawnSmoke ? 1.4 : 1.0;
+          const smokeCfg = FIREWORK_CONFIG.SMOKE;
+          const starSmokeBaseLife = smokeLife || (
+            (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
+          );
           const smokeOptions = {
-            life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
+            life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
             scale: (3.2 + Math.random() * 2.2) * densityMult,
             growth: 3.2,
             drag: 2.5,
-            buoyancy: 0.45,
-            opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
+            buoyancy: smokeCfg.trailBuoyancy,
+            opacity: (
+              smokeOpacity || 0.15
+            ) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
             color: particleColor
           };
 

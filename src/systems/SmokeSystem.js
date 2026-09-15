@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { renderingConfig } from '../config/rendering.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 const QUALITY_CAPACITIES = {
   off: 0,
@@ -288,30 +289,36 @@ export class SmokeSystem {
   }
 
   spawnPuff(origin, velocity, options = {}) {
-    if (this.quality === 'off' || this.maxPuffs === 0) return;
-
-    if (this.puffs.length >= this.maxPuffs) {
-      this.puffs.shift();
+    if (
+      this.quality === 'off' ||
+      this.maxPuffs === 0 ||
+      this.puffs.length >= this.maxPuffs
+    ) {
+      return;
     }
+
+    const cfg = FIREWORK_CONFIG.SMOKE;
+    const defaultLife = cfg.trailLifeMin + Math.random() * (cfg.trailLifeMax - cfg.trailLifeMin);
 
     this.puffs.push({
       position: origin.clone(),
       velocity: velocity.clone(),
       age: 0,
-      life: options.life ?? 2.5,
-      growth: options.growth ?? 4.8,
-      drag: options.drag ?? 2.4,
-      buoyancy: options.buoyancy ?? 0.45,
+      life: options.life ?? defaultLife,
+      growth: options.growth ?? cfg.trailGrowth,
+      drag: options.drag ?? cfg.trailDrag,
+      buoyancy: options.buoyancy ?? cfg.trailBuoyancy,
       seed: options.seed ?? Math.random(),
       color: options.color ? options.color.clone() : new THREE.Color(0x8892a3),
-      baseScale: (options.scale ?? 8) * this.density,
-      baseOpacity: (options.opacity ?? 0.24) * this.density
+      baseScale: (options.scale ?? cfg.trailBaseScale) * this.density,
+      baseOpacity: (options.opacity ?? cfg.trailOpacity) * this.density
     });
   }
 
   // Trail Emitter: Sinh vet khoi manh cho rocket phong len
   onLaunch(detail = {}) {
     if (this.quality === 'off') return;
+    const cfg = FIREWORK_CONFIG.SMOKE;
     const launchPos = new THREE.Vector3(
       detail.position?.x ?? 0,
       (detail.position?.y ?? -50) + 2,
@@ -335,22 +342,23 @@ export class SmokeSystem {
         launchPos.clone().add(offset),
         drift,
         {
-          life: 1.2 + Math.random() * 0.8,
-          scale: 6.5 + Math.random() * 3.0,
-          growth: 4.2,
-          drag: 1.6,
-          buoyancy: 0.35,
-          opacity: 0.22 + Math.random() * 0.1,
+          life: cfg.trailLifeMin + Math.random() * (cfg.trailLifeMax - cfg.trailLifeMin),
+          scale: cfg.trailBaseScale + Math.random() * 3.0,
+          growth: cfg.trailGrowth,
+          drag: cfg.trailDrag,
+          buoyancy: cfg.trailBuoyancy,
+          opacity: cfg.trailOpacity + Math.random() * 0.1,
           color: new THREE.Color(0x6a7384)
         }
       );
     }
   }
 
-  // Burst Cloud Emitter: Mo phong the tich dam khoi phao hoa (Sub-cluster Spherical Volume)
+  // Burst Cloud Emitter: Mo phong the tich dam khoi phao hoa qua cau
   onBurst(detail = {}) {
     if (this.quality === 'off') return;
 
+    const cfg = FIREWORK_CONFIG.SMOKE;
     const burstPos = new THREE.Vector3(
       detail.position?.x ?? 0,
       detail.position?.y ?? 160,
@@ -404,17 +412,21 @@ export class SmokeSystem {
           )
         );
 
+        const burstLife = cfg.burstLifeMin + Math.random() * (cfg.burstLifeMax - cfg.burstLifeMin);
+        const burstDrag = cfg.burstDragMin + Math.random() * (cfg.burstDragMax - cfg.burstDragMin);
+        const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin);
+
         this.spawnPuff(
           clusterCenter.clone().add(puffOffset),
           puffVelocity,
           {
-            life: 3.2 + Math.random() * 2.8,
-            scale: 8.5 + Math.random() * 6.5,
-            growth: 5.2 + Math.random() * 3.0,
-            drag: 2.8 + Math.random() * 0.8,
-            buoyancy: 0.55 + Math.random() * 0.35,
+            life: burstLife,
+            scale: cfg.burstBaseScale + Math.random() * 6.5,
+            growth: cfg.burstGrowth + Math.random() * 3.0,
+            drag: burstDrag,
+            buoyancy: burstBuoyancy,
             seed: (clusterSeed + i * 0.17) % 1.0,
-            opacity: 0.26 + Math.random() * 0.14,
+            opacity: cfg.burstOpacity + Math.random() * 0.14,
             color: smokeColor
           }
         );

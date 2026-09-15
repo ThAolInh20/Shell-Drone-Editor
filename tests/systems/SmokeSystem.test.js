@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { SmokeSystem } from '../../src/systems/SmokeSystem.js';
 import { globalEventBus } from '../../src/core/EventBus.js';
+import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
 
 describe('SmokeSystem', () => {
   let mockScene;
@@ -47,6 +48,8 @@ describe('SmokeSystem', () => {
     expect(firstPuff.drag).toBeGreaterThan(2.0);
     expect(firstPuff.seed).toBeDefined();
     expect(firstPuff.buoyancy).toBeGreaterThan(0);
+    expect(firstPuff.life).toBeGreaterThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMin);
+    expect(firstPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMax);
   });
 
   it('should spawn trail smoke onLaunch', () => {
@@ -62,6 +65,8 @@ describe('SmokeSystem', () => {
     expect(trailPuff.position.x).toBeGreaterThanOrEqual(8);
     expect(trailPuff.position.x).toBeLessThanOrEqual(12);
     expect(trailPuff.drag).toBeDefined();
+    expect(trailPuff.life).toBeGreaterThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMin);
+    expect(trailPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMax);
   });
 
   it('should apply exponential drag and wind lerp on update', () => {
