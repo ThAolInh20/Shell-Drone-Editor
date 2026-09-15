@@ -1216,7 +1216,13 @@ export class FireworkSystem {
       }
 
       if (this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
-        const ascVel = item.velocity ? item.velocity.clone().multiplyScalar(-0.15) : new THREE.Vector3(0, -1.2, 0);
+        const ascVel = item.velocity
+          ? item.velocity.clone().multiplyScalar(-0.15)
+          : new THREE.Vector3(
+              0,
+              -1.2,
+              0
+            );
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
           ascVel,
@@ -1224,6 +1230,8 @@ export class FireworkSystem {
             life: (1.6 + Math.random() * 0.8) * trailIntensity,
             scale: (5.2 + Math.random() * 2.5) * (0.6 + 0.4 * trailIntensity),
             growth: 3.4,
+            drag: 1.8,
+            buoyancy: 0.35,
             opacity: 0.22 * trailIntensity,
             color: item.color.clone()
           }
@@ -1468,7 +1476,9 @@ export class FireworkSystem {
           const smokeOptions = {
             life: (smokeLife || 2.5) * (0.6 + 0.4 * Math.random()),
             scale: (3.2 + Math.random() * 2.2) * densityMult,
-            growth: 2.8,
+            growth: 3.2,
+            drag: 2.5,
+            buoyancy: 0.45,
             opacity: (smokeOpacity || 0.15) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
             color: particleColor
           };
