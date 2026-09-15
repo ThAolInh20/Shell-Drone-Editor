@@ -22,7 +22,7 @@ export class SmokeSystem {
     this.eventSubscriptions = [];
     this.activePuffCount = 0;
 
-    // Hướng gió mặc định (thổi ngang X và đẩy z)
+    // Huong gio mac dinh (thoi ngang X va day Z)
     this.baseWind = new THREE.Vector3(
       5.5,
       0.8,
@@ -35,6 +35,7 @@ export class SmokeSystem {
     this.colorsArray = new Float32Array(QUALITY_CAPACITIES.high * 3);
     this.sizesArray = new Float32Array(QUALITY_CAPACITIES.high);
     this.opacitiesArray = new Float32Array(QUALITY_CAPACITIES.high);
+    this.seedsArray = new Float32Array(QUALITY_CAPACITIES.high);
 
     this.smokeGeometry = new THREE.BufferGeometry();
     this.smokeGeometry.setAttribute(
@@ -65,6 +66,19 @@ export class SmokeSystem {
         1
       )
     );
+    this.smokeGeometry.setAttribute(
+      'aSeed',
+      new THREE.BufferAttribute(
+        this.seedsArray,
+        1
+      )
+    );
+
+    this.smokeUniforms = {
+      uTime: {
+        value: 0
+      }
+    };
 
     this.smokeMaterial = new THREE.PointsMaterial({
       map: this.smokeTexture,
@@ -75,12 +89,17 @@ export class SmokeSystem {
       vertexColors: true
     });
 
-    // Custom GLSL shader with per-point size, opacity, and atmospheric haze
+    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and seed-based rotation/noise
     this.smokeMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = this.smokeUniforms.uTime;
+
       shader.vertexShader = `
+        uniform float uTime;
         attribute float aSize;
         attribute float aOpacity;
+        attribute float aSeed;
         varying float vOpacity;
+        varying float vSeed;
       ` + shader.vertexShader.replace(
         '#include <common>',
         `
@@ -89,14 +108,34 @@ export class SmokeSystem {
       ).replace(
         'gl_PointSize = size;',
         `
-        gl_PointSize = aSize;
+        float sizeNoise = sin(uTime * 1.6 + aSeed * 19.37) * 0.12;
+        gl_PointSize = aSize * (1.0 + sizeNoise);
         vOpacity = aOpacity;
+        vSeed = aSeed;
         `
       );
 
       shader.fragmentShader = `
+        uniform float uTime;
         varying float vOpacity;
+        varying float vSeed;
       ` + shader.fragmentShader.replace(
+        '#include <map_particle_fragment>',
+        `
+        #ifdef USE_MAP
+          float angle = vSeed * 6.2831853 + uTime * (0.12 + 0.08 * fract(vSeed * 5.71));
+          vec2 centered = gl_PointCoord - vec2(0.5);
+          float s = sin(angle);
+          float c = cos(angle);
+          vec2 rotatedCoord = vec2(
+            centered.x * c - centered.y * s,
+            centered.x * s + centered.y * c
+          ) + vec2(0.5);
+          vec4 mapTexel = texture2D( map, rotatedCoord );
+          diffuseColor *= mapTexel;
+        #endif
+        `
+      ).replace(
         'vec4 diffuseColor = vec4( diffuse, opacity );',
         `
         vec4 diffuseColor = vec4( diffuse, opacity * vOpacity );
@@ -155,11 +194,17 @@ export class SmokeSystem {
   }
 
   setDensity(densityVal) {
-    this.density = Math.max(0.1, densityVal);
+    this.density = Math.max(
+      0.1,
+      densityVal
+    );
   }
 
   setWindSpeed(speedVal) {
-    this.windSpeed = Math.max(0, speedVal);
+    this.windSpeed = Math.max(
+      0,
+      speedVal
+    );
     this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
   }
 
@@ -181,7 +226,10 @@ export class SmokeSystem {
   }
 
   createSmokeTexture() {
-    const size = 96;
+    if (typeof document === 'undefined') {
+      return null;
+    }
+    const size = 128;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -190,22 +238,30 @@ export class SmokeSystem {
     const gradient = ctx.createRadialGradient(
       size * 0.5,
       size * 0.5,
-      size * 0.1,
+      size * 0.04,
       size * 0.5,
       size * 0.5,
       size * 0.5
     );
     gradient.addColorStop(
       0,
-      'rgba(185, 194, 210, 0.92)'
+      'rgba(195, 204, 218, 0.95)'
     );
     gradient.addColorStop(
-      0.38,
-      'rgba(126, 136, 154, 0.62)'
+      0.2,
+      'rgba(160, 170, 188, 0.72)'
+    );
+    gradient.addColorStop(
+      0.45,
+      'rgba(115, 126, 146, 0.42)'
+    );
+    gradient.addColorStop(
+      0.72,
+      'rgba(75, 84, 102, 0.14)'
     );
     gradient.addColorStop(
       1,
-      'rgba(70, 78, 96, 0.0)'
+      'rgba(50, 58, 74, 0.0)'
     );
 
     ctx.fillStyle = gradient;
@@ -224,7 +280,11 @@ export class SmokeSystem {
   // Fast direct particle injection method (bypasses EventBus for high performance)
   addSmokePoint(origin, velocity, options = {}) {
     if (this.quality === 'off' || this.maxPuffs === 0) return;
-    this.spawnPuff(origin, velocity, options);
+    this.spawnPuff(
+      origin,
+      velocity,
+      options
+    );
   }
 
   spawnPuff(origin, velocity, options = {}) {
@@ -238,14 +298,18 @@ export class SmokeSystem {
       position: origin.clone(),
       velocity: velocity.clone(),
       age: 0,
-      life: options.life ?? 2.2,
-      growth: options.growth ?? 4.4,
-      color: options.color ?? new THREE.Color(0x8892a3),
+      life: options.life ?? 2.5,
+      growth: options.growth ?? 4.8,
+      drag: options.drag ?? 2.4,
+      buoyancy: options.buoyancy ?? 0.45,
+      seed: options.seed ?? Math.random(),
+      color: options.color ? options.color.clone() : new THREE.Color(0x8892a3),
       baseScale: (options.scale ?? 8) * this.density,
       baseOpacity: (options.opacity ?? 0.24) * this.density
     });
   }
 
+  // Trail Emitter: Sinh vet khoi manh cho rocket phong len
   onLaunch(detail = {}) {
     if (this.quality === 'off') return;
     const launchPos = new THREE.Vector3(
@@ -254,33 +318,36 @@ export class SmokeSystem {
       detail.position?.z ?? 0
     );
 
-    const count = this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4);
+    const count = this.quality === 'high' ? 8 : (this.quality === 'low' ? 3 : 5);
 
     for (let i = 0; i < count; i++) {
       const drift = new THREE.Vector3(
-        (Math.random() - 0.5) * 1.4,
-        1.8 + Math.random() * 1.2,
-        (Math.random() - 0.5) * 1.4
+        (Math.random() - 0.5) * 1.2,
+        1.5 + Math.random() * 1.0,
+        (Math.random() - 0.5) * 1.2
       );
       const offset = new THREE.Vector3(
-        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 1.8,
         Math.random() * 1.2,
-        (Math.random() - 0.5) * 2
+        (Math.random() - 0.5) * 1.8
       );
       this.spawnPuff(
         launchPos.clone().add(offset),
         drift,
         {
-          life: 1.1 + Math.random() * 0.85,
-          scale: 7.2 + Math.random() * 3.4,
-          growth: 5.1,
-          opacity: 0.24 + Math.random() * 0.12,
-          color: new THREE.Color(0x666f7f)
+          life: 1.2 + Math.random() * 0.8,
+          scale: 6.5 + Math.random() * 3.0,
+          growth: 4.2,
+          drag: 1.6,
+          buoyancy: 0.35,
+          opacity: 0.22 + Math.random() * 0.1,
+          color: new THREE.Color(0x6a7384)
         }
       );
     }
   }
 
+  // Burst Cloud Emitter: Mo phong the tich dam khoi phao hoa (Sub-cluster Spherical Volume)
   onBurst(detail = {}) {
     if (this.quality === 'off') return;
 
@@ -291,44 +358,67 @@ export class SmokeSystem {
     );
 
     const burstColor = new THREE.Color(detail.colorHex ?? 0xffffff);
-    const smokeColor = new THREE.Color(0x646d7d).lerp(
+    const smokeColor = new THREE.Color(0x626b7c).lerp(
       burstColor,
-      0.15
+      0.18
     );
     const intensity = THREE.MathUtils.clamp(
-      detail.intensity ?? 0.45,
+      detail.intensity ?? 0.5,
       0.1,
-      1
+      1.0
     );
 
-    const baseCount = this.quality === 'high' ? 12 : (this.quality === 'low' ? 3 : 6);
-    const count = Math.round(baseCount + intensity * baseCount);
+    // Xac dinh so cum con (micro-clusters) va so hat moi cum
+    const clusterCount = this.quality === 'high' ? 5 : (this.quality === 'low' ? 2 : 3);
+    const puffsPerCluster = Math.round((this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4)) * (0.8 + 0.4 * intensity));
+    const burstSpreadRadius = 4.0 + intensity * 6.0;
 
-    for (let i = 0; i < count; i++) {
-      const azimuth = Math.random() * Math.PI * 2;
-      const radius = 1.8 + Math.random() * 7;
-      const offset = new THREE.Vector3(
-        Math.cos(azimuth) * radius,
-        (Math.random() - 0.3) * 2.4,
-        Math.sin(azimuth) * radius
-      );
-      const velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 2.1,
-        1.1 + Math.random() * 2.2,
-        (Math.random() - 0.5) * 2.1
+    for (let c = 0; c < clusterCount; c++) {
+      // Tam cua tung cum con nam lech trong khong gian the tich hinh cau
+      const clusterAzimuth = Math.random() * Math.PI * 2;
+      const clusterElevation = (Math.random() - 0.5) * Math.PI;
+      const clusterDist = (0.2 + 0.8 * Math.random()) * burstSpreadRadius;
+
+      const clusterOffset = new THREE.Vector3(
+        Math.cos(clusterElevation) * Math.cos(clusterAzimuth) * clusterDist,
+        Math.sin(clusterElevation) * clusterDist * 0.7,
+        Math.cos(clusterElevation) * Math.sin(clusterAzimuth) * clusterDist
       );
 
-      this.spawnPuff(
-        burstPos.clone().add(offset),
-        velocity,
-        {
-          life: 3 + Math.random() * 3.2,
-          scale: 9 + Math.random() * 7.2,
-          growth: 5.4 + Math.random() * 3.8,
-          opacity: 0.28 + Math.random() * 0.2,
-          color: smokeColor
-        }
-      );
+      const clusterCenter = burstPos.clone().add(clusterOffset);
+      const clusterSeed = Math.random();
+
+      for (let i = 0; i < puffsPerCluster; i++) {
+        const puffOffset = new THREE.Vector3(
+          (Math.random() - 0.5) * 3.2,
+          (Math.random() - 0.5) * 2.6,
+          (Math.random() - 0.5) * 3.2
+        );
+
+        // Van toc bung ra tu tam cum voi luc can cao
+        const puffVelocity = clusterOffset.clone().normalize().multiplyScalar(2.0 + Math.random() * 3.5).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 1.5,
+            0.6 + Math.random() * 1.8,
+            (Math.random() - 0.5) * 1.5
+          )
+        );
+
+        this.spawnPuff(
+          clusterCenter.clone().add(puffOffset),
+          puffVelocity,
+          {
+            life: 3.2 + Math.random() * 2.8,
+            scale: 8.5 + Math.random() * 6.5,
+            growth: 5.2 + Math.random() * 3.0,
+            drag: 2.8 + Math.random() * 0.8,
+            buoyancy: 0.55 + Math.random() * 0.35,
+            seed: (clusterSeed + i * 0.17) % 1.0,
+            opacity: 0.26 + Math.random() * 0.14,
+            color: smokeColor
+          }
+        );
+      }
     }
   }
 
@@ -341,26 +431,31 @@ export class SmokeSystem {
     }
 
     const elapsed = performance.now() / 1000;
+    this.smokeUniforms.uTime.value = elapsed;
     const alive = [];
 
-    // Update puff kinematics
+    // Cap nhat dong luc hoc hat (Kinematics with exponential drag, buoyancy & curl noise)
     for (let i = 0; i < this.puffs.length; i++) {
       const puff = this.puffs[i];
       puff.age += deltaTime;
 
       if (puff.age < puff.life) {
-        // Particles lerp towards wind speed
+        // Luc can khong khi suy giam ham mu
+        const dragFactor = Math.exp(-puff.drag * deltaTime);
+        puff.velocity.multiplyScalar(dragFactor);
+
+        // Noi suy dan ve van toc gio toan cuc
         puff.velocity.lerp(
           this.currentWind,
-          deltaTime * 1.2
+          deltaTime * 0.85
         );
 
-        // Natural buoyancy and curl noise turbulence
-        const noiseX = Math.sin(elapsed * 3.0 + puff.age * 5.0) * 0.4;
-        const noiseZ = Math.cos(elapsed * 2.5 + puff.age * 4.0) * 0.4;
+        // Luc day noi va nhieu xoay dua tren seed
+        const noiseX = Math.sin(elapsed * 2.2 + puff.seed * 12.3) * 0.42;
+        const noiseZ = Math.cos(elapsed * 1.8 + puff.seed * 12.3) * 0.42;
         puff.velocity.x += noiseX * deltaTime;
         puff.velocity.z += noiseZ * deltaTime;
-        puff.velocity.y += 0.45 * deltaTime;
+        puff.velocity.y += puff.buoyancy * deltaTime;
 
         puff.position.addScaledVector(
           puff.velocity,
@@ -373,7 +468,7 @@ export class SmokeSystem {
     this.puffs = alive;
     this.activePuffCount = this.puffs.length;
 
-    // Update geometry buffers
+    // Cap nhat Float32Array buffers
     const activeCount = this.puffs.length;
     for (let i = 0; i < activeCount; i++) {
       const puff = this.puffs[i];
@@ -392,6 +487,7 @@ export class SmokeSystem {
 
       const fade = 1 - t;
       this.opacitiesArray[i] = fade * fade * puff.baseOpacity;
+      this.seedsArray[i] = puff.seed;
     }
 
     if (activeCount > 0) {
@@ -399,6 +495,7 @@ export class SmokeSystem {
       this.smokeGeometry.getAttribute('color').needsUpdate = true;
       this.smokeGeometry.getAttribute('aSize').needsUpdate = true;
       this.smokeGeometry.getAttribute('aOpacity').needsUpdate = true;
+      this.smokeGeometry.getAttribute('aSeed').needsUpdate = true;
       this.smokeGeometry.setDrawRange(
         0,
         activeCount
