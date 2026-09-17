@@ -1,4 +1,4 @@
----
+![alt text](image.png)---
 name: ds-commit
 description: Automatically inspects working tree git diff and untracked files, analyzes changes, stages relevant files, and creates a git commit with a clear, specific, and easily understandable commit message following Conventional Commits.
 ---

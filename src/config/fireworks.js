@@ -181,5 +181,31 @@ export const FIREWORK_CONFIG = {
     sputterDurationMax: 0.075,
     // Bập bùng nhấp nháy trước khi tắt hẳn ở giai đoạn cuối
     endFlicker: true
+  },
+
+  // Cấu hình tập trung cho hệ thống khói (Smoke Simulation)
+  SMOKE: {
+    // Thời gian sống cơ bản của khói vệt phóng rocket (giây: 4.0 - 5.0s)
+    trailLifeMin: 4.0,
+    trailLifeMax: 10.0,
+    // Thời gian sống của đám khói nổ quả cầu pháo hoa (giây: 10.0 - 12.0s)
+    burstLifeMin: 15.0,
+    burstLifeMax: 20.0,
+    // Hệ số cản không khí khí động học (exponential drag)
+    trailDrag: 1.6,
+    burstDragMin: 2.8,
+    burstDragMax: 3.6,
+    // Lực đẩy nổi (buoyancy)
+    trailBuoyancy: 0.35,
+    burstBuoyancyMin: 0.55,
+    burstBuoyancyMax: 0.9,
+    // Kích thước cơ bản và hệ số phồng to (growth)
+    trailBaseScale: 6.5,
+    trailGrowth: 4.2,
+    burstBaseScale: 8.5,
+    burstGrowth: 5.2,
+    // Độ mờ quang học cơ bản (base opacity)
+    trailOpacity: 0.22,
+    burstOpacity: 0.26
   }
 };

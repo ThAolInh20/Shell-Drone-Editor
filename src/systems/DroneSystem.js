@@ -4,6 +4,7 @@ import { InstancedDroneMesh } from '../render/InstancedDroneMesh.js';
 import { ArrivalColorSystem } from '../effects/arrival/ArrivalColorSystem.js';
 import { TransitionColorSystem } from '../effects/transition/TransitionColorSystem.js';
 import { DRONE_ZONE_CONFIG } from '../config/droneZone.js';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 export class DroneSystem {
     constructor(sceneManager) {
@@ -11,6 +12,7 @@ export class DroneSystem {
         this.drones = [];
         this.maxDrones = 10000;
         this.droneMesh = new InstancedDroneMesh(this.maxDrones);
+        this.droneMesh.mesh.layers.enable(LAYER_REFLECTION);
         
         // Create Performance Zone (Local Space)
         this.performanceZone = new THREE.Group();

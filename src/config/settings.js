@@ -115,6 +115,47 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'lake_mirror_reflection',
+    label: 'Lake Mirror Reflection (Trail)',
+    type: 'checkbox',
+    category: 'graphics',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.waterSurface
+      ) {
+        context.sceneManager.waterSurface.setMirrorReflection(value);
+      }
+    }
+  },
+  {
+    key: 'lake_wave_distortion',
+    label: 'Lake Wave Distortion',
+    type: 'slider',
+    category: 'graphics',
+    min: 0.0,
+    max: 0.08,
+    step: 0.005,
+    default: 0.028,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.waterSurface
+      ) {
+        context.sceneManager.waterSurface.setWaveDistortion(value);
+      }
+    }
+  },
+  {
     key: 'smoke_quality',
     label: 'Smoke Quality',
     type: 'select',

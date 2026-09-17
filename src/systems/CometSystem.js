@@ -3,6 +3,7 @@ import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { CometEntity } from '../entities/CometEntity.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -91,6 +92,7 @@ export class CometSystem {
         preset: finalPreset
       });
 
+      comet.mesh.layers.enable(LAYER_REFLECTION);
       this.scene.add(comet.mesh);
       this.activeComets.push(comet);
     }

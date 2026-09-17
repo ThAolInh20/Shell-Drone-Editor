@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
@@ -98,6 +99,7 @@ export class TrailSystem {
     };
     this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
     this.trailPoints.frustumCulled = false;
+    this.trailPoints.layers.enable(LAYER_REFLECTION);
     this.scene.add(this.trailPoints);
 
     this.eventSubscriptions.push(

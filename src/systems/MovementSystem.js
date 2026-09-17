@@ -59,6 +59,7 @@ export class MovementSystem {
     this.input.controls.moveRight(-this.velocity.x * deltaTime);
     this.input.controls.moveForward(-this.velocity.z * deltaTime);
     this.camera.position.y += this.velocity.y * deltaTime;
+    this.camera.position.y = Math.max(2.0, this.camera.position.y);
 
     // this.constrainToLaunchViewZone();
   }
