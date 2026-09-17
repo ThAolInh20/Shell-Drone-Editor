@@ -15,7 +15,6 @@ export class SkyDome {
 
     this._createDome();
     this._createStarfield();
-    this._createMoon();
 
     this.setLayer(LAYER_REFLECTION);
   }
@@ -183,83 +182,6 @@ export class SkyDome {
 
     this.stars = new THREE.Points(starGeo, starMaterial);
     this.group.add(this.stars);
-  }
-
-  _createMoon() {
-    this.moonGroup = new THREE.Group();
-    // Shifted further to the right in the background sky
-    this.moonGroup.position.set(520, 220, -750);
-
-    const quadSize = 300;
-    const moonGeo = new THREE.PlaneGeometry(quadSize, quadSize);
-
-    const moonVertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-
-    const moonFragmentShader = `
-      varying vec2 vUv;
-
-      void main() {
-        vec2 center = vec2(0.5);
-        float dist = length(vUv - center);
-
-        if (dist > 0.5) {
-          discard;
-        }
-
-        float moonRadius = 0.22;
-
-        if (dist <= moonRadius) {
-          // Inside Moon Disc
-          vec2 p = (vUv - center) / moonRadius;
-          float n1 = sin(p.x * 14.0 + 1.2) * cos(p.y * 12.0 + 0.8) * 0.04;
-          float n2 = sin(p.x * 28.0) * sin(p.y * 26.0) * 0.02;
-          float detail = 0.96 + n1 + n2;
-
-          // Soft limb darkening towards disc edge
-          float limb = 1.0 - pow(dist / moonRadius, 3.5) * 0.12;
-          vec3 coreColor = vec3(0.95, 0.94, 0.90) * detail * limb;
-
-          // Controlled subtle emissive level
-          gl_FragColor = vec4(coreColor * 0.95, 1.0);
-        } else {
-          // Atmospheric halo glow outside moon disc
-          float haloFactor = (0.5 - dist) / (0.5 - moonRadius);
-          float glow = pow(clamp(haloFactor, 0.0, 1.0), 2.8) * 0.22;
-          vec3 glowColor = vec3(0.80, 0.88, 1.0);
-
-          gl_FragColor = vec4(glowColor, glow);
-        }
-      }
-    `;
-
-    const moonMat = new THREE.ShaderMaterial({
-      vertexShader: moonVertexShader,
-      fragmentShader: moonFragmentShader,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      fog: false
-    });
-
-    this.moonMesh = new THREE.Mesh(moonGeo, moonMat);
-    // Face the camera default origin
-    this.moonMesh.lookAt(0, 0, 0);
-    this.moonGroup.add(this.moonMesh);
-
-    // Subtle moonlight directed towards the scene
-    this.moonLight = new THREE.DirectionalLight(0xd5e2ff, 0.18);
-    this.moonLight.position.copy(this.moonGroup.position);
-    this.moonLight.target.position.set(0, 0, 0);
-
-    this.group.add(this.moonGroup);
-    this.group.add(this.moonLight);
-    this.group.add(this.moonLight.target);
   }
 
   setLayer(layerIndex) {

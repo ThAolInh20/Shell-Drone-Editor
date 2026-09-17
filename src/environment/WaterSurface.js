@@ -35,12 +35,6 @@ export class WaterSurface {
       uFresnelColor: {
         value: new THREE.Color(0x07152e)
       },
-      uMoonDirection: {
-        value: new THREE.Vector3(520, 220, -750).normalize()
-      },
-      uMoonColor: {
-        value: new THREE.Color(0xd5e2ff)
-      },
       uDistortionStrength: {
         value: 0.028
       },
@@ -157,8 +151,6 @@ export class WaterSurface {
       uniform vec2 uResolution;
       uniform vec3 uWaterColor;
       uniform vec3 uFresnelColor;
-      uniform vec3 uMoonDirection;
-      uniform vec3 uMoonColor;
       uniform float uDistortionStrength;
       uniform float uWaveScale;
       uniform float uWaveSpeed;
@@ -203,12 +195,6 @@ export class WaterSurface {
         float R0 = 0.05;
         float fresnel = R0 + (1.0 - R0) * pow(1.0 - NdotV, 5.0);
 
-        // Moonlight Specular Highlight
-        vec3 halfVec = normalize(uMoonDirection + viewDir);
-        float NdotH = max(dot(normal, halfVec), 0.0);
-        float specular = pow(NdotH, 90.0) * 0.75;
-        vec3 specColor = uMoonColor * specular;
-
         // Base water body color
         vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.35);
 
@@ -217,7 +203,6 @@ export class WaterSurface {
         if (uMirrorEnabled > 0.5) {
           finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.45, 0.1, 1.0));
         }
-        finalColor += specColor;
 
         gl_FragColor = vec4(finalColor, 1.0);
       }

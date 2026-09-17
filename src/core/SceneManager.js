@@ -24,7 +24,7 @@ export class SceneManager {
       this.baseFogDensity
     );
 
-    // Initialize 3D Sky Dome with twinkling starfield and moon
+    // Initialize 3D Sky Dome with twinkling starfield
     this.skyDome = new SkyDome({
       radius: 1400,
       topColor: 0x02020a,
