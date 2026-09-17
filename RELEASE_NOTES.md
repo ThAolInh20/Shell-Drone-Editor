@@ -1,11 +1,21 @@
-# Release Notes - v2.3.1
+# Release Notes - v2.3.2
 
 ## Features
-- Add Strobe (Dying Embers) preset that simulates slowly-flickering falling ashes.
-- Add Chrysanthemum Nested (1/5 Burst) preset that explodes into secondary child bursts.
-- Add Comet Cluster (Thick Trail) preset featuring thick glittering trails.
-- Add graphics quality settings panel to adjust performance and particle counts.
+- Add realistic night sky dome, mountain backdrop, and floating launch barge environment.
+- Add dynamic water surface with real-time mirror reflections of fireworks and drones.
+- Add realistic volumetric smoke effects illuminated dynamically by firework bursts.
+- Add organic spiral ascent trajectories and glowing particle envelopes for rising shells.
+- Add directional sweep launching with customizable angles and random tilt variations.
+- Add sparkling comet trails and launch trail customization for shells.
+- Add vertical flight controls using Shift + W/S keys for camera navigation.
+- Add graphics and audio settings menu accessible via Escape key.
 
 ## Updates
-- Optimize default shell configurations.
-- Improve organic layout and height variations for comet bouquet launches.
+- Enhance Chrysanthemum Nested firework preset with expanded 10-12 secondary bursts.
+- Enhance multi-stage visual effects for comet shells.
+- Refine bouquet comet launch density and visual balance.
+- Add subtle lingering embers across all shell explosion types.
+- Increase maximum launch zone capacity.
+
+## Chores
+- Add automated unit tests for smoke simulation behavior.
