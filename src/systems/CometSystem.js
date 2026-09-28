@@ -187,7 +187,7 @@ export class CometSystem {
     const finished = [];
 
     for (const comet of this.activeComets) {
-      const isDead = comet.update(deltaTime);
+      let isDead = comet.update(deltaTime);
 
       const H_max = comet.initialVy ? (comet.initialVy * comet.initialVy) / 60 : 0;
       const currentHeight = comet.mesh.position.y - (comet.launchY ?? 0);
