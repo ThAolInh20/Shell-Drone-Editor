@@ -9,6 +9,7 @@ import { HotkeyManager } from '../core/HotkeyManager.js';
 import { BaseDirector } from '../core/BaseDirector.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
 import { SelectionSolver } from '../core/SelectionSolver.js';
+import { showToast } from '../utils/Toast.js';
 
 export class EditorDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -229,7 +230,8 @@ export class EditorDirector extends BaseDirector {
 
 
 
-  async saveDirectly() {
+  async saveDirectly(options = {}) {
+    const { silent = true, isAutoSave = false } = options;
     const data = this.state.exportFormat();
     const content = JSON.stringify(data, null, 2);
 
@@ -240,31 +242,71 @@ export class EditorDirector extends BaseDirector {
             this.state.currentFilePath,
             content
           );
-          await customAlert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
-        } catch (err) {
-          await customAlert("Lỗi khi lưu file trực tiếp: " + err.message);
-        }
-      } else {
-        // Save As
-        try {
-          const res = await fileStorage.saveFileDialog(
-            content,
-            `${this.state.name}.json`
-          );
-          if (res) {
-            this.state.currentFilePath = res.filePath;
-            this.state.name = res.filename.replace('.json', '');
-            document.getElementById('ui-name').value = this.state.name;
-            await customAlert(`Đã lưu kịch bản mới thành công: ${res.filename}`);
+          if (silent) {
+            showToast(
+              isAutoSave
+                ? `Đã tự động lưu: ${this.state.name}.json`
+                : `Đã lưu kịch bản động: ${this.state.name}.json`,
+              'success'
+            );
+          } else {
+            await customAlert(`Đã lưu kịch bản động trực tiếp thành công vào: ${this.state.name}.json`);
           }
         } catch (err) {
-          await customAlert("Lỗi khi lưu kịch bản mới: " + err.message);
+          if (silent) {
+            showToast('Lỗi khi lưu file: ' + err.message, 'error');
+          } else {
+            await customAlert("Lỗi khi lưu file trực tiếp: " + err.message);
+          }
+        }
+      } else {
+        // No file path set yet
+        if (isAutoSave) {
+          try {
+            await fileStorage.saveSequence(
+              `${this.state.name}.json`,
+              content
+            );
+            showToast(`Đã tự động lưu: ${this.state.name}.json`, 'info');
+          } catch (e) {
+            console.warn('Auto-save error:', e);
+          }
+        } else {
+          // Save As
+          try {
+            const res = await fileStorage.saveFileDialog(
+              content,
+              `${this.state.name}.json`
+            );
+            if (res) {
+              this.state.currentFilePath = res.filePath;
+              this.state.name = res.filename.replace('.json', '');
+              document.getElementById('ui-name').value = this.state.name;
+              if (silent) {
+                showToast(`Đã lưu kịch bản mới: ${res.filename}`, 'success');
+              } else {
+                await customAlert(`Đã lưu kịch bản mới thành công: ${res.filename}`);
+              }
+            }
+          } catch (err) {
+            if (silent) {
+              showToast('Lỗi khi lưu mới file: ' + err.message, 'error');
+            } else {
+              await customAlert("Lỗi khi lưu kịch bản mới: " + err.message);
+            }
+          }
         }
       }
       return;
     }
 
     // Fallback to browser download if not in Electron
+    if (silent) {
+      localStorage.setItem(`drone_editor:${this.state.name}`, content);
+      showToast(`Đã lưu vào bộ nhớ tạm: ${this.state.name}.json`, 'success');
+      return;
+    }
+
     const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -196,6 +196,7 @@ export class InputSystem {
     panel.appendChild(description);
 
     const categories = {
+      general: t('editor.settingsGeneral') || 'General & Editor',
       graphics: t('editor.settingsGraphics') || 'Graphics & Post-processing',
       audio: t('editor.settingsAudio') || 'Audio (Volumes)'
     };

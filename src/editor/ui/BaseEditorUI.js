@@ -33,6 +33,21 @@ export function setupBaseEditorUI(state, director, options = {}) {
     window.location.reload();
   });
 
+  // Bind Native IPC File Menu Actions
+  fileStorage.onMenuAction((action) => {
+    if (action === 'save') {
+      if (director && typeof director.saveDirectly === 'function') {
+        director.saveDirectly();
+      }
+    } else if (action === 'open') {
+      const btn = document.getElementById('btn-import');
+      if (btn) btn.click();
+    } else if (action === 'export-all' || action === 'export-selected') {
+      const btn = document.getElementById('btn-export');
+      if (btn) btn.click();
+    }
+  });
+
   // Make all sidebar panel-sections collapsible dropdowns
   makePanelsCollapsible(shouldCollapse);
 

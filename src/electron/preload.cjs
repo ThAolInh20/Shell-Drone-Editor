@@ -7,7 +7,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFileDialog: (content, defaultName) => ipcRenderer.invoke('save-file-dialog', { content, defaultName }),
   saveFileAbsolute: (filePath, content) => ipcRenderer.invoke('save-file-absolute', { filePath, content }),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
-  onChangeLanguage: (callback) => ipcRenderer.on('change-language', (event, lang) => callback(lang))
+  onChangeLanguage: (callback) => ipcRenderer.on('change-language', (event, lang) => callback(lang)),
+  onMenuAction: (callback) => ipcRenderer.on('menu-action', (event, action, data) => callback(action, data))
 });
 
 // Prevent mouse side buttons (back/forward) from triggering navigation in the browser

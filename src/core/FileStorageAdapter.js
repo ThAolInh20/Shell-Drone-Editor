@@ -172,8 +172,14 @@ export class FileStorageAdapter {
   }
 
   onChangeLanguage(callback) {
-    if (this.isElectron && window.electronAPI.onChangeLanguage) {
+    if (this.isElectron && window.electronAPI && window.electronAPI.onChangeLanguage) {
       window.electronAPI.onChangeLanguage(callback);
+    }
+  }
+
+  onMenuAction(callback) {
+    if (this.isElectron && window.electronAPI && window.electronAPI.onMenuAction) {
+      window.electronAPI.onMenuAction(callback);
     }
   }
 }

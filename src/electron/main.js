@@ -64,7 +64,50 @@ function createWindow() {
     {
       label: 'File',
       submenu: [
-        { role: 'quit', label: 'Quit' }
+        {
+          label: 'Open / Import...',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'open');
+            }
+          }
+        },
+        {
+          label: 'Save',
+          accelerator: 'CmdOrCtrl+S',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'save');
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          label: 'Export All Sequences...',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'export-all');
+            }
+          }
+        },
+        {
+          label: 'Export Selected Sequences...',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.send('menu-action', 'export-selected');
+            }
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+          role: 'quit',
+          label: 'Quit'
+        }
       ]
     },
     {

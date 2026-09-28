@@ -15,6 +15,7 @@ import { SelectionSolver } from '../core/SelectionSolver.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DroneFormationFactory } from '../factories/DroneFormationFactory.js';
+import { showToast } from '../utils/Toast.js';
 
 export class FormationDirector extends BaseDirector {
   constructor(sceneManager, cameraManager, renderer) {
@@ -394,7 +395,8 @@ export class FormationDirector extends BaseDirector {
     this.updateBezierGizmoVisibility();
   }
 
-  async saveDirectly() {
+  async saveDirectly(options = {}) {
+    const { silent = true, isAutoSave = false } = options;
     const drones = [];
     for (let i = 0; i < this.state.positions.length; i++) {
       const pos = this.state.positions[i];
@@ -445,30 +447,70 @@ export class FormationDirector extends BaseDirector {
             this.state.currentFilePath,
             content
           );
-          alert(t('editor.formationPanel.saveSuccessDirect', { filename: this.state.name }));
-        } catch (err) {
-          alert(t('editor.formationPanel.saveErrorDirect', { error: err.message }));
-        }
-      } else {
-        // Save As
-        try {
-          const res = await fileStorage.saveFileDialog(
-            content,
-            `${this.state.name}.json`
-          );
-          if (res) {
-            this.state.currentFilePath = res.filePath;
-            this.state.name = res.filename.replace('.json', '');
-            alert(t('editor.formationPanel.saveNewSuccess', { filename: res.filename }));
+          if (silent) {
+            showToast(
+              isAutoSave
+                ? `Đã tự động lưu: ${this.state.name}.json`
+                : `Đã lưu đội hình: ${this.state.name}.json`,
+              'success'
+            );
+          } else {
+            alert(t('editor.formationPanel.saveSuccessDirect', { filename: this.state.name }));
           }
         } catch (err) {
-          alert(t('editor.formationPanel.saveNewError', { error: err.message }));
+          if (silent) {
+            showToast('Lỗi khi lưu file: ' + err.message, 'error');
+          } else {
+            alert(t('editor.formationPanel.saveErrorDirect', { error: err.message }));
+          }
+        }
+      } else {
+        // No file path set yet
+        if (isAutoSave) {
+          try {
+            await fileStorage.saveSequence(
+              `${this.state.name}.json`,
+              content
+            );
+            showToast(`Đã tự động lưu: ${this.state.name}.json`, 'info');
+          } catch (e) {
+            console.warn('Auto-save error:', e);
+          }
+        } else {
+          // Save As
+          try {
+            const res = await fileStorage.saveFileDialog(
+              content,
+              `${this.state.name}.json`
+            );
+            if (res) {
+              this.state.currentFilePath = res.filePath;
+              this.state.name = res.filename.replace('.json', '');
+              if (silent) {
+                showToast(`Đã lưu đội hình mới: ${res.filename}`, 'success');
+              } else {
+                alert(t('editor.formationPanel.saveNewSuccess', { filename: res.filename }));
+              }
+            }
+          } catch (err) {
+            if (silent) {
+              showToast('Lỗi khi lưu mới file: ' + err.message, 'error');
+            } else {
+              alert(t('editor.formationPanel.saveNewError', { error: err.message }));
+            }
+          }
         }
       }
       return;
     }
 
     // Fallback to browser download if not in Electron
+    if (silent) {
+      localStorage.setItem(`drone_formation:${this.state.name}`, content);
+      showToast(`Đã lưu vào bộ nhớ tạm: ${this.state.name}.json`, 'success');
+      return;
+    }
+
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(content);
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);

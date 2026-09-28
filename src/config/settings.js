@@ -3,6 +3,25 @@ import { AUDIO_CONFIG } from './audio.js';
 
 export const SETTINGS_DEFINITION = [
   {
+    key: 'auto_save_enabled',
+    label: 'Auto-Save (Direct Save)',
+    type: 'checkbox',
+    category: 'general',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.timelineEditor &&
+        typeof context.timelineEditor.setAutoSave === 'function'
+      ) {
+        context.timelineEditor.setAutoSave(value);
+      }
+    }
+  },
+  {
     key: 'exposure',
     label: 'Exposure',
     type: 'slider',

@@ -98,6 +98,9 @@ const timelineEditor = new TimelineEditor(showDirector, hotkeyManager);
 // Expose to input system or global for triggering
 inputSystem.showDirector = showDirector;
 inputSystem.timelineEditor = timelineEditor;
+if (inputSystem.settingsContext) {
+  inputSystem.settingsContext.timelineEditor = timelineEditor;
+}
 
 renderer.instance.domElement.addEventListener('click', () => {
   audioSystem.resume();
@@ -164,4 +167,25 @@ animate();
 fileStorage.onChangeLanguage((lang) => {
   setLanguage(lang);
   window.location.reload();
+});
+
+// Bind Native IPC File Menu Actions
+fileStorage.onMenuAction((action) => {
+  if (action === 'save') {
+    if (timelineEditor) {
+      timelineEditor.saveDirectly();
+    }
+  } else if (action === 'open') {
+    if (timelineEditor) {
+      timelineEditor.openNativeFile();
+    }
+  } else if (action === 'export-all') {
+    if (timelineEditor) {
+      timelineEditor.exportSequence(false);
+    }
+  } else if (action === 'export-selected') {
+    if (timelineEditor) {
+      timelineEditor.exportSequence(true);
+    }
+  }
 });

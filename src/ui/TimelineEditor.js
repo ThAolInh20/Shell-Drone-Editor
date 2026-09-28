@@ -5,6 +5,7 @@ import { t } from '../config/lang/i18n.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
 import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
+import { showToast } from '../utils/Toast.js';
 
 
 export class TimelineEditor {
@@ -30,6 +31,8 @@ export class TimelineEditor {
     this.redoStack = [];
     this.selectedEvents = [];
     this.clipboardEvents = [];
+    this.autoSaveEnabled = localStorage.getItem('settings_auto_save_enabled') !== 'false';
+    this.autoSaveTimer = null;
 
     this.initDOM();
     this.renderTracks();
@@ -132,100 +135,6 @@ export class TimelineEditor {
     const addBtn = document.createElement('button');
     addBtn.textContent = t('editor.timelinePanel.addSequence');
     addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
-
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = t('editor.timelinePanel.saveBtn');
-    saveBtn.style.background = '#2e7d32';
-    saveBtn.style.color = 'white';
-    saveBtn.addEventListener('click', () => this.saveSequence());
-
-    const exportContainer = document.createElement('div');
-    exportContainer.style.position = 'relative';
-    exportContainer.style.display = 'inline-block';
-
-    const exportBtn = document.createElement('button');
-    exportBtn.textContent = t('editor.timelinePanel.exportBtn');
-    exportBtn.style.background = '#00897b';
-    exportBtn.style.color = 'white';
-    exportContainer.appendChild(exportBtn);
-
-    let exportDropdown = null;
-
-    const closeExportDropdown = () => {
-      if (exportDropdown) {
-        exportDropdown.remove();
-        exportDropdown = null;
-        document.removeEventListener('click', closeExportDropdown);
-      }
-    };
-
-    exportBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (exportDropdown) {
-        closeExportDropdown();
-        return;
-      }
-
-      exportDropdown = document.createElement('div');
-      exportDropdown.style.position = 'absolute';
-      exportDropdown.style.top = '100%';
-      exportDropdown.style.left = '0';
-      exportDropdown.style.background = '#1e1e1e';
-      exportDropdown.style.border = '1px solid #444';
-      exportDropdown.style.borderRadius = '4px';
-      exportDropdown.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
-      exportDropdown.style.zIndex = '2000';
-      exportDropdown.style.minWidth = '220px';
-      exportDropdown.style.display = 'flex';
-      exportDropdown.style.flexDirection = 'column';
-      exportDropdown.style.padding = '4px 0';
-      exportDropdown.style.marginTop = '4px';
-
-      // Item 1: Export all
-      const itemAll = document.createElement('div');
-      itemAll.textContent = t('editor.timelinePanel.exportAll') || 'Export all blocks';
-      itemAll.style.padding = '8px 12px';
-      itemAll.style.cursor = 'pointer';
-      itemAll.style.color = '#fff';
-      itemAll.style.fontSize = '12px';
-      itemAll.style.transition = 'background 0.2s';
-      itemAll.addEventListener('mouseover', () => itemAll.style.background = '#333');
-      itemAll.addEventListener('mouseout', () => itemAll.style.background = '');
-      itemAll.addEventListener('click', () => {
-        this.exportSequence(false);
-        closeExportDropdown();
-      });
-      exportDropdown.appendChild(itemAll);
-
-      // Item 2: Export selected
-      const hasSelection = this.selectedEvents && this.selectedEvents.length > 0;
-      const itemSelected = document.createElement('div');
-      itemSelected.textContent = (t('editor.timelinePanel.exportSelected') || 'Export selected blocks') + ` (${this.selectedEvents ? this.selectedEvents.length : 0})`;
-      itemSelected.style.padding = '8px 12px';
-      itemSelected.style.fontSize = '12px';
-      itemSelected.style.transition = 'background 0.2s';
-
-      if (hasSelection) {
-        itemSelected.style.cursor = 'pointer';
-        itemSelected.style.color = '#fff';
-        itemSelected.addEventListener('mouseover', () => itemSelected.style.background = '#333');
-        itemSelected.addEventListener('mouseout', () => itemSelected.style.background = '');
-        itemSelected.addEventListener('click', () => {
-          this.exportSequence(true);
-          closeExportDropdown();
-        });
-      } else {
-        itemSelected.style.cursor = 'not-allowed';
-        itemSelected.style.color = '#666';
-      }
-      exportDropdown.appendChild(itemSelected);
-
-      exportContainer.appendChild(exportDropdown);
-
-      setTimeout(() => {
-        document.addEventListener('click', closeExportDropdown);
-      }, 50);
-    });
 
     const importBtn = document.createElement('button');
     importBtn.textContent = t('editor.timelinePanel.importBtn');
@@ -332,12 +241,32 @@ export class TimelineEditor {
     addFileDropdownContainer.appendChild(addFileBtn);
     addFileDropdownContainer.appendChild(dropdownMenu);
 
+    this.fileIndicatorContainer = document.createElement('div');
+    this.fileIndicatorContainer.style.display = 'inline-flex';
+    this.fileIndicatorContainer.style.alignItems = 'center';
+    this.fileIndicatorContainer.style.gap = '8px';
+    this.fileIndicatorContainer.style.marginLeft = '10px';
+
     this.fileIndicator = document.createElement('span');
     this.fileIndicator.style.color = '#00ffcc';
     this.fileIndicator.style.fontSize = '12px';
     this.fileIndicator.style.fontFamily = 'monospace';
-    this.fileIndicator.style.marginLeft = '10px';
+
+    this.saveStatusBadge = document.createElement('span');
+    this.saveStatusBadge.style.display = 'inline-flex';
+    this.saveStatusBadge.style.alignItems = 'center';
+    this.saveStatusBadge.style.gap = '5px';
+    this.saveStatusBadge.style.fontSize = '11px';
+    this.saveStatusBadge.style.padding = '2px 8px';
+    this.saveStatusBadge.style.borderRadius = '10px';
+    this.saveStatusBadge.style.fontWeight = '500';
+    this.saveStatusBadge.style.transition = 'all 0.3s ease';
+
+    this.fileIndicatorContainer.appendChild(this.fileIndicator);
+    this.fileIndicatorContainer.appendChild(this.saveStatusBadge);
+
     this.updateFileIndicator();
+    this.setSaveStatus('saved');
 
     const groupBtn = document.createElement('button');
     groupBtn.textContent = t('editor.timelinePanel.groupBtn') || 'Group';
@@ -360,13 +289,11 @@ export class TimelineEditor {
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(addBtn);
+    toolbar.appendChild(importBtn);
     toolbar.appendChild(addFileDropdownContainer);
     toolbar.appendChild(groupBtn);
     toolbar.appendChild(ungroupBtn);
-    toolbar.appendChild(this.fileIndicator);
-    toolbar.appendChild(importBtn);
-    toolbar.appendChild(saveBtn);
-    toolbar.appendChild(exportContainer);
+    toolbar.appendChild(this.fileIndicatorContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
 
@@ -902,8 +829,46 @@ export class TimelineEditor {
 
   updateFileIndicator() {
     if (this.fileIndicator) {
-      this.fileIndicator.textContent = this.filename ? `Active: ${this.filename}` : 'Active: demoShow.json';
+      this.fileIndicator.textContent = this.filename
+        ? `Active: ${this.filename}`
+        : 'Active: demoShow.json';
     }
+  }
+
+  setSaveStatus(status) {
+    if (!this.saveStatusBadge) return;
+    this.currentSaveStatus = status;
+
+    let dotColor = '#4caf50';
+    let bgColor = 'rgba(76, 175, 80, 0.15)';
+    let borderColor = 'rgba(76, 175, 80, 0.4)';
+    let textColor = '#81c784';
+    let label = t('editor.statusSaved') || 'Saved';
+
+    if (status === 'saving') {
+      dotColor = '#ffb300';
+      bgColor = 'rgba(255, 179, 0, 0.15)';
+      borderColor = 'rgba(255, 179, 0, 0.4)';
+      textColor = '#ffe082';
+      label = t('editor.statusSaving') || 'Saving...';
+    } else if (status === 'unsaved') {
+      dotColor = '#ff7043';
+      bgColor = 'rgba(255, 112, 67, 0.15)';
+      borderColor = 'rgba(255, 112, 67, 0.4)';
+      textColor = '#ffab91';
+      label = t('editor.statusUnsaved') || 'Unsaved';
+    } else if (status === 'error') {
+      dotColor = '#e53935';
+      bgColor = 'rgba(229, 57, 53, 0.15)';
+      borderColor = 'rgba(229, 57, 53, 0.4)';
+      textColor = '#ef9a9a';
+      label = t('editor.statusError') || 'Save error';
+    }
+
+    this.saveStatusBadge.style.background = bgColor;
+    this.saveStatusBadge.style.border = `1px solid ${borderColor}`;
+    this.saveStatusBadge.style.color = textColor;
+    this.saveStatusBadge.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${dotColor};display:inline-block;"></span><span>${label}</span>`;
   }
 
   renderRuler() {
@@ -1601,6 +1566,7 @@ export class TimelineEditor {
         this.filename = filename;
         this.currentFilePath = filePath;
         this.updateFileIndicator();
+        this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
         alert(t('editor.timelinePanel.importSuccess', { filename }));
@@ -1611,8 +1577,32 @@ export class TimelineEditor {
     }
   }
 
+  setAutoSave(enabled) {
+    this.autoSaveEnabled = !!enabled;
+    if (!this.autoSaveEnabled && this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+    }
+  }
+
+  triggerAutoSave() {
+    if (!this.autoSaveEnabled) return;
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
+    }
+    this.autoSaveTimer = setTimeout(() => {
+      this.saveSequence({
+        silent: true,
+        isAutoSave: true
+      });
+    }, 2500);
+  }
+
   async saveDirectly() {
-    await this.saveSequence();
+    await this.saveSequence({
+      silent: true,
+      isAutoSave: false
+    });
   }
 
   importSequence(e) {
@@ -1633,6 +1623,7 @@ export class TimelineEditor {
         this.sequences = data;
         this.filename = file.name;
         this.updateFileIndicator();
+        this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
         alert("Import thành công!");
@@ -1654,7 +1645,10 @@ export class TimelineEditor {
     return cleanObj;
   }
 
-  async saveSequence() {
+  async saveSequence(options = {}) {
+    const { silent = false, isAutoSave = false } = options;
+    this.setSaveStatus('saving');
+
     // Cleanup temporary variables
     const cleanSeqs = this.sequences.filter(s => !s._deleted).map(s => {
       return this.cleanSequence(s);
@@ -1669,32 +1663,63 @@ export class TimelineEditor {
             this.currentFilePath,
             content
           );
-          alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
-        } catch (err) {
-          alert(t('editor.timelinePanel.saveError', { error: err.message }));
-        }
-      } else {
-        // Save As
-        try {
-          const res = await fileStorage.saveFileDialog(
-            content,
-            this.filename || 'demoShow.json'
-          );
-          if (res) {
-            this.currentFilePath = res.filePath;
-            this.filename = res.filename;
-            this.updateFileIndicator();
-            alert(`Đã lưu kịch bản mới thành công vào: ${res.filename}`);
+          this.setSaveStatus('saved');
+          if (!silent) {
+            alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename }));
           }
         } catch (err) {
-          alert('Lỗi khi lưu mới file: ' + err.message);
+          this.setSaveStatus('error');
+          if (silent) {
+            showToast(t('editor.timelinePanel.saveError', { error: err.message }) || ('Lỗi khi lưu file: ' + err.message), 'error');
+          } else {
+            alert(t('editor.timelinePanel.saveError', { error: err.message }));
+          }
+        }
+      } else {
+        // No currentFilePath set yet
+        if (isAutoSave) {
+          try {
+            await fileStorage.saveSequence(
+              this.filename || 'demoShow.json',
+              content
+            );
+            this.setSaveStatus('saved');
+          } catch (e) {
+            console.warn('Auto-save fallback error:', e);
+            this.setSaveStatus('error');
+          }
+        } else {
+          // Save As dialog
+          try {
+            const res = await fileStorage.saveFileDialog(
+              content,
+              this.filename || 'demoShow.json'
+            );
+            if (res) {
+              this.currentFilePath = res.filePath;
+              this.filename = res.filename;
+              this.updateFileIndicator();
+              this.setSaveStatus('saved');
+              if (!silent) {
+                alert(`Đã lưu kịch bản mới thành công vào: ${res.filename}`);
+              }
+            } else {
+              this.setSaveStatus('unsaved');
+            }
+          } catch (err) {
+            this.setSaveStatus('error');
+            if (silent) {
+              showToast('Lỗi khi lưu mới file: ' + err.message, 'error');
+            } else {
+              alert('Lỗi khi lưu mới file: ' + err.message);
+            }
+          }
         }
       }
       return;
     }
 
     // Web Fallback
-    // Cách 1: Copy vào Clipboard
     try {
       await navigator.clipboard.writeText(content);
       console.log('Đã copy nội dung vào Clipboard!');
@@ -1702,7 +1727,12 @@ export class TimelineEditor {
       console.warn("Không thể copy vào clipboard", e);
     }
 
-    // Cách 2: Tự động tải file về máy
+    if (silent) {
+      localStorage.setItem(`seq:${(this.filename || 'demoShow').replace('.json', '')}`, content);
+      this.setSaveStatus('saved');
+      return;
+    }
+
     try {
       const blob = new Blob([content], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1713,10 +1743,11 @@ export class TimelineEditor {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      alert(`Đã tải xuống file ${this.filename || 'demoShow.json'}!\n\nNội dung cũng đã được copy vào Clipboard.\nHãy chép file này vào thư mục: src/config/sequences/`);
+      this.setSaveStatus('saved');
+      alert(t('editor.timelinePanel.saveSuccess', { filename: this.filename || 'demoShow.json' }));
     } catch (err) {
-      alert('Lỗi khi lưu file: ' + err.message);
+      this.setSaveStatus('error');
+      alert(t('editor.timelinePanel.saveError', { error: err.message }));
     }
   }
 
@@ -1776,6 +1807,8 @@ export class TimelineEditor {
     }
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.redoStack = [];
+    this.setSaveStatus('unsaved');
+    this.triggerAutoSave();
   }
 
   undo() {
@@ -1789,6 +1822,8 @@ export class TimelineEditor {
     this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
     this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    this.setSaveStatus('unsaved');
+    this.triggerAutoSave();
 
     if (this.inspector && this.inspector.selectedEvent) {
       const currentSelected = this.inspector.selectedEvent;
@@ -1812,6 +1847,8 @@ export class TimelineEditor {
     this.showDirector.loadScript(this.getFlattenedSequences());
     this.showDirector.seek(currentTime);
     this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    this.setSaveStatus('unsaved');
+    this.triggerAutoSave();
 
     if (this.inspector && this.inspector.selectedEvent) {
       const currentSelected = this.inspector.selectedEvent;
