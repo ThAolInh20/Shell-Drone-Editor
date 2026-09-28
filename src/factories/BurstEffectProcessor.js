@@ -22,7 +22,8 @@ export class BurstEffectProcessor {
     'ghost',
     'galaxy-spin',
     'comet-ring',
-    'bouquet-comet'
+    'bouquet-comet',
+    'willow'
   ]);
 
   static effectsRegistry = new Map();
@@ -405,6 +406,18 @@ BurstEffectProcessor.registerEffect('bouquet-comet', {
       spawnTrail: true, 
       trailLife: 0.8, // Vệt đuôi dài
       trailIntensity: 0.7 
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('willow', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.988);
+    return {
+      gravityScale: 0.22,
+      spawnTrail: true,
+      trailLife: 0.85,
+      trailIntensity: 0.95
     };
   }
 });
