@@ -9,7 +9,10 @@
     "sectorId": "center",
     "cometTrail": "normal",
     "uiDuration": 3.4,
-    "pistil": true,
-    "instantBurst": true
+    "shapeType": "sphere",
+    "dynamicsType": "crysanthemum-trail",
+    "pistil": false,
+    "instantBurst": false,
+    "effects": []
   }
 ]

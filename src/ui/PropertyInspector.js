@@ -211,6 +211,12 @@ export class PropertyInspector {
               name: 'instantBurst',
               labelKey: 'instantBurst',
               type: 'checkbox'
+            },
+            {
+              name: 'effects',
+              labelKey: 'activeEffects',
+              type: 'effect-chips',
+              span: 2
             }
           ]
         },
@@ -258,12 +264,6 @@ export class PropertyInspector {
                 'thick',
                 'none'
               ]
-            },
-            {
-              name: 'effects',
-              labelKey: 'activeEffects',
-              type: 'effect-chips',
-              span: 2
             }
           ]
         },
