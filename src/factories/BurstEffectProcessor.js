@@ -75,6 +75,7 @@ export class BurstEffectProcessor {
       || effectsList.includes('glitter-strobe');
     const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
+    const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -104,6 +105,7 @@ export class BurstEffectProcessor {
       strobe: strobeEnabled,
       crackle: crackleEnabled,
       ghost: ghostEnabled,
+      flow: flowEnabled,
       spin,
       phase,
       turbulence,
@@ -148,7 +150,7 @@ export class BurstEffectProcessor {
       }
     }
 
-    // Apply modular overrides for strobe and crackle on top of other effects
+    // Apply modular overrides for strobe, crackle, and flow on top of other effects
     if (effectState?.strobe && effectType !== 'strobe' && effectType !== 'white-strobe' && effectType !== 'glitter-strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);
@@ -161,6 +163,22 @@ export class BurstEffectProcessor {
       velocity.y += (Math.random() - 0.5) * jitter * 0.5;
       velocity.z += (Math.random() - 0.5) * jitter;
       emitSpark = false;
+    }
+
+    if (effectState?.flow && effectType !== 'flow') {
+      const spinAmount = (effectState.spin[index] || 0) * deltaTime;
+      const cos = Math.cos(spinAmount);
+      const sin = Math.sin(spinAmount);
+      const oldX = velocity.x;
+      const oldZ = velocity.z;
+      velocity.x = oldX * cos - oldZ * sin;
+      velocity.z = oldX * sin + oldZ * cos;
+      velocity.y += Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.02;
+      velocity.multiplyScalar(0.998);
+      gravityScale = Math.min(gravityScale, 0.12);
+      spawnTrail = true;
+      trailLife = Math.max(trailLife, 0.25);
+      trailIntensity = Math.max(trailIntensity, 0.3);
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)

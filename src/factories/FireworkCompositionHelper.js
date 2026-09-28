@@ -39,7 +39,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'white-strobe',
   'glitter-strobe',
   'crackle',
-  'ghost'
+  'ghost',
+  'flow'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -261,9 +262,9 @@ export const PRESET_TEMPLATES = {
   },
   fishV2: {
     shape: 'fish',
-    dynamics: 'flow',
+    dynamics: 'standard',
     modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    effects: ['flow']
   },
   smiley: {
     shape: 'smiley',
@@ -375,6 +376,7 @@ export function resolveFireworkComposition(eventOrPreset) {
     effects = [...template.effects];
     if (eventOrPreset.strobe && !effects.includes('strobe')) effects.push('strobe');
     if (eventOrPreset.crackle && !effects.includes('crackle')) effects.push('crackle');
+    if (eventOrPreset.flow && !effects.includes('flow')) effects.push('flow');
   }
 
   return {

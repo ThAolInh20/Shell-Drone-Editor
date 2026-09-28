@@ -29,6 +29,10 @@ export const AVAILABLE_EFFECT_TAGS = [
   {
     key: 'ghost',
     labelKey: 'ghost'
+  },
+  {
+    key: 'flow',
+    labelKey: 'flow'
   }
 ];
 
