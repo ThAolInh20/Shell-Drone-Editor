@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LAYER_REFLECTION } from '../config/layers.js';
 
 const COMET_CORE_SIZE = 1.2;
 
@@ -113,6 +114,10 @@ export class CometEntity {
       }
       this.mesh.add(this.coreMesh);
     }
+
+    this.mesh.traverse((child) => {
+      child.layers.enable(LAYER_REFLECTION);
+    });
 
     this.mesh.position.copy(position);
     // Orient the comet towards velocity if needed, but since it falls down, 

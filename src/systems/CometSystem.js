@@ -92,7 +92,9 @@ export class CometSystem {
         preset: finalPreset
       });
 
-      comet.mesh.layers.enable(LAYER_REFLECTION);
+      comet.mesh.traverse((child) => {
+        child.layers.enable(LAYER_REFLECTION);
+      });
       this.scene.add(comet.mesh);
       this.activeComets.push(comet);
     }
