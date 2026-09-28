@@ -411,6 +411,8 @@ export default {
           "comet-ring": "彗星环",
           "crysanthemum-trail": "浓密菊花尾迹",
           "crysanthemum-smoke": "菊花烟雾",
+          "crysanthemum-spiral": "菊花螺旋点亮",
+          "crysanthemum-spiral-v2": "菊花螺旋点亮 V2 (螺旋至球形)",
           sparking: "火花残烬",
           "sparking-v2": "即时火花残烬",
           "swimming-star": "缓游星芒 (慢速游动)"

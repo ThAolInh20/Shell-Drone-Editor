@@ -411,6 +411,8 @@ export default {
           "comet-ring": "彗星リング",
           "crysanthemum-trail": "菊の尾引き",
           "crysanthemum-smoke": "菊の煙",
+          "crysanthemum-spiral": "菊スパイラル点灯",
+          "crysanthemum-spiral-v2": "菊スパイラル点灯 V2 (螺旋から球体へ)",
           sparking: "火花残光",
           "sparking-v2": "即時火花残光",
           "swimming-star": "スイミングスター (低速魚遊)"

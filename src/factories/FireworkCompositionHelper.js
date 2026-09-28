@@ -31,6 +31,8 @@ export const AVAILABLE_DYNAMICS = [
   'comet-ring',
   'crysanthemum-trail',
   'crysanthemum-smoke',
+  'crysanthemum-spiral',
+  'crysanthemum-spiral-v2',
   'sparking',
   'sparking-v2',
   'swimming-star'
@@ -97,6 +99,18 @@ export const PRESET_TEMPLATES = {
   crysanthemumSmoke: {
     shape: 'sphere',
     dynamics: 'crysanthemum-smoke',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemumSpiral: {
+    shape: 'sphere',
+    dynamics: 'crysanthemum-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemumSpiralV2: {
+    shape: 'sphere',
+    dynamics: 'crysanthemum-spiral-v2',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },

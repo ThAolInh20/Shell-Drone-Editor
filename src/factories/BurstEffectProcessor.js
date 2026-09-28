@@ -18,6 +18,9 @@ export class BurstEffectProcessor {
     'falling-comets',
     'falling-comets-glitter',
     'crysanthemum-trail',
+    'crysanthemum-smoke',
+    'crysanthemum-spiral',
+    'crysanthemum-spiral-v2',
     'crysanthemum-cc',
     'ghost',
     'galaxy-spin',
@@ -380,6 +383,30 @@ BurstEffectProcessor.registerEffect('crysanthemum-trail', {
 BurstEffectProcessor.registerEffect('crysanthemum-smoke', {
   updateVelocity() {
     return { gravityScale: 0.3, spawnSmoke: true, smokeLife: 3.8, smokeOpacity: 0.20 };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-spiral', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.45,
+      trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.50,
+      trailIntensity: 1.0
+    };
   }
 });
 

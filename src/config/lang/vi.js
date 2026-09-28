@@ -426,6 +426,8 @@ export default {
           "comet-ring": "Vành sao chổi",
           "crysanthemum-trail": "Đuôi hoa cúc đậm",
           "crysanthemum-smoke": "Khói hoa cúc",
+          "crysanthemum-spiral": "Hoa cúc xoắn ốc (Spiral Reveal)",
+          "crysanthemum-spiral-v2": "Hoa cúc xoắn ốc V2 (Spiral -> Sphere)",
           sparking: "Tàn lửa li ti",
           "sparking-v2": "Tàn lửa tức thì",
           "swimming-star": "Sao bơi chậm (Fish Flow chậm)"

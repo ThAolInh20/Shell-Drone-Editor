@@ -48,6 +48,8 @@ export class ShellPresetFactory {
       'falling-comets-glitter',
       'crysanthemum-trail',
       'crysanthemum-smoke',
+      'crysanthemum-spiral',
+      'crysanthemum-spiral-v2',
       'crysanthemum-cc',
       'ghost',
       'galaxy-spin',
@@ -74,6 +76,8 @@ export class ShellPresetFactory {
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
+      { key: 'crysanthemumSpiral', label: 'Chrysanthemum Spiral' },
+      { key: 'crysanthemumSpiralV2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
       { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
@@ -132,6 +136,8 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
+    this.presetsRegistry.set('crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
+    this.presetsRegistry.set('crysanthemumSpiralV2', (size) => this.crysanthemumSpiralV2Shell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
     this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
     this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
@@ -308,6 +314,40 @@ export class ShellPresetFactory {
       shapeType: 'sphere',
       effectType: 'crysanthemum-smoke',
       starLife: 1800 + size * 400, // Tăng thời gian sống của hạt pháo để bay xa hơn và sinh khói dài hơn
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSpiralShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSpiral',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-spiral',
+      particleCountMultiplier: 1.25,
+      starLife: 1600 + size * 350,
+      launchTrail: true,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSpiralV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSpiralV2',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-spiral-v2',
+      particleCountMultiplier: 1.35,
+      starLife: 1700 + size * 350,
+      launchTrail: true,
       flower: false,
       smiley: false,
       hearth: false,

@@ -963,13 +963,31 @@ export class FireworkSystem {
       const particleIndex = isCoreParticle ? i : (i - coreCount);
       const particleCount = isCoreParticle ? coreCount : ringCount;
       const angle = (particleIndex / particleCount) * Math.PI * 2;
-      const direction = BurstShapeGenerator.direction(
-        particleShape,
-        angle,
-        particleIndex,
-        particleCount,
-        isCoreParticle ? preset : ringPreset
-      ).applyQuaternion(burstRotation);
+
+      const isSpiralV2 = normalizedEffect === 'crysanthemum-spiral-v2';
+      const spiralArmCount = isSpiralV2 ? Math.floor(burstParticleCount * 0.38) : 0;
+      const isSpiralArm = isSpiralV2 && (i < spiralArmCount);
+
+      let direction;
+      if (isSpiralArm) {
+        const tArm = i / Math.max(1, spiralArmCount - 1);
+        const turns = 3.5;
+        const theta = tArm * turns * Math.PI * 2;
+        const phi = Math.acos(Math.max(-1, Math.min(1, 1.0 - 2.0 * tArm)));
+        direction = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta),
+          Math.cos(phi),
+          Math.sin(phi) * Math.sin(theta)
+        ).applyQuaternion(burstRotation);
+      } else {
+        direction = BurstShapeGenerator.direction(
+          particleShape,
+          angle,
+          particleIndex,
+          particleCount,
+          isCoreParticle ? preset : ringPreset
+        ).applyQuaternion(burstRotation);
+      }
 
       const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy');
       if (!useContourMagnitude) {
@@ -1050,6 +1068,26 @@ export class FireworkSystem {
           + nz * effectState.ghostAxis.z;
       }
 
+      let spiralIndexVal = 0;
+      if (normalizedEffect === 'crysanthemum-spiral') {
+        const speedVal = velocityVal.length();
+        const nx = speedVal > 0 ? velocityVal.x / speedVal : 0;
+        const ny = speedVal > 0 ? velocityVal.y / speedVal : 0;
+        const nz = speedVal > 0 ? velocityVal.z / speedVal : 0;
+        const normH = (ny + 1.0) * 0.5; // 0 (bottom pole) to 1 (top pole)
+        const azimuth = Math.atan2(nz, nx);
+        const normAzimuth = (azimuth + Math.PI) / (Math.PI * 2.0);
+        const turns = 3.5;
+        const rawSpiral = (1.0 - normH) * turns + normAzimuth;
+        spiralIndexVal = Math.max(0, Math.min(1, rawSpiral / (turns + 1.0)));
+      } else if (normalizedEffect === 'crysanthemum-spiral-v2') {
+        if (isSpiralArm) {
+          spiralIndexVal = i / Math.max(1, spiralArmCount - 1);
+        } else {
+          spiralIndexVal = 1.0;
+        }
+      }
+
       const isNestedTrigger = isNestedParent && nestedTriggerIndices.has(i);
       let particleMaxLife;
       let particleVelocity = velocityVal;
@@ -1088,6 +1126,8 @@ export class FireworkSystem {
         heightProfile,
         effectState,
         ghostDot: ghostDotVal,
+        spiralIndex: spiralIndexVal,
+        isSpiralArm: Boolean(isSpiralArm),
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
@@ -1527,13 +1567,54 @@ export class FireworkSystem {
         )
         : 1.0;
 
-      if (spawnTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+      let isSpiralIgnited = true;
+      let spiralFlashBonus = 1.0;
+      if (p.effectType === 'crysanthemum-spiral') {
+        // Quét xoắn ốc từ t = 0 đến t = 0.65. Sau 0.65 (giai đoạn cuối) thì toàn bộ 100% hạt hình cầu đã sáng bừng rực rỡ
+        const sweepProgress = Math.min(1.0, lifeRatio / 0.65);
+        const particleSpiral = p.spiralIndex ?? 0;
+        isSpiralIgnited = particleSpiral <= sweepProgress;
+        if (isSpiralIgnited) {
+          const timeSinceIgnition = sweepProgress - particleSpiral;
+          if (timeSinceIgnition < 0.08) {
+            spiralFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 0.75;
+          }
+        }
+      } else if (p.effectType === 'crysanthemum-spiral-v2') {
+        if (p.isSpiralArm) {
+          // Nhánh xoắn ốc 3D sáng dần liên tục từ t = 0 đến t = 0.52
+          const armSweep = Math.min(1.0, lifeRatio / 0.52);
+          const particleSpiral = p.spiralIndex ?? 0;
+          isSpiralIgnited = particleSpiral <= armSweep;
+          if (isSpiralIgnited) {
+            const timeSinceIgnition = armSweep - particleSpiral;
+            if (timeSinceIgnition < 0.08) {
+              spiralFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 0.85;
+            }
+          }
+        } else {
+          // Khối cầu ẩn tối ở giai đoạn đầu, sau đó bừng sáng đồng loạt toàn bộ hình sphere ở t >= 0.52
+          isSpiralIgnited = lifeRatio >= 0.52;
+          if (isSpiralIgnited) {
+            const timeSinceSphereBloom = lifeRatio - 0.52;
+            if (timeSinceSphereBloom < 0.10) {
+              spiralFlashBonus = 1.0 + (1.0 - timeSinceSphereBloom / 0.10) * 0.95;
+            }
+          }
+        }
+      }
+
+      const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
+        || p.effectType === 'crysanthemum-spiral-v2';
+      const allowTrail = spawnTrail && (!isChrysanthemumSpiral || isSpiralIgnited);
+
+      if (allowTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const isHalfFlashTentacle = p.effectState?.shapeType === 'half-flash'
           && p.particleIndex >= (p.totalParticleCount - 4);
         const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
           && p.particleIndex >= (p.totalParticleCount - 5);
         const isCometRing = p.effectState?.effectType === 'comet-ring';
-        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing) ? 1.0 : 0.3;
+        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();
@@ -1822,6 +1903,18 @@ export class FireworkSystem {
         r = activeColor.r * fade;
         g = activeColor.g * fade;
         b = activeColor.b * fade;
+      } else if (p.effectType === 'crysanthemum-spiral' || p.effectType === 'crysanthemum-spiral-v2') {
+        if (!isSpiralIgnited) {
+          // Giai đoạn tiền kích hoạt: tia lửa ẩn tối rất mờ (0.02) lướt êm trong không trung
+          r = p.baseColor.r * 0.02;
+          g = p.baseColor.g * 0.02;
+          b = p.baseColor.b * 0.02;
+        } else {
+          // Giai đoạn bắt lửa: bừng sáng chói lọi và rực rỡ đuôi hoa cúc
+          r = Math.min(2.0, p.baseColor.r * spiralFlashBonus);
+          g = Math.min(2.0, p.baseColor.g * spiralFlashBonus);
+          b = Math.min(2.0, p.baseColor.b * spiralFlashBonus);
+        }
       }
 
       p.color.setRGB(r, g, b);

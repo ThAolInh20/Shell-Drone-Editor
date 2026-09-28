@@ -426,6 +426,8 @@ export default {
           "comet-ring": "Comet Ring",
           "crysanthemum-trail": "Chrysanthemum Trail",
           "crysanthemum-smoke": "Chrysanthemum Smoke",
+          "crysanthemum-spiral": "Chrysanthemum Spiral (Spiral Reveal)",
+          "crysanthemum-spiral-v2": "Chrysanthemum Spiral V2 (Spiral -> Sphere)",
           sparking: "Sparking (Ember Decay)",
           "sparking-v2": "Sparking V2 (Instant Ember)",
           "swimming-star": "Swimming Star (Slow Fish Flow)"

@@ -75,7 +75,9 @@ export const FIREWORK_CONFIG = {
     flow: 1.08,
     snow: 1.08,
     oval: 1.08,
-    flower: 1.12
+    flower: 1.12,
+    'crysanthemum-spiral': 1.25,
+    'crysanthemum-spiral-v2': 1.35
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)
