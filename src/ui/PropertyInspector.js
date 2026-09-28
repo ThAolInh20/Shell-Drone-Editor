@@ -1,26 +1,34 @@
 import { t } from '../config/lang/i18n.js';
 import { editorConfig } from '../config/editor.js';
+import {
+  AVAILABLE_SHAPES,
+  AVAILABLE_DYNAMICS,
+  AVAILABLE_MODIFIERS,
+  PRESET_TEMPLATES,
+  getTemplateForPreset,
+  resolveFireworkComposition
+} from '../factories/FireworkCompositionHelper.js';
 
 export const AVAILABLE_EFFECT_TAGS = [
   {
-    key: 'pistil',
-    labelKey: 'pistil'
-  },
-  {
-    key: 'instantBurst',
-    labelKey: 'instantBurst'
-  },
-  {
     key: 'strobe',
     labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
+  },
+  {
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
   },
   {
     key: 'crackle',
     labelKey: 'crackle'
   },
   {
-    key: 'flow',
-    labelKey: 'flow'
+    key: 'ghost',
+    labelKey: 'ghost'
   }
 ];
 
@@ -178,6 +186,35 @@ export class PropertyInspector {
           ]
         },
         {
+          groupKey: 'compositionSettings',
+          fields: [
+            {
+              name: 'shapeType',
+              labelKey: 'shapeType',
+              type: 'select',
+              options: AVAILABLE_SHAPES,
+              span: 2
+            },
+            {
+              name: 'dynamicsType',
+              labelKey: 'dynamicsType',
+              type: 'select',
+              options: AVAILABLE_DYNAMICS,
+              span: 2
+            },
+            {
+              name: 'pistil',
+              labelKey: 'pistil',
+              type: 'checkbox'
+            },
+            {
+              name: 'instantBurst',
+              labelKey: 'instantBurst',
+              type: 'checkbox'
+            }
+          ]
+        },
+        {
           groupKey: (this.selectedEvent && this.isCometEvent(this.selectedEvent))
             ? 'cometConfig'
             : 'angleConfig',
@@ -268,6 +305,25 @@ export class PropertyInspector {
       ? 'audio'
       : (this.selectedEvent.type === 'group' ? 'group' : 'event');
 
+    if (typeKey === 'event') {
+      const comp = resolveFireworkComposition(this.selectedEvent);
+      if (this.selectedEvent.shapeType === undefined) {
+        this.selectedEvent.shapeType = comp.shape;
+      }
+      if (this.selectedEvent.dynamicsType === undefined) {
+        this.selectedEvent.dynamicsType = comp.dynamics;
+      }
+      if (this.selectedEvent.pistil === undefined) {
+        this.selectedEvent.pistil = comp.modifiers.pistil;
+      }
+      if (this.selectedEvent.instantBurst === undefined) {
+        this.selectedEvent.instantBurst = comp.modifiers.instantBurst;
+      }
+      if (this.selectedEvent.effects === undefined) {
+        this.selectedEvent.effects = comp.effects;
+      }
+    }
+
     // Default cometTrail based on preset if undefined
     if (
       typeKey === 'event' &&
@@ -314,7 +370,7 @@ export class PropertyInspector {
       if (group.groupKey === 'geometryOffsets') {
         const helpIcon = document.createElement('span');
         helpIcon.className = 'inspector-help-icon';
-        helpIcon.textContent = '❓';
+        helpIcon.textContent = '[?]';
         helpIcon.title = t('editor.inspector.help.geometryOffsetsTooltip') || 'Help';
 
         helpIcon.addEventListener('click', (e) => {
@@ -458,6 +514,20 @@ export class PropertyInspector {
         this.selectedEvent[field.name] = val;
       }
 
+      if (field.name === 'preset' && val) {
+        const template = getTemplateForPreset(val);
+        if (template) {
+          this.selectedEvent.shapeType = template.shape;
+          this.selectedEvent.dynamicsType = template.dynamics;
+          this.selectedEvent.pistil = template.modifiers.pistil;
+          this.selectedEvent.instantBurst = template.modifiers.instantBurst;
+          this.selectedEvent.effects = [...template.effects];
+          this.triggerUpdate();
+          this.render();
+          return;
+        }
+      }
+
       this.triggerUpdate();
     });
 
@@ -527,8 +597,12 @@ export class PropertyInspector {
     chipsWrapper.style.minHeight = '24px';
     chipsWrapper.style.alignItems = 'center';
 
+    const currentEffectsList = Array.isArray(this.selectedEvent.effects)
+      ? this.selectedEvent.effects
+      : [];
+
     const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!this.selectedEvent[eff.key];
+      return !!this.selectedEvent[eff.key] || currentEffectsList.includes(eff.key);
     });
 
     if (activeEffects.length === 0) {
@@ -571,6 +645,9 @@ export class PropertyInspector {
           e.stopPropagation();
           this.triggerUpdate('beforeChange');
           delete this.selectedEvent[eff.key];
+          if (Array.isArray(this.selectedEvent.effects)) {
+            this.selectedEvent.effects = this.selectedEvent.effects.filter((k) => k !== eff.key);
+          }
           this.triggerUpdate();
           this.render();
         });
@@ -582,7 +659,7 @@ export class PropertyInspector {
 
     // 2. Add Effect Dropdown Selector
     const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !this.selectedEvent[eff.key];
+      return !this.selectedEvent[eff.key] && !currentEffectsList.includes(eff.key);
     });
 
     const addWrapper = document.createElement('div');
@@ -619,6 +696,12 @@ export class PropertyInspector {
         if (!selectedKey) return;
         this.triggerUpdate('beforeChange');
         this.selectedEvent[selectedKey] = true;
+        if (!Array.isArray(this.selectedEvent.effects)) {
+          this.selectedEvent.effects = [];
+        }
+        if (!this.selectedEvent.effects.includes(selectedKey)) {
+          this.selectedEvent.effects.push(selectedKey);
+        }
         this.triggerUpdate();
         this.render();
       });
