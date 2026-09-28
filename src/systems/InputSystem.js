@@ -7,6 +7,7 @@ import {
   applySetting,
   resetSettings
 } from '../config/settings.js';
+import { DOCS_CONFIG } from '../config/docs.js';
 
 export class InputSystem {
   constructor(
@@ -185,18 +186,18 @@ export class InputSystem {
 
     const title = document.createElement('div');
     title.className = 'firework-pause-title';
-    title.textContent = 'Settings & Controls';
+    title.textContent = t('editor.settingsTitle') || 'Settings & Controls';
 
     const description = document.createElement('div');
     description.className = 'firework-pause-description';
-    description.textContent = 'Press ESC to resume. Adjust settings below:';
+    description.textContent = t('editor.settingsDescription') || 'Press ESC to resume. Adjust settings below:';
 
     panel.appendChild(title);
     panel.appendChild(description);
 
     const categories = {
-      graphics: 'Đồ họa & Hậu kỳ',
-      audio: 'Âm thanh (Volumes)'
+      graphics: t('editor.settingsGraphics') || 'Graphics & Post-processing',
+      audio: t('editor.settingsAudio') || 'Audio (Volumes)'
     };
 
     for (const [catKey, catTitle] of Object.entries(categories)) {
@@ -394,7 +395,7 @@ export class InputSystem {
     this.resumeButton = document.createElement('button');
     this.resumeButton.type = 'button';
     this.resumeButton.className = 'firework-pause-button';
-    this.resumeButton.textContent = 'Resume';
+    this.resumeButton.textContent = t('editor.settingsResume') || 'Resume';
     this.resumeButton.addEventListener('click', () => this.resume());
 
     const resetBtn = document.createElement('button');
@@ -403,7 +404,7 @@ export class InputSystem {
     resetBtn.style.backgroundColor = '#d32f2f';
     resetBtn.style.color = '#fff';
     resetBtn.style.boxShadow = '0 8px 20px rgba(211, 47, 47, 0.22)';
-    resetBtn.textContent = 'Reset';
+    resetBtn.textContent = t('editor.settingsReset') || 'Reset';
     resetBtn.addEventListener('click', () => {
       resetSettings(this.settingsContext);
 
@@ -420,7 +421,7 @@ export class InputSystem {
     this.timelineButton = document.createElement('button');
     this.timelineButton.type = 'button';
     this.timelineButton.className = 'firework-pause-button';
-    this.timelineButton.textContent = 'Timeline (Ctrl+T)';
+    this.timelineButton.textContent = t('editor.settingsTimeline') || 'Timeline (Ctrl+T)';
     this.timelineButton.style.backgroundColor = '#1976d2';
     this.timelineButton.style.boxShadow = '0 8px 20px rgba(25, 118, 210, 0.22)';
     this.timelineButton.addEventListener('click', () => {
@@ -445,7 +446,7 @@ export class InputSystem {
     const navTitle = document.createElement('div');
     navTitle.className = 'firework-pause-label';
     navTitle.style.marginBottom = '4px';
-    navTitle.textContent = 'Tools & Editors';
+    navTitle.textContent = t('editor.settingsTools') || 'Tools & Editors';
 
     const navButtons = document.createElement('div');
     navButtons.style.display = 'flex';
@@ -465,7 +466,7 @@ export class InputSystem {
     btnTimeline.style.borderRadius = '999px';
     btnTimeline.style.cursor = 'pointer';
     btnTimeline.style.transition = 'all 0.3s ease';
-    btnTimeline.innerHTML = 'Timeline Editor';
+    btnTimeline.textContent = t('editor.settingsTimelineEditor') || 'Timeline Editor';
     btnTimeline.addEventListener('mouseover', () => {
       btnTimeline.style.filter = 'brightness(1.15)';
       btnTimeline.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.4)';
@@ -492,7 +493,7 @@ export class InputSystem {
     btnStatic.style.borderRadius = '999px';
     btnStatic.style.cursor = 'pointer';
     btnStatic.style.transition = 'all 0.3s ease';
-    btnStatic.innerHTML = 'Static Editor';
+    btnStatic.textContent = t('editor.settingsStaticEditor') || 'Static Editor';
     btnStatic.addEventListener('mouseover', () => {
       btnStatic.style.filter = 'brightness(1.15)';
       btnStatic.style.boxShadow = '0 0 15px rgba(170, 59, 255, 0.4)';
@@ -505,8 +506,55 @@ export class InputSystem {
       window.location.href = 'formation.html';
     });
 
+    const btnGuide = document.createElement('a');
+    btnGuide.className = 'firework-pause-button';
+    btnGuide.style.flex = '1';
+    btnGuide.style.display = 'inline-flex';
+    btnGuide.style.alignItems = 'center';
+    btnGuide.style.justifyContent = 'center';
+    btnGuide.style.textAlign = 'center';
+    btnGuide.style.textDecoration = 'none';
+    btnGuide.style.background = 'linear-gradient(180deg, #11998e 0%, #38ef7d 100%)';
+    btnGuide.style.color = '#fff';
+    btnGuide.style.border = '1px solid rgba(56, 239, 125, 0.3)';
+    btnGuide.style.boxShadow = '0 6px 15px rgba(17, 153, 142, 0.3)';
+    btnGuide.style.fontSize = '13px';
+    btnGuide.style.fontWeight = 'bold';
+    btnGuide.style.padding = '10px 14px';
+    btnGuide.style.borderRadius = '999px';
+    btnGuide.style.cursor = 'pointer';
+    btnGuide.style.transition = 'all 0.3s ease';
+    btnGuide.textContent = t('editor.settingsUserGuide') || 'User Guide';
+    btnGuide.href = DOCS_CONFIG.userGuideUrl;
+    btnGuide.target = '_blank';
+    btnGuide.rel = 'noopener noreferrer';
+    btnGuide.addEventListener('mouseover', () => {
+      btnGuide.style.filter = 'brightness(1.15)';
+      btnGuide.style.boxShadow = '0 0 15px rgba(56, 239, 125, 0.4)';
+    });
+    btnGuide.addEventListener('mouseout', () => {
+      btnGuide.style.filter = 'none';
+      btnGuide.style.boxShadow = '0 6px 15px rgba(17, 153, 142, 0.3)';
+    });
+    btnGuide.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (
+        window.electronAPI &&
+        typeof window.electronAPI.openExternal === 'function'
+      ) {
+        window.electronAPI.openExternal(DOCS_CONFIG.userGuideUrl);
+      } else {
+        window.open(
+          DOCS_CONFIG.userGuideUrl,
+          '_blank',
+          'noopener,noreferrer'
+        );
+      }
+    });
+
     navButtons.appendChild(btnTimeline);
     navButtons.appendChild(btnStatic);
+    navButtons.appendChild(btnGuide);
     navSection.appendChild(navTitle);
     navSection.appendChild(navButtons);
     panel.appendChild(navSection);

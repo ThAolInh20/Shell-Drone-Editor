@@ -1,4 +1,11 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  Menu,
+  shell
+} from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -309,6 +316,16 @@ ipcMain.handle('save-file-absolute', async (event, { filePath, content }) => {
   } catch (err) {
     console.error('Error writing absolute file path:', err);
     throw err;
+  }
+});
+
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    if (url && typeof url === 'string') {
+      await shell.openExternal(url);
+    }
+  } catch (err) {
+    console.error('Error opening external URL:', err);
   }
 });
 
