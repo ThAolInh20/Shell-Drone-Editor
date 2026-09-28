@@ -136,7 +136,7 @@ export const FIREWORK_CONFIG = {
     harmonicRatioMin: 0.18,
     harmonicRatioMax: 0.32,
     // Biên độ chao đảo trôi trục trung tâm (drift)
-    axisDriftAmp: 0.38,
+    axisDriftAmp: 0.22,
     // Hệ số lũy thừa theo độ cao
     heightExponent: 1.4,
     // Độ phân tán vi mô cơ bản của luồng hạt
