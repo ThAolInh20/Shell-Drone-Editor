@@ -11,6 +11,8 @@ export const AVAILABLE_SHAPES = [
   'lightning',
   'oval',
   'upward-spray',
+  'willow',
+  'willow-up',
   'half-flash',
   'split-flash'
 ];
@@ -20,13 +22,18 @@ export const AVAILABLE_DYNAMICS = [
   'flow',
   'willow',
   'falling-leaves',
+  'falling-comets',
+  'falling-comets-glitter',
   'snow',
   'wave',
   'galaxy-spin',
   'bouquet-comet',
   'comet-ring',
   'crysanthemum-trail',
-  'crysanthemum-smoke'
+  'crysanthemum-smoke',
+  'sparking',
+  'sparking-v2',
+  'swimming-star'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -40,7 +47,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'glitter-strobe',
   'crackle',
   'ghost',
-  'flow'
+  'flow',
+  'no-trail'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -112,13 +120,13 @@ export const PRESET_TEMPLATES = {
   },
   sparking: {
     shape: 'sphere',
-    dynamics: 'standard',
+    dynamics: 'sparking',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
   sparkingV2: {
     shape: 'sphere',
-    dynamics: 'standard',
+    dynamics: 'sparking-v2',
     modifiers: { pistil: false, instantBurst: true },
     effects: []
   },
@@ -147,22 +155,22 @@ export const PRESET_TEMPLATES = {
     effects: ['glitter-strobe']
   },
   weepingWillowComets: {
-    shape: 'sphere',
-    dynamics: 'willow',
-    modifiers: { pistil: false, instantBurst: false },
+    shape: 'willow',
+    dynamics: 'falling-comets',
+    modifiers: { pistil: false, instantBurst: true },
     effects: []
   },
   weepingWillowCometsV2: {
-    shape: 'sphere',
-    dynamics: 'willow',
-    modifiers: { pistil: false, instantBurst: false },
+    shape: 'willow-up',
+    dynamics: 'falling-comets',
+    modifiers: { pistil: false, instantBurst: true },
     effects: []
   },
   weepingWillowCometsV3: {
-    shape: 'sphere',
-    dynamics: 'willow',
-    modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    shape: 'willow-up',
+    dynamics: 'falling-comets-glitter',
+    modifiers: { pistil: false, instantBurst: true },
+    effects: ['glitter-strobe']
   },
   fallingLeaves: {
     shape: 'sphere',
@@ -177,13 +185,13 @@ export const PRESET_TEMPLATES = {
     effects: []
   },
   bouquet: {
-    shape: 'sphere',
-    dynamics: 'standard',
+    shape: 'upward-spray',
+    dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
   bouquetComet: {
-    shape: 'sphere',
+    shape: 'upward-spray',
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
@@ -195,14 +203,14 @@ export const PRESET_TEMPLATES = {
     effects: []
   },
   bouquetV2: {
-    shape: 'sphere',
-    dynamics: 'standard',
+    shape: 'upward-spray',
+    dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['glitter-strobe']
   },
   bouquetV2Multicolor: {
-    shape: 'sphere',
-    dynamics: 'standard',
+    shape: 'upward-spray',
+    dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['glitter-strobe']
   },
@@ -261,10 +269,16 @@ export const PRESET_TEMPLATES = {
     effects: []
   },
   fishV2: {
-    shape: 'fish',
+    shape: 'sphere',
     dynamics: 'standard',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['flow']
+  },
+  fishV3: {
+    shape: 'sphere',
+    dynamics: 'swimming-star',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
   },
   smiley: {
     shape: 'smiley',
@@ -377,6 +391,7 @@ export function resolveFireworkComposition(eventOrPreset) {
     if (eventOrPreset.strobe && !effects.includes('strobe')) effects.push('strobe');
     if (eventOrPreset.crackle && !effects.includes('crackle')) effects.push('crackle');
     if (eventOrPreset.flow && !effects.includes('flow')) effects.push('flow');
+    if (eventOrPreset.noTrail && !effects.includes('no-trail')) effects.push('no-trail');
   }
 
   return {

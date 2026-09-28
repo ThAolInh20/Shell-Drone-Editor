@@ -353,6 +353,7 @@ export default {
         crackle: "クラックル Crackle",
         ghost: "ゴースト（明滅）",
         flow: "遊泳 Flow",
+        noTrail: "トレイルなし",
         activeEffects: "有効エフェクト",
         ratioX: "比率 X",
         ratioY: "比率 Y",
@@ -391,6 +392,8 @@ export default {
           lightning: "雷光",
           oval: "オーバル",
           "upward-spray": "上方スプレー",
+          willow: "柳形",
+          "willow-up": "上方噴射柳",
           "half-flash": "半球フラッシュ",
           "split-flash": "赤道分割フラッシュ"
         },
@@ -399,13 +402,18 @@ export default {
           flow: "フローストリーム",
           willow: "柳の垂れ下がり",
           "falling-leaves": "舞い落ちる葉",
+          "falling-comets": "彗星落下",
+          "falling-comets-glitter": "グリッター彗星落下",
           snow: "雪の漂い",
           wave: "波の揺らぎ",
           "galaxy-spin": "銀河スピン",
           "bouquet-comet": "ブーケ彗星",
           "comet-ring": "彗星リング",
           "crysanthemum-trail": "菊の尾引き",
-          "crysanthemum-smoke": "菊の煙"
+          "crysanthemum-smoke": "菊の煙",
+          sparking: "火花残光",
+          "sparking-v2": "即時火花残光",
+          "swimming-star": "スイミングスター (低速魚遊)"
         },
         pattern: {
           random: "ランダム",

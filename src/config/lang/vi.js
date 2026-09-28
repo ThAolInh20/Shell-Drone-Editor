@@ -367,6 +367,7 @@ export default {
         crackle: "Nổ tách tách Crackle",
         ghost: "Ghost (Ẩn hiện quang học)",
         flow: "Lượn sóng Flow (Cá bơi)",
+        noTrail: "Không vệt đuôi",
         activeEffects: "Hiệu ứng kích hoạt",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",
@@ -406,6 +407,8 @@ export default {
           lightning: "Tia sét",
           oval: "Hình bầu dục",
           "upward-spray": "Phun hướng lên",
+          willow: "Liễu rủ (Vòm rủ)",
+          "willow-up": "Liễu vút (Bắn vọt lên)",
           "half-flash": "Bán cầu phát sáng",
           "split-flash": "Phân cực xích đạo"
         },
@@ -414,13 +417,18 @@ export default {
           flow: "Dòng chảy uốn lượn",
           willow: "Liễu rủ tàn rủ",
           "falling-leaves": "Lá rơi chao đảo",
+          "falling-comets": "Sao chổi rơi",
+          "falling-comets-glitter": "Sao chổi rơi kim tuyến",
           snow: "Tuyết rơi chậm",
           wave: "Lượn sóng dập dờn",
           "galaxy-spin": "Xoáy ngân hà",
           "bouquet-comet": "Pháo chùm sao chổi",
           "comet-ring": "Vành sao chổi",
           "crysanthemum-trail": "Đuôi hoa cúc đậm",
-          "crysanthemum-smoke": "Khói hoa cúc"
+          "crysanthemum-smoke": "Khói hoa cúc",
+          sparking: "Tàn lửa li ti",
+          "sparking-v2": "Tàn lửa tức thì",
+          "swimming-star": "Sao bơi chậm (Fish Flow chậm)"
         },
         pattern: {
           random: "Ngẫu nhiên",

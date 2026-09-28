@@ -17,8 +17,54 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring', 'sparking', 'sparking-v2']);
+    this.shapeRegistry = new Set([
+      'sphere',
+      'ring',
+      'heart',
+      'willow',
+      'willow-up',
+      'star',
+      'lightning',
+      'oval',
+      'flower',
+      'cat',
+      'fish',
+      'smiley',
+      'half-flash',
+      'split-flash',
+      'galaxy',
+      'upward-spray'
+    ]);
+    this.effectRegistry = new Set([
+      'standard',
+      'crackle',
+      'flow',
+      'snow',
+      'wave',
+      'flower',
+      'floral',
+      'falling-leaves',
+      'falling-comets',
+      'falling-comets-glitter',
+      'crysanthemum-trail',
+      'crysanthemum-smoke',
+      'crysanthemum-cc',
+      'ghost',
+      'galaxy-spin',
+      'comet-ring',
+      'bouquet-comet',
+      'willow',
+      'sparking',
+      'sparking-v2',
+      'swimming-star',
+      'strobe',
+      'white-strobe',
+      'glitter-strobe',
+      'heart',
+      'oval',
+      'no-trail',
+      'notrail'
+    ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
@@ -57,6 +103,7 @@ export class ShellPresetFactory {
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
       { key: 'fishV2', label: 'Fish V2 (Spherical)' },
+      { key: 'fishV3', label: 'Fish V3 (Chrysanthemum Swimming)' },
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
       { key: 'heart', label: 'Heart' },
@@ -114,6 +161,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('snow', (size) => this.snowShell(size));
     this.presetsRegistry.set('fish', (size) => this.fishShell(size));
     this.presetsRegistry.set('fishV2', (size) => this.fishV2Shell(size));
+    this.presetsRegistry.set('fishV3', (size) => this.fishV3Shell(size));
     this.presetsRegistry.set('smiley', (size) => this.smileyShell(size));
     this.presetsRegistry.set('wave', (size) => this.waveShell(size));
     this.presetsRegistry.set('heart', (size) => this.hearthShell(size));
@@ -611,6 +659,31 @@ export class ShellPresetFactory {
       shapeType: 'sphere',
       effectType: 'flow',
       fish: true
+    };
+  }
+
+  fishV3Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'fishV3',
+      shapeType: 'sphere',
+      effectType: 'swimming-star',
+      dynamicsType: 'swimming-star',
+      effects: [],
+      fish: true,
+      flow: true,
+      noTrail: true,
+      pistil: false,
+      pistilColor: null,
+      glitter: '',
+      streamers: false,
+      nestedBurst: false,
+      isNestedChild: false,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
     };
   }
 

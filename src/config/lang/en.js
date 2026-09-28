@@ -367,6 +367,7 @@ export default {
         crackle: "Crackle",
         ghost: "Ghost (Fade & Reappear)",
         flow: "Flow (Fish swimming)",
+        noTrail: "No Trail",
         activeEffects: "Active Effects",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",
@@ -406,6 +407,8 @@ export default {
           lightning: "Lightning",
           oval: "Oval",
           "upward-spray": "Upward Spray",
+          willow: "Willow (Droop)",
+          "willow-up": "Willow Up (Fountain)",
           "half-flash": "Half Sphere Flash",
           "split-flash": "Split Sphere Flash"
         },
@@ -414,13 +417,18 @@ export default {
           flow: "Flow Stream",
           willow: "Weeping Willow (Droop)",
           "falling-leaves": "Falling Leaves",
+          "falling-comets": "Falling Comets",
+          "falling-comets-glitter": "Falling Comets Glitter",
           snow: "Snow Drift",
           wave: "Wave Oscillation",
           "galaxy-spin": "Spiral Galaxy Spin",
           "bouquet-comet": "Bouquet Comets",
           "comet-ring": "Comet Ring",
           "crysanthemum-trail": "Chrysanthemum Trail",
-          "crysanthemum-smoke": "Chrysanthemum Smoke"
+          "crysanthemum-smoke": "Chrysanthemum Smoke",
+          sparking: "Sparking (Ember Decay)",
+          "sparking-v2": "Sparking V2 (Instant Ember)",
+          "swimming-star": "Swimming Star (Slow Fish Flow)"
         },
         pattern: {
           random: "Random",

@@ -353,6 +353,7 @@ export default {
         crackle: "裂音 Crackle",
         ghost: "幽灵（隐现）",
         flow: "游动 Flow",
+        noTrail: "无尾迹",
         activeEffects: "已启用效果",
         ratioX: "比例 X",
         ratioY: "比例 Y",
@@ -391,6 +392,8 @@ export default {
           lightning: "闪电",
           oval: "椭圆形",
           "upward-spray": "向上喷射",
+          willow: "垂柳形",
+          "willow-up": "向上喷射垂柳",
           "half-flash": "半球闪光",
           "split-flash": "赤道分极闪光"
         },
@@ -399,13 +402,18 @@ export default {
           flow: "流动流向",
           willow: "垂柳飘落",
           "falling-leaves": "落叶飘零",
+          "falling-comets": "彗星陨落",
+          "falling-comets-glitter": "闪光彗星陨落",
           snow: "雪花飘落",
           wave: "波浪起伏",
           "galaxy-spin": "旋转星系",
           "bouquet-comet": "花束彗星",
           "comet-ring": "彗星环",
           "crysanthemum-trail": "浓密菊花尾迹",
-          "crysanthemum-smoke": "菊花烟雾"
+          "crysanthemum-smoke": "菊花烟雾",
+          sparking: "火花残烬",
+          "sparking-v2": "即时火花残烬",
+          "swimming-star": "缓游星芒 (慢速游动)"
         },
         pattern: {
           random: "随机",

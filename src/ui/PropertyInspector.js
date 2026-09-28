@@ -33,6 +33,10 @@ export const AVAILABLE_EFFECT_TAGS = [
   {
     key: 'flow',
     labelKey: 'flow'
+  },
+  {
+    key: 'no-trail',
+    labelKey: 'noTrail'
   }
 ];
 

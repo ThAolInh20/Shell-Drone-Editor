@@ -23,7 +23,10 @@ export class BurstEffectProcessor {
     'galaxy-spin',
     'comet-ring',
     'bouquet-comet',
-    'willow'
+    'willow',
+    'swimming-star',
+    'no-trail',
+    'notrail'
   ]);
 
   static effectsRegistry = new Map();
@@ -76,6 +79,11 @@ export class BurstEffectProcessor {
     const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
+    const noTrail = Boolean(preset?.noTrail)
+      || effectsList.includes('no-trail')
+      || effectsList.includes('notrail')
+      || normalizedEffect === 'notrail'
+      || normalizedEffect === 'no-trail';
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -106,6 +114,7 @@ export class BurstEffectProcessor {
       crackle: crackleEnabled,
       ghost: ghostEnabled,
       flow: flowEnabled,
+      noTrail,
       spin,
       phase,
       turbulence,
@@ -201,6 +210,10 @@ export class BurstEffectProcessor {
         trailLife = 0.38;
         trailIntensity = 0.9;
       }
+    }
+
+    if (effectState?.noTrail) {
+      spawnTrail = false;
     }
 
     return {
@@ -425,12 +438,14 @@ BurstEffectProcessor.registerEffect('sparking-v2', {
 
 BurstEffectProcessor.registerEffect('bouquet-comet', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
-    velocity.multiplyScalar(0.995); // Lực cản không khí
-    return { 
-      gravityScale: 0.15, // Trọng lực vừa phải để vút lên cao rồi cong dần xuống
-      spawnTrail: true, 
-      trailLife: 0.8, // Vệt đuôi dài
-      trailIntensity: 0.7 
+    velocity.multiplyScalar(0.993); // Lực cản không khí
+    // Trọng lực tăng dần theo thời gian: ban đầu nhẹ để vút lên cao, sau đó tăng dần để rủ cong theo vòng cung xuống
+    const arcGravity = 0.10 + Math.min(0.25, Math.max(0, age - 0.25) * 0.18);
+    return {
+      gravityScale: arcGravity,
+      spawnTrail: true,
+      trailLife: 0.95,
+      trailIntensity: 0.9
     };
   }
 });
@@ -443,6 +458,42 @@ BurstEffectProcessor.registerEffect('willow', {
       spawnTrail: true,
       trailLife: 0.85,
       trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('swimming-star', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const spinAmount = (effectState?.spin?.[index] || 0) * deltaTime * 0.85;
+    const cos = Math.cos(spinAmount);
+    const sin = Math.sin(spinAmount);
+    const oldX = velocity.x;
+    const oldZ = velocity.z;
+    velocity.x = oldX * cos - oldZ * sin;
+    velocity.z = oldX * sin + oldZ * cos;
+    velocity.y += Math.sin(age * 2.8 + (effectState?.phase?.[index] || 0)) * 0.018;
+    velocity.multiplyScalar(0.994);
+    return {
+      gravityScale: 0.08,
+      spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('no-trail', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.3,
+      spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('notrail', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.3,
+      spawnTrail: false
     };
   }
 });

@@ -262,12 +262,7 @@ export class FireworkSystem {
         targetHeight,
         position.z
       );
-      const isBouquet = (
-        shellPreset.shellType === 'bouquet'
-        || shellPreset.shellType === 'bouquetComet'
-        || shellPreset.shellType === 'bouquetCometSphere'
-        || shellPreset.shellType === 'bouquetv2'
-      );
+      const isBouquet = this.isBouquetShell(shellPreset);
 
       if (isBouquet) {
         const burstDir = velocity && velocity.lengthSq() > 0.001
@@ -469,10 +464,36 @@ export class FireworkSystem {
       burstHeight,
       color,
       shape: shellShape,
-      shellType: preset?.shellType ?? shellShape,
+      shellType: preset?.shellType ?? preset?.preset ?? shellShape,
       shapeType: preset?.shapeType ?? preset?.shape ?? shellShape,
       preset
     });
+  }
+
+  isBouquetShell(preset) {
+    if (!preset) return false;
+
+    // If shapeType or dynamicsType is explicitly set away from bouquet, respect composition authority
+    if (
+      preset.shapeType
+      && preset.shapeType !== 'upward-spray'
+      && preset.dynamicsType
+      && preset.dynamicsType !== 'bouquet-comet'
+    ) {
+      return false;
+    }
+
+    const type = (preset.shellType || preset.type || preset.preset || '').toLowerCase();
+    return (
+      preset.dynamicsType === 'bouquet-comet'
+      || preset.dynamics === 'bouquet-comet'
+      || preset.shapeType === 'upward-spray'
+      || type === 'bouquet'
+      || type === 'bouquetcomet'
+      || type === 'bouquetcometsphere'
+      || type === 'bouquetv2'
+      || type === 'bouquetv2multicolor'
+    );
   }
 
   triggerBouquetBurst(
@@ -483,7 +504,7 @@ export class FireworkSystem {
     burstDirection = null,
     parentVelocity = null
   ) {
-    const shellType = preset.shellType;
+    const shellType = (preset?.shellType || preset?.type || preset?.preset || '').toLowerCase();
 
     // Xác định hướng nổ từ hướng bay của pháo mẹ
     const defaultUp = new THREE.Vector3(0, 1, 0);
@@ -511,11 +532,11 @@ export class FireworkSystem {
 
     if (
       shellType === 'bouquet'
-      || shellType === 'bouquetComet'
-      || shellType === 'bouquetCometSphere'
+      || shellType === 'bouquetcomet'
+      || shellType === 'bouquetcometsphere'
     ) {
       let clusterCount;
-      if (shellType === 'bouquetCometSphere') {
+      if (shellType === 'bouquetcometsphere') {
         const cfg = FIREWORK_CONFIG.BOUQUET.cometSphere;
         clusterCount = cfg.clusterCountMin + Math.floor(
           Math.random() * (
@@ -533,8 +554,8 @@ export class FireworkSystem {
 
       for (let i = 0; i < clusterCount; i++) {
         const colorHex = (
-          shellType === 'bouquetComet'
-          || shellType === 'bouquetCometSphere'
+          shellType === 'bouquetcomet'
+          || shellType === 'bouquetcometsphere'
         )
           ? color.getHex()
           : FIREWORK_COLORS[
@@ -546,7 +567,7 @@ export class FireworkSystem {
 
         let vx, vy, vz;
 
-        if (shellType === 'bouquetCometSphere') {
+        if (shellType === 'bouquetcometsphere') {
           // Use Fibonacci sphere for a perfectly even and clear spherical shell
           const t = (i + 0.5) / clusterCount;
           const phi = Math.acos(1 - 2 * t);
@@ -593,7 +614,7 @@ export class FireworkSystem {
 
         // Kế thừa quán tính vận tốc từ pháo mẹ
         if (parentVelocity) {
-          const momentumScale = shellType === 'bouquetCometSphere' ? 0.25 : 0.35;
+          const momentumScale = shellType === 'bouquetcometsphere' ? 0.25 : 0.35;
           velocity.addScaledVector(parentVelocity, momentumScale);
         }
 
@@ -601,15 +622,15 @@ export class FireworkSystem {
 
         let subPreset;
         if (
-          shellType === 'bouquetComet'
-          || shellType === 'bouquetCometSphere'
+          shellType === 'bouquetcomet'
+          || shellType === 'bouquetcometsphere'
         ) {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
           subPreset.isBouquetComet = true;
           subPreset.thickTrail = true;
-          const baseStarLife = shellType === 'bouquetCometSphere'
+          const baseStarLife = shellType === 'bouquetcometsphere'
             ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
             : FIREWORK_CONFIG.BOUQUET.default.starLife;
           subPreset.starLife = baseStarLife * (0.8 + Math.random() * 0.4);
@@ -637,7 +658,10 @@ export class FireworkSystem {
         this.activeFireworks.push(subShell);
         this.diagnostics.launched += 1;
       }
-    } else if (shellType === 'bouquetv2') {
+    } else if (
+      shellType === 'bouquetv2'
+      || shellType === 'bouquetv2multicolor'
+    ) {
       const cfg = FIREWORK_CONFIG.BOUQUET.v2;
       const clusterCount = cfg.clusterCountMin + Math.floor(
         Math.random() * (
@@ -1263,12 +1287,7 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (
-      item.shellType === 'bouquet'
-      || item.shellType === 'bouquetComet'
-      || item.shellType === 'bouquetCometSphere'
-      || item.shellType === 'bouquetv2'
-    ) {
+    if (this.isBouquetShell(item) || this.isBouquetShell(item.preset)) {
       const parentVel = item.velocity ? item.velocity.clone() : null;
       const burstDir = parentVel && parentVel.lengthSq() > 0.001
         ? parentVel.clone().normalize()
