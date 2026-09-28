@@ -461,7 +461,7 @@ export class FireworkSystem {
   }
 
   createShell(position, velocity, burstHeight, color, preset = null, shellId = null) {
-    const shellShape = preset?.shapeType ?? this.pickFireworkShape();
+    const shellShape = preset?.shapeType ?? preset?.shape ?? this.pickFireworkShape();
     return new ShellEntity({
       shellId,
       position,
@@ -470,7 +470,7 @@ export class FireworkSystem {
       color,
       shape: shellShape,
       shellType: preset?.shellType ?? shellShape,
-      shapeType: preset?.shapeType ?? shellShape,
+      shapeType: preset?.shapeType ?? preset?.shape ?? shellShape,
       preset
     });
   }
@@ -765,17 +765,24 @@ export class FireworkSystem {
   }
 
   createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
-    const requestedShape = shape ?? 'sphere';
+    const requestedShape = preset?.shapeType
+      || preset?.shape
+      || shape
+      || 'sphere';
     const resolvedShape = BurstShapeGenerator.resolveShape(requestedShape);
     if (resolvedShape !== requestedShape) {
       this.diagnostics.shapeFallbacks += 1;
       this.registerWarning(`[Burst] Shape fallback from "${requestedShape}" to "${resolvedShape}".`);
     }
 
-    const crackleEnabled = Boolean(preset?.crackle);
-    const requestedEffect = (preset?.flow !== undefined
-      ? (preset.flow ? 'flow' : 'standard')
-      : preset?.effectType) ?? resolvedShape;
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const requestedEffect = preset?.dynamicsType
+      || preset?.dynamics
+      || (preset?.flow !== undefined
+        ? (preset.flow ? 'flow' : 'standard')
+        : preset?.effectType)
+      || resolvedShape;
     const normalizedEffect = BurstEffectProcessor.normalizeEffectType(requestedEffect);
     if (normalizedEffect !== requestedEffect) {
       this.diagnostics.effectFallbacks += 1;

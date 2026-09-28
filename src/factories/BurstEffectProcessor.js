@@ -68,7 +68,13 @@ export class BurstEffectProcessor {
 
   static initialize(effectType, count, preset = null) {
     const normalizedEffect = this.normalizeEffectType(effectType);
-    const strobeEnabled = Boolean(preset?.strobe);
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const strobeEnabled = Boolean(preset?.strobe)
+      || effectsList.includes('strobe')
+      || effectsList.includes('white-strobe')
+      || effectsList.includes('glitter-strobe');
+    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -88,7 +94,7 @@ export class BurstEffectProcessor {
     }
 
     let ghostAxis = { x: 1, y: 0, z: 0 };
-    if (normalizedEffect === 'ghost') {
+    if (ghostEnabled) {
       const vec = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
       ghostAxis = { x: vec.x, y: vec.y, z: vec.z };
     }
@@ -96,7 +102,8 @@ export class BurstEffectProcessor {
     return {
       effectType: normalizedEffect,
       strobe: strobeEnabled,
-      crackle: Boolean(preset?.crackle),
+      crackle: crackleEnabled,
+      ghost: ghostEnabled,
       spin,
       phase,
       turbulence,
