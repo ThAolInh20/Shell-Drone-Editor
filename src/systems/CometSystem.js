@@ -341,6 +341,29 @@ export class CometSystem {
         }
       }
 
+      // Water impact collision check at Y <= 0
+      if (comet.mesh.position.y <= 0 && comet.age > 0.1) {
+        if (this.smokeSystem) {
+          const steamVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.8,
+            1.0 + Math.random() * 0.8,
+            (Math.random() - 0.5) * 0.8
+          );
+          this.smokeSystem.spawnPuff(
+            new THREE.Vector3(comet.mesh.position.x, 0.05, comet.mesh.position.z),
+            steamVel,
+            {
+              life: 0.9 + Math.random() * 0.5,
+              scale: 2.8 + Math.random() * 1.5,
+              growth: 2.5,
+              opacity: 0.16,
+              color: new THREE.Color(0xdde5ee)
+            }
+          );
+        }
+        isDead = true;
+      }
+
       if (isDead) {
         this.scene.remove(comet.mesh);
         comet.dispose();

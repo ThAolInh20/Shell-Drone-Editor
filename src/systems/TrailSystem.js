@@ -263,6 +263,11 @@ export class TrailSystem {
       );
       particle.age += deltaTime;
 
+      if (particle.position.y <= 0) {
+        // Quench trail particle when it hits water surface
+        continue;
+      }
+
       if (particle.age < particle.life) {
         if (activeCount < this.maxTrailParticles) {
           // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó

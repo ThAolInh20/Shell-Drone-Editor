@@ -1432,6 +1432,66 @@ export class FireworkSystem {
       );
       p.velocity.y += GRAVITY * deltaTime * finalGravityScale;
 
+      // Water collision check at Y <= 0 (Water surface)
+      if (p.position.y <= 0) {
+        const isHot = (p.baseColor.r + p.baseColor.g + p.baseColor.b) > 0.08 && p.age < p.maxLife * 0.95;
+        if (isHot) {
+          // 1. Steam puff when hot particle hits water
+          if (Math.random() < 0.35) {
+            const steamVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.8,
+              0.6 + Math.random() * 0.8,
+              (Math.random() - 0.5) * 0.8
+            );
+            const steamOptions = {
+              life: 0.7 + Math.random() * 0.5,
+              scale: 1.8 + Math.random() * 1.2,
+              growth: 2.2,
+              drag: 2.8,
+              buoyancy: 0.9,
+              opacity: 0.12,
+              color: new THREE.Color(0xdde5ee)
+            };
+            if (this.smokeSystem) {
+              this.smokeSystem.addSmokePoint(
+                new THREE.Vector3(p.position.x, 0.05, p.position.z),
+                steamVel,
+                steamOptions
+              );
+            } else {
+              globalEventBus.emit(
+                'smoke:spawn',
+                {
+                  position: new THREE.Vector3(p.position.x, 0.05, p.position.z),
+                  velocity: steamVel,
+                  options: steamOptions
+                }
+              );
+            }
+          }
+
+          // 2. Micro sizzle splash spark
+          if (Math.random() < 0.25) {
+            const splashVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 3.5,
+              1.2 + Math.random() * 2.0,
+              (Math.random() - 0.5) * 3.5
+            );
+            this.trailSystem.spawnEffectSpark(
+              new THREE.Vector3(p.position.x, 0.05, p.position.z),
+              p.baseColor.clone().lerp(new THREE.Color(0xffffff), 0.5),
+              false,
+              splashVel,
+              0,
+              0.15 + Math.random() * 0.1
+            );
+          }
+        }
+
+        // Extinguish particle immediately on water impact
+        continue;
+      }
+
       // 2. Spawn Side Effects (sparks, trails, smoke)
       if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         this.trailSystem.spawnEffectSpark(
