@@ -37,14 +37,14 @@ export default defineConfig({
                   throw new Error("Filename must end with .json");
                 }
                 const filePath = path.resolve(__dirname, 'src/config/sequences', safeFilename);
-                
+
                 // Trả về response trước khi ghi file để tránh việc Vite HMR ngắt kết nối
                 res.setHeader('Content-Type', 'application/json');
                 res.statusCode = 200;
                 res.end(JSON.stringify({ success: true }));
 
                 setTimeout(() => {
-                  try { fs.writeFileSync(filePath, data.content); } catch(e) { console.error('Save error:', e); }
+                  try { fs.writeFileSync(filePath, data.content); } catch (e) { console.error('Save error:', e); }
                 }, 50);
 
               } catch (err) {
@@ -59,6 +59,15 @@ export default defineConfig({
       }
     }
   ],
+  server: {
+    watch: {
+      ignored: [
+        '**/src/config/sequences/**',
+        '**/dist-electron/**',
+        '**/dist/**'
+      ]
+    }
+  },
   build: {
     rollupOptions: {
       input: {

@@ -178,6 +178,7 @@ export class FireworkSequencer {
         || shellSize !== undefined 
         || config.strobe !== undefined 
         || config.crackle !== undefined
+        || config.flow !== undefined
         || config.cometTrail !== undefined) 
       {
         overrides = { ...(overrides || {}) };
@@ -185,6 +186,7 @@ export class FireworkSequencer {
         if (shellSize !== undefined) overrides.shellSize = shellSize;
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
+        if (config.flow !== undefined) overrides.flow = config.flow;
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;

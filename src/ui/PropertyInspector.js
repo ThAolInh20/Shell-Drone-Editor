@@ -1,6 +1,29 @@
 import { t } from '../config/lang/i18n.js';
 import { editorConfig } from '../config/editor.js';
 
+export const AVAILABLE_EFFECT_TAGS = [
+  {
+    key: 'pistil',
+    labelKey: 'pistil'
+  },
+  {
+    key: 'instantBurst',
+    labelKey: 'instantBurst'
+  },
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'crackle',
+    labelKey: 'crackle'
+  },
+  {
+    key: 'flow',
+    labelKey: 'flow'
+  }
+];
+
 export class PropertyInspector {
   constructor(container, onUpdate, presetOptions = ['random']) {
     this.container = container;
@@ -178,8 +201,17 @@ export class PropertyInspector {
         {
           groupKey: 'visualEffects',
           fields: [
-            { name: 'color', labelKey: 'color', type: 'color-badges' },
-            { name: 'shellSize', labelKey: 'shellSize', type: 'number', step: '0.1' },
+            {
+              name: 'color',
+              labelKey: 'color',
+              type: 'color-badges'
+            },
+            {
+              name: 'shellSize',
+              labelKey: 'shellSize',
+              type: 'number',
+              step: '0.1'
+            },
             {
               name: 'cometTrail',
               labelKey: 'cometTrail',
@@ -190,10 +222,12 @@ export class PropertyInspector {
                 'none'
               ]
             },
-            { name: 'pistil', labelKey: 'pistil', type: 'checkbox' },
-            { name: 'instantBurst', labelKey: 'instantBurst', type: 'checkbox' },
-            { name: 'strobe', labelKey: 'strobe', type: 'checkbox' },
-            { name: 'crackle', labelKey: 'crackle', type: 'checkbox' }
+            {
+              name: 'effects',
+              labelKey: 'activeEffects',
+              type: 'effect-chips',
+              span: 2
+            }
           ]
         },
         {
@@ -339,6 +373,8 @@ export class PropertyInspector {
               this.renderAngleDial(fieldWrapper, field);
             } else if (field.type === 'checkbox') {
               this.renderCheckbox(fieldWrapper, field);
+            } else if (field.type === 'effect-chips') {
+              this.renderEffectChips(fieldWrapper, field);
             } else {
               this.renderStandardInput(fieldWrapper, field);
             }
@@ -467,6 +503,132 @@ export class PropertyInspector {
     const span = document.createElement('span');
     span.textContent = t(`editor.inspector.fields.${field.labelKey}`);
     container.appendChild(span);
+    parent.appendChild(container);
+  }
+
+  renderEffectChips(parent, field) {
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
+
+    const container = document.createElement('div');
+    container.className = 'inspector-effect-chips-container';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+    container.style.marginTop = '4px';
+
+    // 1. Chips wrapper
+    const chipsWrapper = document.createElement('div');
+    chipsWrapper.className = 'inspector-chips-wrapper';
+    chipsWrapper.style.display = 'flex';
+    chipsWrapper.style.flexWrap = 'wrap';
+    chipsWrapper.style.gap = '6px';
+    chipsWrapper.style.minHeight = '24px';
+    chipsWrapper.style.alignItems = 'center';
+
+    const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
+      return !!this.selectedEvent[eff.key];
+    });
+
+    if (activeEffects.length === 0) {
+      const emptySpan = document.createElement('span');
+      emptySpan.style.fontSize = '11px';
+      emptySpan.style.color = '#777';
+      emptySpan.style.fontStyle = 'italic';
+      emptySpan.textContent = t('editor.inspector.noActiveEffects') || 'No active effects';
+      chipsWrapper.appendChild(emptySpan);
+    } else {
+      activeEffects.forEach((eff) => {
+        const chip = document.createElement('div');
+        chip.className = 'inspector-effect-chip';
+        chip.style.display = 'inline-flex';
+        chip.style.alignItems = 'center';
+        chip.style.gap = '6px';
+        chip.style.padding = '3px 8px';
+        chip.style.background = 'rgba(0, 200, 255, 0.12)';
+        chip.style.border = '1px solid rgba(0, 200, 255, 0.35)';
+        chip.style.borderRadius = '12px';
+        chip.style.fontSize = '11px';
+        chip.style.color = '#64d2ff';
+        chip.style.userSelect = 'none';
+
+        const chipText = document.createElement('span');
+        chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
+        chip.appendChild(chipText);
+
+        const removeBtn = document.createElement('span');
+        removeBtn.textContent = '×';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.fontSize = '14px';
+        removeBtn.style.lineHeight = '1';
+        removeBtn.style.color = '#ff6b6b';
+        removeBtn.style.fontWeight = 'bold';
+        removeBtn.style.padding = '0 2px';
+        removeBtn.title = t('editor.inspector.removeEffect') || 'Remove effect';
+
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.triggerUpdate('beforeChange');
+          delete this.selectedEvent[eff.key];
+          this.triggerUpdate();
+          this.render();
+        });
+
+        chip.appendChild(removeBtn);
+        chipsWrapper.appendChild(chip);
+      });
+    }
+
+    // 2. Add Effect Dropdown Selector
+    const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
+      return !this.selectedEvent[eff.key];
+    });
+
+    const addWrapper = document.createElement('div');
+    addWrapper.style.display = 'flex';
+    addWrapper.style.alignItems = 'center';
+    addWrapper.style.gap = '6px';
+
+    const select = document.createElement('select');
+    select.className = 'inspector-input';
+    select.style.fontSize = '11px';
+    select.style.padding = '4px 8px';
+    select.style.cursor = 'pointer';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = availableToAdd.length > 0
+      ? (t('editor.inspector.addEffectPrompt') || '+ Add Effect...')
+      : (t('editor.inspector.allEffectsAdded') || 'All effects added');
+    select.appendChild(defaultOption);
+
+    if (availableToAdd.length === 0) {
+      select.disabled = true;
+      select.style.opacity = '0.5';
+    } else {
+      availableToAdd.forEach((eff) => {
+        const opt = document.createElement('option');
+        opt.value = eff.key;
+        opt.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        const selectedKey = e.target.value;
+        if (!selectedKey) return;
+        this.triggerUpdate('beforeChange');
+        this.selectedEvent[selectedKey] = true;
+        this.triggerUpdate();
+        this.render();
+      });
+    }
+
+    addWrapper.appendChild(select);
+    container.appendChild(chipsWrapper);
+    container.appendChild(addWrapper);
+
+    parent.appendChild(label);
     parent.appendChild(container);
   }
 

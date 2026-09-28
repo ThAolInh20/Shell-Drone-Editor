@@ -773,7 +773,9 @@ export class FireworkSystem {
     }
 
     const crackleEnabled = Boolean(preset?.crackle);
-    const requestedEffect = preset?.effectType ?? resolvedShape;
+    const requestedEffect = (preset?.flow !== undefined
+      ? (preset.flow ? 'flow' : 'standard')
+      : preset?.effectType) ?? resolvedShape;
     const normalizedEffect = BurstEffectProcessor.normalizeEffectType(requestedEffect);
     if (normalizedEffect !== requestedEffect) {
       this.diagnostics.effectFallbacks += 1;

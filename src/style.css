@@ -667,6 +667,16 @@ code {
   opacity: 0.3;
   cursor: not-allowed;
 }
+.inspector-effect-chips-container {
+  grid-column: span 2;
+}
+.inspector-effect-chip {
+  transition: all 0.2s ease;
+}
+.inspector-effect-chip:hover {
+  background: rgba(0, 200, 255, 0.22) !important;
+  border-color: rgba(0, 200, 255, 0.6) !important;
+}
 .angle-dial-container {
   display: flex;
   align-items: center;

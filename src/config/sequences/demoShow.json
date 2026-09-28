@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "time": 0,
+    "type": "sequence",
+    "pattern": "sweep-left",
+    "count": 5,
+    "duration": 0.1,
+    "preset": "crysanthemum",
+    "sectorId": "center",
+    "cometTrail": "normal",
+    "uiDuration": 3.4,
+    "pistil": true,
+    "instantBurst": true
+  }
+]
