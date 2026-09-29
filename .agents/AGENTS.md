@@ -36,3 +36,6 @@
   - **Presets as Templates**: New presets must be registered as Composition Templates in `FireworkCompositionHelper.js` and `ShellPresetFactory.js`.
 - **Centralized Taxonomy**: Whenever adding a new Shape, Dynamics, Modifier, or Visual Effect tag, you MUST register it in `./src/factories/FireworkCompositionHelper.js` and provide translations in all language files (`./src/config/lang/{en,vi,zh,ja}.js`).
 
+## UI & Localization Text Conventions
+- **No Parentheses in Text Strings**: Do NOT use parentheses `(...)` in UI labels, options, preset display names, or translation strings. Keep titles and labels clean, natural, and concise without parenthetical notes (e.g. use "Chrysanthemum Spiral V2" instead of "Chrysanthemum Spiral V2 (Spiral -> Sphere)", "Bouquet Cluster" instead of "Bouquet (Cluster)", "Direct Save" instead of "(Direct Save)").
+
