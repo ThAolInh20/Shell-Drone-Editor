@@ -366,6 +366,7 @@ export default {
         glitterStrobe: "Lấp lánh mịn",
         crackle: "Nổ tách tách Crackle",
         ghost: "Quang học Ghost",
+        ghostFlare: "Ẩn hiện 3 giai đoạn Ghost Flare",
         flow: "Lượn sóng Flow",
         noTrail: "Không vệt đuôi",
         activeEffects: "Hiệu ứng kích hoạt",
@@ -410,7 +411,8 @@ export default {
           willow: "Liễu rủ vòm rủ",
           "willow-up": "Liễu vút bắn vọt lên",
           "half-flash": "Bán cầu phát sáng",
-          "split-flash": "Phân cực xích đạo"
+          "split-flash": "Phân cực xích đạo",
+          "double-helix": "Xoắn kép Double Helix"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -430,7 +432,9 @@ export default {
           "crysanthemum-spiral-v2": "Hoa cúc xoắn ốc V2",
           sparking: "Tàn lửa li ti",
           "sparking-v2": "Tàn lửa tức thì",
-          "swimming-star": "Sao bơi chậm"
+          "swimming-star": "Sao bơi chậm",
+          "ghost-kamuro": "Liễu rủ tàng hình Ghost Kamuro",
+          "double-helix": "Xoắn kép xoay Double Helix"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -464,10 +468,15 @@ export default {
           empty: "Không chọn"
         },
         preset: {
-          random: "Ngẫu nhiên"
+          random: "Ngẫu nhiên",
+          ghostKamuro: "Pháo liễu Ghost Kamuro",
+          ghost_kamuro: "Pháo liễu Ghost Kamuro",
+          doubleHelix: "Pháo xoắn kép Double Helix",
+          double_helix: "Pháo xoắn kép Double Helix"
         },
         cometTrail: {
           none: "Không có",
+          thin: "Mỏng thẳng siêu tốc",
           normal: "Bình thường",
           thick: "Nhẹ"
         }

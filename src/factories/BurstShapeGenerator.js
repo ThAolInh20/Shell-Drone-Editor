@@ -53,6 +53,7 @@ export class BurstShapeGenerator {
       case 'fish':
       case 'smiley':
       case 'galaxy':
+      case 'double-helix':
         return shellType;
       case 'half-flash':
         return 'half-flash';
@@ -94,6 +95,26 @@ export class BurstShapeGenerator {
       const x = Math.cos(theta) * r;
       const y = Math.sin(theta) * r;
       const z = (Math.random() - 0.5) * 0.1 * r;
+
+      return new THREE.Vector3(x, y, z);
+    }
+
+    if (shape === 'double-helix') {
+      const numStrands = 2;
+      const strandId = index % numStrands;
+      const safeCount = Math.max(count, 1);
+      const particlesPerStrand = Math.max(1, Math.floor(safeCount / numStrands));
+      const particleIndex = Math.floor(index / numStrands);
+
+      const t = particleIndex / Math.max(1, particlesPerStrand - 1);
+      const turns = 3.5;
+      const theta = t * turns * Math.PI * 2 + (strandId * Math.PI);
+      const height = (t - 0.5) * 2.0; // From -1.0 to 1.0
+      const radius = Math.sqrt(Math.max(0.08, 1.0 - height * height * 0.45)) * 0.95;
+
+      const x = Math.cos(theta) * radius + (Math.random() - 0.5) * 0.08;
+      const z = Math.sin(theta) * radius + (Math.random() - 0.5) * 0.08;
+      const y = height + (Math.random() - 0.5) * 0.06;
 
       return new THREE.Vector3(x, y, z);
     }

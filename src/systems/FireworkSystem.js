@@ -1132,7 +1132,8 @@ export class FireworkSystem {
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
         isDyingEmber: isDyingEmber,
-        isNestedTrigger: isNestedTrigger
+        isNestedTrigger: isNestedTrigger,
+        effects: effectsList
       });
     }
 
@@ -1175,16 +1176,25 @@ export class FireworkSystem {
       }
       const isFloralChild = item.shellType === 'floral-child';
       const isBouquetComet = item.preset?.isBouquetComet || (isFloralChild && item.preset?.thickTrail);
-
+      const isThin = Boolean(item.preset?.thinTrail);
       const isThick = item.preset?.thickTrail || isBouquetComet;
       const ascentCfg = FIREWORK_CONFIG.ASCENT;
-      const baseLifeMul = isBouquetComet
-        ? 0.95
-        : (ascentCfg?.trailLifeMultiplier ?? (isThick ? 0.7 : 0.55));
+
+      let baseLifeMul;
+      if (isBouquetComet) {
+        baseLifeMul = 0.95;
+      } else if (isThin) {
+        baseLifeMul = 0.35;
+      } else if (isThick) {
+        baseLifeMul = 0.7;
+      } else {
+        baseLifeMul = ascentCfg?.trailLifeMultiplier ?? 0.55;
+      }
+
       const lifeMultiplier = baseLifeMul * (0.6 + 0.4 * trailIntensity);
       const opacity = Math.min(
         1.0,
-        (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : 1.0)
+        (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : (isThin ? 1.25 : 1.0))
       );
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
@@ -1192,27 +1202,36 @@ export class FireworkSystem {
 
       const baseDispersion = ascentCfg?.trailDispersion ?? 0.22;
       const midDispBoost = ascentCfg?.midDispersionBoost ?? 2.2;
-      // Bung rộng phân tán ở giai đoạn giữa (ovalFactor cao) để vệt trông tròn trịa/bầu dục
-      const dispersion = isBouquetComet
-        ? 0.35 + Math.random() * 0.2
-        : baseDispersion * (
+      
+      let dispersion;
+      if (isBouquetComet) {
+        dispersion = 0.35 + Math.random() * 0.2;
+      } else if (isThin) {
+        dispersion = 0.005;
+      } else {
+        dispersion = baseDispersion * (
           0.5 + midDispBoost * Math.pow(ovalFactor, 0.9)
         );
+      }
 
-      // Số bước hạt sinh: bouquet comet tăng lên 4 bước để vệt dày đặc và sáng rực
-      const baseSubSteps = ascentCfg?.subSteps ?? 2;
-      const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
-      const subSteps = isBouquetComet
-        ? 2
-        : (baseSubSteps + Math.round(
+      let subSteps;
+      if (isBouquetComet) {
+        subSteps = 2;
+      } else if (isThin) {
+        subSteps = 3;
+      } else {
+        const baseSubSteps = ascentCfg?.subSteps ?? 2;
+        const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
+        subSteps = baseSubSteps + Math.round(
           midBonus * Math.pow(ovalFactor, 0.85)
-        ));
+        );
+      }
 
       const prevPos = item.prevPosition || item.mesh.position;
       const currPos = item.mesh.position;
       const extraChance = isBouquetComet
         ? 0.85
-        : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85);
+        : (isThin ? 0.0 : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85));
 
       // Nâng độ sáng màu sắc cho vệt bouquet comet
       const particleColor = isBouquetComet
@@ -1606,7 +1625,11 @@ export class FireworkSystem {
 
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
-      const allowTrail = spawnTrail && (!isChrysanthemumSpiral || isSpiralIgnited);
+      const hasGhostFlare = p.effects?.includes('ghost-flare')
+        || p.preset?.effects?.includes('ghost-flare')
+        || p.effectType === 'ghost-kamuro';
+      const isGhostFlareNoTrail = hasGhostFlare && lifeRatio <= 0.60;
+      const allowTrail = spawnTrail && (!isChrysanthemumSpiral || isSpiralIgnited) && !isGhostFlareNoTrail;
 
       if (allowTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const isHalfFlashTentacle = p.effectState?.shapeType === 'half-flash'
@@ -1914,6 +1937,33 @@ export class FireworkSystem {
           r = Math.min(2.0, p.baseColor.r * spiralFlashBonus);
           g = Math.min(2.0, p.baseColor.g * spiralFlashBonus);
           b = Math.min(2.0, p.baseColor.b * spiralFlashBonus);
+        }
+      } else if (hasGhostFlare) {
+        if (lifeRatio < 0.32) {
+          r = p.baseColor.r;
+          g = p.baseColor.g;
+          b = p.baseColor.b;
+        } else if (lifeRatio <= 0.60) {
+          r = p.baseColor.r * 0.02;
+          g = p.baseColor.g * 0.02;
+          b = p.baseColor.b * 0.02;
+        } else {
+          const flashProgress = (lifeRatio - 0.60) / 0.40;
+          const reigniteIntensity = 1.6 * (1.0 - flashProgress * 0.4);
+          r = Math.min(2.0, p.baseColor.r * reigniteIntensity);
+          g = Math.min(2.0, p.baseColor.g * reigniteIntensity);
+          b = Math.min(2.0, p.baseColor.b * reigniteIntensity);
+        }
+      } else if (p.effectType === 'double-helix') {
+        if (p.color2) {
+          const strandFactor = (p.particleIndex % 2 === 0) ? 0.0 : 0.4;
+          const blendT = Math.min(1.0, lifeRatio * 0.7 + strandFactor);
+          const activeR = p.baseColor.r * (1.0 - blendT) + p.color2.r * blendT;
+          const activeG = p.baseColor.g * (1.0 - blendT) + p.color2.g * blendT;
+          const activeB = p.baseColor.b * (1.0 - blendT) + p.color2.b * blendT;
+          r = activeR * 1.15;
+          g = activeG * 1.15;
+          b = activeB * 1.15;
         }
       }
 

@@ -14,7 +14,8 @@ export const AVAILABLE_SHAPES = [
   'willow',
   'willow-up',
   'half-flash',
-  'split-flash'
+  'split-flash',
+  'double-helix'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -35,7 +36,9 @@ export const AVAILABLE_DYNAMICS = [
   'crysanthemum-spiral-v2',
   'sparking',
   'sparking-v2',
-  'swimming-star'
+  'swimming-star',
+  'ghost-kamuro',
+  'double-helix'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -49,6 +52,7 @@ export const AVAILABLE_EFFECT_TAGS = [
   'glitter-strobe',
   'crackle',
   'ghost',
+  'ghost-flare',
   'flow',
   'no-trail'
 ];
@@ -353,6 +357,30 @@ export const PRESET_TEMPLATES = {
     dynamics: 'galaxy-spin',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
+  },
+  ghostKamuro: {
+    shape: 'sphere',
+    dynamics: 'ghost-kamuro',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  ghost_kamuro: {
+    shape: 'sphere',
+    dynamics: 'ghost-kamuro',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  doubleHelix: {
+    shape: 'double-helix',
+    dynamics: 'double-helix',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  double_helix: {
+    shape: 'double-helix',
+    dynamics: 'double-helix',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
   }
 };
 
@@ -404,6 +432,8 @@ export function resolveFireworkComposition(eventOrPreset) {
     effects = [...template.effects];
     if (eventOrPreset.strobe && !effects.includes('strobe')) effects.push('strobe');
     if (eventOrPreset.crackle && !effects.includes('crackle')) effects.push('crackle');
+    if (eventOrPreset.ghost && !effects.includes('ghost')) effects.push('ghost');
+    if (eventOrPreset.ghostFlare && !effects.includes('ghost-flare')) effects.push('ghost-flare');
     if (eventOrPreset.flow && !effects.includes('flow')) effects.push('flow');
     if (eventOrPreset.noTrail && !effects.includes('no-trail')) effects.push('no-trail');
   }

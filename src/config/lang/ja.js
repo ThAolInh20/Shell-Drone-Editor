@@ -352,6 +352,7 @@ export default {
         glitterStrobe: "グリッターストロボ",
         crackle: "クラックル Crackle",
         ghost: "ゴースト明滅",
+        ghostFlare: "3段階ゴーストフレア Ghost Flare",
         flow: "遊泳 Flow",
         noTrail: "トレイルなし",
         activeEffects: "有効エフェクト",
@@ -395,7 +396,8 @@ export default {
           willow: "柳形",
           "willow-up": "上方噴射柳",
           "half-flash": "半球フラッシュ",
-          "split-flash": "赤道分割フラッシュ"
+          "split-flash": "赤道分割フラッシュ",
+          "double-helix": "二重螺旋 Double Helix"
         },
         dynamicsType: {
           standard: "標準放射",
@@ -415,7 +417,9 @@ export default {
           "crysanthemum-spiral-v2": "菊スパイラル点灯 V2",
           sparking: "火花残光",
           "sparking-v2": "即時火花残光",
-          "swimming-star": "スイミングスター"
+          "swimming-star": "スイミングスター",
+          "ghost-kamuro": "ゴースト冠菊 Ghost Kamuro",
+          "double-helix": "二重螺旋旋回 Double Helix"
         },
         pattern: {
           random: "ランダム",
@@ -449,10 +453,15 @@ export default {
           empty: "なし"
         },
         preset: {
-          random: "ランダム"
+          random: "ランダム",
+          ghostKamuro: "ゴースト冠菊 Ghost Kamuro",
+          ghost_kamuro: "ゴースト冠菊 Ghost Kamuro",
+          doubleHelix: "二重螺旋花火 Double Helix",
+          double_helix: "二重螺旋花火 Double Helix"
         },
         cometTrail: {
           none: "なし",
+          thin: "細直高速",
           normal: "通常",
           thick: "ライト"
         }

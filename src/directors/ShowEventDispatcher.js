@@ -49,13 +49,20 @@ export class ShowEventDispatcher {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
             overrides.instantBurst = true;
           } else if (evt.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
+            overrides.thinTrail = false;
+          } else if (evt.cometTrail === 'thin') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = true;
           } else if (evt.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
           }
         }
       }

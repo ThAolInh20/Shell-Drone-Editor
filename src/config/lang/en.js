@@ -366,6 +366,7 @@ export default {
         glitterStrobe: "Glitter Strobe",
         crackle: "Crackle",
         ghost: "Ghost Fade Reappear",
+        ghostFlare: "Ghost 3 Stage Flare",
         flow: "Flow Fish swimming",
         noTrail: "No Trail",
         activeEffects: "Active Effects",
@@ -410,7 +411,8 @@ export default {
           willow: "Willow Droop",
           "willow-up": "Willow Up Fountain",
           "half-flash": "Half Sphere Flash",
-          "split-flash": "Split Sphere Flash"
+          "split-flash": "Split Sphere Flash",
+          "double-helix": "Double Helix"
         },
         dynamicsType: {
           standard: "Standard Radial",
@@ -430,7 +432,9 @@ export default {
           "crysanthemum-spiral-v2": "Chrysanthemum Spiral V2",
           sparking: "Sparking Ember Decay",
           "sparking-v2": "Sparking V2 Instant Ember",
-          "swimming-star": "Swimming Star Slow Fish Flow"
+          "swimming-star": "Swimming Star Slow Fish Flow",
+          "ghost-kamuro": "Ghost Kamuro Willow",
+          "double-helix": "Double Helix Orbit"
         },
         pattern: {
           random: "Random",
@@ -464,10 +468,15 @@ export default {
           empty: "None"
         },
         preset: {
-          random: "Random"
+          random: "Random",
+          ghostKamuro: "Ghost Kamuro",
+          ghost_kamuro: "Ghost Kamuro",
+          doubleHelix: "Double Helix",
+          double_helix: "Double Helix"
         },
         cometTrail: {
           none: "None",
+          thin: "Thin Straight",
           normal: "Normal",
           thick: "Light"
         }

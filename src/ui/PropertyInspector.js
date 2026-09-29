@@ -31,6 +31,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghost'
   },
   {
+    key: 'ghost-flare',
+    labelKey: 'ghostFlare'
+  },
+  {
     key: 'flow',
     labelKey: 'flow'
   },
@@ -269,6 +273,7 @@ export class PropertyInspector {
               type: 'select',
               options: [
                 'normal',
+                'thin',
                 'thick',
                 'none'
               ]

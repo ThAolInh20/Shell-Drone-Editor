@@ -28,6 +28,8 @@ export class BurstEffectProcessor {
     'bouquet-comet',
     'willow',
     'swimming-star',
+    'ghost-kamuro',
+    'double-helix',
     'no-trail',
     'notrail'
   ]);
@@ -521,6 +523,46 @@ BurstEffectProcessor.registerEffect('notrail', {
     return {
       gravityScale: 0.3,
       spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('ghost-kamuro', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    velocity.x *= 0.988;
+    velocity.z *= 0.988;
+    velocity.y = velocity.y * 0.990 - 0.05 * (age / Math.max(0.1, maxLife)) * 9.8 * deltaTime;
+
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    const isReignited = lifeRatio > 0.60;
+
+    return {
+      gravityScale: isReignited ? 0.38 : 0.18,
+      spawnTrail: isReignited,
+      trailLife: 0.95,
+      trailIntensity: 1.4
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('double-helix', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    const spinSpeed = 1.2 * (1.0 - lifeRatio * 0.5);
+    const angleChange = spinSpeed * deltaTime;
+    const cos = Math.cos(angleChange);
+    const sin = Math.sin(angleChange);
+    const oldX = velocity.x;
+    const oldZ = velocity.z;
+    velocity.x = oldX * cos - oldZ * sin;
+    velocity.z = oldX * sin + oldZ * cos;
+    velocity.multiplyScalar(0.994);
+
+    return {
+      gravityScale: 0.16,
+      spawnTrail: true,
+      trailLife: 0.60,
+      trailIntensity: 0.85
     };
   }
 });
