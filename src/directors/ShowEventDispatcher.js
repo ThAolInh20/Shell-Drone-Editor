@@ -21,19 +21,30 @@ export class ShowEventDispatcher {
     // Single event handler
     this.register('single', (evt, context) => {
       let overrides = evt.effectOverrides;
-      if (evt.instantBurst !== undefined 
-        || evt.shellSize !== undefined 
-        || evt.strobe !== undefined 
-        || evt.crackle !== undefined 
+      if (
+        evt.instantBurst !== undefined
+        || evt.shellSize !== undefined
+        || evt.shapeType !== undefined
+        || evt.dynamicsType !== undefined
         || evt.pistil !== undefined
-        || evt.cometTrail !== undefined) 
-      {
+        || evt.effects !== undefined
+        || evt.strobe !== undefined
+        || evt.crackle !== undefined
+        || evt.flow !== undefined
+        || evt.noTrail !== undefined
+        || evt.cometTrail !== undefined
+      ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
         if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
+        if (evt.shapeType !== undefined) overrides.shapeType = evt.shapeType;
+        if (evt.dynamicsType !== undefined) overrides.dynamicsType = evt.dynamicsType;
+        if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
+        if (evt.effects !== undefined) overrides.effects = evt.effects;
         if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
-        if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
+        if (evt.flow !== undefined) overrides.flow = evt.flow;
+        if (evt.noTrail !== undefined) overrides.noTrail = evt.noTrail;
         if (evt.cometTrail !== undefined) {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;

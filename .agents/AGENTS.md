@@ -27,3 +27,15 @@
 ## Firework & Shell Configurations
 - **Read Centralized Configurations**: Whenever a user request relates to configuring firework parameters, particle counts, gravity, multipliers, or special shell presets (such as bouquet or comet settings), you MUST first read and refer to the centralized configuration file at `./src/config/fireworks.js` to ensure configurations remain unified and follow the established parameter schemas.
 
+## Firework Composition Architecture Conventions
+- **Composition over Presets**: Fireworks must strictly adhere to the Component-based Composition model:
+  - **Shape** (spatial geometry at t = 0): Handled by `BurstShapeGenerator.js`. Must NOT contain particle physics or dynamics logic.
+  - **Dynamics** (particle kinematics, drift, drag, drooping at t > 0): Handled by `BurstEffectProcessor.js`. Must NOT hard-code shapes. Note: `willow` is a Dynamics behavior, not a Shape.
+  - **Modifiers** (structural modifiers): E.g. `pistil` (inner core burst), `instantBurst` (immediate velocity burst).
+  - **Visual Effects** (stackable optical modifiers): E.g. `strobe`, `white-strobe`, `glitter-strobe`, `crackle`, `ghost`.
+  - **Presets as Templates**: New presets must be registered as Composition Templates in `FireworkCompositionHelper.js` and `ShellPresetFactory.js`.
+- **Centralized Taxonomy**: Whenever adding a new Shape, Dynamics, Modifier, or Visual Effect tag, you MUST register it in `./src/factories/FireworkCompositionHelper.js` and provide translations in all language files (`./src/config/lang/{en,vi,zh,ja}.js`).
+
+## UI & Localization Text Conventions
+- **No Parentheses in Text Strings**: Do NOT use parentheses `(...)` in UI labels, options, preset display names, or translation strings. Keep titles and labels clean, natural, and concise without parenthetical notes (e.g. use "Chrysanthemum Spiral V2" instead of "Chrysanthemum Spiral V2 (Spiral -> Sphere)", "Bouquet Cluster" instead of "Bouquet (Cluster)", "Direct Save" instead of "(Direct Save)").
+

@@ -262,12 +262,7 @@ export class FireworkSystem {
         targetHeight,
         position.z
       );
-      const isBouquet = (
-        shellPreset.shellType === 'bouquet'
-        || shellPreset.shellType === 'bouquetComet'
-        || shellPreset.shellType === 'bouquetCometSphere'
-        || shellPreset.shellType === 'bouquetv2'
-      );
+      const isBouquet = this.isBouquetShell(shellPreset);
 
       if (isBouquet) {
         const burstDir = velocity && velocity.lengthSq() > 0.001
@@ -461,7 +456,7 @@ export class FireworkSystem {
   }
 
   createShell(position, velocity, burstHeight, color, preset = null, shellId = null) {
-    const shellShape = preset?.shapeType ?? this.pickFireworkShape();
+    const shellShape = preset?.shapeType ?? preset?.shape ?? this.pickFireworkShape();
     return new ShellEntity({
       shellId,
       position,
@@ -469,10 +464,36 @@ export class FireworkSystem {
       burstHeight,
       color,
       shape: shellShape,
-      shellType: preset?.shellType ?? shellShape,
-      shapeType: preset?.shapeType ?? shellShape,
+      shellType: preset?.shellType ?? preset?.preset ?? shellShape,
+      shapeType: preset?.shapeType ?? preset?.shape ?? shellShape,
       preset
     });
+  }
+
+  isBouquetShell(preset) {
+    if (!preset) return false;
+
+    // If shapeType or dynamicsType is explicitly set away from bouquet, respect composition authority
+    if (
+      preset.shapeType
+      && preset.shapeType !== 'upward-spray'
+      && preset.dynamicsType
+      && preset.dynamicsType !== 'bouquet-comet'
+    ) {
+      return false;
+    }
+
+    const type = (preset.shellType || preset.type || preset.preset || '').toLowerCase();
+    return (
+      preset.dynamicsType === 'bouquet-comet'
+      || preset.dynamics === 'bouquet-comet'
+      || preset.shapeType === 'upward-spray'
+      || type === 'bouquet'
+      || type === 'bouquetcomet'
+      || type === 'bouquetcometsphere'
+      || type === 'bouquetv2'
+      || type === 'bouquetv2multicolor'
+    );
   }
 
   triggerBouquetBurst(
@@ -483,7 +504,7 @@ export class FireworkSystem {
     burstDirection = null,
     parentVelocity = null
   ) {
-    const shellType = preset.shellType;
+    const shellType = (preset?.shellType || preset?.type || preset?.preset || '').toLowerCase();
 
     // Xác định hướng nổ từ hướng bay của pháo mẹ
     const defaultUp = new THREE.Vector3(0, 1, 0);
@@ -511,11 +532,11 @@ export class FireworkSystem {
 
     if (
       shellType === 'bouquet'
-      || shellType === 'bouquetComet'
-      || shellType === 'bouquetCometSphere'
+      || shellType === 'bouquetcomet'
+      || shellType === 'bouquetcometsphere'
     ) {
       let clusterCount;
-      if (shellType === 'bouquetCometSphere') {
+      if (shellType === 'bouquetcometsphere') {
         const cfg = FIREWORK_CONFIG.BOUQUET.cometSphere;
         clusterCount = cfg.clusterCountMin + Math.floor(
           Math.random() * (
@@ -533,8 +554,8 @@ export class FireworkSystem {
 
       for (let i = 0; i < clusterCount; i++) {
         const colorHex = (
-          shellType === 'bouquetComet'
-          || shellType === 'bouquetCometSphere'
+          shellType === 'bouquetcomet'
+          || shellType === 'bouquetcometsphere'
         )
           ? color.getHex()
           : FIREWORK_COLORS[
@@ -546,7 +567,7 @@ export class FireworkSystem {
 
         let vx, vy, vz;
 
-        if (shellType === 'bouquetCometSphere') {
+        if (shellType === 'bouquetcometsphere') {
           // Use Fibonacci sphere for a perfectly even and clear spherical shell
           const t = (i + 0.5) / clusterCount;
           const phi = Math.acos(1 - 2 * t);
@@ -593,7 +614,7 @@ export class FireworkSystem {
 
         // Kế thừa quán tính vận tốc từ pháo mẹ
         if (parentVelocity) {
-          const momentumScale = shellType === 'bouquetCometSphere' ? 0.25 : 0.35;
+          const momentumScale = shellType === 'bouquetcometsphere' ? 0.25 : 0.35;
           velocity.addScaledVector(parentVelocity, momentumScale);
         }
 
@@ -601,15 +622,15 @@ export class FireworkSystem {
 
         let subPreset;
         if (
-          shellType === 'bouquetComet'
-          || shellType === 'bouquetCometSphere'
+          shellType === 'bouquetcomet'
+          || shellType === 'bouquetcometsphere'
         ) {
           subPreset = this.shellPresetFactory.basePreset(0.5);
           subPreset.noBurst = true;
           subPreset.shellType = 'floral-child';
           subPreset.isBouquetComet = true;
           subPreset.thickTrail = true;
-          const baseStarLife = shellType === 'bouquetCometSphere'
+          const baseStarLife = shellType === 'bouquetcometsphere'
             ? FIREWORK_CONFIG.BOUQUET.cometSphere.starLife
             : FIREWORK_CONFIG.BOUQUET.default.starLife;
           subPreset.starLife = baseStarLife * (0.8 + Math.random() * 0.4);
@@ -637,7 +658,10 @@ export class FireworkSystem {
         this.activeFireworks.push(subShell);
         this.diagnostics.launched += 1;
       }
-    } else if (shellType === 'bouquetv2') {
+    } else if (
+      shellType === 'bouquetv2'
+      || shellType === 'bouquetv2multicolor'
+    ) {
       const cfg = FIREWORK_CONFIG.BOUQUET.v2;
       const clusterCount = cfg.clusterCountMin + Math.floor(
         Math.random() * (
@@ -765,15 +789,24 @@ export class FireworkSystem {
   }
 
   createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
-    const requestedShape = shape ?? 'sphere';
+    const requestedShape = preset?.shapeType
+      || preset?.shape
+      || shape
+      || 'sphere';
     const resolvedShape = BurstShapeGenerator.resolveShape(requestedShape);
     if (resolvedShape !== requestedShape) {
       this.diagnostics.shapeFallbacks += 1;
       this.registerWarning(`[Burst] Shape fallback from "${requestedShape}" to "${resolvedShape}".`);
     }
 
-    const crackleEnabled = Boolean(preset?.crackle);
-    const requestedEffect = preset?.effectType ?? resolvedShape;
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const requestedEffect = preset?.dynamicsType
+      || preset?.dynamics
+      || (preset?.flow !== undefined
+        ? (preset.flow ? 'flow' : 'standard')
+        : preset?.effectType)
+      || resolvedShape;
     const normalizedEffect = BurstEffectProcessor.normalizeEffectType(requestedEffect);
     if (normalizedEffect !== requestedEffect) {
       this.diagnostics.effectFallbacks += 1;
@@ -930,13 +963,31 @@ export class FireworkSystem {
       const particleIndex = isCoreParticle ? i : (i - coreCount);
       const particleCount = isCoreParticle ? coreCount : ringCount;
       const angle = (particleIndex / particleCount) * Math.PI * 2;
-      const direction = BurstShapeGenerator.direction(
-        particleShape,
-        angle,
-        particleIndex,
-        particleCount,
-        isCoreParticle ? preset : ringPreset
-      ).applyQuaternion(burstRotation);
+
+      const isSpiralV2 = normalizedEffect === 'crysanthemum-spiral-v2';
+      const spiralArmCount = isSpiralV2 ? Math.floor(burstParticleCount * 0.38) : 0;
+      const isSpiralArm = isSpiralV2 && (i < spiralArmCount);
+
+      let direction;
+      if (isSpiralArm) {
+        const tArm = i / Math.max(1, spiralArmCount - 1);
+        const turns = 3.5;
+        const theta = tArm * turns * Math.PI * 2;
+        const phi = Math.acos(Math.max(-1, Math.min(1, 1.0 - 2.0 * tArm)));
+        direction = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta),
+          Math.cos(phi),
+          Math.sin(phi) * Math.sin(theta)
+        ).applyQuaternion(burstRotation);
+      } else {
+        direction = BurstShapeGenerator.direction(
+          particleShape,
+          angle,
+          particleIndex,
+          particleCount,
+          isCoreParticle ? preset : ringPreset
+        ).applyQuaternion(burstRotation);
+      }
 
       const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy');
       if (!useContourMagnitude) {
@@ -1017,6 +1068,26 @@ export class FireworkSystem {
           + nz * effectState.ghostAxis.z;
       }
 
+      let spiralIndexVal = 0;
+      if (normalizedEffect === 'crysanthemum-spiral') {
+        const speedVal = velocityVal.length();
+        const nx = speedVal > 0 ? velocityVal.x / speedVal : 0;
+        const ny = speedVal > 0 ? velocityVal.y / speedVal : 0;
+        const nz = speedVal > 0 ? velocityVal.z / speedVal : 0;
+        const normH = (ny + 1.0) * 0.5; // 0 (bottom pole) to 1 (top pole)
+        const azimuth = Math.atan2(nz, nx);
+        const normAzimuth = (azimuth + Math.PI) / (Math.PI * 2.0);
+        const turns = 3.5;
+        const rawSpiral = (1.0 - normH) * turns + normAzimuth;
+        spiralIndexVal = Math.max(0, Math.min(1, rawSpiral / (turns + 1.0)));
+      } else if (normalizedEffect === 'crysanthemum-spiral-v2') {
+        if (isSpiralArm) {
+          spiralIndexVal = i / Math.max(1, spiralArmCount - 1);
+        } else {
+          spiralIndexVal = 1.0;
+        }
+      }
+
       const isNestedTrigger = isNestedParent && nestedTriggerIndices.has(i);
       let particleMaxLife;
       let particleVelocity = velocityVal;
@@ -1055,6 +1126,8 @@ export class FireworkSystem {
         heightProfile,
         effectState,
         ghostDot: ghostDotVal,
+        spiralIndex: spiralIndexVal,
+        isSpiralArm: Boolean(isSpiralArm),
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
@@ -1254,12 +1327,7 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
-    if (
-      item.shellType === 'bouquet'
-      || item.shellType === 'bouquetComet'
-      || item.shellType === 'bouquetCometSphere'
-      || item.shellType === 'bouquetv2'
-    ) {
+    if (this.isBouquetShell(item) || this.isBouquetShell(item.preset)) {
       const parentVel = item.velocity ? item.velocity.clone() : null;
       const burstDir = parentVel && parentVel.lengthSq() > 0.001
         ? parentVel.clone().normalize()
@@ -1423,6 +1491,66 @@ export class FireworkSystem {
       );
       p.velocity.y += GRAVITY * deltaTime * finalGravityScale;
 
+      // Water collision check at Y <= 0 (Water surface)
+      if (p.position.y <= 0) {
+        const isHot = (p.baseColor.r + p.baseColor.g + p.baseColor.b) > 0.08 && p.age < p.maxLife * 0.95;
+        if (isHot) {
+          // 1. Steam puff when hot particle hits water
+          if (Math.random() < 0.35) {
+            const steamVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.8,
+              0.6 + Math.random() * 0.8,
+              (Math.random() - 0.5) * 0.8
+            );
+            const steamOptions = {
+              life: 0.7 + Math.random() * 0.5,
+              scale: 1.8 + Math.random() * 1.2,
+              growth: 2.2,
+              drag: 2.8,
+              buoyancy: 0.9,
+              opacity: 0.12,
+              color: new THREE.Color(0xdde5ee)
+            };
+            if (this.smokeSystem) {
+              this.smokeSystem.addSmokePoint(
+                new THREE.Vector3(p.position.x, 0.05, p.position.z),
+                steamVel,
+                steamOptions
+              );
+            } else {
+              globalEventBus.emit(
+                'smoke:spawn',
+                {
+                  position: new THREE.Vector3(p.position.x, 0.05, p.position.z),
+                  velocity: steamVel,
+                  options: steamOptions
+                }
+              );
+            }
+          }
+
+          // 2. Micro sizzle splash spark
+          if (Math.random() < 0.25) {
+            const splashVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 3.5,
+              1.2 + Math.random() * 2.0,
+              (Math.random() - 0.5) * 3.5
+            );
+            this.trailSystem.spawnEffectSpark(
+              new THREE.Vector3(p.position.x, 0.05, p.position.z),
+              p.baseColor.clone().lerp(new THREE.Color(0xffffff), 0.5),
+              false,
+              splashVel,
+              0,
+              0.15 + Math.random() * 0.1
+            );
+          }
+        }
+
+        // Extinguish particle immediately on water impact
+        continue;
+      }
+
       // 2. Spawn Side Effects (sparks, trails, smoke)
       if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         this.trailSystem.spawnEffectSpark(
@@ -1439,13 +1567,54 @@ export class FireworkSystem {
         )
         : 1.0;
 
-      if (spawnTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+      let isSpiralIgnited = true;
+      let spiralFlashBonus = 1.0;
+      if (p.effectType === 'crysanthemum-spiral') {
+        // Quét xoắn ốc từ t = 0 đến t = 0.65. Sau 0.65 (giai đoạn cuối) thì toàn bộ 100% hạt hình cầu đã sáng bừng rực rỡ
+        const sweepProgress = Math.min(1.0, lifeRatio / 0.65);
+        const particleSpiral = p.spiralIndex ?? 0;
+        isSpiralIgnited = particleSpiral <= sweepProgress;
+        if (isSpiralIgnited) {
+          const timeSinceIgnition = sweepProgress - particleSpiral;
+          if (timeSinceIgnition < 0.08) {
+            spiralFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 0.75;
+          }
+        }
+      } else if (p.effectType === 'crysanthemum-spiral-v2') {
+        if (p.isSpiralArm) {
+          // Nhánh xoắn ốc 3D sáng dần liên tục từ t = 0 đến t = 0.52
+          const armSweep = Math.min(1.0, lifeRatio / 0.52);
+          const particleSpiral = p.spiralIndex ?? 0;
+          isSpiralIgnited = particleSpiral <= armSweep;
+          if (isSpiralIgnited) {
+            const timeSinceIgnition = armSweep - particleSpiral;
+            if (timeSinceIgnition < 0.08) {
+              spiralFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 0.85;
+            }
+          }
+        } else {
+          // Khối cầu ẩn tối ở giai đoạn đầu, sau đó bừng sáng đồng loạt toàn bộ hình sphere ở t >= 0.52
+          isSpiralIgnited = lifeRatio >= 0.52;
+          if (isSpiralIgnited) {
+            const timeSinceSphereBloom = lifeRatio - 0.52;
+            if (timeSinceSphereBloom < 0.10) {
+              spiralFlashBonus = 1.0 + (1.0 - timeSinceSphereBloom / 0.10) * 0.95;
+            }
+          }
+        }
+      }
+
+      const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
+        || p.effectType === 'crysanthemum-spiral-v2';
+      const allowTrail = spawnTrail && (!isChrysanthemumSpiral || isSpiralIgnited);
+
+      if (allowTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const isHalfFlashTentacle = p.effectState?.shapeType === 'half-flash'
           && p.particleIndex >= (p.totalParticleCount - 4);
         const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
           && p.particleIndex >= (p.totalParticleCount - 5);
         const isCometRing = p.effectState?.effectType === 'comet-ring';
-        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing) ? 1.0 : 0.3;
+        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();
@@ -1734,6 +1903,18 @@ export class FireworkSystem {
         r = activeColor.r * fade;
         g = activeColor.g * fade;
         b = activeColor.b * fade;
+      } else if (p.effectType === 'crysanthemum-spiral' || p.effectType === 'crysanthemum-spiral-v2') {
+        if (!isSpiralIgnited) {
+          // Giai đoạn tiền kích hoạt: tia lửa ẩn tối rất mờ (0.02) lướt êm trong không trung
+          r = p.baseColor.r * 0.02;
+          g = p.baseColor.g * 0.02;
+          b = p.baseColor.b * 0.02;
+        } else {
+          // Giai đoạn bắt lửa: bừng sáng chói lọi và rực rỡ đuôi hoa cúc
+          r = Math.min(2.0, p.baseColor.r * spiralFlashBonus);
+          g = Math.min(2.0, p.baseColor.g * spiralFlashBonus);
+          b = Math.min(2.0, p.baseColor.b * spiralFlashBonus);
+        }
       }
 
       p.color.setRGB(r, g, b);

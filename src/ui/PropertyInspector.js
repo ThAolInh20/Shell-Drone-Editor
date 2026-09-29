@@ -1,5 +1,44 @@
 import { t } from '../config/lang/i18n.js';
 import { editorConfig } from '../config/editor.js';
+import {
+  AVAILABLE_SHAPES,
+  AVAILABLE_DYNAMICS,
+  AVAILABLE_MODIFIERS,
+  PRESET_TEMPLATES,
+  getTemplateForPreset,
+  resolveFireworkComposition
+} from '../factories/FireworkCompositionHelper.js';
+
+export const AVAILABLE_EFFECT_TAGS = [
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
+  },
+  {
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
+  },
+  {
+    key: 'crackle',
+    labelKey: 'crackle'
+  },
+  {
+    key: 'ghost',
+    labelKey: 'ghost'
+  },
+  {
+    key: 'flow',
+    labelKey: 'flow'
+  },
+  {
+    key: 'no-trail',
+    labelKey: 'noTrail'
+  }
+];
 
 export class PropertyInspector {
   constructor(container, onUpdate, presetOptions = ['random']) {
@@ -155,6 +194,41 @@ export class PropertyInspector {
           ]
         },
         {
+          groupKey: 'compositionSettings',
+          fields: [
+            {
+              name: 'shapeType',
+              labelKey: 'shapeType',
+              type: 'select',
+              options: AVAILABLE_SHAPES,
+              span: 2
+            },
+            {
+              name: 'dynamicsType',
+              labelKey: 'dynamicsType',
+              type: 'select',
+              options: AVAILABLE_DYNAMICS,
+              span: 2
+            },
+            {
+              name: 'pistil',
+              labelKey: 'pistil',
+              type: 'checkbox'
+            },
+            {
+              name: 'instantBurst',
+              labelKey: 'instantBurst',
+              type: 'checkbox'
+            },
+            {
+              name: 'effects',
+              labelKey: 'activeEffects',
+              type: 'effect-chips',
+              span: 2
+            }
+          ]
+        },
+        {
           groupKey: (this.selectedEvent && this.isCometEvent(this.selectedEvent))
             ? 'cometConfig'
             : 'angleConfig',
@@ -178,8 +252,17 @@ export class PropertyInspector {
         {
           groupKey: 'visualEffects',
           fields: [
-            { name: 'color', labelKey: 'color', type: 'color-badges' },
-            { name: 'shellSize', labelKey: 'shellSize', type: 'number', step: '0.1' },
+            {
+              name: 'color',
+              labelKey: 'color',
+              type: 'color-badges'
+            },
+            {
+              name: 'shellSize',
+              labelKey: 'shellSize',
+              type: 'number',
+              step: '0.1'
+            },
             {
               name: 'cometTrail',
               labelKey: 'cometTrail',
@@ -189,11 +272,7 @@ export class PropertyInspector {
                 'thick',
                 'none'
               ]
-            },
-            { name: 'pistil', labelKey: 'pistil', type: 'checkbox' },
-            { name: 'instantBurst', labelKey: 'instantBurst', type: 'checkbox' },
-            { name: 'strobe', labelKey: 'strobe', type: 'checkbox' },
-            { name: 'crackle', labelKey: 'crackle', type: 'checkbox' }
+            }
           ]
         },
         {
@@ -233,6 +312,25 @@ export class PropertyInspector {
     const typeKey = this.selectedEvent.type === 'audio'
       ? 'audio'
       : (this.selectedEvent.type === 'group' ? 'group' : 'event');
+
+    if (typeKey === 'event') {
+      const comp = resolveFireworkComposition(this.selectedEvent);
+      if (this.selectedEvent.shapeType === undefined) {
+        this.selectedEvent.shapeType = comp.shape;
+      }
+      if (this.selectedEvent.dynamicsType === undefined) {
+        this.selectedEvent.dynamicsType = comp.dynamics;
+      }
+      if (this.selectedEvent.pistil === undefined) {
+        this.selectedEvent.pistil = comp.modifiers.pistil;
+      }
+      if (this.selectedEvent.instantBurst === undefined) {
+        this.selectedEvent.instantBurst = comp.modifiers.instantBurst;
+      }
+      if (this.selectedEvent.effects === undefined) {
+        this.selectedEvent.effects = comp.effects;
+      }
+    }
 
     // Default cometTrail based on preset if undefined
     if (
@@ -280,7 +378,7 @@ export class PropertyInspector {
       if (group.groupKey === 'geometryOffsets') {
         const helpIcon = document.createElement('span');
         helpIcon.className = 'inspector-help-icon';
-        helpIcon.textContent = '❓';
+        helpIcon.textContent = '[?]';
         helpIcon.title = t('editor.inspector.help.geometryOffsetsTooltip') || 'Help';
 
         helpIcon.addEventListener('click', (e) => {
@@ -339,6 +437,8 @@ export class PropertyInspector {
               this.renderAngleDial(fieldWrapper, field);
             } else if (field.type === 'checkbox') {
               this.renderCheckbox(fieldWrapper, field);
+            } else if (field.type === 'effect-chips') {
+              this.renderEffectChips(fieldWrapper, field);
             } else {
               this.renderStandardInput(fieldWrapper, field);
             }
@@ -422,6 +522,20 @@ export class PropertyInspector {
         this.selectedEvent[field.name] = val;
       }
 
+      if (field.name === 'preset' && val) {
+        const template = getTemplateForPreset(val);
+        if (template) {
+          this.selectedEvent.shapeType = template.shape;
+          this.selectedEvent.dynamicsType = template.dynamics;
+          this.selectedEvent.pistil = template.modifiers.pistil;
+          this.selectedEvent.instantBurst = template.modifiers.instantBurst;
+          this.selectedEvent.effects = [...template.effects];
+          this.triggerUpdate();
+          this.render();
+          return;
+        }
+      }
+
       this.triggerUpdate();
     });
 
@@ -467,6 +581,145 @@ export class PropertyInspector {
     const span = document.createElement('span');
     span.textContent = t(`editor.inspector.fields.${field.labelKey}`);
     container.appendChild(span);
+    parent.appendChild(container);
+  }
+
+  renderEffectChips(parent, field) {
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
+
+    const container = document.createElement('div');
+    container.className = 'inspector-effect-chips-container';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+    container.style.marginTop = '4px';
+
+    // 1. Chips wrapper
+    const chipsWrapper = document.createElement('div');
+    chipsWrapper.className = 'inspector-chips-wrapper';
+    chipsWrapper.style.display = 'flex';
+    chipsWrapper.style.flexWrap = 'wrap';
+    chipsWrapper.style.gap = '6px';
+    chipsWrapper.style.minHeight = '24px';
+    chipsWrapper.style.alignItems = 'center';
+
+    const currentEffectsList = Array.isArray(this.selectedEvent.effects)
+      ? this.selectedEvent.effects
+      : [];
+
+    const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
+      return !!this.selectedEvent[eff.key] || currentEffectsList.includes(eff.key);
+    });
+
+    if (activeEffects.length === 0) {
+      const emptySpan = document.createElement('span');
+      emptySpan.style.fontSize = '11px';
+      emptySpan.style.color = '#777';
+      emptySpan.style.fontStyle = 'italic';
+      emptySpan.textContent = t('editor.inspector.noActiveEffects') || 'No active effects';
+      chipsWrapper.appendChild(emptySpan);
+    } else {
+      activeEffects.forEach((eff) => {
+        const chip = document.createElement('div');
+        chip.className = 'inspector-effect-chip';
+        chip.style.display = 'inline-flex';
+        chip.style.alignItems = 'center';
+        chip.style.gap = '6px';
+        chip.style.padding = '3px 8px';
+        chip.style.background = 'rgba(0, 200, 255, 0.12)';
+        chip.style.border = '1px solid rgba(0, 200, 255, 0.35)';
+        chip.style.borderRadius = '12px';
+        chip.style.fontSize = '11px';
+        chip.style.color = '#64d2ff';
+        chip.style.userSelect = 'none';
+
+        const chipText = document.createElement('span');
+        chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
+        chip.appendChild(chipText);
+
+        const removeBtn = document.createElement('span');
+        removeBtn.textContent = '×';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.fontSize = '14px';
+        removeBtn.style.lineHeight = '1';
+        removeBtn.style.color = '#ff6b6b';
+        removeBtn.style.fontWeight = 'bold';
+        removeBtn.style.padding = '0 2px';
+        removeBtn.title = t('editor.inspector.removeEffect') || 'Remove effect';
+
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.triggerUpdate('beforeChange');
+          delete this.selectedEvent[eff.key];
+          if (Array.isArray(this.selectedEvent.effects)) {
+            this.selectedEvent.effects = this.selectedEvent.effects.filter((k) => k !== eff.key);
+          }
+          this.triggerUpdate();
+          this.render();
+        });
+
+        chip.appendChild(removeBtn);
+        chipsWrapper.appendChild(chip);
+      });
+    }
+
+    // 2. Add Effect Dropdown Selector
+    const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
+      return !this.selectedEvent[eff.key] && !currentEffectsList.includes(eff.key);
+    });
+
+    const addWrapper = document.createElement('div');
+    addWrapper.style.display = 'flex';
+    addWrapper.style.alignItems = 'center';
+    addWrapper.style.gap = '6px';
+
+    const select = document.createElement('select');
+    select.className = 'inspector-input';
+    select.style.fontSize = '11px';
+    select.style.padding = '4px 8px';
+    select.style.cursor = 'pointer';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = availableToAdd.length > 0
+      ? (t('editor.inspector.addEffectPrompt') || '+ Add Effect...')
+      : (t('editor.inspector.allEffectsAdded') || 'All effects added');
+    select.appendChild(defaultOption);
+
+    if (availableToAdd.length === 0) {
+      select.disabled = true;
+      select.style.opacity = '0.5';
+    } else {
+      availableToAdd.forEach((eff) => {
+        const opt = document.createElement('option');
+        opt.value = eff.key;
+        opt.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        const selectedKey = e.target.value;
+        if (!selectedKey) return;
+        this.triggerUpdate('beforeChange');
+        this.selectedEvent[selectedKey] = true;
+        if (!Array.isArray(this.selectedEvent.effects)) {
+          this.selectedEvent.effects = [];
+        }
+        if (!this.selectedEvent.effects.includes(selectedKey)) {
+          this.selectedEvent.effects.push(selectedKey);
+        }
+        this.triggerUpdate();
+        this.render();
+      });
+    }
+
+    addWrapper.appendChild(select);
+    container.appendChild(chipsWrapper);
+    container.appendChild(addWrapper);
+
+    parent.appendChild(label);
     parent.appendChild(container);
   }
 

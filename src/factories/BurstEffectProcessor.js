@@ -18,11 +18,18 @@ export class BurstEffectProcessor {
     'falling-comets',
     'falling-comets-glitter',
     'crysanthemum-trail',
+    'crysanthemum-smoke',
+    'crysanthemum-spiral',
+    'crysanthemum-spiral-v2',
     'crysanthemum-cc',
     'ghost',
     'galaxy-spin',
     'comet-ring',
-    'bouquet-comet'
+    'bouquet-comet',
+    'willow',
+    'swimming-star',
+    'no-trail',
+    'notrail'
   ]);
 
   static effectsRegistry = new Map();
@@ -67,7 +74,19 @@ export class BurstEffectProcessor {
 
   static initialize(effectType, count, preset = null) {
     const normalizedEffect = this.normalizeEffectType(effectType);
-    const strobeEnabled = Boolean(preset?.strobe);
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const strobeEnabled = Boolean(preset?.strobe)
+      || effectsList.includes('strobe')
+      || effectsList.includes('white-strobe')
+      || effectsList.includes('glitter-strobe');
+    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
+    const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
+    const noTrail = Boolean(preset?.noTrail)
+      || effectsList.includes('no-trail')
+      || effectsList.includes('notrail')
+      || normalizedEffect === 'notrail'
+      || normalizedEffect === 'no-trail';
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -87,7 +106,7 @@ export class BurstEffectProcessor {
     }
 
     let ghostAxis = { x: 1, y: 0, z: 0 };
-    if (normalizedEffect === 'ghost') {
+    if (ghostEnabled) {
       const vec = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
       ghostAxis = { x: vec.x, y: vec.y, z: vec.z };
     }
@@ -95,7 +114,10 @@ export class BurstEffectProcessor {
     return {
       effectType: normalizedEffect,
       strobe: strobeEnabled,
-      crackle: Boolean(preset?.crackle),
+      crackle: crackleEnabled,
+      ghost: ghostEnabled,
+      flow: flowEnabled,
+      noTrail,
       spin,
       phase,
       turbulence,
@@ -140,7 +162,7 @@ export class BurstEffectProcessor {
       }
     }
 
-    // Apply modular overrides for strobe and crackle on top of other effects
+    // Apply modular overrides for strobe, crackle, and flow on top of other effects
     if (effectState?.strobe && effectType !== 'strobe' && effectType !== 'white-strobe' && effectType !== 'glitter-strobe') {
       gravityScale = 0.2;
       velocity.multiplyScalar(0.996);
@@ -153,6 +175,22 @@ export class BurstEffectProcessor {
       velocity.y += (Math.random() - 0.5) * jitter * 0.5;
       velocity.z += (Math.random() - 0.5) * jitter;
       emitSpark = false;
+    }
+
+    if (effectState?.flow && effectType !== 'flow') {
+      const spinAmount = (effectState.spin[index] || 0) * deltaTime;
+      const cos = Math.cos(spinAmount);
+      const sin = Math.sin(spinAmount);
+      const oldX = velocity.x;
+      const oldZ = velocity.z;
+      velocity.x = oldX * cos - oldZ * sin;
+      velocity.z = oldX * sin + oldZ * cos;
+      velocity.y += Math.sin(age * 3 + (effectState.phase[index] || 0)) * 0.02;
+      velocity.multiplyScalar(0.998);
+      gravityScale = Math.min(gravityScale, 0.12);
+      spawnTrail = true;
+      trailLife = Math.max(trailLife, 0.25);
+      trailIntensity = Math.max(trailIntensity, 0.3);
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)
@@ -175,6 +213,10 @@ export class BurstEffectProcessor {
         trailLife = 0.38;
         trailIntensity = 0.9;
       }
+    }
+
+    if (effectState?.noTrail) {
+      spawnTrail = false;
     }
 
     return {
@@ -344,6 +386,30 @@ BurstEffectProcessor.registerEffect('crysanthemum-smoke', {
   }
 });
 
+BurstEffectProcessor.registerEffect('crysanthemum-spiral', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.45,
+      trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.50,
+      trailIntensity: 1.0
+    };
+  }
+});
+
 BurstEffectProcessor.registerEffect('crysanthemum-cc', {
   updateVelocity() {
     return { gravityScale: 0.3 };
@@ -399,12 +465,62 @@ BurstEffectProcessor.registerEffect('sparking-v2', {
 
 BurstEffectProcessor.registerEffect('bouquet-comet', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
-    velocity.multiplyScalar(0.995); // Lực cản không khí
-    return { 
-      gravityScale: 0.15, // Trọng lực vừa phải để vút lên cao rồi cong dần xuống
-      spawnTrail: true, 
-      trailLife: 0.8, // Vệt đuôi dài
-      trailIntensity: 0.7 
+    velocity.multiplyScalar(0.993); // Lực cản không khí
+    // Trọng lực tăng dần theo thời gian: ban đầu nhẹ để vút lên cao, sau đó tăng dần để rủ cong theo vòng cung xuống
+    const arcGravity = 0.10 + Math.min(0.25, Math.max(0, age - 0.25) * 0.18);
+    return {
+      gravityScale: arcGravity,
+      spawnTrail: true,
+      trailLife: 0.95,
+      trailIntensity: 0.9
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('willow', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.988);
+    return {
+      gravityScale: 0.22,
+      spawnTrail: true,
+      trailLife: 0.85,
+      trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('swimming-star', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const spinAmount = (effectState?.spin?.[index] || 0) * deltaTime * 0.85;
+    const cos = Math.cos(spinAmount);
+    const sin = Math.sin(spinAmount);
+    const oldX = velocity.x;
+    const oldZ = velocity.z;
+    velocity.x = oldX * cos - oldZ * sin;
+    velocity.z = oldX * sin + oldZ * cos;
+    velocity.y += Math.sin(age * 2.8 + (effectState?.phase?.[index] || 0)) * 0.018;
+    velocity.multiplyScalar(0.994);
+    return {
+      gravityScale: 0.08,
+      spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('no-trail', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.3,
+      spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('notrail', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.3,
+      spawnTrail: false
     };
   }
 });

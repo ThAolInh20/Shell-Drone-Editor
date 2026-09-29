@@ -63,17 +63,36 @@ export class WaterSurface {
 
     const heightMap = new Float32Array(size * size);
 
-    // Generate multi-octave perlin/sin wave heightmap
+    // Multi-directional Trochoidal wave summation with varying angles and frequencies
+    const waveDirections = [
+      { dir: [1.0, 0.2], freq: 3.5, amp: 0.35 },
+      { dir: [-0.6, 0.8], freq: 6.2, amp: 0.22 },
+      { dir: [0.7, -0.7], freq: 11.8, amp: 0.16 },
+      { dir: [0.3, 0.95], freq: 19.5, amp: 0.11 },
+      { dir: [-0.9, -0.4], freq: 31.0, amp: 0.08 },
+      { dir: [0.85, 0.5], freq: 47.0, amp: 0.05 },
+      { dir: [-0.3, 0.95], freq: 73.0, amp: 0.03 }
+    ];
+
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const u = (x / size) * Math.PI * 2;
         const v = (y / size) * Math.PI * 2;
 
-        let h = Math.sin(u * 3 + v * 2) * 0.4;
-        h += Math.sin(u * 7 - v * 5) * 0.25;
-        h += Math.sin(u * 13 + v * 11) * 0.15;
-        h += Math.sin(u * 23 - v * 19) * 0.1;
-        h += Math.sin(u * 41 + v * 37) * 0.05;
+        let h = 0;
+        for (let w = 0; w < waveDirections.length; w++) {
+          const wave = waveDirections[w];
+          const dp = u * wave.dir[0] + v * wave.dir[1];
+          // Trochoidal peak shaping creates sharper crests and rounded troughs
+          const s = Math.sin(dp * wave.freq);
+          const trochoid = Math.sign(s) * Math.pow(Math.abs(s), 1.25);
+          h += trochoid * wave.amp;
+        }
+
+        // Add cross-turbulence noise to eliminate grid alignment
+        const crossNoise = Math.sin(u * 17.3 + Math.cos(v * 19.7)) * 0.06 +
+          Math.cos(v * 29.1 + Math.sin(u * 31.3)) * 0.04;
+        h += crossNoise;
 
         heightMap[y * size + x] = h;
       }
@@ -90,8 +109,8 @@ export class WaterSurface {
         const dX = heightMap[y * size + xR] - heightMap[y * size + xL];
         const dY = heightMap[yD * size + x] - heightMap[yU * size + x];
 
-        const nx = -dX * 2.5;
-        const ny = -dY * 2.5;
+        const nx = -dX * 3.2;
+        const ny = -dY * 3.2;
         const nz = 1.0;
 
         const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
@@ -161,17 +180,39 @@ export class WaterSurface {
       varying vec2 vUv;
 
       void main() {
-        // Dual scrolling UVs
-        vec2 uv1 = vUv * uWaveScale + vec2(uTime * uWaveSpeed, uTime * uWaveSpeed * 0.6);
-        vec2 uv2 = vUv * uWaveScale * 1.35 - vec2(uTime * uWaveSpeed * 0.7, -uTime * uWaveSpeed * 0.9);
+        float t = uTime * uWaveSpeed;
 
-        // Sample normal maps
+        // Tri-directional rotation matrices for non-aligned scrolling
+        mat2 rot1 = mat2(0.866, -0.5, 0.5, 0.866);
+        mat2 rot2 = mat2(0.707, 0.707, -0.707, 0.707);
+        mat2 rot3 = mat2(0.5, 0.866, -0.866, 0.5);
+
+        // Layer 1: Macro base waves
+        vec2 uv1 = (rot1 * (vUv * (uWaveScale * 0.42))) + vec2(t * 0.7, t * 0.35);
         vec3 n1 = texture2D(uNormalMap, uv1).rgb * 2.0 - 1.0;
+
+        // Layer 2: Medium ripples with domain warping from Layer 1
+        vec2 uv2 = (rot2 * (vUv * uWaveScale)) + vec2(-t * 0.85, t * 0.6) + n1.xy * 0.04;
         vec3 n2 = texture2D(uNormalMap, uv2).rgb * 2.0 - 1.0;
 
-        // Blend normals
-        vec3 normal = normalize(vec3(n1.xy + n2.xy, n1.z * n2.z));
-        normal = normalize(vec3(normal.x, normal.z, normal.y)); // Convert tangent space to world normal (Y is up)
+        // Layer 3: Micro fine ripples
+        vec2 uv3 = (rot3 * (vUv * (uWaveScale * 1.85))) + vec2(t * 1.15, -t * 0.95) + n2.xy * 0.03;
+        vec3 n3 = texture2D(uNormalMap, uv3).rgb * 2.0 - 1.0;
+
+        // Macro Spatial Noise Modulation across Lake Surface (calm patches vs choppy breeze patches)
+        vec2 worldCoord = vWorldPosition.xz * 0.0018;
+        float macroWave = sin(worldCoord.x * 2.1 + cos(worldCoord.y * 1.7 + t * 0.3)) *
+                          cos(worldCoord.y * 2.4 - sin(worldCoord.x * 1.5 - t * 0.2));
+        float spatialModulation = clamp(0.45 + 0.55 * (macroWave * 0.5 + 0.5), 0.25, 1.35);
+
+        // Blend 3 normal layers with weighted contributions
+        vec3 combinedNorm = normalize(vec3(
+          n1.xy * 0.45 + n2.xy * 0.35 + n3.xy * 0.20,
+          n1.z * n2.z * n3.z
+        ));
+        
+        // Convert tangent space normal to world normal (Y is up)
+        vec3 normal = normalize(vec3(combinedNorm.x, combinedNorm.z, combinedNorm.y));
 
         // View direction
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
@@ -181,10 +222,10 @@ export class WaterSurface {
 
         // Distance attenuation to prevent excessive shimmering at the far horizon
         float distToCam = length(cameraPosition - vWorldPosition);
-        float distFactor = clamp(350.0 / distToCam, 0.15, 1.0);
+        float distFactor = clamp(400.0 / distToCam, 0.15, 1.0);
 
-        // Distort UV by wave normal
-        vec2 distortion = normal.xz * uDistortionStrength * distFactor;
+        // Distort UV by wave normal modulated spatially
+        vec2 distortion = normal.xz * uDistortionStrength * spatialModulation * distFactor;
         vec2 reflectUV = clamp(baseCoord + distortion, vec2(0.001), vec2(0.999));
 
         // Sample reflected image

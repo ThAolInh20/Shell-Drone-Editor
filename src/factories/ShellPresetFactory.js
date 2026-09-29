@@ -17,22 +17,72 @@ const PRESET_COLORS = [
 export class ShellPresetFactory {
   constructor() {
     this.palette = [COLOR.Red, COLOR.Gold, COLOR.White, COLOR.Blue];
-    this.shapeRegistry = new Set(['sphere', 'ring', 'heart', 'willow', 'willow-up', 'star', 'lightning', 'oval', 'flower', 'cat', 'fish', 'smiley', 'half-flash', 'split-flash', 'galaxy']);
-    this.effectRegistry = new Set(['standard', 'crackle', 'flow', 'snow', 'wave', 'flower', 'strobe', 'white-strobe', 'glitter-strobe', 'heart', 'oval', 'floral', 'falling-leaves', 'falling-comets', 'falling-comets-glitter', 'crysanthemum-trail', 'crysanthemum-smoke', 'crysanthemum-cc', 'galaxy-spin', 'comet-ring', 'sparking', 'sparking-v2']);
+    this.shapeRegistry = new Set([
+      'sphere',
+      'ring',
+      'heart',
+      'willow',
+      'willow-up',
+      'star',
+      'lightning',
+      'oval',
+      'flower',
+      'cat',
+      'fish',
+      'smiley',
+      'half-flash',
+      'split-flash',
+      'galaxy',
+      'upward-spray'
+    ]);
+    this.effectRegistry = new Set([
+      'standard',
+      'crackle',
+      'flow',
+      'snow',
+      'wave',
+      'flower',
+      'floral',
+      'falling-leaves',
+      'falling-comets',
+      'falling-comets-glitter',
+      'crysanthemum-trail',
+      'crysanthemum-smoke',
+      'crysanthemum-spiral',
+      'crysanthemum-spiral-v2',
+      'crysanthemum-cc',
+      'ghost',
+      'galaxy-spin',
+      'comet-ring',
+      'bouquet-comet',
+      'willow',
+      'sparking',
+      'sparking-v2',
+      'swimming-star',
+      'strobe',
+      'white-strobe',
+      'glitter-strobe',
+      'heart',
+      'oval',
+      'no-trail',
+      'notrail'
+    ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
-      { key: 'comet_cluster_notrail', label: 'Comet Cluster (No Trail)' },
-      { key: 'comet_cluster_cc', label: 'Comet Cluster (Color Change)' },
-      { key: 'comet_cluster_thick', label: 'Comet Cluster (Thick Trail)' },
+      { key: 'comet_cluster_notrail', label: 'Comet Cluster No Trail' },
+      { key: 'comet_cluster_cc', label: 'Comet Cluster Color Change' },
+      { key: 'comet_cluster_thick', label: 'Comet Cluster Thick Trail' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
+      { key: 'crysanthemumSpiral', label: 'Chrysanthemum Spiral' },
+      { key: 'crysanthemumSpiralV2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
       { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
-      { key: 'sparking', label: 'Sparking (Ember Decay)' },
-      { key: 'sparkingV2', label: 'Sparking V2 (Instant Ember)' },
+      { key: 'sparking', label: 'Sparking Ember Decay' },
+      { key: 'sparkingV2', label: 'Sparking V2 Instant Ember' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
       { key: 'whiteStrobe', label: 'White Strobe' },
@@ -42,11 +92,11 @@ export class ShellPresetFactory {
       { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
-      { key: 'bouquet', label: 'Bouquet (Cluster)' },
-      { key: 'bouquetComet', label: 'Bouquet (Comets)' },
+      { key: 'bouquet', label: 'Bouquet Cluster' },
+      { key: 'bouquetComet', label: 'Bouquet Comets' },
       { key: 'bouquetCometSphere', label: 'Bouquet' },
       { key: 'bouquetV2', label: 'Bouquet V2' },
-      { key: 'bouquetV2Multicolor', label: 'Bouquet V2 (Multi Color)' },
+      { key: 'bouquetV2Multicolor', label: 'Bouquet V2 Multi Color' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
       { key: 'cat', label: 'Cat' },
@@ -56,7 +106,8 @@ export class ShellPresetFactory {
       { key: 'oval', label: 'Oval' },
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
-      { key: 'fishV2', label: 'Fish V2 (Spherical)' },
+      { key: 'fishV2', label: 'Fish V2 Spherical' },
+      { key: 'fishV3', label: 'Fish V3 Chrysanthemum Swimming' },
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
       { key: 'heart', label: 'Heart' },
@@ -65,7 +116,7 @@ export class ShellPresetFactory {
       { key: 'falling-comets', label: 'Falling Comets' },
       { key: 'halfFlash', label: 'Half Sphere Flash' },
       { key: 'splitFlash', label: 'Split Sphere Flash' },
-      { key: 'sparkling_comet', label: 'Sparkling Comet (Apex Spark)' },
+      { key: 'sparkling_comet', label: 'Sparkling Comet Apex Spark' },
       { key: 'galaxy', label: 'Spiral Galaxy' }
     ];
 
@@ -85,6 +136,8 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
     this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
+    this.presetsRegistry.set('crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
+    this.presetsRegistry.set('crysanthemumSpiralV2', (size) => this.crysanthemumSpiralV2Shell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
     this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
     this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
@@ -114,6 +167,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('snow', (size) => this.snowShell(size));
     this.presetsRegistry.set('fish', (size) => this.fishShell(size));
     this.presetsRegistry.set('fishV2', (size) => this.fishV2Shell(size));
+    this.presetsRegistry.set('fishV3', (size) => this.fishV3Shell(size));
     this.presetsRegistry.set('smiley', (size) => this.smileyShell(size));
     this.presetsRegistry.set('wave', (size) => this.waveShell(size));
     this.presetsRegistry.set('heart', (size) => this.hearthShell(size));
@@ -260,6 +314,40 @@ export class ShellPresetFactory {
       shapeType: 'sphere',
       effectType: 'crysanthemum-smoke',
       starLife: 1800 + size * 400, // Tăng thời gian sống của hạt pháo để bay xa hơn và sinh khói dài hơn
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSpiralShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSpiral',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-spiral',
+      particleCountMultiplier: 1.25,
+      starLife: 1600 + size * 350,
+      launchTrail: true,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  crysanthemumSpiralV2Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemumSpiralV2',
+      shapeType: 'sphere',
+      effectType: 'crysanthemum-spiral-v2',
+      particleCountMultiplier: 1.35,
+      starLife: 1700 + size * 350,
+      launchTrail: true,
       flower: false,
       smiley: false,
       hearth: false,
@@ -611,6 +699,31 @@ export class ShellPresetFactory {
       shapeType: 'sphere',
       effectType: 'flow',
       fish: true
+    };
+  }
+
+  fishV3Shell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'fishV3',
+      shapeType: 'sphere',
+      effectType: 'swimming-star',
+      dynamicsType: 'swimming-star',
+      effects: [],
+      fish: true,
+      flow: true,
+      noTrail: true,
+      pistil: false,
+      pistilColor: null,
+      glitter: '',
+      streamers: false,
+      nestedBurst: false,
+      isNestedChild: false,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
     };
   }
 
