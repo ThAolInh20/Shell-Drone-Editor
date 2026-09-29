@@ -29,6 +29,8 @@ export class CometEntity {
     const fadeStartRatio = 0.65 + Math.random() * 0.3;
     this.fadeStartTime = this.timeToApex * fadeStartRatio;
     this.isFading = false;
+    this.strobePhase = Math.random() * Math.PI * 2;
+    this.strobeFreq = 42 + Math.random() * 16;
 
     if (this.preset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
       this.color1 = color.clone();
@@ -44,7 +46,7 @@ export class CometEntity {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array([color.r, color.g, color.b]), 3));
-      
+
       const material = new THREE.PointsMaterial({
         size: 32, // BASE_BURST_POINT_SIZE is 26, slightly larger for standalone comet visibility
         vertexColors: true,
@@ -88,7 +90,7 @@ export class CometEntity {
           `
         );
       };
-      
+
       this.coreMesh = new THREE.Points(geometry, material);
       this.mesh.add(this.coreMesh);
     } else {
@@ -147,16 +149,16 @@ export class CometEntity {
       this.velocity.y += -30 * deltaTime; // Gravity
       this.mesh.position.addScaledVector(this.velocity, deltaTime);
       this.age += deltaTime;
-      
+
       this.updateRotation();
 
       if (this.preset?.shellType === 'comet_cluster_cc' && this.color2) {
         const timeToApex = this.initialVy / 30;
         const lifeRatio = Math.min(1.0, this.age / timeToApex);
-        
+
         let fade = 1.0;
         let activeColor = this.color1;
-        
+
         if (lifeRatio < 0.4) {
           activeColor = this.color1;
           fade = 1.0;
@@ -226,20 +228,30 @@ export class CometEntity {
     const currentHeight = this.mesh.position.y - (this.launchY ?? 0);
     const heightRatio = H_max > 0 ? (currentHeight / H_max) : 0;
 
-    const isStrobeActive = this.preset?.strobe && 
-                           this.state === CometEntity.STATE.LAUNCHING && 
-                           heightRatio >= 0.5 &&
-                           !this.isFading;
+    const hasStrobeTag = Boolean(
+      this.preset?.strobe ||
+      (Array.isArray(this.preset?.effects) && (
+        this.preset.effects.includes('strobe') ||
+        this.preset.effects.includes('white-strobe') ||
+        this.preset.effects.includes('glitter-strobe')
+      ))
+    );
 
-    // Hiệu ứng lung linh (shimmer/twinkle) bằng cách dao động liên tục opacity và scale của lõi comet
+    const isStrobeActive = hasStrobeTag &&
+      this.state === CometEntity.STATE.LAUNCHING &&
+      heightRatio >= 0.5 &&
+      !this.isFading;
+
+    // Hiệu ứng lung linh (shimmer/twinkle) với phase lệch nhau giữa các hạt trong cluster
     if (isStrobeActive) {
       this.coreMesh.visible = true;
+      const strobeTime = this.age * this.strobeFreq + this.strobePhase;
       // Dao động hình sin nhanh cho opacity
-      const shimmerVal = 0.3 + 0.7 * Math.abs(Math.sin(this.age * 50));
+      const shimmerVal = 0.2 + 0.8 * Math.abs(Math.sin(strobeTime));
       this.coreMesh.material.opacity = shimmerVal;
 
       // Dao động scale để lõi phồng xẹp lấp lánh
-      const scaleMultiplier = 0.7 + 0.4 * Math.abs(Math.sin(this.age * 50));
+      const scaleMultiplier = 0.65 + 0.45 * Math.abs(Math.sin(strobeTime));
       const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
       const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
       this.coreMesh.scale.set(
@@ -250,7 +262,7 @@ export class CometEntity {
 
       // Hòa trộn màu sắc lõi pháo sang màu trắng lung linh
       if (this.coreMesh.material && this.coreMesh.material.color) {
-        const blendFactor = 0.5 + 0.5 * Math.sin(this.age * 50);
+        const blendFactor = 0.5 + 0.5 * Math.sin(strobeTime);
         this.coreMesh.material.color.copy(this.coreColor);
         this.coreMesh.material.color.r = this.coreColor.r + (1.0 - this.coreColor.r) * blendFactor;
         this.coreMesh.material.color.g = this.coreColor.g + (1.0 - this.coreColor.g) * blendFactor;

@@ -47,7 +47,7 @@ export class FireworkSequencer {
       let ratioX = 0.5;
       let ratioY = 0.5;
       let ratioZ = 0.5;
-      const delay = progress * duration;
+      let delay = progress * duration;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
 
       // CHỈ khi useAngle === true thì mới bắn theo góc chỉ định, nếu không check thì luôn bắn ngẫu nhiên
@@ -102,6 +102,44 @@ export class FireworkSequencer {
           ratioY = 0.4 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.4);
           angleOffset = (0.28 - 0.56 * progress) + (Math.random() - 0.5) * 0.12;
           break;
+        case 'crossfire': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.9 + 0.05) : (0.95 - progress * 0.9);
+          angleOffset = isEven ? 0.32 : -0.32;
+          break;
+        }
+        case 'crossfire-burst': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          angleOffset = isEven ? 0.35 : -0.35;
+          delay = 0;
+          break;
+        }
+        case 'v-shape': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - (progress / 2) * 0.9) : (0.5 + (progress / 2) * 0.9);
+          ratioY = 0.35 + progress * Math.max(0, baseRatioY - 0.35);
+          angleOffset = isEven ? (-0.22 * progress) : (0.22 * progress);
+          break;
+        }
+        case 'spiral-helix': {
+          const angleRad = progress * Math.PI * 4;
+          const radius = 0.38;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.3 + progress * Math.max(0.2, baseRatioY - 0.3);
+          angleOffset = Math.sin(angleRad) * 0.18;
+          break;
+        }
+        case 'ripple': {
+          const angleRad = i * 2.399963;
+          const radius = progress * 0.42;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.4 + (Math.sin(progress * Math.PI) * 0.15) + (baseRatioY - 0.4) * 0.5;
+          angleOffset = Math.cos(angleRad) * 0.22 * progress;
+          break;
+        }
         case 'sweep-arc':
         case 'sweep-arc-right':
         case 'sweep-arc-left': {
@@ -158,14 +196,19 @@ export class FireworkSequencer {
             t = ratioY;
           } else if (
             pattern.startsWith('sweep-arc') ||
-            pattern === 'fan'
+            pattern === 'fan' ||
+            pattern === 'v-shape'
           ) {
             t = Math.sin(progress * Math.PI);
           }
           ratioY = y1 + t * (y2 - y1);
         }
       } else if (config.ratioY !== undefined) {
-        const hasSinRatioY = pattern.startsWith('sweep-arc') || pattern === 'fan';
+        const hasSinRatioY = pattern.startsWith('sweep-arc') ||
+          pattern === 'fan' ||
+          pattern === 'v-shape' ||
+          pattern === 'spiral-helix' ||
+          pattern === 'ripple';
         if (!hasSinRatioY) {
           ratioY = config.ratioY;
         }
@@ -203,9 +246,15 @@ export class FireworkSequencer {
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
+            overrides.thinTrail = false;
+          } else if (config.cometTrail === 'thin') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = true;
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
           }
         }
       }
@@ -268,6 +317,44 @@ export class FireworkSequencer {
           angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           delay = 0; // All fired at same time
           break;
+        case 'crossfire': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.9 + 0.05) : (0.95 - progress * 0.9);
+          angleOffset = isEven ? maxAngleOffset * 0.75 : -maxAngleOffset * 0.75;
+          break;
+        }
+        case 'crossfire-burst': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          angleOffset = isEven ? maxAngleOffset * 0.8 : -maxAngleOffset * 0.8;
+          delay = 0;
+          break;
+        }
+        case 'v-shape': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - (progress / 2) * 0.9) : (0.5 + (progress / 2) * 0.9);
+          ratioY = 0.3 + progress * Math.max(0, baseRatioY - 0.3);
+          angleOffset = isEven ? (-maxAngleOffset * 0.6 * progress) : (maxAngleOffset * 0.6 * progress);
+          break;
+        }
+        case 'spiral-helix': {
+          const angleRad = progress * Math.PI * 4;
+          const radius = 0.38;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.3 + progress * Math.max(0.2, baseRatioY - 0.3);
+          angleOffset = Math.sin(angleRad) * maxAngleOffset * 0.5;
+          break;
+        }
+        case 'ripple': {
+          const angleRad = i * 2.399963;
+          const radius = progress * 0.42;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.35 + (Math.sin(progress * Math.PI) * 0.15) + (baseRatioY - 0.35) * 0.5;
+          angleOffset = Math.cos(angleRad) * maxAngleOffset * 0.6 * progress;
+          break;
+        }
         case 'sweep':
         case 'sweep-right':
         case 'sweep-left': {
@@ -344,7 +431,7 @@ export class FireworkSequencer {
           let t = progress;
           if (pattern === 'random') {
             t = ratioY;
-          } else if (pattern.startsWith('sweep-arc')) {
+          } else if (pattern.startsWith('sweep-arc') || pattern === 'v-shape') {
             t = Math.sin(progress * Math.PI);
           }
           ratioY = y1 + t * (y2 - y1);
@@ -352,7 +439,8 @@ export class FireworkSequencer {
       }
 
       let overrides = effectOverrides;
-      if (config.instantBurst !== undefined 
+      if (
+        config.instantBurst !== undefined 
         || config.shellSize !== undefined 
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
@@ -360,8 +448,12 @@ export class FireworkSequencer {
         || config.effects !== undefined
         || config.strobe !== undefined 
         || config.crackle !== undefined
-        || config.cometTrail !== undefined) 
-      {
+        || config.flow !== undefined
+        || config.cometTrail !== undefined 
+        || config.thickTrail !== undefined 
+        || config.thinTrail !== undefined 
+        || config.launchTrail !== undefined
+      ) {
         overrides = { ...(overrides || {}) };
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
         if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
@@ -371,17 +463,25 @@ export class FireworkSequencer {
         if (config.effects !== undefined) overrides.effects = config.effects;
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
+        if (config.flow !== undefined) overrides.flow = config.flow;
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
             overrides.instantBurst = true;
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
+            overrides.thinTrail = false;
+          } else if (config.cometTrail === 'thin') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = true;
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
           }
         }
       }
@@ -390,7 +490,15 @@ export class FireworkSequencer {
         timeToLaunch: delay,
         preset,
         isComet: true,
-        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides: overrides }
+        options: {
+          ratioX,
+          ratioY,
+          ratioZ,
+          angleOffset,
+          sectorId,
+          color,
+          effectOverrides: overrides
+        }
       });
     }
   }

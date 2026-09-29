@@ -39,7 +39,7 @@ export class CometSystem {
       resolvedPreset = this.shellPresetFactory.createPresetByKey('comet_cluster');
     }
 
-    // Áp dụng ghi đè cấu hình hiệu ứng từ sequence
+    // Áp dụng ghi đè cấu hình hiệu ứng từ sequence / inspector
     let finalPreset = resolvedPreset;
     if (effectOverrides && typeof effectOverrides === 'object') {
       finalPreset = { ...(resolvedPreset || {}), ...effectOverrides };
@@ -193,7 +193,16 @@ export class CometSystem {
       const currentHeight = comet.mesh.position.y - (comet.launchY ?? 0);
       const heightRatio = H_max > 0 ? (currentHeight / H_max) : 0;
 
-      const isStrobeActive = comet.preset?.strobe &&
+      const hasStrobeTag = Boolean(
+        comet.preset?.strobe ||
+        (Array.isArray(comet.preset?.effects) && (
+          comet.preset.effects.includes('strobe') ||
+          comet.preset.effects.includes('white-strobe') ||
+          comet.preset.effects.includes('glitter-strobe')
+        ))
+      );
+
+      const isStrobeActive = hasStrobeTag &&
         comet.state === CometEntity.STATE.LAUNCHING &&
         heightRatio >= 0.5;
 
@@ -213,6 +222,16 @@ export class CometSystem {
                 false,
                 customLife,
                 0.9,
+                false
+              );
+            } else if (comet.preset?.thinTrail) {
+              this.trailSystem.spawnTrailParticle(
+                comet.mesh.position.clone(),
+                comet.color,
+                0.6,
+                false,
+                customLife * 0.7,
+                0.05,
                 false
               );
             } else {

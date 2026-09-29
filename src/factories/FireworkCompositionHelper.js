@@ -68,7 +68,7 @@ export const PRESET_TEMPLATES = {
     shape: 'sphere',
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
-    effects: ['crackle']
+    effects: []
   },
   comet_cluster_notrail: {
     shape: 'sphere',
@@ -78,7 +78,7 @@ export const PRESET_TEMPLATES = {
   },
   comet_cluster_cc: {
     shape: 'sphere',
-    dynamics: 'crysanthemum-trail',
+    dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
