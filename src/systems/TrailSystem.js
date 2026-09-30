@@ -140,7 +140,8 @@ export class TrailSystem {
     customVelocity = null,
     gravityScale = 1.0,
     dragScale = 1.0,
-    shimmer = false
+    shimmer = false,
+    phase = null
   ) {
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
@@ -169,6 +170,10 @@ export class TrailSystem {
       opacity: opacityMultiplier,
       strobe: strobe,
       shimmer: shimmer,
+      phase: phase !== null ? phase : Math.random() * 1000,
+      strobeFreq: 90 + Math.random() * 90,
+      dutyRatio: 0.25 + Math.random() * 0.2,
+      shimmerSpeed: 0.03 + Math.random() * 0.04,
       gravityScale: gravityScale,
       dragScale: dragScale
     };
@@ -180,7 +185,7 @@ export class TrailSystem {
     color,
     strobe = false,
     customVelocity = null,
-    phase = 0,
+    phase = null,
     customLife = null,
     shimmer = false
   ) {
@@ -200,7 +205,10 @@ export class TrailSystem {
       age: 0,
       strobe: strobe,
       shimmer: shimmer,
-      phase: phase
+      phase: phase !== null ? phase : Math.random() * 1000,
+      strobeFreq: 90 + Math.random() * 90,
+      dutyRatio: 0.25 + Math.random() * 0.2,
+      shimmerSpeed: 0.03 + Math.random() * 0.04
     };
     this.trailParticles.push(spark);
   }
@@ -283,16 +291,10 @@ export class TrailSystem {
 
           // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
           if (particle.strobe) {
-            // Sử dụng thời gian thực tế toàn cục kết hợp lệch pha để đồng bộ hóa chớp nháy theo nhóm
-            const timeMs =
-              particle.phase !== undefined
-                ? performance.now() + particle.phase
-                : particle.age * 1000;
-            const strobeFreq = 120; // Tần số lấp lánh (ms)
-            const isBlinking =
-              Math.floor(timeMs / strobeFreq) %
-                2 ===
-              0;
+            const timeMs = performance.now() + (particle.phase ?? 0);
+            const freq = particle.strobeFreq ?? 120;
+            const cycleTime = timeMs % freq;
+            const isBlinking = cycleTime < (freq * (particle.dutyRatio ?? 0.35));
             if (!isBlinking) {
               alpha = 0.0;
             } else {
@@ -302,23 +304,21 @@ export class TrailSystem {
               b = 1.0;
             }
           } else if (particle.shimmer) {
-            // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin
-            const timeMs =
-              particle.phase !== undefined
-                ? performance.now() + particle.phase
-                : particle.age * 1000;
+            // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin độc lập
+            const timeMs = performance.now() + (particle.phase ?? 0);
+            const speed = particle.shimmerSpeed ?? 0.05;
             
             const shimmerVal =
-              0.3 +
-              0.7 *
+              0.2 +
+              0.8 *
                 Math.abs(
-                  Math.sin(timeMs * 0.05)
+                  Math.sin(timeMs * speed)
                 );
             alpha *= shimmerVal;
             
             // Trộn thêm ánh sáng trắng lung linh
             const blendFactor =
-              0.5 + 0.5 * Math.sin(timeMs * 0.05);
+              0.5 + 0.5 * Math.sin(timeMs * speed);
             r += (1.0 - r) * blendFactor;
             g += (1.0 - g) * blendFactor;
             b += (1.0 - b) * blendFactor;

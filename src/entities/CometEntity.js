@@ -29,8 +29,34 @@ export class CometEntity {
     const fadeStartRatio = 0.65 + Math.random() * 0.3;
     this.fadeStartTime = this.timeToApex * fadeStartRatio;
     this.isFading = false;
-    this.strobePhase = Math.random() * Math.PI * 2;
-    this.strobeFreq = 42 + Math.random() * 16;
+
+    // Stochastic Strobe / Glitter State Machine
+    const flashRate = 4.5 + Math.random() * 3.0; // 4.5 - 7.5 Hz
+    this.strobe = {
+      state: 'smolder', // 'smolder', 'flash', 'recovery'
+      stateTime: 0,
+      nextFlashInterval: -Math.log(1 - Math.random() * 0.99) / flashRate,
+      flashDuration: 0.045 + Math.random() * 0.025,
+      recoveryDuration: 0.03 + Math.random() * 0.02,
+      flashRate,
+      activationThreshold: 0.50 + Math.random() * 0.18, // 50% - 68%
+      energy: 0,
+      intensity: 0,
+      peakScaleBoost: 2.0 + Math.random() * 0.8,
+      peakEmission: 2.5 + Math.random() * 1.5,
+      attackRate: 150.0,
+      decayRate: 40.0,
+      doubleFlashChance: 0.15,
+      isDoubleFlash: false,
+      flashColor: new THREE.Color(0xffffff),
+      tempColor: new THREE.Color()
+    };
+
+    // Chỉ một tỷ lệ nhỏ hạt lấp lánh (khoảng 25% - 35%), các hạt khác sẽ mờ dần khi lên cao
+    this.isStrobeStar = preset?.isStrobeStar !== undefined
+      ? preset.isStrobeStar
+      : (Math.random() < (preset?.strobeRatio ?? 0.30));
+    this.dimStartTime = this.timeToApex * (0.45 + Math.random() * 0.15);
 
     if (this.preset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
       this.color1 = color.clone();
@@ -140,6 +166,14 @@ export class CometEntity {
     }
   }
 
+  calculateFlashEnvelope(t, attackRate, decayRate) {
+    if (t <= 0) return 0.0;
+    const raw = (1.0 - Math.exp(-attackRate * t)) * Math.exp(-decayRate * t);
+    const tPeak = Math.log(1.0 + attackRate / decayRate) / attackRate;
+    const maxRaw = (1.0 - Math.exp(-attackRate * tPeak)) * Math.exp(-decayRate * tPeak);
+    return Math.min(1.0, raw / (maxRaw || 1.0));
+  }
+
   update(deltaTime) {
     if (this.state === CometEntity.STATE.DEAD) {
       return true;
@@ -238,20 +272,78 @@ export class CometEntity {
     );
 
     const isStrobeActive = hasStrobeTag &&
+      this.isStrobeStar &&
       this.state === CometEntity.STATE.LAUNCHING &&
-      heightRatio >= 0.5 &&
+      heightRatio >= (this.strobe?.activationThreshold ?? 0.5) &&
       !this.isFading;
 
-    // Hiệu ứng lung linh (shimmer/twinkle) với phase lệch nhau giữa các hạt trong cluster
-    if (isStrobeActive) {
-      this.coreMesh.visible = true;
-      const strobeTime = this.age * this.strobeFreq + this.strobePhase;
-      // Dao động hình sin nhanh cho opacity
-      const shimmerVal = 0.2 + 0.8 * Math.abs(Math.sin(strobeTime));
-      this.coreMesh.material.opacity = shimmerVal;
+    const isDimmingNonStrobe = hasStrobeTag &&
+      !this.isStrobeStar &&
+      this.state === CometEntity.STATE.LAUNCHING &&
+      this.age >= this.dimStartTime;
 
-      // Dao động scale để lõi phồng xẹp lấp lánh
-      const scaleMultiplier = 0.65 + 0.45 * Math.abs(Math.sin(strobeTime));
+    // Stochastic Strobe / Glitter State Machine
+    if (isStrobeActive) {
+      this.strobe.stateTime += deltaTime;
+
+      switch (this.strobe.state) {
+        case 'smolder': {
+          this.strobe.energy = 0.0;
+          this.strobe.intensity = 0.0;
+          if (this.strobe.stateTime >= this.strobe.nextFlashInterval) {
+            this.strobe.state = 'flash';
+            this.strobe.stateTime = 0.0;
+            this.strobe.flashDuration = 0.045 + Math.random() * 0.025;
+          }
+          break;
+        }
+
+        case 'flash': {
+          const env = this.calculateFlashEnvelope(
+            this.strobe.stateTime,
+            this.strobe.attackRate,
+            this.strobe.decayRate
+          );
+          this.strobe.intensity = env;
+          this.strobe.energy = Math.pow(env, 0.55);
+
+          if (this.strobe.stateTime >= this.strobe.flashDuration) {
+            if (!this.strobe.isDoubleFlash && Math.random() < this.strobe.doubleFlashChance) {
+              this.strobe.isDoubleFlash = true;
+              this.strobe.state = 'smolder';
+              this.strobe.stateTime = 0.0;
+              this.strobe.nextFlashInterval = 0.02 + Math.random() * 0.03;
+            } else {
+              this.strobe.isDoubleFlash = false;
+              this.strobe.state = 'recovery';
+              this.strobe.stateTime = 0.0;
+            }
+          }
+          break;
+        }
+
+        case 'recovery': {
+          const progress = Math.min(1.0, this.strobe.stateTime / this.strobe.recoveryDuration);
+          this.strobe.energy = (1.0 - progress) * 0.08;
+          this.strobe.intensity = this.strobe.energy;
+
+          if (progress >= 1.0) {
+            this.strobe.state = 'smolder';
+            this.strobe.stateTime = 0.0;
+            this.strobe.nextFlashInterval = -Math.log(1 - Math.random() * 0.99) / this.strobe.flashRate;
+          }
+          break;
+        }
+      }
+
+      this.coreMesh.visible = true;
+      const energy = this.strobe.energy;
+
+      // 1. Opacity: 0.18 tối âm ỉ -> 1.0 chớp sáng
+      this.coreMesh.material.opacity = 0.18 + energy * 0.82;
+
+      // 2. Scale: Phình to tức thì ngay tại thời điểm lóe xung nhọn
+      const scaleMultiplier = 1.0 + energy * (this.strobe.peakScaleBoost - 1.0);
       const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
       const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
       this.coreMesh.scale.set(
@@ -260,14 +352,36 @@ export class CometEntity {
         baseScaleX * scaleMultiplier
       );
 
-      // Hòa trộn màu sắc lõi pháo sang màu trắng lung linh
+      // 3. Color Temperature & Emission
       if (this.coreMesh.material && this.coreMesh.material.color) {
-        const blendFactor = 0.5 + 0.5 * Math.sin(strobeTime);
-        this.coreMesh.material.color.copy(this.coreColor);
-        this.coreMesh.material.color.r = this.coreColor.r + (1.0 - this.coreColor.r) * blendFactor;
-        this.coreMesh.material.color.g = this.coreColor.g + (1.0 - this.coreColor.g) * blendFactor;
-        this.coreMesh.material.color.b = this.coreColor.b + (1.0 - this.coreColor.b) * blendFactor;
+        const flashLerp = Math.pow(energy, 1.2);
+        this.strobe.tempColor.copy(this.coreColor).lerp(this.strobe.flashColor, flashLerp);
+        if (energy > 0.05) {
+          this.strobe.tempColor.multiplyScalar(1.0 + energy * this.strobe.peakEmission);
+        }
+        this.coreMesh.material.color.copy(this.strobe.tempColor);
       }
+    } else if (isDimmingNonStrobe) {
+      // Các hạt không lấp lánh sẽ mờ dần và thu nhỏ êm dịu
+      const dimDuration = Math.max(0.1, this.timeToApex - this.dimStartTime);
+      const dimProgress = Math.min(1.0, (this.age - this.dimStartTime) / dimDuration);
+      const fadeFactor = Math.max(0.0, 1.0 - Math.pow(dimProgress, 1.3));
+
+      this.coreMesh.visible = fadeFactor > 0.02;
+      if (this.coreMesh.material) {
+        this.coreMesh.material.opacity = fadeFactor;
+        if (this.coreMesh.material.color) {
+          this.coreMesh.material.color.copy(this.color);
+        }
+      }
+      const scaleFactor = Math.max(0.1, 1.0 - dimProgress * 0.75);
+      const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+      const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+      this.coreMesh.scale.set(
+        baseScaleX * scaleFactor,
+        baseScaleY * scaleFactor,
+        baseScaleX * scaleFactor
+      );
     } else {
       this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING || this.isFading) : true;
       if (this.coreMesh.material && this.coreMesh.material.color) {

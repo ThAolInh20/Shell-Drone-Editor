@@ -65,6 +65,18 @@ export class CometSystem {
       finalPreset.secondColor = colorMap[hex] || 0xffffff;
     }
 
+    const hasStrobeTag = Boolean(
+      finalPreset?.strobe ||
+      (Array.isArray(finalPreset?.effects) && (
+        finalPreset.effects.includes('strobe') ||
+        finalPreset.effects.includes('white-strobe') ||
+        finalPreset.effects.includes('glitter-strobe')
+      ))
+    );
+    const strobeCount = hasStrobeTag 
+      ? Math.max(1, Math.min(3, Math.round(clusterCount * 0.3))) 
+      : 0;
+
     for (let i = 0; i < clusterCount; i++) {
       // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
       // Giảm độ cao xuống còn 2/3 so với ban đầu
@@ -85,11 +97,15 @@ export class CometSystem {
         (Math.random() - 0.5) * 0.2
       );
 
+      const cometPreset = hasStrobeTag
+        ? { ...finalPreset, isStrobeStar: (i < strobeCount) }
+        : finalPreset;
+
       const comet = new CometEntity({
         position: basePosition.clone(),
         velocity,
         color: cometColor,
-        preset: finalPreset
+        preset: cometPreset
       });
 
       comet.mesh.traverse((child) => {
@@ -203,100 +219,122 @@ export class CometSystem {
       );
 
       const isStrobeActive = hasStrobeTag &&
+        comet.isStrobeStar &&
         comet.state === CometEntity.STATE.LAUNCHING &&
-        heightRatio >= 0.5;
+        heightRatio >= (comet.strobe?.activationThreshold ?? 0.5);
 
-      // Thicker trails for comets during launch (before reaching 50% height or if no strobe)
+      const isDimmedOut = hasStrobeTag &&
+        !comet.isStrobeStar &&
+        comet.state === CometEntity.STATE.LAUNCHING &&
+        comet.age >= (comet.dimStartTime ?? 999);
+
+      // Thicker trails for comets during launch (before reaching strobe threshold or if not dimmed)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-        if (!isStrobeActive) {
+        if (comet.preset?.launchTrail !== false) {
           const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;
-          if (comet.preset?.launchTrail !== false && isCoreVisible) {
-            // vy / 30 chính là thời gian còn lại để đạt đỉnh (trọng lực g = 30)
-            // Nhân thêm 0.85 để hạt tắt trước đỉnh một chút, giúp phần đuôi thu gọn lại gọn gàng khi đạt đỉnh
-            const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
-            if (comet.preset?.thickTrail) {
+          const currentOpacity = comet.coreMesh?.material?.opacity ?? 1.0;
+          const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
+
+          if (isStrobeActive) {
+            // Hạt Strobe Star: Thả dòng hạt con lấp lánh (Glitter / Strobe Stream) độc lập lệch pha
+            if (Math.random() < 0.65) {
               this.trailSystem.spawnTrailParticle(
                 comet.mesh.position.clone(),
                 comet.color,
-                1.5,
+                0.8,
+                true,
+                customLife * 0.6,
+                0.85,
+                true, // strobe
+                null,
+                1.0,
+                1.0,
                 false,
-                customLife,
-                0.9,
-                false
+                Math.random() * 1000
               );
-            } else if (comet.preset?.thinTrail) {
-              this.trailSystem.spawnTrailParticle(
+            }
+            if (Math.random() < 0.35 && !comet.preset?.sparkleAtEnd) {
+              this.trailSystem.spawnEffectSpark(
                 comet.mesh.position.clone(),
                 comet.color,
-                0.6,
-                false,
-                customLife * 0.7,
-                0.05,
+                true,
+                null,
+                Math.random() * 1000,
+                customLife * 0.5,
                 false
               );
-            } else {
-              if (Math.random() < 0.5) {
+            }
+          } else if (!isDimmedOut) {
+            // Giai đoạn phóng chuẩn (trước khi đạt ngưỡng phân tách)
+            if (isCoreVisible) {
+              if (comet.preset?.thickTrail) {
                 this.trailSystem.spawnTrailParticle(
                   comet.mesh.position.clone(),
                   comet.color,
-                  1.0,
-                  true,
+                  1.5,
+                  false,
                   customLife,
-                  0.12,
+                  0.9,
                   false
                 );
-              }
-              if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
-                this.trailSystem.spawnEffectSpark(
+              } else if (comet.preset?.thinTrail) {
+                this.trailSystem.spawnTrailParticle(
                   comet.mesh.position.clone(),
                   comet.color,
+                  0.6,
+                  false,
+                  customLife * 0.7,
+                  0.05,
                   false
+                );
+              } else {
+                if (Math.random() < 0.5) {
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position.clone(),
+                    comet.color,
+                    1.0,
+                    true,
+                    customLife,
+                    0.12,
+                    false
+                  );
+                }
+                if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
+                  this.trailSystem.spawnEffectSpark(
+                    comet.mesh.position.clone(),
+                    comet.color,
+                    false
+                  );
+                }
+              }
+
+              if (this.smokeSystem && Math.random() < 0.35) {
+                this.smokeSystem.addSmokePoint(
+                  comet.mesh.position,
+                  comet.velocity.clone().multiplyScalar(-0.12),
+                  {
+                    life: 1.5 + Math.random() * 0.7,
+                    scale: 4.8 + Math.random() * 2.2,
+                    growth: 3.2,
+                    opacity: 0.22,
+                    color: comet.color.clone()
+                  }
                 );
               }
             }
-
-            if (this.smokeSystem && Math.random() < 0.35) {
-              this.smokeSystem.addSmokePoint(
-                comet.mesh.position,
-                comet.velocity.clone().multiplyScalar(-0.12),
-                {
-                  life: 1.5 + Math.random() * 0.7,
-                  scale: 4.8 + Math.random() * 2.2,
-                  growth: 3.2,
-                  opacity: 0.22,
-                  color: comet.color.clone()
-                }
+          } else if (currentOpacity > 0.08) {
+            // Các hạt đang mờ dần: Nhả vệt đuôi mờ dần tỷ lệ thuận theo opacity
+            if (Math.random() < 0.35 * currentOpacity) {
+              this.trailSystem.spawnTrailParticle(
+                comet.mesh.position.clone(),
+                comet.color,
+                0.5,
+                true,
+                customLife * 0.4,
+                0.15 * currentOpacity,
+                false
               );
             }
-          }
-        } else {
-          // Hiệu ứng lấp lánh khi đạt 50% độ cao trên đường bay
-          const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
-          if (Math.random() < 0.75) {
-            this.trailSystem.spawnTrailParticle(
-              comet.mesh.position.clone(),
-              comet.color,
-              1.0,
-              true,
-              customLife,
-              0.8,
-              false,
-              null,
-              1.0,
-              1.0,
-              true
-            );
-          }
-          if (Math.random() < 0.25 && !comet.preset?.sparkleAtEnd) {
-            this.trailSystem.spawnEffectSpark(
-              comet.mesh.position.clone(),
-              comet.color,
-              false,
-              null,
-              0,
-              null,
-              true
-            );
           }
         }
 
