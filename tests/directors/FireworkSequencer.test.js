@@ -149,4 +149,98 @@ describe('FireworkSequencer', () => {
     expect(lastTask.options.ratioY).toBeGreaterThan(firstTask.options.ratioY);
     expect(lastTask.options.angleOffset).toBeLessThan(firstTask.options.angleOffset);
   });
+
+  it('should generate scissor crossing trajectories in chasing-scissors pattern', () => {
+    sequencer.playPattern('chasing-scissors', {
+      count: 4,
+      duration: 2.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(4);
+    const evenTask = sequencer.activeTasks[0];
+    const oddTask = sequencer.activeTasks[1];
+
+    expect(evenTask.options.ratioX).toBeLessThan(0.5);
+    expect(oddTask.options.ratioX).toBeGreaterThan(0.5);
+    expect(evenTask.options.angleOffset).toBeGreaterThan(0);
+    expect(oddTask.options.angleOffset).toBeLessThan(0);
+  });
+
+  it('should generate sinusoidal oscillating wave in sinusoidal-wave pattern', () => {
+    sequencer.playPattern('sinusoidal-wave', {
+      count: 8,
+      duration: 2.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(8);
+    for (const task of sequencer.activeTasks) {
+      expect(task.options.ratioY).toBeDefined();
+      expect(task.options.angleOffset).toBeDefined();
+    }
+  });
+
+  it('should generate blooming wings in petal-bloom pattern', () => {
+    sequencer.playPattern('petal-bloom', {
+      count: 6,
+      duration: 2.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(6);
+    const evenTask = sequencer.activeTasks[0];
+    const oddTask = sequencer.activeTasks[1];
+
+    expect(evenTask.options.ratioX).toBeLessThanOrEqual(0.5);
+    expect(oddTask.options.ratioX).toBeGreaterThanOrEqual(0.5);
+    expect(evenTask.options.angleOffset).toBeLessThanOrEqual(0);
+    expect(oddTask.options.angleOffset).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should generate 3D funnel coordinates in vortex-tunnel pattern', () => {
+    sequencer.playPattern('vortex-tunnel', {
+      count: 6,
+      duration: 2.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(6);
+    const firstTask = sequencer.activeTasks[0];
+    const lastTask = sequencer.activeTasks[5];
+
+    expect(firstTask.options.ratioZ).toBeLessThan(lastTask.options.ratioZ);
+  });
+
+  it('should generate stepped altitudes in stepping-stones pattern', () => {
+    sequencer.playPattern('stepping-stones', {
+      count: 8,
+      duration: 2.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(8);
+    const firstTask = sequencer.activeTasks[0];
+    const lastTask = sequencer.activeTasks[7];
+
+    expect(firstTask.options.ratioY).toBeLessThan(lastTask.options.ratioY);
+  });
+
+  it('should scale pattern altitudes proportionally when ratioY is specified', () => {
+    sequencer.playPattern('sinusoidal-wave', {
+      count: 4,
+      duration: 1.0,
+      ratioY: 0.35
+    });
+
+    const lowTasks = [...sequencer.activeTasks];
+    sequencer.activeTasks = [];
+
+    sequencer.playPattern('sinusoidal-wave', {
+      count: 4,
+      duration: 1.0,
+      ratioY: 0.90
+    });
+
+    const highTasks = [...sequencer.activeTasks];
+
+    for (let i = 0; i < 4; i++) {
+      expect(highTasks[i].options.ratioY).toBeGreaterThan(lowTasks[i].options.ratioY);
+    }
+  });
 });

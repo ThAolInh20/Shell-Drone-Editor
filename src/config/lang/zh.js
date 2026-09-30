@@ -451,6 +451,13 @@ export default {
           "cascade-slope": "倾泻波浪",
           "cascade-slope-left": "向左倾泻波浪",
           "cascade-slope-right": "向右倾泻波浪",
+          "chasing-scissors": "双剪交叉",
+          "waterfall-curtain": "瀑布幕帘",
+          "sinusoidal-wave": "正弦丝绸波浪",
+          "petal-bloom": "花瓣绽放",
+          "teeter-totter": "跷跷板交错",
+          "vortex-tunnel": "3D涡旋隧道",
+          "stepping-stones": "阶梯跳跃",
           "fan-sweep-left": "扇形向左扫",
           "fan-sweep-right": "扇形向右扫"
         },

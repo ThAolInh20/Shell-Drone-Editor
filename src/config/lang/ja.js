@@ -451,6 +451,13 @@ export default {
           "cascade-slope": "カスケードスロープ",
           "cascade-slope-left": "左カスケードスロープ",
           "cascade-slope-right": "右カスケードスロープ",
+          "chasing-scissors": "シザーズチェイス",
+          "waterfall-curtain": "ウォーターフォールカーテン",
+          "sinusoidal-wave": "サインウェーブ",
+          "petal-bloom": "花弁ブルーム",
+          "teeter-totter": "シーソー交差",
+          "vortex-tunnel": "3Dボルテックストンネル",
+          "stepping-stones": "ステップストーン",
           "fan-sweep-left": "扇形左スイープ",
           "fan-sweep-right": "扇形右スイープ"
         },

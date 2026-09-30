@@ -78,11 +78,9 @@ export class CometSystem {
       : 0;
 
     for (let i = 0; i < clusterCount; i++) {
-      // Độ lệch rất nhỏ (chỉ khoảng +/- 2%) để các tia trong chuỗi tạo thành hình quạt/cung tròn đều đặn
-      // Giảm độ cao xuống còn 2/3 so với ban đầu
+      // Độ cao tính toán trực tiếp từ resolveBurstHeight theo ratioY, dao động nhẹ (+/- 3%)
       const targetHeight = this.resolveBurstHeight(preset, ratioY) *
-        0.66 *
-        (0.95 + Math.random() * 0.1);
+        (0.97 + Math.random() * 0.06);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
 
       // Spread the cluster more laterally
@@ -161,10 +159,19 @@ export class CometSystem {
 
   resolveBurstHeight(preset = null, ratioY) {
     if (ratioY !== undefined) {
-      return THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, ratioY / 3);
+      // Độ cao tối đa của comet bằng 1/2 pháo hoa (ratioY 0 -> 1 tương ứng 0 -> 0.5 của pháo hoa)
+      return THREE.MathUtils.lerp(
+        this.launchZone.minBurstY,
+        this.launchZone.maxBurstY,
+        ratioY * 0.5
+      );
     }
-    // Comets generally don't go as high as big shells, lowered to 1/3
-    return THREE.MathUtils.lerp(this.launchZone.minBurstY, this.launchZone.maxBurstY, (0.4 + Math.random() * 0.3) / 3);
+    // Mặc định comets bay ở khoảng tầm thấp/trung (0.35 - 0.55 của comet, tương ứng 0.175 - 0.275 của pháo hoa)
+    return THREE.MathUtils.lerp(
+      this.launchZone.minBurstY,
+      this.launchZone.maxBurstY,
+      (0.35 + Math.random() * 0.2) * 0.5
+    );
   }
 
   resolveLaunchVelocity(burstHeight, angleOffset = 0) {

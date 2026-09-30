@@ -466,6 +466,13 @@ export default {
           "cascade-slope": "Dáng đổ",
           "cascade-slope-left": "Dáng đổ trái",
           "cascade-slope-right": "Dáng đổ phải",
+          "chasing-scissors": "Lưỡi hái chém chéo",
+          "waterfall-curtain": "Bức màn thác nước",
+          "sinusoidal-wave": "Sóng lụa nhấp nhô",
+          "petal-bloom": "Cánh hoa bung nở",
+          "teeter-totter": "Bập bênh đan xen",
+          "vortex-tunnel": "Đường hầm xoáy 3D",
+          "stepping-stones": "Bấc nhảy bậc thang",
           "fan-sweep-left": "Hình quạt quét trái",
           "fan-sweep-right": "Hình quạt quét phải"
         },

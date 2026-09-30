@@ -466,6 +466,13 @@ export default {
           "cascade-slope": "Cascade Slope",
           "cascade-slope-left": "Cascade Slope Left",
           "cascade-slope-right": "Cascade Slope Right",
+          "chasing-scissors": "Chasing Scissors",
+          "waterfall-curtain": "Waterfall Curtain",
+          "sinusoidal-wave": "Sinusoidal Silk Wave",
+          "petal-bloom": "Petal Bloom",
+          "teeter-totter": "Teeter Totter",
+          "vortex-tunnel": "Vortex Tunnel 3D",
+          "stepping-stones": "Stepping Stones",
           "fan-sweep-left": "Fan Sweep Left",
           "fan-sweep-right": "Fan Sweep Right"
         },
