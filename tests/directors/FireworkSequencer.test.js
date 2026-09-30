@@ -128,4 +128,25 @@ describe('FireworkSequencer', () => {
     expect(overrides.pistil).toBe(true);
     expect(overrides.effects).toEqual(['ghost-flare']);
   });
+
+  it('should generate cascade slope trajectory and forward tilt angle', () => {
+    sequencer.playPattern('cascade-slope', {
+      count: 6,
+      duration: 2.0,
+      ratioY: 0.8
+    });
+
+    expect(sequencer.activeTasks.length).toBe(6);
+    const firstTask = sequencer.activeTasks[0];
+    const midTask = sequencer.activeTasks[2];
+    const lastTask = sequencer.activeTasks[5];
+
+    // Left side begins with forward tilt angle
+    expect(firstTask.options.angleOffset).toBeGreaterThan(0.2);
+    // Middle tasks stay lower in height (cascade dip)
+    expect(midTask.options.ratioY).toBeLessThan(firstTask.options.ratioY);
+    // Last task swoops up higher with steeper lift angle
+    expect(lastTask.options.ratioY).toBeGreaterThan(firstTask.options.ratioY);
+    expect(lastTask.options.angleOffset).toBeLessThan(firstTask.options.angleOffset);
+  });
 });

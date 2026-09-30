@@ -463,6 +463,9 @@ export default {
           "sweep-arc-right": "Quét vòng cung phải",
           "sweep-arc-out-left": "Quét vòng cung tỏa trái",
           "sweep-arc-out-right": "Quét vòng cung tỏa phải",
+          "cascade-slope": "Dáng đổ",
+          "cascade-slope-left": "Dáng đổ trái",
+          "cascade-slope-right": "Dáng đổ phải",
           "fan-sweep-left": "Hình quạt quét trái",
           "fan-sweep-right": "Hình quạt quét phải"
         },

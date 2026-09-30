@@ -180,6 +180,7 @@ export class PropertyInspector {
                 'sweep',
                 'sweep-arc',
                 'sweep-arc-out',
+                'cascade-slope',
                 'fan',
                 'fan-sweep',
                 'fan-sweep-continuous',

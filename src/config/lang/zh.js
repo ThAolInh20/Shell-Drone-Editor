@@ -448,6 +448,9 @@ export default {
           "sweep-arc-right": "弧形向右扫",
           "sweep-arc-out-left": "弧形向左外扫",
           "sweep-arc-out-right": "弧形向右外扫",
+          "cascade-slope": "倾泻波浪",
+          "cascade-slope-left": "向左倾泻波浪",
+          "cascade-slope-right": "向右倾泻波浪",
           "fan-sweep-left": "扇形向左扫",
           "fan-sweep-right": "扇形向右扫"
         },

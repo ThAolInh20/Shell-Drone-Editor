@@ -463,6 +463,9 @@ export default {
           "sweep-arc-right": "Sweep Arc Right",
           "sweep-arc-out-left": "Sweep Arc Out Left",
           "sweep-arc-out-right": "Sweep Arc Out Right",
+          "cascade-slope": "Cascade Slope",
+          "cascade-slope-left": "Cascade Slope Left",
+          "cascade-slope-right": "Cascade Slope Right",
           "fan-sweep-left": "Fan Sweep Left",
           "fan-sweep-right": "Fan Sweep Right"
         },

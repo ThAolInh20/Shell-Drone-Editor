@@ -448,6 +448,9 @@ export default {
           "sweep-arc-right": "円弧右スイープ",
           "sweep-arc-out-left": "円弧左外スイープ",
           "sweep-arc-out-right": "円弧右外スイープ",
+          "cascade-slope": "カスケードスロープ",
+          "cascade-slope-left": "左カスケードスロープ",
+          "cascade-slope-right": "右カスケードスロープ",
           "fan-sweep-left": "扇形左スイープ",
           "fan-sweep-right": "扇形右スイープ"
         },

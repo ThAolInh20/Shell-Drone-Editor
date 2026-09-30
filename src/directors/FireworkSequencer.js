@@ -172,6 +172,46 @@ export class FireworkSequencer {
           }
           break;
         }
+        case 'cascade-slope':
+        case 'cascade-slope-right':
+        case 'cascade-slope-left': {
+          const defaultX1 = (pattern === 'cascade-slope-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'cascade-slope-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+          
+          // Mô hình vật lý làn sóng đổ ập vào tường (3 giai đoạn: Trườn là mặt sàn -> Dồn chân tường -> Đập tường vọt trào)
+          let heightNorm;
+          let tiltRad;
+
+          if (progress <= 0.60) {
+            // Pha 1: Sóng trườn là là mặt sàn, nghiêng xéo cực mạnh lao về phía trước (48° -> 42°)
+            const t = progress / 0.60;
+            heightNorm = 0.22 - 0.08 * t;
+            tiltRad = 0.84 - 0.11 * t;
+          } else if (progress <= 0.78) {
+            // Pha 2: Sóng dồn nén tại chân tường, cuộn gập dâng lên và dựng thẳng góc (42° -> 18°)
+            const t = (progress - 0.60) / 0.18;
+            heightNorm = 0.14 + 0.28 * Math.pow(t, 1.8);
+            tiltRad = 0.73 - 0.42 * Math.pow(t, 1.2);
+          } else {
+            // Pha 3: Sóng đập vào bờ tường vọt tung lên đỉnh cao nhất, góc dựng đứng hơi uốn ngược (18° -> -5°)
+            const t = (progress - 0.78) / 0.22;
+            heightNorm = 0.42 + 0.53 * Math.pow(t, 1.4);
+            tiltRad = 0.31 - 0.40 * Math.pow(t, 1.2);
+          }
+
+          ratioY = Math.max(0.12, heightNorm * (baseRatioY / 0.7));
+
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle;
+          } else {
+            angleOffset = isMovingRight ? tiltRad : -tiltRad;
+          }
+          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = Math.random();
@@ -180,7 +220,12 @@ export class FireworkSequencer {
       }
 
       // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
-      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
+      if (
+        x1 !== undefined &&
+        x2 !== undefined &&
+        !pattern.startsWith('sweep') &&
+        !pattern.startsWith('cascade-slope')
+      ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
@@ -196,20 +241,24 @@ export class FireworkSequencer {
             t = ratioY;
           } else if (
             pattern.startsWith('sweep-arc') ||
+            pattern.startsWith('cascade-slope') ||
             pattern === 'fan' ||
             pattern === 'v-shape'
           ) {
-            t = Math.sin(progress * Math.PI);
+            t = pattern.startsWith('cascade-slope')
+              ? (0.38 - 0.40 * progress + 0.85 * Math.pow(progress, 2.8))
+              : Math.sin(progress * Math.PI);
           }
           ratioY = y1 + t * (y2 - y1);
         }
       } else if (config.ratioY !== undefined) {
-        const hasSinRatioY = pattern.startsWith('sweep-arc') ||
+        const hasCustomRatioY = pattern.startsWith('sweep-arc') ||
+          pattern.startsWith('cascade-slope') ||
           pattern === 'fan' ||
           pattern === 'v-shape' ||
           pattern === 'spiral-helix' ||
           pattern === 'ripple';
-        if (!hasSinRatioY) {
+        if (!hasCustomRatioY) {
           ratioY = config.ratioY;
         }
       }
@@ -408,6 +457,46 @@ export class FireworkSequencer {
             : maxAngleOffset - (2 * maxAngleOffset) * progress;
           break;
         }
+        case 'cascade-slope':
+        case 'cascade-slope-right':
+        case 'cascade-slope-left': {
+          const defaultX1 = (pattern === 'cascade-slope-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'cascade-slope-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+
+          // Mô hình vật lý làn sóng đổ ập vào tường (3 giai đoạn: Trườn là mặt sàn -> Dồn chân tường -> Đập tường vọt trào)
+          let heightNorm;
+          let tiltRad;
+
+          if (progress <= 0.60) {
+            // Pha 1: Sóng trườn là là mặt sàn, nghiêng xéo cực mạnh lao về phía trước (48° -> 42°)
+            const t = progress / 0.60;
+            heightNorm = 0.22 - 0.08 * t;
+            tiltRad = 0.84 - 0.11 * t;
+          } else if (progress <= 0.78) {
+            // Pha 2: Sóng dồn nén tại chân tường, cuộn gập dâng lên và dựng thẳng góc (42° -> 18°)
+            const t = (progress - 0.60) / 0.18;
+            heightNorm = 0.14 + 0.28 * Math.pow(t, 1.8);
+            tiltRad = 0.73 - 0.42 * Math.pow(t, 1.2);
+          } else {
+            // Pha 3: Sóng đập vào bờ tường vọt tung lên đỉnh cao nhất, góc dựng đứng hơi uốn ngược (18° -> -5°)
+            const t = (progress - 0.78) / 0.22;
+            heightNorm = 0.42 + 0.53 * Math.pow(t, 1.4);
+            tiltRad = 0.31 - 0.40 * Math.pow(t, 1.2);
+          }
+
+          ratioY = Math.max(0.12, heightNorm * (baseRatioY / 0.7));
+
+          if (angle !== undefined) {
+            angleOffset = angle;
+          } else {
+            angleOffset = isMovingRight ? tiltRad : -tiltRad;
+          }
+          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = Math.random();
@@ -417,7 +506,12 @@ export class FireworkSequencer {
       }
 
       // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
-      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
+      if (
+        x1 !== undefined &&
+        x2 !== undefined &&
+        !pattern.startsWith('sweep') &&
+        !pattern.startsWith('cascade-slope')
+      ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
@@ -431,8 +525,14 @@ export class FireworkSequencer {
           let t = progress;
           if (pattern === 'random') {
             t = ratioY;
-          } else if (pattern.startsWith('sweep-arc') || pattern === 'v-shape') {
-            t = Math.sin(progress * Math.PI);
+          } else if (
+            pattern.startsWith('sweep-arc') ||
+            pattern.startsWith('cascade-slope') ||
+            pattern === 'v-shape'
+          ) {
+            t = pattern.startsWith('cascade-slope')
+              ? (0.38 - 0.40 * progress + 0.85 * Math.pow(progress, 2.8))
+              : Math.sin(progress * Math.PI);
           }
           ratioY = y1 + t * (y2 - y1);
         }
