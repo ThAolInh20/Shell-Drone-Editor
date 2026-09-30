@@ -143,6 +143,10 @@ export class TrailSystem {
     shimmer = false,
     phase = null
   ) {
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -152,18 +156,13 @@ export class TrailSystem {
       )
       : DEFAULT_TRAIL_COLOR.clone();
 
-    let velocity;
-    if (customVelocity) {
-      velocity = customVelocity.clone();
-    } else {
-      velocity = zeroVelocity
-        ? new THREE.Vector3(0, 0, 0)
-        : new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
-    }
+    const vx = customVelocity ? customVelocity.x : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
+    const vy = customVelocity ? customVelocity.y : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
+    const vz = customVelocity ? customVelocity.z : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
 
     const particle = {
-      position: position.clone(),
-      velocity: velocity,
+      position: new THREE.Vector3(position.x, position.y, position.z),
+      velocity: new THREE.Vector3(vx, vy, vz),
       color: trailColor,
       life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
       age: 0,
@@ -189,11 +188,15 @@ export class TrailSystem {
     customLife = null,
     shimmer = false
   ) {
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
     const spark = {
-      position: position.clone(),
+      position: new THREE.Vector3(position.x, position.y, position.z),
       // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần) hoặc dùng vận tốc tùy biến
       velocity: customVelocity
-        ? customVelocity.clone()
+        ? new THREE.Vector3(customVelocity.x, customVelocity.y, customVelocity.z)
         : new THREE.Vector3(
             (Math.random() - 0.5) * 6,
             Math.random() * 5,
@@ -214,9 +217,15 @@ export class TrailSystem {
   }
 
   spawnMicroCrackle(position, baseColor) {
-    const crackleCount = 15 + Math.floor(Math.random() * 6); // Tăng lên 10-15 hạt để tạo khối cầu sphere rõ nét hơn
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
+    const crackleCount = 12 + Math.floor(Math.random() * 4); // Tối ưu 12-15 hạt
 
     for (let i = 0; i < crackleCount; i++) {
+      if (this.trailParticles.length >= this.maxTrailParticles) break;
+
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
@@ -235,10 +244,10 @@ export class TrailSystem {
       const sparkColor = baseColor ? baseColor.clone() : CRACKLE_SPARK_COLOR.clone();
 
       this.trailParticles.push({
-        position: position.clone(),
+        position: new THREE.Vector3(position.x, position.y, position.z),
         velocity: direction.multiplyScalar(speed),
         color: sparkColor,
-        life: 0.8 + Math.random() * 0.4, // Giảm thời gian sống (0.6s - 1.0s) giúp vụ nổ mini tan nhanh chớp nhoáng
+        life: 0.8 + Math.random() * 0.4,
         age: 0
       });
     }

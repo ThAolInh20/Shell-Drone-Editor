@@ -3,6 +3,11 @@ import { LAYER_REFLECTION } from '../config/layers.js';
 
 const COMET_CORE_SIZE = 1.2;
 
+const _tempMoveDir = new THREE.Vector3();
+const _tempVelocityDir = new THREE.Vector3();
+const _tempQuaternion = new THREE.Quaternion();
+const _vUp = new THREE.Vector3(0, 1, 0);
+
 export class CometEntity {
   static STATE = {
     INIT: 'init',
@@ -27,6 +32,7 @@ export class CometEntity {
     this.decayTime = 0;
     this.ballisticPosition = position.clone();
     this.prevPosition = position.clone();
+    this.lastTrailSpawnPos = new THREE.Vector3(Infinity, Infinity, Infinity);
     const baseDecay = preset?.maxDecayTime ?? 0.8;
     this.maxDecayTime = baseDecay * (0.8 + Math.random() * 0.4); // Randomize decay time (+/- 20%)
     this.state = CometEntity.STATE.INIT;
@@ -165,21 +171,27 @@ export class CometEntity {
     this.state = CometEntity.STATE.LAUNCHING;
   }
 
+  shouldSpawnTrail(minDistanceSq = 0.64) {
+    if (this.lastTrailSpawnPos.distanceToSquared(this.mesh.position) >= minDistanceSq) {
+      this.lastTrailSpawnPos.copy(this.mesh.position);
+      return true;
+    }
+    return false;
+  }
+
   updateRotation() {
-    const moveDir = new THREE.Vector3().subVectors(
+    _tempMoveDir.subVectors(
       this.mesh.position,
       this.prevPosition
     );
-    if (moveDir.lengthSq() > 0.0001) {
-      const up = new THREE.Vector3(0, 1, 0);
-      const dir = moveDir.normalize();
-      const quaternion = new THREE.Quaternion().setFromUnitVectors(up, dir);
-      this.mesh.setRotationFromQuaternion(quaternion);
+    if (_tempMoveDir.lengthSq() > 0.0001) {
+      _tempMoveDir.normalize();
+      _tempQuaternion.setFromUnitVectors(_vUp, _tempMoveDir);
+      this.mesh.setRotationFromQuaternion(_tempQuaternion);
     } else if (this.velocity.lengthSq() > 0) {
-      const up = new THREE.Vector3(0, 1, 0);
-      const dir = this.velocity.clone().normalize();
-      const quaternion = new THREE.Quaternion().setFromUnitVectors(up, dir);
-      this.mesh.setRotationFromQuaternion(quaternion);
+      _tempVelocityDir.copy(this.velocity).normalize();
+      _tempQuaternion.setFromUnitVectors(_vUp, _tempVelocityDir);
+      this.mesh.setRotationFromQuaternion(_tempQuaternion);
     }
   }
 

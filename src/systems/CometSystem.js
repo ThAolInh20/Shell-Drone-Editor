@@ -15,6 +15,8 @@ const FIREWORK_COLORS = [
   0xffffff  // trắng bạc (silver/white)
 ];
 
+const _tempSmokeVel = new THREE.Vector3();
+
 export class CometSystem {
   constructor(scene, trailSystem) {
     this.scene = scene;
@@ -259,9 +261,9 @@ export class CometSystem {
 
           if (isStrobeActive) {
             // Hạt Strobe Star: Thả dòng hạt con lấp lánh (Glitter / Strobe Stream) độc lập lệch pha
-            if (Math.random() < 0.65) {
+            if (comet.shouldSpawnTrail(0.49)) {
               this.trailSystem.spawnTrailParticle(
-                comet.mesh.position.clone(),
+                comet.mesh.position,
                 comet.color,
                 0.8,
                 true,
@@ -275,9 +277,9 @@ export class CometSystem {
                 Math.random() * 1000
               );
             }
-            if (Math.random() < 0.35 && !comet.preset?.sparkleAtEnd) {
+            if (Math.random() < 0.25 && !comet.preset?.sparkleAtEnd) {
               this.trailSystem.spawnEffectSpark(
-                comet.mesh.position.clone(),
+                comet.mesh.position,
                 comet.color,
                 true,
                 null,
@@ -289,30 +291,31 @@ export class CometSystem {
           } else if (!isDimmedOut) {
             // Giai đoạn phóng chuẩn (trước khi đạt ngưỡng phân tách)
             if (isCoreVisible) {
-              if (comet.preset?.thickTrail) {
-                this.trailSystem.spawnTrailParticle(
-                  comet.mesh.position.clone(),
-                  comet.color,
-                  1.5,
-                  false,
-                  customLife,
-                  0.9,
-                  false
-                );
-              } else if (comet.preset?.thinTrail) {
-                this.trailSystem.spawnTrailParticle(
-                  comet.mesh.position.clone(),
-                  comet.color,
-                  0.6,
-                  false,
-                  customLife * 0.7,
-                  0.05,
-                  false
-                );
-              } else {
-                if (Math.random() < 0.5) {
+              const minDistSq = comet.preset?.thickTrail ? 0.36 : (comet.preset?.thinTrail ? 1.0 : 0.64);
+              if (comet.shouldSpawnTrail(minDistSq)) {
+                if (comet.preset?.thickTrail) {
                   this.trailSystem.spawnTrailParticle(
-                    comet.mesh.position.clone(),
+                    comet.mesh.position,
+                    comet.color,
+                    1.5,
+                    false,
+                    customLife,
+                    0.9,
+                    false
+                  );
+                } else if (comet.preset?.thinTrail) {
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
+                    comet.color,
+                    0.6,
+                    false,
+                    customLife * 0.7,
+                    0.05,
+                    false
+                  );
+                } else {
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
                     comet.color,
                     1.0,
                     true,
@@ -321,34 +324,36 @@ export class CometSystem {
                     false
                   );
                 }
-                if (Math.random() < 0.15 && !comet.preset?.sparkleAtEnd) {
-                  this.trailSystem.spawnEffectSpark(
-                    comet.mesh.position.clone(),
-                    comet.color,
-                    false
-                  );
-                }
               }
 
-              if (this.smokeSystem && Math.random() < 0.35) {
+              if (Math.random() < 0.08 && !comet.preset?.sparkleAtEnd) {
+                this.trailSystem.spawnEffectSpark(
+                  comet.mesh.position,
+                  comet.color,
+                  false
+                );
+              }
+
+              if (this.smokeSystem && Math.random() < 0.25) {
+                _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
                 this.smokeSystem.addSmokePoint(
                   comet.mesh.position,
-                  comet.velocity.clone().multiplyScalar(-0.12),
+                  _tempSmokeVel,
                   {
                     life: 1.5 + Math.random() * 0.7,
                     scale: 4.8 + Math.random() * 2.2,
                     growth: 3.2,
                     opacity: 0.22,
-                    color: comet.color.clone()
+                    color: comet.color
                   }
                 );
               }
             }
           } else if (currentOpacity > 0.08) {
             // Các hạt đang mờ dần: Nhả vệt đuôi mờ dần tỷ lệ thuận theo opacity
-            if (Math.random() < 0.35 * currentOpacity) {
+            if (comet.shouldSpawnTrail(1.2) && Math.random() < 0.35 * currentOpacity) {
               this.trailSystem.spawnTrailParticle(
-                comet.mesh.position.clone(),
+                comet.mesh.position,
                 comet.color,
                 0.5,
                 true,
@@ -361,9 +366,9 @@ export class CometSystem {
         }
 
         // Hiệu ứng crackle (tiếng nổ lách tách) dọc theo đường bay
-        if (comet.preset?.crackle && intensity > 0.1 && Math.random() < 0.12) {
+        if (comet.preset?.crackle && Math.random() < 0.08) {
           this.trailSystem.spawnMicroCrackle(
-            comet.mesh.position.clone(),
+            comet.mesh.position,
             comet.color
           );
           this.emitFireworkEvent('firework:crackle', {
