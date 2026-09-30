@@ -78,6 +78,18 @@ export class SmokeSystem {
     this.smokeUniforms = {
       uTime: {
         value: 0
+      },
+      uFlashPos: {
+        value: new THREE.Vector3(0, 100, 0)
+      },
+      uFlashColor: {
+        value: new THREE.Color(0x000000)
+      },
+      uFlashIntensity: {
+        value: 0.0
+      },
+      uFlashRadius: {
+        value: 650.0
       }
     };
 
@@ -90,9 +102,13 @@ export class SmokeSystem {
       vertexColors: true
     });
 
-    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and seed-based rotation/noise
+    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and dynamic burst flash illumination
     this.smokeMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = this.smokeUniforms.uTime;
+      shader.uniforms.uFlashPos = this.smokeUniforms.uFlashPos;
+      shader.uniforms.uFlashColor = this.smokeUniforms.uFlashColor;
+      shader.uniforms.uFlashIntensity = this.smokeUniforms.uFlashIntensity;
+      shader.uniforms.uFlashRadius = this.smokeUniforms.uFlashRadius;
 
       shader.vertexShader = `
         uniform float uTime;
@@ -101,6 +117,7 @@ export class SmokeSystem {
         attribute float aSeed;
         varying float vOpacity;
         varying float vSeed;
+        varying vec3 vWorldPos;
       ` + shader.vertexShader.replace(
         '#include <common>',
         `
@@ -113,13 +130,19 @@ export class SmokeSystem {
         gl_PointSize = aSize * (1.0 + sizeNoise);
         vOpacity = aOpacity;
         vSeed = aSeed;
+        vWorldPos = position;
         `
       );
 
       shader.fragmentShader = `
         uniform float uTime;
+        uniform vec3 uFlashPos;
+        uniform vec3 uFlashColor;
+        uniform float uFlashIntensity;
+        uniform float uFlashRadius;
         varying float vOpacity;
         varying float vSeed;
+        varying vec3 vWorldPos;
       ` + shader.fragmentShader.replace(
         '#include <map_particle_fragment>',
         `
@@ -135,6 +158,13 @@ export class SmokeSystem {
           vec4 mapTexel = texture2D( map, rotatedCoord );
           diffuseColor *= mapTexel;
         #endif
+
+        if (uFlashIntensity > 0.001) {
+          float distToFlash = length(vWorldPos - uFlashPos);
+          float flashAtten = clamp(1.0 - distToFlash / uFlashRadius, 0.0, 1.0);
+          vec3 bounceLight = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * 2.2);
+          diffuseColor.rgb += bounceLight * diffuseColor.a;
+        }
         `
       ).replace(
         'vec4 diffuseColor = vec4( diffuse, opacity );',
@@ -152,6 +182,16 @@ export class SmokeSystem {
     this.scene.add(this.smokePoints);
 
     this.setupEventListeners();
+  }
+
+  setBurstFlash(position, color, intensity) {
+    if (position) {
+      this.smokeUniforms.uFlashPos.value.copy(position);
+    }
+    if (color) {
+      this.smokeUniforms.uFlashColor.value.copy(color);
+    }
+    this.smokeUniforms.uFlashIntensity.value = intensity || 0.0;
   }
 
   setupEventListeners() {

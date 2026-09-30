@@ -27,7 +27,7 @@ describe('MovementSystem', () => {
     mockCamera = {
       position: new THREE.Vector3(
         0,
-        0,
+        10,
         0
       )
     };
@@ -49,7 +49,7 @@ describe('MovementSystem', () => {
     movementSystem.update(0.1);
 
     expect(mockInputSystem.controls.moveForward).toHaveBeenCalled();
-    expect(mockCamera.position.y).toBe(0);
+    expect(mockCamera.position.y).toBe(10);
   });
 
   it('should fly up when forward key and shift key are pressed', () => {
@@ -57,7 +57,7 @@ describe('MovementSystem', () => {
     mockInputSystem.keys.shift = true;
     movementSystem.update(0.1);
 
-    expect(mockCamera.position.y).toBeGreaterThan(0);
+    expect(mockCamera.position.y).toBeGreaterThan(10);
   });
 
   it('should fly down when backward key and shift key are pressed', () => {
@@ -65,6 +65,6 @@ describe('MovementSystem', () => {
     mockInputSystem.keys.shift = true;
     movementSystem.update(0.1);
 
-    expect(mockCamera.position.y).toBeLessThan(0);
+    expect(mockCamera.position.y).toBeLessThan(10);
   });
 });

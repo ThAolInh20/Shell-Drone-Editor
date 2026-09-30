@@ -35,7 +35,7 @@ const performanceMonitor = new PerformanceMonitor();
 const trailSystem = new TrailSystem(sceneManager.instance);
 const smokeSystem = new SmokeSystem(sceneManager);
 const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem, smokeSystem);
-const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
+const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager, smokeSystem);
 const cometSystem = new CometSystem(sceneManager.instance, trailSystem, smokeSystem);
 const audioSystem = new AudioSystem(cameraManager);
 audioSystem.preload();
