@@ -149,15 +149,30 @@ function animate() {
     smokeSystem.update(clock.deltaTime);
   }
 
+  // Update acoustic shockwave camera impulse
+  cameraManager.update(clock.deltaTime);
+
+  // Apply shake offset for render passes
+  cameraManager.applyShake();
+
   // Reflection render pass
-  sceneManager.renderReflection(renderer.instance, cameraManager.instance);
+  sceneManager.renderReflection(
+    renderer.instance,
+    cameraManager.instance
+  );
 
   // Render loop
   if (postProcessing) {
     postProcessing.render();
   } else {
-    renderer.render(sceneManager.instance, cameraManager.instance);
+    renderer.render(
+      sceneManager.instance,
+      cameraManager.instance
+    );
   }
+
+  // Restore camera anchor position after render
+  cameraManager.restoreShake();
 }
 
 // Start simulation
