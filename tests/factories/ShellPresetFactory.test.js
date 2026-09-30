@@ -91,4 +91,14 @@ describe('ShellPresetFactory', () => {
     expect(preset.shapeType).toBe('double-helix');
     expect(preset.effectType).toBe('double-helix');
   });
+
+  it('should create valid weepingWillowArch preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('weepingWillowArch');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('weepingWillowArch');
+    expect(preset.shapeType).toBe('willow-arch');
+    expect(preset.effectType).toBe('falling-comets');
+    expect(preset.instantBurst).toBe(true);
+  });
 });

@@ -23,6 +23,7 @@ export class ShellPresetFactory {
       'heart',
       'willow',
       'willow-up',
+      'willow-arch',
       'star',
       'lightning',
       'oval',
@@ -93,6 +94,7 @@ export class ShellPresetFactory {
       { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
       { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
       { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
+      { key: 'weepingWillowArch', label: 'Weeping Willow Arch' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet Cluster' },
@@ -155,6 +157,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
     this.presetsRegistry.set('weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
     this.presetsRegistry.set('weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
+    this.presetsRegistry.set('weepingWillowArch', (size) => this.weepingWillowArchShell(size));
     this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
     this.presetsRegistry.set('floral', (size) => this.floralShell(size));
     this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
@@ -972,6 +975,21 @@ export class ShellPresetFactory {
       color: this.whiteOrGold(),
       particleCountMultiplier: 0.8,
       starLife: 2500 + size * 500,
+      pistil: false
+    };
+  }
+
+  weepingWillowArchShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'weepingWillowArch',
+      shapeType: 'willow-arch',
+      dynamicsType: 'bouquet-comet',
+      effectType: 'falling-comets',
+      instantBurst: true,
+      color: this.whiteOrGold(),
+      particleCountMultiplier: 1.0,
+      starLife: 3800,
       pistil: false
     };
   }

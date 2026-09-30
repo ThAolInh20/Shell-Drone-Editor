@@ -13,6 +13,7 @@ export const AVAILABLE_SHAPES = [
   'upward-spray',
   'willow',
   'willow-up',
+  'willow-arch',
   'half-flash',
   'split-flash',
   'double-helix'
@@ -189,6 +190,12 @@ export const PRESET_TEMPLATES = {
     dynamics: 'falling-comets-glitter',
     modifiers: { pistil: false, instantBurst: true },
     effects: ['glitter-strobe']
+  },
+  weepingWillowArch: {
+    shape: 'willow-arch',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: true },
+    effects: []
   },
   fallingLeaves: {
     shape: 'sphere',

@@ -473,6 +473,14 @@ export class FireworkSystem {
   isBouquetShell(preset) {
     if (!preset) return false;
 
+    const type = (preset.shellType || preset.type || preset.preset || '').toLowerCase();
+    if (
+      type === 'weepingwillowarch'
+      || preset.shapeType === 'willow-arch'
+    ) {
+      return true;
+    }
+
     // If shapeType or dynamicsType is explicitly set away from bouquet, respect composition authority
     if (
       preset.shapeType
@@ -483,7 +491,6 @@ export class FireworkSystem {
       return false;
     }
 
-    const type = (preset.shellType || preset.type || preset.preset || '').toLowerCase();
     return (
       preset.dynamicsType === 'bouquet-comet'
       || preset.dynamics === 'bouquet-comet'
@@ -528,6 +535,79 @@ export class FireworkSystem {
     const orientQuat = new THREE.Quaternion();
     if (hasDirection) {
       orientQuat.setFromUnitVectors(defaultUp, effectiveDir);
+    }
+
+    if (
+      shellType === 'weepingwillowarch'
+      || preset?.shapeType === 'willow-arch'
+    ) {
+      const clusterCount = 6 + Math.floor(Math.random() * 4); // 6 to 9 distinct arching comet stars
+      const horizLen = Math.hypot(effectiveDir.x, effectiveDir.z);
+      const burstAzimuth = (hasDirection && horizLen > 0.15)
+        ? Math.atan2(effectiveDir.x, effectiveDir.z)
+        : Math.random() * Math.PI * 2;
+
+      for (let i = 0; i < clusterCount; i++) {
+        const subColor = color.clone();
+        const t = i / Math.max(1, clusterCount - 1);
+
+        // Forward reach & height: tight compact arch with small horizontal spread and slow graceful downward cascade
+        const fwdSpeed = 4.0 + t * 7.5 + (Math.random() - 0.5) * 1.0;
+        const upSpeed = 8.0 + t * 11.0 + (Math.random() - 0.5) * 1.0;
+        const sideSpeed = (Math.random() - 0.5) * 1.2;
+
+        const vx = Math.sin(burstAzimuth) * fwdSpeed + Math.cos(burstAzimuth) * sideSpeed;
+        const vz = Math.cos(burstAzimuth) * fwdSpeed - Math.sin(burstAzimuth) * sideSpeed;
+        const vy = upSpeed;
+
+        const velocity = new THREE.Vector3(
+          vx,
+          vy,
+          vz
+        );
+
+        if (parentVelocity) {
+          velocity.addScaledVector(parentVelocity, 0.12);
+        }
+
+        const targetHeight = burstPosition.y + 1000;
+        const subPreset = this.shellPresetFactory.basePreset(0.65);
+        subPreset.isBouquetComet = true;
+        subPreset.thickTrail = true;
+        subPreset.noBurst = true;
+        subPreset.gravityScale = 0.52; // Reduced gravity to fall slowly and float gently
+        subPreset.starLife = 4000 + Math.random() * 800; // 4.0s - 4.8s extended lifespan for slow graceful cascade
+        subPreset.trailLifeMultiplier = 1.05;
+        subPreset.trailChance = 1.0;
+        subPreset.color = color.getHex();
+
+        const parentEffects = Array.isArray(preset?.effects) ? preset.effects : [];
+        const isStrobe = Boolean(preset?.strobe)
+          || parentEffects.includes('strobe')
+          || parentEffects.includes('white-strobe')
+          || parentEffects.includes('glitter-strobe')
+          || preset?.effectType === 'glitter-strobe'
+          || preset?.effectType === 'falling-comets-glitter';
+
+        subPreset.strobe = isStrobe;
+        if (isStrobe) {
+          subPreset.effects = ['strobe'];
+          subPreset.effectType = 'falling-comets-glitter';
+        }
+
+        const subShell = this.createShell(
+          burstPosition.clone(),
+          velocity,
+          targetHeight,
+          subColor,
+          subPreset,
+          shellId + '-arch-' + i
+        );
+
+        this.activeFireworks.push(subShell);
+        this.diagnostics.launched += 1;
+      }
+      return;
     }
 
     if (
@@ -819,6 +899,11 @@ export class FireworkSystem {
       preset
     );
     const burstRotation = this.createRandomBurstRotation();
+    const burstYaw = Math.random() * Math.PI * 2;
+    const burstYawQuat = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      burstYaw
+    );
     const heightProfile = this.heightScalingConfig.enabled
       ? BurstEffectProcessor.createHeightProfile(
         position.y,
@@ -980,13 +1065,18 @@ export class FireworkSystem {
           Math.sin(phi) * Math.sin(theta)
         ).applyQuaternion(burstRotation);
       } else {
-        direction = BurstShapeGenerator.direction(
+        const rawDir = BurstShapeGenerator.direction(
           particleShape,
           angle,
           particleIndex,
           particleCount,
           isCoreParticle ? preset : ringPreset
-        ).applyQuaternion(burstRotation);
+        );
+        if (particleShape === 'willow-arch' || particleShape === 'willow-up') {
+          direction = rawDir.applyQuaternion(burstYawQuat);
+        } else {
+          direction = rawDir.applyQuaternion(burstRotation);
+        }
       }
 
       const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy');

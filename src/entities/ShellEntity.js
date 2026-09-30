@@ -32,6 +32,7 @@ export class ShellEntity {
     this.shellType = shellType ?? shape;
     this.shapeType = shapeType ?? shape;
     this.preset = preset;
+    this.gravityScale = preset?.gravityScale !== undefined ? preset.gravityScale : 1.0;
     this.age = 0;
     this.state = ShellEntity.STATE.INIT;
 
@@ -120,6 +121,16 @@ export class ShellEntity {
     this.isSputtering = false;
     this.endFlicker = phaseCfg?.endFlicker !== false;
 
+    const effects = Array.isArray(preset?.effects) ? preset.effects : [];
+    this.isStrobe = Boolean(preset?.strobe)
+      || effects.includes('strobe')
+      || effects.includes('white-strobe')
+      || effects.includes('glitter-strobe')
+      || preset?.effectType === 'glitter-strobe'
+      || preset?.effectType === 'falling-comets-glitter';
+    this.strobePhase = Math.random() * Math.PI * 2;
+    this.strobeSpeed = 38.0 + Math.random() * 16.0;
+
     this.mesh = new THREE.Group();
 
     const coreGeometry = new THREE.SphereGeometry(SHELL_CORE_SIZE, 8, 8);
@@ -202,7 +213,7 @@ export class ShellEntity {
       return false;
     }
 
-    this.velocity.y += -30 * deltaTime;
+    this.velocity.y += (-30 * this.gravityScale) * deltaTime;
     this.basePosition.addScaledVector(this.velocity, deltaTime);
     this.age += deltaTime;
 
@@ -319,14 +330,32 @@ export class ShellEntity {
       this.mesh.position.copy(this.basePosition);
     }
 
-    this.mesh.scale.setScalar(1 + Math.sin(this.age * 12) * 0.05);
+    if (this.isStrobe) {
+      // High-frequency glittering strobe sparkle on the leading comet star head
+      const strobeCycle = Math.sin(this.age * this.strobeSpeed + this.strobePhase);
+      const isFlash = strobeCycle > 0.35;
+      const flashScale = isFlash ? (1.75 + Math.random() * 0.7) : 0.45;
 
-    if (this.coreMesh.material) {
-      this.coreMesh.material.opacity = 0.9 + Math.sin(this.age * 18) * 0.08;
-    }
+      this.mesh.scale.setScalar(flashScale);
 
-    if (this.haloPoints.material) {
-      this.haloPoints.material.opacity = 0.55 + Math.sin(this.age * 9) * 0.12;
+      if (this.coreMesh.material) {
+        this.coreMesh.material.opacity = isFlash ? 1.0 : 0.15;
+      }
+
+      if (this.haloPoints.material) {
+        this.haloPoints.material.opacity = isFlash ? 1.0 : 0.08;
+        this.haloPoints.material.size = SHELL_HALO_SIZE * (isFlash ? 2.5 : 0.4);
+      }
+    } else {
+      this.mesh.scale.setScalar(1 + Math.sin(this.age * 12) * 0.05);
+
+      if (this.coreMesh.material) {
+        this.coreMesh.material.opacity = 0.9 + Math.sin(this.age * 18) * 0.08;
+      }
+
+      if (this.haloPoints.material) {
+        this.haloPoints.material.opacity = 0.55 + Math.sin(this.age * 9) * 0.12;
+      }
     }
 
     return this.canBurst();
