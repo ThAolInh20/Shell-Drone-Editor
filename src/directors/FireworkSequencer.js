@@ -48,6 +48,7 @@ export class FireworkSequencer {
       let ratioY = 0.5;
       let ratioZ = 0.5;
       let delay = progress * duration;
+      let spiralConfig = null;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
       const heightScale = baseRatioY / 0.7;
 
@@ -263,6 +264,30 @@ export class FireworkSequencer {
           angleOffset = (Math.random() - 0.5) * 0.18;
           break;
         }
+        case 'intertwined-helix': {
+          const numPairs = Math.max(1, Math.floor(count / 2));
+          const pairIndex = Math.floor(i / 2);
+          const isStrandB = i % 2 !== 0;
+          const pairProgress = numPairs > 1 ? pairIndex / (numPairs - 1) : 0.5;
+
+          const defaultX1 = 0.15;
+          const defaultX2 = 0.85;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+
+          ratioX = startX + pairProgress * (endX - startX);
+          ratioY = baseRatioY;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : 0;
+          delay = pairProgress * duration;
+
+          spiralConfig = {
+            radius: 11.5,
+            frequency: 4.6,
+            phase: isStrandB ? Math.PI : 0,
+            direction: 1
+          };
+          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = config.ratioY !== undefined ? config.ratioY : Math.random();
@@ -275,7 +300,8 @@ export class FireworkSequencer {
         x1 !== undefined &&
         x2 !== undefined &&
         !pattern.startsWith('sweep') &&
-        !pattern.startsWith('cascade-slope')
+        !pattern.startsWith('cascade-slope') &&
+        pattern !== 'intertwined-helix'
       ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
@@ -308,6 +334,7 @@ export class FireworkSequencer {
           pattern === 'sweep-random-tilt' ||
           pattern === 'sweep-random-tilt-left' ||
           pattern === 'sweep-random-tilt-right' ||
+          pattern === 'intertwined-helix' ||
           pattern === 'converge' ||
           pattern === 'diverge' ||
           pattern === 'crossfire' ||
@@ -321,6 +348,12 @@ export class FireworkSequencer {
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
 
       let overrides = effectOverrides;
+      if (spiralConfig) {
+        overrides = {
+          ...(overrides || {}),
+          spiral: spiralConfig
+        };
+      }
       if (instantBurst !== undefined 
         || shellSize !== undefined 
         || config.shapeType !== undefined
@@ -373,6 +406,7 @@ export class FireworkSequencer {
           angleOffset,
           sectorId,
           color,
+          spiral: spiralConfig,
           effectOverrides: overrides
         }
       });
@@ -389,6 +423,7 @@ export class FireworkSequencer {
       let progress = count > 1 ? i / (count - 1) : 0;
       let delay = progress * duration;
       let angleOffset = 0;
+      let spiralConfig = null;
       let ratioX = config.ratioX !== undefined ? config.ratioX : 0.5;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.7;
       const heightScale = baseRatioY / 0.7;
@@ -603,6 +638,30 @@ export class FireworkSequencer {
           angleOffset = (Math.random() - 0.5) * 0.18;
           break;
         }
+        case 'intertwined-helix': {
+          const numPairs = Math.max(1, Math.floor(count / 2));
+          const pairIndex = Math.floor(i / 2);
+          const isStrandB = i % 2 !== 0;
+          const pairProgress = numPairs > 1 ? pairIndex / (numPairs - 1) : 0.5;
+
+          const defaultX1 = 0.15;
+          const defaultX2 = 0.85;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+
+          ratioX = startX + pairProgress * (endX - startX);
+          ratioY = baseRatioY;
+          angleOffset = angle !== undefined ? angle : 0;
+          delay = pairProgress * duration;
+
+          spiralConfig = {
+            radius: 11.5,
+            frequency: 4.6,
+            phase: isStrandB ? Math.PI : 0,
+            direction: 1
+          };
+          break;
+        }
         case 'random':
           ratioX = Math.random();
           ratioY = config.ratioY !== undefined ? config.ratioY : Math.random();
@@ -616,7 +675,8 @@ export class FireworkSequencer {
         x1 !== undefined &&
         x2 !== undefined &&
         !pattern.startsWith('sweep') &&
-        !pattern.startsWith('cascade-slope')
+        !pattern.startsWith('cascade-slope') &&
+        pattern !== 'intertwined-helix'
       ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
@@ -654,6 +714,7 @@ export class FireworkSequencer {
           pattern === 'fan-sweep-right' ||
           pattern === 'fan-sweep-continuous' ||
           pattern === 'fan-burst' ||
+          pattern === 'intertwined-helix' ||
           pattern === 'converge' ||
           pattern === 'diverge' ||
           pattern === 'crossfire' ||
@@ -665,6 +726,12 @@ export class FireworkSequencer {
       }
 
       let overrides = effectOverrides;
+      if (spiralConfig) {
+        overrides = {
+          ...(overrides || {}),
+          spiral: spiralConfig
+        };
+      }
       if (
         config.instantBurst !== undefined 
         || config.shellSize !== undefined 
@@ -723,6 +790,7 @@ export class FireworkSequencer {
           angleOffset,
           sectorId,
           color,
+          spiral: spiralConfig,
           effectOverrides: overrides
         }
       });

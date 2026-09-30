@@ -11,13 +11,22 @@ export class CometEntity {
     DEAD: 'dead'
   };
 
-  constructor({ position, velocity, color, preset = null }) {
+  constructor({
+    position,
+    velocity,
+    color,
+    preset = null,
+    spiral = null
+  }) {
     this.type = 'comet';
     this.velocity = velocity;
     this.color = color;
     this.preset = preset;
+    this.spiral = spiral || preset?.spiral || null;
     this.age = 0;
     this.decayTime = 0;
+    this.ballisticPosition = position.clone();
+    this.prevPosition = position.clone();
     const baseDecay = preset?.maxDecayTime ?? 0.8;
     this.maxDecayTime = baseDecay * (0.8 + Math.random() * 0.4); // Randomize decay time (+/- 20%)
     this.state = CometEntity.STATE.INIT;
@@ -157,8 +166,16 @@ export class CometEntity {
   }
 
   updateRotation() {
-    if (this.velocity.lengthSq() > 0) {
-      // Create a quaternion that rotates Y up to the velocity direction
+    const moveDir = new THREE.Vector3().subVectors(
+      this.mesh.position,
+      this.prevPosition
+    );
+    if (moveDir.lengthSq() > 0.0001) {
+      const up = new THREE.Vector3(0, 1, 0);
+      const dir = moveDir.normalize();
+      const quaternion = new THREE.Quaternion().setFromUnitVectors(up, dir);
+      this.mesh.setRotationFromQuaternion(quaternion);
+    } else if (this.velocity.lengthSq() > 0) {
       const up = new THREE.Vector3(0, 1, 0);
       const dir = this.velocity.clone().normalize();
       const quaternion = new THREE.Quaternion().setFromUnitVectors(up, dir);
@@ -180,9 +197,32 @@ export class CometEntity {
     }
 
     if (this.state === CometEntity.STATE.LAUNCHING) {
+      this.prevPosition.copy(this.mesh.position);
       this.velocity.y += -30 * deltaTime; // Gravity
-      this.mesh.position.addScaledVector(this.velocity, deltaTime);
+      this.ballisticPosition.addScaledVector(this.velocity, deltaTime);
       this.age += deltaTime;
+
+      if (this.spiral) {
+        const timeToApex = Math.max(0.1, this.initialVy / 30);
+        const flightRatio = Math.min(1.0, this.age / timeToApex);
+
+        const envelope = Math.sin(flightRatio * Math.PI * 0.95);
+        const curRadius = (this.spiral.radius ?? 11.5) * (0.25 + 0.75 * envelope);
+        const spinSpeed = (this.spiral.frequency ?? 4.6) * Math.PI * 2;
+        const currentAngle = (this.spiral.phase ?? 0) +
+          (this.spiral.direction ?? 1) * spinSpeed * (this.age / timeToApex);
+
+        const offsetX = curRadius * Math.cos(currentAngle);
+        const offsetZ = curRadius * Math.sin(currentAngle);
+
+        this.mesh.position.set(
+          this.ballisticPosition.x + offsetX,
+          this.ballisticPosition.y,
+          this.ballisticPosition.z + offsetZ
+        );
+      } else {
+        this.mesh.position.copy(this.ballisticPosition);
+      }
 
       this.updateRotation();
 
@@ -218,9 +258,11 @@ export class CometEntity {
         this.state = CometEntity.STATE.DECAYING;
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
+      this.prevPosition.copy(this.mesh.position);
       // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực
       this.velocity.multiplyScalar(Math.max(0, 1.0 - 8.0 * deltaTime));
-      this.mesh.position.addScaledVector(this.velocity, deltaTime);
+      this.ballisticPosition.addScaledVector(this.velocity, deltaTime);
+      this.mesh.position.copy(this.ballisticPosition);
       if (this.velocity.lengthSq() > 0.01) {
         this.updateRotation();
       }

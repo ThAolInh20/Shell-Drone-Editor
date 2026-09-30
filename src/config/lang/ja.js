@@ -458,6 +458,7 @@ export default {
           "teeter-totter": "シーソー交差",
           "vortex-tunnel": "3Dボルテックストンネル",
           "stepping-stones": "ステップストーン",
+          "intertwined-helix": "二重らせん交差",
           "fan-sweep-left": "扇形左スイープ",
           "fan-sweep-right": "扇形右スイープ"
         },

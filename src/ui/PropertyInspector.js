@@ -188,6 +188,7 @@ export class PropertyInspector {
                 'teeter-totter',
                 'vortex-tunnel',
                 'stepping-stones',
+                'intertwined-helix',
                 'fan',
                 'fan-sweep',
                 'fan-sweep-continuous',

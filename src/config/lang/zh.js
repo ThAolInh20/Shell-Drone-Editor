@@ -458,6 +458,7 @@ export default {
           "teeter-totter": "跷跷板交错",
           "vortex-tunnel": "3D涡旋隧道",
           "stepping-stones": "阶梯跳跃",
+          "intertwined-helix": "双螺旋交织",
           "fan-sweep-left": "扇形向左扫",
           "fan-sweep-right": "扇形向右扫"
         },

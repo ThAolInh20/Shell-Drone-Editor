@@ -243,4 +243,33 @@ describe('FireworkSequencer', () => {
       expect(highTasks[i].options.ratioY).toBeGreaterThan(lowTasks[i].options.ratioY);
     }
   });
+
+  it('should generate paired synchronous launches with 180-degree phase offset in intertwined-helix pattern', () => {
+    sequencer.playPattern('intertwined-helix', {
+      count: 4,
+      duration: 2.0,
+      ratioY: 0.8
+    });
+
+    expect(sequencer.activeTasks.length).toBe(4);
+
+    const task0 = sequencer.activeTasks[0];
+    const task1 = sequencer.activeTasks[1];
+    const task2 = sequencer.activeTasks[2];
+    const task3 = sequencer.activeTasks[3];
+
+    // Pair 0 launches together at time 0
+    expect(task0.timeToLaunch).toBe(0);
+    expect(task1.timeToLaunch).toBe(0);
+    expect(task0.options.spiral).toBeDefined();
+    expect(task1.options.spiral).toBeDefined();
+    expect(task0.options.spiral.phase).toBe(0);
+    expect(task1.options.spiral.phase).toBeCloseTo(Math.PI, 4);
+
+    // Pair 1 launches together at duration 2.0
+    expect(task2.timeToLaunch).toBe(2.0);
+    expect(task3.timeToLaunch).toBe(2.0);
+    expect(task2.options.spiral.phase).toBe(0);
+    expect(task3.options.spiral.phase).toBeCloseTo(Math.PI, 4);
+  });
 });

@@ -29,7 +29,16 @@ export class CometSystem {
   }
 
   launchRandom(preset = null, options = {}) {
-    const { ratioX, ratioY, ratioZ, sectorId, angleOffset, color, effectOverrides } = options;
+    const {
+      ratioX,
+      ratioY,
+      ratioZ,
+      sectorId,
+      angleOffset,
+      color,
+      effectOverrides,
+      spiral
+    } = options;
 
     // Nếu preset là tên key (string), phân giải thành object preset
     let resolvedPreset = preset;
@@ -45,13 +54,18 @@ export class CometSystem {
       finalPreset = { ...(resolvedPreset || {}), ...effectOverrides };
     }
 
+    const resolvedSpiral = spiral ||
+      effectOverrides?.spiral ||
+      finalPreset?.spiral ||
+      null;
+
     const clusterCount = finalPreset?.clusterCount ?? 1;
     const basePosition = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
 
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.
     const clusterColor = color ? new THREE.Color(color) : new THREE.Color(FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
 
-    if (finalPreset?.shellType === 'comet_cluster_cc') {
+    if (finalPreset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
       const hex = clusterColor.getHex();
       const colorMap = {
         0xffffff: 0xff4500,     // White -> Orange Red
@@ -103,7 +117,8 @@ export class CometSystem {
         position: basePosition.clone(),
         velocity,
         color: cometColor,
-        preset: cometPreset
+        preset: cometPreset,
+        spiral: resolvedSpiral
       });
 
       comet.mesh.traverse((child) => {

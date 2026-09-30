@@ -473,6 +473,7 @@ export default {
           "teeter-totter": "Bập bênh đan xen",
           "vortex-tunnel": "Đường hầm xoáy 3D",
           "stepping-stones": "Bấc nhảy bậc thang",
+          "intertwined-helix": "Xoắn ốc đan đôi",
           "fan-sweep-left": "Hình quạt quét trái",
           "fan-sweep-right": "Hình quạt quét phải"
         },

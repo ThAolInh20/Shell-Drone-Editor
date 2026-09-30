@@ -2,17 +2,20 @@
   {
     "time": 0,
     "type": "sequence",
-    "pattern": "sweep-left",
-    "count": 5,
+    "pattern": "intertwined-helix",
+    "count": 3,
     "duration": 0.1,
-    "preset": "comet_cluster_thick",
+    "preset": "crysanthemumV2",
     "sectorId": "center",
     "cometTrail": "normal",
     "uiDuration": 3.4,
     "shapeType": "sphere",
-    "dynamicsType": "bouquet-comet",
+    "dynamicsType": "crysanthemum-trail",
     "pistil": false,
     "instantBurst": false,
-    "effects": []
+    "effects": [
+      "no-trail"
+    ],
+    "no-trail": true
   }
 ]

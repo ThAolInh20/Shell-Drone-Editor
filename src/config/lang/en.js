@@ -473,6 +473,7 @@ export default {
           "teeter-totter": "Teeter Totter",
           "vortex-tunnel": "Vortex Tunnel 3D",
           "stepping-stones": "Stepping Stones",
+          "intertwined-helix": "Intertwined Helix",
           "fan-sweep-left": "Fan Sweep Left",
           "fan-sweep-right": "Fan Sweep Right"
         },
