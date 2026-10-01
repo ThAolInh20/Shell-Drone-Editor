@@ -31,6 +31,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghost'
   },
   {
+    key: 'ghost-flare',
+    labelKey: 'ghostFlare'
+  },
+  {
     key: 'flow',
     labelKey: 'flow'
   },
@@ -176,10 +180,24 @@ export class PropertyInspector {
                 'sweep',
                 'sweep-arc',
                 'sweep-arc-out',
+                'cascade-slope',
+                'chasing-scissors',
+                'waterfall-curtain',
+                'sinusoidal-wave',
+                'petal-bloom',
+                'teeter-totter',
+                'vortex-tunnel',
+                'stepping-stones',
+                'intertwined-helix',
                 'fan',
                 'fan-sweep',
                 'fan-sweep-continuous',
                 'fan-burst',
+                'crossfire',
+                'crossfire-burst',
+                'v-shape',
+                'spiral-helix',
+                'ripple',
                 'converge',
                 'diverge',
                 'zigzag',
@@ -269,6 +287,7 @@ export class PropertyInspector {
               type: 'select',
               options: [
                 'normal',
+                'thin',
                 'thick',
                 'none'
               ]

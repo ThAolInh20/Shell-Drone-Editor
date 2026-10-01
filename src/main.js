@@ -35,7 +35,7 @@ const performanceMonitor = new PerformanceMonitor();
 const trailSystem = new TrailSystem(sceneManager.instance);
 const smokeSystem = new SmokeSystem(sceneManager);
 const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem, smokeSystem);
-const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager);
+const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager, smokeSystem);
 const cometSystem = new CometSystem(sceneManager.instance, trailSystem, smokeSystem);
 const audioSystem = new AudioSystem(cameraManager);
 audioSystem.preload();
@@ -149,15 +149,30 @@ function animate() {
     smokeSystem.update(clock.deltaTime);
   }
 
+  // Update acoustic shockwave camera impulse
+  cameraManager.update(clock.deltaTime);
+
+  // Apply shake offset for render passes
+  cameraManager.applyShake();
+
   // Reflection render pass
-  sceneManager.renderReflection(renderer.instance, cameraManager.instance);
+  sceneManager.renderReflection(
+    renderer.instance,
+    cameraManager.instance
+  );
 
   // Render loop
   if (postProcessing) {
     postProcessing.render();
   } else {
-    renderer.render(sceneManager.instance, cameraManager.instance);
+    renderer.render(
+      sceneManager.instance,
+      cameraManager.instance
+    );
   }
+
+  // Restore camera anchor position after render
+  cameraManager.restoreShake();
 }
 
 // Start simulation

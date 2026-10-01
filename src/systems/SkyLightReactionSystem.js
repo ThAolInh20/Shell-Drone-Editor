@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 
 export class SkyLightReactionSystem {
-  constructor(sceneManager) {
+  constructor(sceneManager, smokeSystem = null) {
     this.sceneManager = sceneManager;
+    this.smokeSystem = smokeSystem;
     this.scene = sceneManager.instance;
     this.reactions = [];
     this.maxReactions = 8;
@@ -118,7 +119,6 @@ export class SkyLightReactionSystem {
       0.004
     );
 
-
     const skyTarget = this.baseSkyColor.clone().lerp(blendedColor, skyMix);
     const fogTarget = this.baseSkyColor.clone().lerp(blendedColor, fogMix);
 
@@ -140,8 +140,38 @@ export class SkyLightReactionSystem {
       // Increased the multiplier and max intensity since global lighting is reduced
       this.reusableBurstLight.intensity = THREE.MathUtils.clamp(strongest.weight * 3.5, 0, 2.0);
 
+      const flashIntensity = THREE.MathUtils.clamp(strongest.weight * 1.5, 0, 1.0);
+      if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
+        this.smokeSystem.setBurstFlash(
+          strongest.position,
+          strongest.color,
+          flashIntensity
+        );
+      }
+      if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
+        this.sceneManager.waterSurface.setBurstFlash(
+          strongest.position,
+          strongest.color,
+          flashIntensity
+        );
+      }
+      if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
+        this.sceneManager.distantMountains.setBurstFlash(
+          strongest.color,
+          flashIntensity * 0.25
+        );
+      }
     } else {
       this.reusableBurstLight.intensity = 0;
+      if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
+        this.smokeSystem.setBurstFlash(null, null, 0);
+      }
+      if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
+        this.sceneManager.waterSurface.setBurstFlash(null, null, 0);
+      }
+      if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
+        this.sceneManager.distantMountains.setBurstFlash(null, 0);
+      }
     }
   }
 
@@ -166,5 +196,15 @@ export class SkyLightReactionSystem {
       lerpAlpha
     );
     this.reusableBurstLight.intensity = THREE.MathUtils.lerp(this.reusableBurstLight.intensity, 0, lerpAlpha);
+
+    if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
+      this.smokeSystem.setBurstFlash(null, null, 0);
+    }
+    if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
+      this.sceneManager.waterSurface.setBurstFlash(null, null, 0);
+    }
+    if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
+      this.sceneManager.distantMountains.setBurstFlash(null, 0);
+    }
   }
 }

@@ -47,8 +47,10 @@ export class FireworkSequencer {
       let ratioX = 0.5;
       let ratioY = 0.5;
       let ratioZ = 0.5;
-      const delay = progress * duration;
+      let delay = progress * duration;
+      let spiralConfig = null;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
+      const heightScale = baseRatioY / 0.7;
 
       // CHỈ khi useAngle === true thì mới bắn theo góc chỉ định, nếu không check thì luôn bắn ngẫu nhiên
       const hasCustomAngle = useAngle === true && angle !== undefined;
@@ -102,6 +104,44 @@ export class FireworkSequencer {
           ratioY = 0.4 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.4);
           angleOffset = (0.28 - 0.56 * progress) + (Math.random() - 0.5) * 0.12;
           break;
+        case 'crossfire': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.9 + 0.05) : (0.95 - progress * 0.9);
+          angleOffset = isEven ? 0.32 : -0.32;
+          break;
+        }
+        case 'crossfire-burst': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          angleOffset = isEven ? 0.35 : -0.35;
+          delay = 0;
+          break;
+        }
+        case 'v-shape': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - (progress / 2) * 0.9) : (0.5 + (progress / 2) * 0.9);
+          ratioY = 0.35 + progress * Math.max(0, baseRatioY - 0.35);
+          angleOffset = isEven ? (-0.22 * progress) : (0.22 * progress);
+          break;
+        }
+        case 'spiral-helix': {
+          const angleRad = progress * Math.PI * 4;
+          const radius = 0.38;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.3 + progress * Math.max(0.2, baseRatioY - 0.3);
+          angleOffset = Math.sin(angleRad) * 0.18;
+          break;
+        }
+        case 'ripple': {
+          const angleRad = i * 2.399963;
+          const radius = progress * 0.42;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.4 + (Math.sin(progress * Math.PI) * 0.15) + (baseRatioY - 0.4) * 0.5;
+          angleOffset = Math.cos(angleRad) * 0.22 * progress;
+          break;
+        }
         case 'sweep-arc':
         case 'sweep-arc-right':
         case 'sweep-arc-left': {
@@ -134,21 +174,141 @@ export class FireworkSequencer {
           }
           break;
         }
+        case 'cascade-slope':
+        case 'cascade-slope-right':
+        case 'cascade-slope-left': {
+          const defaultX1 = (pattern === 'cascade-slope-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'cascade-slope-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+          
+          // Mô hình vật lý làn sóng đổ ập vào tường (3 giai đoạn: Trườn là mặt sàn -> Dồn chân tường -> Đập tường vọt trào)
+          let heightNorm;
+          let tiltRad;
+
+          if (progress <= 0.60) {
+            // Pha 1: Sóng trườn là là mặt sàn, nghiêng xéo cực mạnh lao về phía trước (48° -> 42°)
+            const t = progress / 0.60;
+            heightNorm = 0.22 - 0.08 * t;
+            tiltRad = 0.84 - 0.11 * t;
+          } else if (progress <= 0.78) {
+            // Pha 2: Sóng dồn nén tại chân tường, cuộn gập dâng lên và dựng thẳng góc (42° -> 18°)
+            const t = (progress - 0.60) / 0.18;
+            heightNorm = 0.14 + 0.28 * Math.pow(t, 1.8);
+            tiltRad = 0.73 - 0.42 * Math.pow(t, 1.2);
+          } else {
+            // Pha 3: Sóng đập vào bờ tường vọt tung lên đỉnh cao nhất, góc dựng đứng hơi uốn ngược (18° -> -5°)
+            const t = (progress - 0.78) / 0.22;
+            heightNorm = 0.42 + 0.53 * Math.pow(t, 1.4);
+            tiltRad = 0.31 - 0.40 * Math.pow(t, 1.2);
+          }
+
+          ratioY = Math.max(0.10, (heightNorm / 0.95) * baseRatioY);
+
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle;
+          } else {
+            angleOffset = isMovingRight ? tiltRad : -tiltRad;
+          }
+          break;
+        }
+        case 'chasing-scissors': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.48) : (1.0 - progress * 0.48);
+          ratioY = Math.max(0.10, ((0.85 - 0.48 * progress) / 0.85) * baseRatioY);
+          const tilt = 0.55 * (1.0 - progress);
+          angleOffset = isEven ? tilt : -tilt;
+          break;
+        }
+        case 'waterfall-curtain': {
+          ratioX = progress;
+          ratioY = Math.max(0.10, ((0.85 - 0.45 * progress) / 0.85) * baseRatioY);
+          angleOffset = (Math.random() - 0.5) * 0.12;
+          break;
+        }
+        case 'sinusoidal-wave': {
+          ratioX = progress;
+          ratioY = Math.max(0.10, (0.60 + 0.40 * Math.sin(progress * Math.PI * 4)) * baseRatioY);
+          angleOffset = 0.35 * Math.cos(progress * Math.PI * 4);
+          break;
+        }
+        case 'petal-bloom': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - progress * 0.48) : (0.5 + progress * 0.48);
+          ratioY = Math.max(0.10, (0.40 + 0.60 * progress) * baseRatioY);
+          const tilt = 0.15 + 0.55 * Math.pow(progress, 1.8);
+          angleOffset = isEven ? -tilt : tilt;
+          break;
+        }
+        case 'teeter-totter': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          ratioY = Math.max(0.10, (isEven ? (0.30 + 0.70 * progress) : (1.0 - 0.70 * progress)) * baseRatioY);
+          angleOffset = isEven ? 0.42 : -0.42;
+          break;
+        }
+        case 'vortex-tunnel': {
+          const angleRad = progress * Math.PI * 2;
+          ratioX = 0.5 + Math.cos(angleRad) * 0.42;
+          ratioY = Math.max(0.10, (0.60 + 0.40 * Math.sin(angleRad)) * baseRatioY);
+          ratioZ = 0.15 + 0.70 * progress;
+          angleOffset = -0.28 * Math.cos(angleRad);
+          break;
+        }
+        case 'stepping-stones': {
+          ratioX = progress;
+          const stepIndex = Math.floor(progress * 4);
+          ratioY = Math.max(0.10, (0.35 + (stepIndex / 3) * 0.65) * baseRatioY);
+          angleOffset = (Math.random() - 0.5) * 0.18;
+          break;
+        }
+        case 'intertwined-helix': {
+          const numPairs = Math.max(1, Math.floor(count / 2));
+          const pairIndex = Math.floor(i / 2);
+          const isStrandB = i % 2 !== 0;
+          const pairProgress = numPairs > 1 ? pairIndex / (numPairs - 1) : 0.5;
+
+          const defaultX1 = 0.15;
+          const defaultX2 = 0.85;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+
+          ratioX = startX + pairProgress * (endX - startX);
+          ratioY = baseRatioY;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : 0;
+          delay = pairProgress * duration;
+
+          spiralConfig = {
+            radius: 11.5,
+            frequency: 4.6,
+            phase: isStrandB ? Math.PI : 0,
+            direction: 1
+          };
+          break;
+        }
         case 'random':
           ratioX = Math.random();
-          ratioY = Math.random();
+          ratioY = config.ratioY !== undefined ? config.ratioY : Math.random();
           ratioZ = Math.random();
           break;
       }
 
       // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
-      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
+      if (
+        x1 !== undefined &&
+        x2 !== undefined &&
+        !pattern.startsWith('sweep') &&
+        !pattern.startsWith('cascade-slope') &&
+        pattern !== 'intertwined-helix'
+      ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep')) {
+        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);
@@ -158,15 +318,29 @@ export class FireworkSequencer {
             t = ratioY;
           } else if (
             pattern.startsWith('sweep-arc') ||
-            pattern === 'fan'
+            pattern === 'fan' ||
+            pattern === 'ripple'
           ) {
             t = Math.sin(progress * Math.PI);
+          } else if (pattern === 'sinusoidal-wave') {
+            t = 0.5 + 0.5 * Math.sin(progress * Math.PI * 4);
           }
           ratioY = y1 + t * (y2 - y1);
         }
       } else if (config.ratioY !== undefined) {
-        const hasSinRatioY = pattern.startsWith('sweep-arc') || pattern === 'fan';
-        if (!hasSinRatioY) {
+        const isFlatPattern = pattern === 'sweep' ||
+          pattern === 'sweep-left' ||
+          pattern === 'sweep-right' ||
+          pattern === 'sweep-random-tilt' ||
+          pattern === 'sweep-random-tilt-left' ||
+          pattern === 'sweep-random-tilt-right' ||
+          pattern === 'intertwined-helix' ||
+          pattern === 'converge' ||
+          pattern === 'diverge' ||
+          pattern === 'crossfire' ||
+          pattern === 'crossfire-burst' ||
+          pattern === 'zigzag';
+        if (isFlatPattern) {
           ratioY = config.ratioY;
         }
       }
@@ -174,6 +348,12 @@ export class FireworkSequencer {
       if (config.ratioZ !== undefined) ratioZ = config.ratioZ;
 
       let overrides = effectOverrides;
+      if (spiralConfig) {
+        overrides = {
+          ...(overrides || {}),
+          spiral: spiralConfig
+        };
+      }
       if (instantBurst !== undefined 
         || shellSize !== undefined 
         || config.shapeType !== undefined
@@ -203,9 +383,15 @@ export class FireworkSequencer {
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
+            overrides.thinTrail = false;
+          } else if (config.cometTrail === 'thin') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = true;
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
           }
         }
       }
@@ -220,6 +406,7 @@ export class FireworkSequencer {
           angleOffset,
           sectorId,
           color,
+          spiral: spiralConfig,
           effectOverrides: overrides
         }
       });
@@ -236,8 +423,10 @@ export class FireworkSequencer {
       let progress = count > 1 ? i / (count - 1) : 0;
       let delay = progress * duration;
       let angleOffset = 0;
+      let spiralConfig = null;
       let ratioX = config.ratioX !== undefined ? config.ratioX : 0.5;
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.7;
+      const heightScale = baseRatioY / 0.7;
       let ratioY = config.ratioY !== undefined ? config.ratioY : 0.5;
       let ratioZ = config.ratioZ !== undefined ? config.ratioZ : 0.5;
 
@@ -268,6 +457,44 @@ export class FireworkSequencer {
           angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
           delay = 0; // All fired at same time
           break;
+        case 'crossfire': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.9 + 0.05) : (0.95 - progress * 0.9);
+          angleOffset = isEven ? maxAngleOffset * 0.75 : -maxAngleOffset * 0.75;
+          break;
+        }
+        case 'crossfire-burst': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          angleOffset = isEven ? maxAngleOffset * 0.8 : -maxAngleOffset * 0.8;
+          delay = 0;
+          break;
+        }
+        case 'v-shape': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - (progress / 2) * 0.9) : (0.5 + (progress / 2) * 0.9);
+          ratioY = 0.3 + progress * Math.max(0, baseRatioY - 0.3);
+          angleOffset = isEven ? (-maxAngleOffset * 0.6 * progress) : (maxAngleOffset * 0.6 * progress);
+          break;
+        }
+        case 'spiral-helix': {
+          const angleRad = progress * Math.PI * 4;
+          const radius = 0.38;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.3 + progress * Math.max(0.2, baseRatioY - 0.3);
+          angleOffset = Math.sin(angleRad) * maxAngleOffset * 0.5;
+          break;
+        }
+        case 'ripple': {
+          const angleRad = i * 2.399963;
+          const radius = progress * 0.42;
+          ratioX = 0.5 + Math.cos(angleRad) * radius;
+          ratioZ = 0.5 + Math.sin(angleRad) * radius;
+          ratioY = 0.35 + (Math.sin(progress * Math.PI) * 0.15) + (baseRatioY - 0.35) * 0.5;
+          angleOffset = Math.cos(angleRad) * maxAngleOffset * 0.6 * progress;
+          break;
+        }
         case 'sweep':
         case 'sweep-right':
         case 'sweep-left': {
@@ -321,22 +548,142 @@ export class FireworkSequencer {
             : maxAngleOffset - (2 * maxAngleOffset) * progress;
           break;
         }
+        case 'cascade-slope':
+        case 'cascade-slope-right':
+        case 'cascade-slope-left': {
+          const defaultX1 = (pattern === 'cascade-slope-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'cascade-slope-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+
+          // Mô hình vật lý làn sóng đổ ập vào tường (3 giai đoạn: Trườn là mặt sàn -> Dồn chân tường -> Đập tường vọt trào)
+          let heightNorm;
+          let tiltRad;
+
+          if (progress <= 0.60) {
+            // Pha 1: Sóng trườn là là mặt sàn, nghiêng xéo cực mạnh lao về phía trước (48° -> 42°)
+            const t = progress / 0.60;
+            heightNorm = 0.22 - 0.08 * t;
+            tiltRad = 0.84 - 0.11 * t;
+          } else if (progress <= 0.78) {
+            // Pha 2: Sóng dồn nén tại chân tường, cuộn gập dâng lên và dựng thẳng góc (42° -> 18°)
+            const t = (progress - 0.60) / 0.18;
+            heightNorm = 0.14 + 0.28 * Math.pow(t, 1.8);
+            tiltRad = 0.73 - 0.42 * Math.pow(t, 1.2);
+          } else {
+            // Pha 3: Sóng đập vào bờ tường vọt tung lên đỉnh cao nhất, góc dựng đứng hơi uốn ngược (18° -> -5°)
+            const t = (progress - 0.78) / 0.22;
+            heightNorm = 0.42 + 0.53 * Math.pow(t, 1.4);
+            tiltRad = 0.31 - 0.40 * Math.pow(t, 1.2);
+          }
+
+          ratioY = Math.max(0.10, (heightNorm / 0.95) * baseRatioY);
+
+          if (angle !== undefined) {
+            angleOffset = angle;
+          } else {
+            angleOffset = isMovingRight ? tiltRad : -tiltRad;
+          }
+          break;
+        }
+        case 'chasing-scissors': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (progress * 0.48) : (1.0 - progress * 0.48);
+          ratioY = Math.max(0.10, ((0.85 - 0.48 * progress) / 0.85) * baseRatioY);
+          const tilt = 0.55 * (1.0 - progress);
+          angleOffset = isEven ? tilt : -tilt;
+          break;
+        }
+        case 'waterfall-curtain': {
+          ratioX = progress;
+          ratioY = Math.max(0.10, ((0.85 - 0.45 * progress) / 0.85) * baseRatioY);
+          angleOffset = (Math.random() - 0.5) * 0.12;
+          break;
+        }
+        case 'sinusoidal-wave': {
+          ratioX = progress;
+          ratioY = Math.max(0.10, (0.60 + 0.40 * Math.sin(progress * Math.PI * 4)) * baseRatioY);
+          angleOffset = 0.35 * Math.cos(progress * Math.PI * 4);
+          break;
+        }
+        case 'petal-bloom': {
+          const isEven = i % 2 === 0;
+          ratioX = isEven ? (0.5 - progress * 0.48) : (0.5 + progress * 0.48);
+          ratioY = Math.max(0.10, (0.40 + 0.60 * progress) * baseRatioY);
+          const tilt = 0.15 + 0.55 * Math.pow(progress, 1.8);
+          angleOffset = isEven ? -tilt : tilt;
+          break;
+        }
+        case 'teeter-totter': {
+          const isEven = i % 2 === 0;
+          ratioX = progress;
+          ratioY = Math.max(0.10, (isEven ? (0.30 + 0.70 * progress) : (1.0 - 0.70 * progress)) * baseRatioY);
+          angleOffset = isEven ? 0.42 : -0.42;
+          break;
+        }
+        case 'vortex-tunnel': {
+          const angleRad = progress * Math.PI * 2;
+          ratioX = 0.5 + Math.cos(angleRad) * 0.42;
+          ratioY = Math.max(0.10, (0.60 + 0.40 * Math.sin(angleRad)) * baseRatioY);
+          ratioZ = 0.15 + 0.70 * progress;
+          angleOffset = -0.28 * Math.cos(angleRad);
+          break;
+        }
+        case 'stepping-stones': {
+          ratioX = progress;
+          const stepIndex = Math.floor(progress * 4);
+          ratioY = Math.max(0.10, (0.35 + (stepIndex / 3) * 0.65) * baseRatioY);
+          angleOffset = (Math.random() - 0.5) * 0.18;
+          break;
+        }
+        case 'intertwined-helix': {
+          const numPairs = Math.max(1, Math.floor(count / 2));
+          const pairIndex = Math.floor(i / 2);
+          const isStrandB = i % 2 !== 0;
+          const pairProgress = numPairs > 1 ? pairIndex / (numPairs - 1) : 0.5;
+
+          const defaultX1 = 0.15;
+          const defaultX2 = 0.85;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+
+          ratioX = startX + pairProgress * (endX - startX);
+          ratioY = baseRatioY;
+          angleOffset = angle !== undefined ? angle : 0;
+          delay = pairProgress * duration;
+
+          spiralConfig = {
+            radius: 11.5,
+            frequency: 4.6,
+            phase: isStrandB ? Math.PI : 0,
+            direction: 1
+          };
+          break;
+        }
         case 'random':
           ratioX = Math.random();
-          ratioY = Math.random();
+          ratioY = config.ratioY !== undefined ? config.ratioY : Math.random();
           ratioZ = Math.random();
           angleOffset = (Math.random() - 0.5) * maxAngleOffset * 2;
           break;
       }
 
       // Remap ratioX to [x1, x2] range if provided for non-sweep patterns
-      if (x1 !== undefined && x2 !== undefined && !pattern.startsWith('sweep')) {
+      if (
+        x1 !== undefined &&
+        x2 !== undefined &&
+        !pattern.startsWith('sweep') &&
+        !pattern.startsWith('cascade-slope') &&
+        pattern !== 'intertwined-helix'
+      ) {
         ratioX = x1 + ratioX * (x2 - x1);
       }
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep')) {
+        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);
@@ -344,15 +691,49 @@ export class FireworkSequencer {
           let t = progress;
           if (pattern === 'random') {
             t = ratioY;
-          } else if (pattern.startsWith('sweep-arc')) {
+          } else if (
+            pattern.startsWith('sweep-arc') ||
+            pattern === 'fan' ||
+            pattern === 'ripple'
+          ) {
             t = Math.sin(progress * Math.PI);
+          } else if (pattern === 'sinusoidal-wave') {
+            t = 0.5 + 0.5 * Math.sin(progress * Math.PI * 4);
           }
           ratioY = y1 + t * (y2 - y1);
+        }
+      } else if (config.ratioY !== undefined) {
+        const isFlatPattern = pattern === 'sweep' ||
+          pattern === 'sweep-left' ||
+          pattern === 'sweep-right' ||
+          pattern === 'sweep-random-tilt' ||
+          pattern === 'sweep-random-tilt-left' ||
+          pattern === 'sweep-random-tilt-right' ||
+          pattern === 'fan-sweep' ||
+          pattern === 'fan-sweep-left' ||
+          pattern === 'fan-sweep-right' ||
+          pattern === 'fan-sweep-continuous' ||
+          pattern === 'fan-burst' ||
+          pattern === 'intertwined-helix' ||
+          pattern === 'converge' ||
+          pattern === 'diverge' ||
+          pattern === 'crossfire' ||
+          pattern === 'crossfire-burst' ||
+          pattern === 'continuous';
+        if (isFlatPattern) {
+          ratioY = config.ratioY;
         }
       }
 
       let overrides = effectOverrides;
-      if (config.instantBurst !== undefined 
+      if (spiralConfig) {
+        overrides = {
+          ...(overrides || {}),
+          spiral: spiralConfig
+        };
+      }
+      if (
+        config.instantBurst !== undefined 
         || config.shellSize !== undefined 
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
@@ -360,8 +741,12 @@ export class FireworkSequencer {
         || config.effects !== undefined
         || config.strobe !== undefined 
         || config.crackle !== undefined
-        || config.cometTrail !== undefined) 
-      {
+        || config.flow !== undefined
+        || config.cometTrail !== undefined 
+        || config.thickTrail !== undefined 
+        || config.thinTrail !== undefined 
+        || config.launchTrail !== undefined
+      ) {
         overrides = { ...(overrides || {}) };
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
         if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
@@ -371,17 +756,25 @@ export class FireworkSequencer {
         if (config.effects !== undefined) overrides.effects = config.effects;
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
+        if (config.flow !== undefined) overrides.flow = config.flow;
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
             overrides.instantBurst = true;
           } else if (config.cometTrail === 'thick') {
             overrides.launchTrail = true;
             overrides.thickTrail = true;
+            overrides.thinTrail = false;
+          } else if (config.cometTrail === 'thin') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = true;
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
+            overrides.thinTrail = false;
           }
         }
       }
@@ -390,7 +783,16 @@ export class FireworkSequencer {
         timeToLaunch: delay,
         preset,
         isComet: true,
-        options: { ratioX, ratioY, ratioZ, angleOffset, sectorId, color, effectOverrides: overrides }
+        options: {
+          ratioX,
+          ratioY,
+          ratioZ,
+          angleOffset,
+          sectorId,
+          color,
+          spiral: spiralConfig,
+          effectOverrides: overrides
+        }
       });
     }
   }

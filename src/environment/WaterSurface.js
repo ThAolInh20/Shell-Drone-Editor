@@ -46,6 +46,15 @@ export class WaterSurface {
       },
       uMirrorEnabled: {
         value: 1.0
+      },
+      uFlashPos: {
+        value: new THREE.Vector3(0, 150, 0)
+      },
+      uFlashColor: {
+        value: new THREE.Color(0x000000)
+      },
+      uFlashIntensity: {
+        value: 0.0
       }
     };
 
@@ -174,6 +183,9 @@ export class WaterSurface {
       uniform float uWaveScale;
       uniform float uWaveSpeed;
       uniform float uMirrorEnabled;
+      uniform vec3 uFlashPos;
+      uniform vec3 uFlashColor;
+      uniform float uFlashIntensity;
 
       varying vec4 vProjectedCoord;
       varying vec3 vWorldPosition;
@@ -245,6 +257,33 @@ export class WaterSurface {
           finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.45, 0.1, 1.0));
         }
 
+        // Dynamic Burst Flash & Anisotropic Specular Highlight on Water
+        if (uFlashIntensity > 0.001) {
+          vec3 lightVec = uFlashPos - vWorldPosition;
+          float lightDist = length(lightVec);
+          vec3 lightDir = normalize(lightVec);
+
+          // Quadratic distance attenuation
+          float atten = 1.0 / (1.0 + lightDist * 0.006 + lightDist * lightDist * 0.00003);
+
+          // Half-vector for Blinn-Phong specular highlight
+          vec3 halfVec = normalize(lightDir + viewDir);
+          float NdotH = max(dot(normal, halfVec), 0.0);
+          float specHighlight = pow(NdotH, 32.0);
+
+          // Anisotropic vertical stretch reflection column
+          vec3 reflectDir = reflect(-viewDir, normal);
+          float RdotL = max(dot(reflectDir, lightDir), 0.0);
+          float streak = pow(RdotL, 16.0) * 1.5;
+
+          // Diffuse water scatter and specular flash
+          float NdotL = max(dot(normal, lightDir), 0.0);
+          vec3 flashDiffuse = uFlashColor * (NdotL * 0.4 + 0.1) * atten * uFlashIntensity;
+          vec3 flashSpecular = uFlashColor * (specHighlight + streak) * atten * uFlashIntensity * 2.2;
+
+          finalColor += flashDiffuse + flashSpecular;
+        }
+
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
@@ -264,6 +303,16 @@ export class WaterSurface {
 
     // Set to default layer 0 so reflection camera does not capture water into itself
     this.mesh.layers.set(LAYER_DEFAULT);
+  }
+
+  setBurstFlash(position, color, intensity) {
+    if (position) {
+      this.uniforms.uFlashPos.value.copy(position);
+    }
+    if (color) {
+      this.uniforms.uFlashColor.value.copy(color);
+    }
+    this.uniforms.uFlashIntensity.value = intensity;
   }
 
   setMirrorReflection(enabled) {

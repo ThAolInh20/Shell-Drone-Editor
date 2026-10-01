@@ -23,6 +23,7 @@ export class ShellPresetFactory {
       'heart',
       'willow',
       'willow-up',
+      'willow-arch',
       'star',
       'lightning',
       'oval',
@@ -33,7 +34,8 @@ export class ShellPresetFactory {
       'half-flash',
       'split-flash',
       'galaxy',
-      'upward-spray'
+      'upward-spray',
+      'double-helix'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -52,6 +54,7 @@ export class ShellPresetFactory {
       'crysanthemum-spiral-v2',
       'crysanthemum-cc',
       'ghost',
+      'ghost-kamuro',
       'galaxy-spin',
       'comet-ring',
       'bouquet-comet',
@@ -59,6 +62,7 @@ export class ShellPresetFactory {
       'sparking',
       'sparking-v2',
       'swimming-star',
+      'double-helix',
       'strobe',
       'white-strobe',
       'glitter-strobe',
@@ -90,6 +94,7 @@ export class ShellPresetFactory {
       { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
       { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
       { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
+      { key: 'weepingWillowArch', label: 'Weeping Willow Arch' },
       { key: 'fallingLeaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet Cluster' },
@@ -117,7 +122,9 @@ export class ShellPresetFactory {
       { key: 'halfFlash', label: 'Half Sphere Flash' },
       { key: 'splitFlash', label: 'Split Sphere Flash' },
       { key: 'sparkling_comet', label: 'Sparkling Comet Apex Spark' },
-      { key: 'galaxy', label: 'Spiral Galaxy' }
+      { key: 'galaxy', label: 'Spiral Galaxy' },
+      { key: 'ghostKamuro', label: 'Ghost Kamuro' },
+      { key: 'doubleHelix', label: 'Double Helix' }
     ];
 
     // Registry for dynamic preset strategies (OCP compliance)
@@ -150,6 +157,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
     this.presetsRegistry.set('weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
     this.presetsRegistry.set('weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
+    this.presetsRegistry.set('weepingWillowArch', (size) => this.weepingWillowArchShell(size));
     this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
     this.presetsRegistry.set('floral', (size) => this.floralShell(size));
     this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
@@ -182,6 +190,10 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('comet_cluster_thick', (size) => this.cometClusterThick(size));
     this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
     this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
+    this.presetsRegistry.set('ghostKamuro', (size) => this.ghostKamuroShell(size));
+    this.presetsRegistry.set('ghost_kamuro', (size) => this.ghostKamuroShell(size));
+    this.presetsRegistry.set('doubleHelix', (size) => this.doubleHelixShell(size));
+    this.presetsRegistry.set('double_helix', (size) => this.doubleHelixShell(size));
   }
 
   randomPreset() {
@@ -967,6 +979,21 @@ export class ShellPresetFactory {
     };
   }
 
+  weepingWillowArchShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'weepingWillowArch',
+      shapeType: 'willow-arch',
+      dynamicsType: 'bouquet-comet',
+      effectType: 'falling-comets',
+      instantBurst: true,
+      color: this.whiteOrGold(),
+      particleCountMultiplier: 1.0,
+      starLife: 3800,
+      pistil: false
+    };
+  }
+
   splitFlashShell(size = 1) {
     return {
       ...this.basePreset(size),
@@ -1023,6 +1050,43 @@ export class ShellPresetFactory {
       glitterColor: 0xffd700,
       particleCountMultiplier: 0.65, // Giảm thêm số lượng hạt từ 0.85 xuống 0.65
       shellSize: size
+    };
+  }
+
+  ghostKamuroShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'ghostKamuro',
+      shapeType: 'sphere',
+      effectType: 'ghost-kamuro',
+      color: 0xffd700,
+      secondColor: 0xffe066,
+      starLife: 2400 + size * 450,
+      particleCountMultiplier: 0.75,
+      crackle: false,
+      strobe: false,
+      pistil: false,
+      launchTrail: true,
+      thickTrail: true
+    };
+  }
+
+  doubleHelixShell(size = 1) {
+    const primaryColor = this.randomColor({ limitWhite: true });
+    const secondaryColor = this.randomColor({ notColor: primaryColor, limitWhite: true });
+    return {
+      ...this.basePreset(size),
+      shellType: 'doubleHelix',
+      shapeType: 'double-helix',
+      effectType: 'double-helix',
+      color: primaryColor,
+      secondColor: secondaryColor,
+      starLife: 1800 + size * 300,
+      particleCountMultiplier: 1.25,
+      crackle: false,
+      strobe: false,
+      pistil: false,
+      launchTrail: true
     };
   }
 }

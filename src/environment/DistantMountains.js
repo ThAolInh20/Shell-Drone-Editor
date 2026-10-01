@@ -96,10 +96,15 @@ export class DistantMountains {
       const fragmentShader = `
         uniform vec3 uColorBase;
         uniform vec3 uColorTop;
+        uniform vec3 uFlashColor;
+        uniform float uFlashIntensity;
         varying float vHeightNorm;
 
         void main() {
-          vec3 finalColor = mix(uColorBase, uColorTop, vHeightNorm);
+          vec3 baseGrad = mix(uColorBase, uColorTop, vHeightNorm);
+          // Subtle rim light concentrated strictly on mountain ridge crests
+          vec3 rimIllum = uFlashColor * (pow(vHeightNorm, 2.2) * 0.14) * uFlashIntensity;
+          vec3 finalColor = baseGrad + rimIllum;
           gl_FragColor = vec4(finalColor, 1.0);
         }
       `;
@@ -119,6 +124,12 @@ export class DistantMountains {
           },
           uColorTop: {
             value: new THREE.Color(layer.colorTop)
+          },
+          uFlashColor: {
+            value: new THREE.Color(0x000000)
+          },
+          uFlashIntensity: {
+            value: 0.0
           }
         },
         side: THREE.DoubleSide,
@@ -128,6 +139,19 @@ export class DistantMountains {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.name = `MountainLayer_${layerIdx}`;
       this.group.add(mesh);
+    });
+  }
+
+  setBurstFlash(color, intensity) {
+    this.group.traverse((obj) => {
+      if (obj.isMesh && obj.material && obj.material.uniforms) {
+        if (color && obj.material.uniforms.uFlashColor) {
+          obj.material.uniforms.uFlashColor.value.copy(color);
+        }
+        if (obj.material.uniforms.uFlashIntensity) {
+          obj.material.uniforms.uFlashIntensity.value = intensity;
+        }
+      }
     });
   }
 

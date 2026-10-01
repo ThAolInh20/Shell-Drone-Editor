@@ -366,6 +366,7 @@ export default {
         glitterStrobe: "Lấp lánh mịn",
         crackle: "Nổ tách tách Crackle",
         ghost: "Quang học Ghost",
+        ghostFlare: "Ẩn hiện 3 giai đoạn Ghost Flare",
         flow: "Lượn sóng Flow",
         noTrail: "Không vệt đuôi",
         activeEffects: "Hiệu ứng kích hoạt",
@@ -410,7 +411,8 @@ export default {
           willow: "Liễu rủ vòm rủ",
           "willow-up": "Liễu vút bắn vọt lên",
           "half-flash": "Bán cầu phát sáng",
-          "split-flash": "Phân cực xích đạo"
+          "split-flash": "Phân cực xích đạo",
+          "double-helix": "Xoắn kép Double Helix"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -430,7 +432,9 @@ export default {
           "crysanthemum-spiral-v2": "Hoa cúc xoắn ốc V2",
           sparking: "Tàn lửa li ti",
           "sparking-v2": "Tàn lửa tức thì",
-          "swimming-star": "Sao bơi chậm"
+          "swimming-star": "Sao bơi chậm",
+          "ghost-kamuro": "Liễu rủ tàng hình Ghost Kamuro",
+          "double-helix": "Xoắn kép xoay Double Helix"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -442,6 +446,11 @@ export default {
           "fan-sweep": "Hình quạt quét",
           "fan-sweep-continuous": "Hình quạt quét liên tục",
           "fan-burst": "Bắn chùm quạt",
+          crossfire: "Đan chéo",
+          "crossfire-burst": "Bắn chùm đan chéo",
+          "v-shape": "Sóng cánh nhạn chữ V",
+          "spiral-helix": "Xoắn ốc 3D",
+          ripple: "Sóng gợn đồng tâm",
           converge: "Hội tụ",
           diverge: "Phân kỳ",
           zigzag: "Zic-zac",
@@ -454,6 +463,17 @@ export default {
           "sweep-arc-right": "Quét vòng cung phải",
           "sweep-arc-out-left": "Quét vòng cung tỏa trái",
           "sweep-arc-out-right": "Quét vòng cung tỏa phải",
+          "cascade-slope": "Dáng đổ",
+          "cascade-slope-left": "Dáng đổ trái",
+          "cascade-slope-right": "Dáng đổ phải",
+          "chasing-scissors": "Lưỡi hái chém chéo",
+          "waterfall-curtain": "Bức màn thác nước",
+          "sinusoidal-wave": "Sóng lụa nhấp nhô",
+          "petal-bloom": "Cánh hoa bung nở",
+          "teeter-totter": "Bập bênh đan xen",
+          "vortex-tunnel": "Đường hầm xoáy 3D",
+          "stepping-stones": "Bấc nhảy bậc thang",
+          "intertwined-helix": "Xoắn ốc đan đôi",
           "fan-sweep-left": "Hình quạt quét trái",
           "fan-sweep-right": "Hình quạt quét phải"
         },
@@ -464,10 +484,15 @@ export default {
           empty: "Không chọn"
         },
         preset: {
-          random: "Ngẫu nhiên"
+          random: "Ngẫu nhiên",
+          ghostKamuro: "Pháo liễu Ghost Kamuro",
+          ghost_kamuro: "Pháo liễu Ghost Kamuro",
+          doubleHelix: "Pháo xoắn kép Double Helix",
+          double_helix: "Pháo xoắn kép Double Helix"
         },
         cometTrail: {
           none: "Không có",
+          thin: "Mỏng thẳng siêu tốc",
           normal: "Bình thường",
           thick: "Nhẹ"
         }

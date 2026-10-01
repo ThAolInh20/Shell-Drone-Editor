@@ -140,8 +140,13 @@ export class TrailSystem {
     customVelocity = null,
     gravityScale = 1.0,
     dragScale = 1.0,
-    shimmer = false
+    shimmer = false,
+    phase = null
   ) {
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
     const useFireworkColor = Math.random() < 0.75;
     const trailColor = useFireworkColor
       ? color.clone().offsetHSL(
@@ -151,24 +156,23 @@ export class TrailSystem {
       )
       : DEFAULT_TRAIL_COLOR.clone();
 
-    let velocity;
-    if (customVelocity) {
-      velocity = customVelocity.clone();
-    } else {
-      velocity = zeroVelocity
-        ? new THREE.Vector3(0, 0, 0)
-        : new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
-    }
+    const vx = customVelocity ? customVelocity.x : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
+    const vy = customVelocity ? customVelocity.y : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
+    const vz = customVelocity ? customVelocity.z : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
 
     const particle = {
-      position: position.clone(),
-      velocity: velocity,
+      position: new THREE.Vector3(position.x, position.y, position.z),
+      velocity: new THREE.Vector3(vx, vy, vz),
       color: trailColor,
       life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
       age: 0,
       opacity: opacityMultiplier,
       strobe: strobe,
       shimmer: shimmer,
+      phase: phase !== null ? phase : Math.random() * 1000,
+      strobeFreq: 90 + Math.random() * 90,
+      dutyRatio: 0.25 + Math.random() * 0.2,
+      shimmerSpeed: 0.03 + Math.random() * 0.04,
       gravityScale: gravityScale,
       dragScale: dragScale
     };
@@ -180,15 +184,19 @@ export class TrailSystem {
     color,
     strobe = false,
     customVelocity = null,
-    phase = 0,
+    phase = null,
     customLife = null,
     shimmer = false
   ) {
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
     const spark = {
-      position: position.clone(),
+      position: new THREE.Vector3(position.x, position.y, position.z),
       // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần) hoặc dùng vận tốc tùy biến
       velocity: customVelocity
-        ? customVelocity.clone()
+        ? new THREE.Vector3(customVelocity.x, customVelocity.y, customVelocity.z)
         : new THREE.Vector3(
             (Math.random() - 0.5) * 6,
             Math.random() * 5,
@@ -200,15 +208,24 @@ export class TrailSystem {
       age: 0,
       strobe: strobe,
       shimmer: shimmer,
-      phase: phase
+      phase: phase !== null ? phase : Math.random() * 1000,
+      strobeFreq: 90 + Math.random() * 90,
+      dutyRatio: 0.25 + Math.random() * 0.2,
+      shimmerSpeed: 0.03 + Math.random() * 0.04
     };
     this.trailParticles.push(spark);
   }
 
   spawnMicroCrackle(position, baseColor) {
-    const crackleCount = 15 + Math.floor(Math.random() * 6); // Tăng lên 10-15 hạt để tạo khối cầu sphere rõ nét hơn
+    if (this.trailParticles.length >= this.maxTrailParticles) {
+      return;
+    }
+
+    const crackleCount = 12 + Math.floor(Math.random() * 4); // Tối ưu 12-15 hạt
 
     for (let i = 0; i < crackleCount; i++) {
+      if (this.trailParticles.length >= this.maxTrailParticles) break;
+
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
@@ -227,10 +244,10 @@ export class TrailSystem {
       const sparkColor = baseColor ? baseColor.clone() : CRACKLE_SPARK_COLOR.clone();
 
       this.trailParticles.push({
-        position: position.clone(),
+        position: new THREE.Vector3(position.x, position.y, position.z),
         velocity: direction.multiplyScalar(speed),
         color: sparkColor,
-        life: 0.8 + Math.random() * 0.4, // Giảm thời gian sống (0.6s - 1.0s) giúp vụ nổ mini tan nhanh chớp nhoáng
+        life: 0.8 + Math.random() * 0.4,
         age: 0
       });
     }
@@ -283,16 +300,10 @@ export class TrailSystem {
 
           // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
           if (particle.strobe) {
-            // Sử dụng thời gian thực tế toàn cục kết hợp lệch pha để đồng bộ hóa chớp nháy theo nhóm
-            const timeMs =
-              particle.phase !== undefined
-                ? performance.now() + particle.phase
-                : particle.age * 1000;
-            const strobeFreq = 120; // Tần số lấp lánh (ms)
-            const isBlinking =
-              Math.floor(timeMs / strobeFreq) %
-                2 ===
-              0;
+            const timeMs = performance.now() + (particle.phase ?? 0);
+            const freq = particle.strobeFreq ?? 120;
+            const cycleTime = timeMs % freq;
+            const isBlinking = cycleTime < (freq * (particle.dutyRatio ?? 0.35));
             if (!isBlinking) {
               alpha = 0.0;
             } else {
@@ -302,23 +313,21 @@ export class TrailSystem {
               b = 1.0;
             }
           } else if (particle.shimmer) {
-            // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin
-            const timeMs =
-              particle.phase !== undefined
-                ? performance.now() + particle.phase
-                : particle.age * 1000;
+            // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin độc lập
+            const timeMs = performance.now() + (particle.phase ?? 0);
+            const speed = particle.shimmerSpeed ?? 0.05;
             
             const shimmerVal =
-              0.3 +
-              0.7 *
+              0.2 +
+              0.8 *
                 Math.abs(
-                  Math.sin(timeMs * 0.05)
+                  Math.sin(timeMs * speed)
                 );
             alpha *= shimmerVal;
             
             // Trộn thêm ánh sáng trắng lung linh
             const blendFactor =
-              0.5 + 0.5 * Math.sin(timeMs * 0.05);
+              0.5 + 0.5 * Math.sin(timeMs * speed);
             r += (1.0 - r) * blendFactor;
             g += (1.0 - g) * blendFactor;
             b += (1.0 - b) * blendFactor;

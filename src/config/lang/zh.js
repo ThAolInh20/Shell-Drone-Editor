@@ -352,6 +352,7 @@ export default {
         glitterStrobe: "闪光频闪",
         crackle: "裂音 Crackle",
         ghost: "幽灵隐现",
+        ghostFlare: "三阶段幽灵闪光 Ghost Flare",
         flow: "游动 Flow",
         noTrail: "无尾迹",
         activeEffects: "已启用效果",
@@ -395,7 +396,8 @@ export default {
           willow: "垂柳形",
           "willow-up": "向上喷射垂柳",
           "half-flash": "半球闪光",
-          "split-flash": "赤道分极闪光"
+          "split-flash": "赤道分极闪光",
+          "double-helix": "双螺旋 Double Helix"
         },
         dynamicsType: {
           standard: "标准径向放射",
@@ -415,7 +417,9 @@ export default {
           "crysanthemum-spiral-v2": "菊花螺旋点亮 V2",
           sparking: "火花残烬",
           "sparking-v2": "即时火花残烬",
-          "swimming-star": "缓游星芒"
+          "swimming-star": "缓游星芒",
+          "ghost-kamuro": "幽灵柳絮 Ghost Kamuro",
+          "double-helix": "双螺旋公转 Double Helix"
         },
         pattern: {
           random: "随机",
@@ -427,6 +431,11 @@ export default {
           "fan-sweep": "扇形扫描",
           "fan-sweep-continuous": "扇形连续扫",
           "fan-burst": "扇形齐发",
+          crossfire: "交叉对射",
+          "crossfire-burst": "交叉齐发",
+          "v-shape": "V字形波浪",
+          "spiral-helix": "3D螺旋升空",
+          ripple: "同心圆波纹",
           converge: "向内会聚",
           diverge: "向外发散",
           zigzag: "之字形",
@@ -439,6 +448,17 @@ export default {
           "sweep-arc-right": "弧形向右扫",
           "sweep-arc-out-left": "弧形向左外扫",
           "sweep-arc-out-right": "弧形向右外扫",
+          "cascade-slope": "倾泻波浪",
+          "cascade-slope-left": "向左倾泻波浪",
+          "cascade-slope-right": "向右倾泻波浪",
+          "chasing-scissors": "双剪交叉",
+          "waterfall-curtain": "瀑布幕帘",
+          "sinusoidal-wave": "正弦丝绸波浪",
+          "petal-bloom": "花瓣绽放",
+          "teeter-totter": "跷跷板交错",
+          "vortex-tunnel": "3D涡旋隧道",
+          "stepping-stones": "阶梯跳跃",
+          "intertwined-helix": "双螺旋交织",
           "fan-sweep-left": "扇形向左扫",
           "fan-sweep-right": "扇形向右扫"
         },
@@ -449,10 +469,15 @@ export default {
           empty: "无"
         },
         preset: {
-          random: "随机"
+          random: "随机",
+          ghostKamuro: "幽灵柳絮 Ghost Kamuro",
+          ghost_kamuro: "幽灵柳絮 Ghost Kamuro",
+          doubleHelix: "双螺旋烟花 Double Helix",
+          double_helix: "双螺旋烟花 Double Helix"
         },
         cometTrail: {
           none: "无",
+          thin: "细直极速",
           normal: "普通",
           thick: "轻微"
         }

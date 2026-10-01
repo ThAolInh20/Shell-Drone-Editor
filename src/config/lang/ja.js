@@ -352,6 +352,7 @@ export default {
         glitterStrobe: "グリッターストロボ",
         crackle: "クラックル Crackle",
         ghost: "ゴースト明滅",
+        ghostFlare: "3段階ゴーストフレア Ghost Flare",
         flow: "遊泳 Flow",
         noTrail: "トレイルなし",
         activeEffects: "有効エフェクト",
@@ -395,7 +396,8 @@ export default {
           willow: "柳形",
           "willow-up": "上方噴射柳",
           "half-flash": "半球フラッシュ",
-          "split-flash": "赤道分割フラッシュ"
+          "split-flash": "赤道分割フラッシュ",
+          "double-helix": "二重螺旋 Double Helix"
         },
         dynamicsType: {
           standard: "標準放射",
@@ -415,7 +417,9 @@ export default {
           "crysanthemum-spiral-v2": "菊スパイラル点灯 V2",
           sparking: "火花残光",
           "sparking-v2": "即時火花残光",
-          "swimming-star": "スイミングスター"
+          "swimming-star": "スイミングスター",
+          "ghost-kamuro": "ゴースト冠菊 Ghost Kamuro",
+          "double-helix": "二重螺旋旋回 Double Helix"
         },
         pattern: {
           random: "ランダム",
@@ -427,6 +431,11 @@ export default {
           "fan-sweep": "扇形スイープ",
           "fan-sweep-continuous": "扇形連続スイープ",
           "fan-burst": "扇形一斉発射",
+          crossfire: "クロスファイア",
+          "crossfire-burst": "クロス一斉発射",
+          "v-shape": "V字ウェーブ",
+          "spiral-helix": "3D螺旋上昇",
+          ripple: "同心円波紋",
           converge: "収束",
           diverge: "発散",
           zigzag: "ジグザグ",
@@ -439,6 +448,17 @@ export default {
           "sweep-arc-right": "円弧右スイープ",
           "sweep-arc-out-left": "円弧左外スイープ",
           "sweep-arc-out-right": "円弧右外スイープ",
+          "cascade-slope": "カスケードスロープ",
+          "cascade-slope-left": "左カスケードスロープ",
+          "cascade-slope-right": "右カスケードスロープ",
+          "chasing-scissors": "シザーズチェイス",
+          "waterfall-curtain": "ウォーターフォールカーテン",
+          "sinusoidal-wave": "サインウェーブ",
+          "petal-bloom": "花弁ブルーム",
+          "teeter-totter": "シーソー交差",
+          "vortex-tunnel": "3Dボルテックストンネル",
+          "stepping-stones": "ステップストーン",
+          "intertwined-helix": "二重らせん交差",
           "fan-sweep-left": "扇形左スイープ",
           "fan-sweep-right": "扇形右スイープ"
         },
@@ -449,10 +469,15 @@ export default {
           empty: "なし"
         },
         preset: {
-          random: "ランダム"
+          random: "ランダム",
+          ghostKamuro: "ゴースト冠菊 Ghost Kamuro",
+          ghost_kamuro: "ゴースト冠菊 Ghost Kamuro",
+          doubleHelix: "二重螺旋花火 Double Helix",
+          double_helix: "二重螺旋花火 Double Helix"
         },
         cometTrail: {
           none: "なし",
+          thin: "細直高速",
           normal: "通常",
           thick: "ライト"
         }

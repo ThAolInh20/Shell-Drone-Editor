@@ -73,4 +73,32 @@ describe('ShellPresetFactory', () => {
     expect(validated.__contract.effectFallback).toBe(true);
     expect(validated.__contract.warnings.length).toBe(2);
   });
+
+  it('should create valid ghostKamuro preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('ghostKamuro');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('ghostKamuro');
+    expect(preset.effectType).toBe('ghost-kamuro');
+    expect(preset.launchTrail).toBe(true);
+  });
+
+  it('should create valid doubleHelix preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('doubleHelix');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('doubleHelix');
+    expect(preset.shapeType).toBe('double-helix');
+    expect(preset.effectType).toBe('double-helix');
+  });
+
+  it('should create valid weepingWillowArch preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('weepingWillowArch');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('weepingWillowArch');
+    expect(preset.shapeType).toBe('willow-arch');
+    expect(preset.effectType).toBe('falling-comets');
+    expect(preset.instantBurst).toBe(true);
+  });
 });
