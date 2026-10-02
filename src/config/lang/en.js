@@ -501,8 +501,8 @@ export default {
           doubleHelix: "Double Helix",
           double_helix: "Double Helix",
           crossette: "Crossette",
-          multiNested: "Multi Nested Shell",
-          multi_nested: "Multi Nested Shell"
+          multiNested: "★ Multi Nested Shell",
+          multi_nested: "★ Multi Nested Shell"
         },
         nestingMode: {
           concentric: "Concentric Time Cascade",

@@ -1,4 +1,5 @@
 import { t } from '../config/lang/i18n.js';
+import en from '../config/lang/en.js';
 import { editorConfig } from '../config/editor.js';
 import {
   AVAILABLE_SHAPES,
@@ -9,22 +10,29 @@ import {
   resolveFireworkComposition
 } from '../factories/FireworkCompositionHelper.js';
 
+function getEnglishOptionLabel(fieldName, opt) {
+  if (opt === '' || opt === undefined || opt === null) {
+    return en?.editor?.inspector?.options?.[fieldName]?.empty || '';
+  }
+  const enOptions = en?.editor?.inspector?.options?.[fieldName];
+  if (enOptions && enOptions[opt]) {
+    return enOptions[opt];
+  }
+  return String(opt);
+}
+
 export const AVAILABLE_EFFECT_TAGS = [
-  {
-    key: 'strobe',
-    labelKey: 'strobe'
-  },
-  {
-    key: 'white-strobe',
-    labelKey: 'whiteStrobe'
-  },
-  {
-    key: 'glitter-strobe',
-    labelKey: 'glitterStrobe'
-  },
   {
     key: 'crackle',
     labelKey: 'crackle'
+  },
+  {
+    key: 'crossette',
+    labelKey: 'crossette'
+  },
+  {
+    key: 'flow',
+    labelKey: 'flow'
   },
   {
     key: 'ghost',
@@ -35,16 +43,20 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghostFlare'
   },
   {
-    key: 'flow',
-    labelKey: 'flow'
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
   },
   {
     key: 'no-trail',
     labelKey: 'noTrail'
   },
   {
-    key: 'crossette',
-    labelKey: 'crossette'
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
   }
 ];
 
@@ -511,7 +523,18 @@ export class PropertyInspector {
       input = document.createElement('select');
       input.className = 'inspector-input';
       input.dataset.fieldName = field.name;
-      field.options.forEach(opt => {
+
+      const sortedOptions = [...field.options].sort((a, b) => {
+        if (a === '') return -1;
+        if (b === '') return 1;
+        if (a === 'random') return -1;
+        if (b === 'random') return 1;
+        const labelA = getEnglishOptionLabel(field.name, a);
+        const labelB = getEnglishOptionLabel(field.name, b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedOptions.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt;
         const lookupKey = opt === '' ? 'empty' : opt;
@@ -727,7 +750,13 @@ export class PropertyInspector {
       select.disabled = true;
       select.style.opacity = '0.5';
     } else {
-      availableToAdd.forEach((eff) => {
+      const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
+        const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
+        const labelB = en?.editor?.inspector?.fields?.[b.labelKey] || b.key;
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedAvailableToAdd.forEach((eff) => {
         const opt = document.createElement('option');
         opt.value = eff.key;
         opt.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
@@ -1421,7 +1450,15 @@ export class PropertyInspector {
     ];
 
     const activeTplKey = event._selectedTemplateKey || 'custom';
-    TEMPLATE_PRESETS.forEach(tpl => {
+    const sortedTemplates = [...TEMPLATE_PRESETS].sort((a, b) => {
+      if (a.key === 'custom') return -1;
+      if (b.key === 'custom') return 1;
+      const labelA = en?.editor?.inspector?.options?.templates?.[a.key] || a.label;
+      const labelB = en?.editor?.inspector?.options?.templates?.[b.key] || b.label;
+      return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+    });
+
+    sortedTemplates.forEach(tpl => {
       const opt = document.createElement('option');
       opt.value = tpl.key;
       opt.textContent = tpl.label;
@@ -1799,7 +1836,14 @@ export class PropertyInspector {
       const shapeSel = document.createElement('select');
       shapeSel.className = 'inspector-input';
       shapeSel.style.fontSize = '11px';
-      AVAILABLE_SHAPES.forEach(sh => {
+
+      const sortedShapes = [...AVAILABLE_SHAPES].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('shapeType', a);
+        const labelB = getEnglishOptionLabel('shapeType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedShapes.forEach(sh => {
         const opt = document.createElement('option');
         opt.value = sh;
         opt.textContent =
@@ -1830,7 +1874,14 @@ export class PropertyInspector {
       const dynSel = document.createElement('select');
       dynSel.className = 'inspector-input';
       dynSel.style.fontSize = '11px';
-      AVAILABLE_DYNAMICS.forEach(dyn => {
+
+      const sortedDynamics = [...AVAILABLE_DYNAMICS].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('dynamicsType', a);
+        const labelB = getEnglishOptionLabel('dynamicsType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedDynamics.forEach(dyn => {
         const opt = document.createElement('option');
         opt.value = dyn;
         opt.textContent =

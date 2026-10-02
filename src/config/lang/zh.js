@@ -486,8 +486,8 @@ export default {
           doubleHelix: "双螺旋烟花 Double Helix",
           double_helix: "双螺旋烟花 Double Helix",
           crossette: "十字烟花 Crossette",
-          multiNested: "多层嵌套烟花 Multi Nested",
-          multi_nested: "多层嵌套烟花 Multi Nested"
+          multiNested: "★ 多层嵌套烟花 Multi Nested",
+          multi_nested: "★ 多层嵌套烟花 Multi Nested"
         },
         nestingMode: {
           concentric: "同心时序爆炸 Time Cascade",

@@ -85,7 +85,7 @@ export class ShellPresetFactory {
       { key: 'crysanthemumSpiralV2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
-      { key: 'multiNested', label: 'Multi Nested Shell' },
+      { key: 'multiNested', label: '★ Multi Nested Shell' },
       { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking Ember Decay' },
       { key: 'sparkingV2', label: 'Sparking V2 Instant Ember' },

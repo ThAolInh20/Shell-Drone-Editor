@@ -501,8 +501,8 @@ export default {
           doubleHelix: "Pháo xoắn kép Double Helix",
           double_helix: "Pháo xoắn kép Double Helix",
           crossette: "Pháo chữ thập Crossette",
-          multiNested: "Pháo lồng đa tầng Multi Nested",
-          multi_nested: "Pháo lồng đa tầng Multi Nested"
+          multiNested: "★ Pháo lồng đa tầng Multi Nested",
+          multi_nested: "★ Pháo lồng đa tầng Multi Nested"
         },
         nestingMode: {
           concentric: "Đồng tâm nối tiếp Time Cascade",
