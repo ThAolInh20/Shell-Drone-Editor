@@ -101,4 +101,27 @@ describe('ShellPresetFactory', () => {
     expect(preset.effectType).toBe('falling-comets');
     expect(preset.instantBurst).toBe(true);
   });
+
+  it('should create valid crossette preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crossette');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crossette');
+    expect(preset.crossette).toBe(true);
+  });
+
+  it('should create valid multiNested preset with stages', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('multiNested');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('multiNested');
+    expect(preset.multiNested).toBe(true);
+    expect(preset.nestingMode).toBe('concentric');
+    expect(Array.isArray(preset.stages)).toBe(true);
+    expect(preset.stages.length).toBe(4);
+    expect(preset.stages[0].shapeType).toBe('sphere');
+    expect(preset.stages[0].dynamicsType).toBe('standard');
+    expect(preset.stages[0].delay).toBe(0.0);
+    expect(preset.stages[3].delay).toBe(1.35);
+  });
 });

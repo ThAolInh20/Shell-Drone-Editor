@@ -69,7 +69,8 @@ export class ShellPresetFactory {
       'heart',
       'oval',
       'no-trail',
-      'notrail'
+      'notrail',
+      'crossette'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -84,6 +85,7 @@ export class ShellPresetFactory {
       { key: 'crysanthemumSpiralV2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
+      { key: 'multiNested', label: 'Multi Nested Shell' },
       { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking Ember Decay' },
       { key: 'sparkingV2', label: 'Sparking V2 Instant Ember' },
@@ -124,7 +126,8 @@ export class ShellPresetFactory {
       { key: 'sparkling_comet', label: 'Sparkling Comet Apex Spark' },
       { key: 'galaxy', label: 'Spiral Galaxy' },
       { key: 'ghostKamuro', label: 'Ghost Kamuro' },
-      { key: 'doubleHelix', label: 'Double Helix' }
+      { key: 'doubleHelix', label: 'Double Helix' },
+      { key: 'crossette', label: 'Crossette' }
     ];
 
     // Registry for dynamic preset strategies (OCP compliance)
@@ -147,6 +150,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('crysanthemumSpiralV2', (size) => this.crysanthemumSpiralV2Shell(size));
     this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
     this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
+    this.presetsRegistry.set('multiNested', (size) => this.multiNestedShell(size));
     this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
     this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
     this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
@@ -194,6 +198,7 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('ghost_kamuro', (size) => this.ghostKamuroShell(size));
     this.presetsRegistry.set('doubleHelix', (size) => this.doubleHelixShell(size));
     this.presetsRegistry.set('double_helix', (size) => this.doubleHelixShell(size));
+    this.presetsRegistry.set('crossette', (size) => this.crossetteShell(size));
   }
 
   randomPreset() {
@@ -297,6 +302,57 @@ export class ShellPresetFactory {
       effectType: 'standard',
       nestedBurst: true,
       starLife: 1000 + size * 150,
+      flower: false,
+      smiley: false,
+      hearth: false,
+      star: false,
+      doubleRing: false
+    };
+  }
+
+  multiNestedShell(size = 1, customStages = null, nestingMode = 'concentric') {
+    return {
+      ...this.basePreset(size),
+      shellType: 'multiNested',
+      multiNested: true,
+      nestingMode: nestingMode || 'concentric',
+      shapeType: 'sphere',
+      dynamicsType: 'standard',
+      effectType: 'standard',
+      stages: customStages || [
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: '#ff4400',
+          delay: 0.0,
+          scale: 1.0,
+          effects: ['strobe']
+        },
+        {
+          shapeType: 'ring',
+          dynamicsType: 'flow',
+          color: '#00e5ff',
+          delay: 0.45,
+          scale: 0.82,
+          effects: []
+        },
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'crossette',
+          color: '#ffd700',
+          delay: 0.90,
+          scale: 0.65,
+          effects: ['crossette']
+        },
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'willow',
+          color: '#ffffff',
+          delay: 1.35,
+          scale: 0.50,
+          effects: ['glitter-strobe']
+        }
+      ],
       flower: false,
       smiley: false,
       hearth: false,
@@ -1085,6 +1141,22 @@ export class ShellPresetFactory {
       particleCountMultiplier: 1.25,
       crackle: false,
       strobe: false,
+      pistil: false,
+      launchTrail: true
+    };
+  }
+
+  crossetteShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crossette',
+      shapeType: 'sphere',
+      dynamicsType: 'crossette',
+      effectType: 'crossette',
+      crossette: true,
+      color: this.randomColor({ limitWhite: true }),
+      particleCountMultiplier: 1.15,
+      starLife: 2600 + size * 300,
       pistil: false,
       launchTrail: true
     };

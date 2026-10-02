@@ -338,13 +338,22 @@ export default {
         geometryOffsets: "Tọa độ & Căn lề",
         beatSettings: "Biên tập nhịp Beat",
         groupSettings: "Cấu hình nhóm",
-        groupChildren: "Danh sách sự kiện con"
+        groupChildren: "Danh sách sự kiện con",
+        nestedStages: "Cấu hình pháo lồng đa tầng"
       },
       fields: {
         time: "Thời gian bắt đầu s",
         name: "Tên nhóm",
         volume: "Âm lượng",
         url: "Đường dẫn file",
+        stage: "Tầng pháo",
+        addStage: "Thêm tầng pháo",
+        removeStage: "Xóa tầng này",
+        duplicateStage: "Nhân bản tầng này",
+        templates: "Mẫu pháo có sẵn",
+        delay: "Độ trễ kích nổ",
+        stageScale: "Tỉ lệ kích thước",
+        nestingMode: "Kiểu pháo lồng",
         type: "Loại",
         pattern: "Quy luật bắn",
         preset: "Preset",
@@ -369,6 +378,7 @@ export default {
         ghostFlare: "Ẩn hiện 3 giai đoạn Ghost Flare",
         flow: "Lượn sóng Flow",
         noTrail: "Không vệt đuôi",
+        crossette: "Sao tách chữ thập Crossette",
         activeEffects: "Hiệu ứng kích hoạt",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",
@@ -434,7 +444,8 @@ export default {
           "sparking-v2": "Tàn lửa tức thì",
           "swimming-star": "Sao bơi chậm",
           "ghost-kamuro": "Liễu rủ tàng hình Ghost Kamuro",
-          "double-helix": "Xoắn kép xoay Double Helix"
+          "double-helix": "Xoắn kép xoay Double Helix",
+          crossette: "Sao tách chữ thập Crossette"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -488,7 +499,22 @@ export default {
           ghostKamuro: "Pháo liễu Ghost Kamuro",
           ghost_kamuro: "Pháo liễu Ghost Kamuro",
           doubleHelix: "Pháo xoắn kép Double Helix",
-          double_helix: "Pháo xoắn kép Double Helix"
+          double_helix: "Pháo xoắn kép Double Helix",
+          crossette: "Pháo chữ thập Crossette",
+          multiNested: "Pháo lồng đa tầng Multi Nested",
+          multi_nested: "Pháo lồng đa tầng Multi Nested"
+        },
+        nestingMode: {
+          concentric: "Đồng tâm nối tiếp Time Cascade",
+          satellite: "Phân tán vệ tinh Satellite Dispersion"
+        },
+        templates: {
+          custom: "Tùy chỉnh tự do",
+          chrysanthemumSimultaneous: "4 Tầng hoa cúc nổ đồng thời",
+          classic: "Hoa cúc vàng nối tiếp Classic",
+          satellite: "Cụm sao vệ tinh Satellite",
+          ghost: "Giao hưởng Ghost Strobe",
+          crossette: "Ma trận chữ thập Crossette"
         },
         cometTrail: {
           none: "Không có",

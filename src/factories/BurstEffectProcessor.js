@@ -31,7 +31,8 @@ export class BurstEffectProcessor {
     'ghost-kamuro',
     'double-helix',
     'no-trail',
-    'notrail'
+    'notrail',
+    'crossette'
   ]);
 
   static effectsRegistry = new Map();
@@ -84,6 +85,7 @@ export class BurstEffectProcessor {
     const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
+    const crossetteEnabled = Boolean(preset?.crossette) || effectsList.includes('crossette') || normalizedEffect === 'crossette';
     const noTrail = Boolean(preset?.noTrail)
       || effectsList.includes('no-trail')
       || effectsList.includes('notrail')
@@ -119,6 +121,7 @@ export class BurstEffectProcessor {
       crackle: crackleEnabled,
       ghost: ghostEnabled,
       flow: flowEnabled,
+      crossette: crossetteEnabled,
       noTrail,
       spin,
       phase,
@@ -563,6 +566,17 @@ BurstEffectProcessor.registerEffect('double-helix', {
       spawnTrail: true,
       trailLife: 0.60,
       trailIntensity: 0.85
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crossette', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.26,
+      spawnTrail: true,
+      trailLife: 0.65,
+      trailIntensity: 0.95
     };
   }
 });

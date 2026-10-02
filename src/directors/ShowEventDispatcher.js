@@ -33,6 +33,9 @@ export class ShowEventDispatcher {
         || evt.flow !== undefined
         || evt.noTrail !== undefined
         || evt.cometTrail !== undefined
+        || evt.stages !== undefined
+        || evt.nestingMode !== undefined
+        || evt.multiNested !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
@@ -45,6 +48,9 @@ export class ShowEventDispatcher {
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
         if (evt.flow !== undefined) overrides.flow = evt.flow;
         if (evt.noTrail !== undefined) overrides.noTrail = evt.noTrail;
+        if (evt.stages !== undefined) overrides.stages = evt.stages;
+        if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
+        if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;
         if (evt.cometTrail !== undefined) {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;

@@ -325,10 +325,19 @@ export default {
         angleConfig: "发射角度",
         visualEffects: "灯光效果",
         geometryOffsets: "坐标与偏移",
-        beatSettings: "Beat Editor"
+        beatSettings: "Beat Editor",
+        nestedStages: "多层嵌套烟花配置"
       },
       fields: {
         time: "开始时间",
+        stage: "分层",
+        addStage: "添加分层",
+        removeStage: "删除此层",
+        duplicateStage: "复制此层",
+        templates: "预设模板",
+        delay: "爆炸延迟",
+        stageScale: "缩放比例",
+        nestingMode: "嵌套模式",
         volume: "音量",
         url: "文件路径",
         type: "类型",
@@ -355,6 +364,7 @@ export default {
         ghostFlare: "三阶段幽灵闪光 Ghost Flare",
         flow: "游动 Flow",
         noTrail: "无尾迹",
+        crossette: "十字分裂 Crossette",
         activeEffects: "已启用效果",
         ratioX: "比例 X",
         ratioY: "比例 Y",
@@ -419,7 +429,8 @@ export default {
           "sparking-v2": "即时火花残烬",
           "swimming-star": "缓游星芒",
           "ghost-kamuro": "幽灵柳絮 Ghost Kamuro",
-          "double-helix": "双螺旋公转 Double Helix"
+          "double-helix": "双螺旋公转 Double Helix",
+          crossette: "十字分裂 Crossette"
         },
         pattern: {
           random: "随机",
@@ -473,7 +484,22 @@ export default {
           ghostKamuro: "幽灵柳絮 Ghost Kamuro",
           ghost_kamuro: "幽灵柳絮 Ghost Kamuro",
           doubleHelix: "双螺旋烟花 Double Helix",
-          double_helix: "双螺旋烟花 Double Helix"
+          double_helix: "双螺旋烟花 Double Helix",
+          crossette: "十字烟花 Crossette",
+          multiNested: "多层嵌套烟花 Multi Nested",
+          multi_nested: "多层嵌套烟花 Multi Nested"
+        },
+        nestingMode: {
+          concentric: "同心时序爆炸 Time Cascade",
+          satellite: "卫星分散爆炸 Satellite Dispersion"
+        },
+        templates: {
+          custom: "自定义自由配置",
+          chrysanthemumSimultaneous: "4层菊花同心同时绽放",
+          classic: "经典层叠菊花 Classic",
+          satellite: "卫星星团分散 Satellite",
+          ghost: "幽灵闪烁交响 Ghost Strobe",
+          crossette: "十字分裂矩阵 Crossette"
         },
         cometTrail: {
           none: "无",
