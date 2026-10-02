@@ -398,8 +398,17 @@ export class FireworkSequencer {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+          } else if (config.cometTrail === 'ascent-bursts') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.ascentBursts = true;
+            overrides.ascentSubShellType = config.ascentSubShellType || 'random';
+            overrides.ascentBurstCount = config.ascentBurstCount ? parseInt(config.ascentBurstCount, 10) : 4;
           }
         }
+        if (config.ascentSubShellType !== undefined) overrides.ascentSubShellType = config.ascentSubShellType;
+        if (config.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(config.ascentBurstCount, 10);
       }
 
       this.activeTasks.push({

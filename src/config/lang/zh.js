@@ -351,6 +351,8 @@ export default {
         useAngle: "指定发射角度",
         angle: "发射角度",
         cometTrail: "Comet",
+        ascentSubShellType: "升空子弹类型",
+        ascentBurstCount: "升空子弹数量",
         color: "烟花颜色",
         customColor: "自定义颜色",
         shellSize: "烟花大小",
@@ -505,7 +507,20 @@ export default {
           none: "无",
           thin: "细直极速",
           normal: "普通",
-          thick: "轻微"
+          thick: "轻微",
+          "ascent-bursts": "升空子弹引爆 Ascent Bursts"
+        },
+        ascentSubShellType: {
+          random: "随机",
+          crysanthemum: "菊花",
+          crossette: "十字",
+          strobe: "闪烁",
+          crackle: "噼啪",
+          willow: "柳絮",
+          ring: "圆环",
+          star: "星星",
+          flow: "游动",
+          sparking: "火花"
         }
       },
       colors: {

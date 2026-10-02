@@ -926,7 +926,86 @@ export class FireworkSystem {
     }
   }
 
+  triggerAscentSubBurst(shellEntity, burstIndex) {
+    const burstPos = shellEntity.mesh.position.clone();
+    const angle = Math.random() * Math.PI * 2;
+    const offsetDist = 1.0 + Math.random() * 1.2;
+    burstPos.x += Math.cos(angle) * offsetDist;
+    burstPos.z += Math.sin(angle) * offsetDist;
+
+    const subType = shellEntity.preset?.ascentSubShellType || 'random';
+    let subPreset = null;
+    if (subType !== 'random' && this.shellPresetFactory.presetsRegistry.has(subType)) {
+      const gen = this.shellPresetFactory.presetsRegistry.get(subType);
+      subPreset = gen ? gen(0.18) : this.shellPresetFactory.createPresetByKey(subType);
+    } else if (subType === 'crossette') {
+      subPreset = this.shellPresetFactory.crossetteShell(0.18);
+    } else if (subType === 'strobe') {
+      subPreset = this.shellPresetFactory.strobeShell(0.18);
+    } else if (subType === 'crackle') {
+      subPreset = this.shellPresetFactory.crackleShell(0.18);
+    } else if (subType === 'willow') {
+      subPreset = this.shellPresetFactory.weepingWillowCometsShell(0.18);
+    } else if (subType === 'ring') {
+      subPreset = this.shellPresetFactory.ringShell(0.18);
+    } else if (subType === 'star') {
+      subPreset = this.shellPresetFactory.starShell(0.18);
+    } else if (subType === 'flow') {
+      subPreset = this.shellPresetFactory.fishShell(0.18);
+    } else if (subType === 'sparking') {
+      subPreset = this.shellPresetFactory.sparkingShell(0.18);
+    } else {
+      subPreset = this.shellPresetFactory.crysanthemumShell(0.18);
+    }
+
+    if (!subPreset) {
+      subPreset = this.shellPresetFactory.crysanthemumShell(0.18);
+    }
+
+    const parentSize = Math.max(0.6, shellEntity.preset?.shellSize ?? 1);
+    subPreset.shellSize = 0.175 * parentSize;
+    subPreset.isAscentChild = true;
+    subPreset.multiNested = false;
+    subPreset.stages = null;
+    subPreset.ascentBursts = false;
+    subPreset.spreadSize = (subPreset.spreadSize || 300) * 0.45;
+    subPreset.starLife = Math.min(650, (subPreset.starLife || 800) * 0.6);
+
+    const subColorHex = this.shellPresetFactory.randomColor();
+    const subColor = new THREE.Color(subColorHex);
+
+    this.createBurst(
+      burstPos,
+      subColor,
+      subPreset.shapeType || 'sphere',
+      subPreset,
+      shellEntity.shellId + '-ascent-' + burstIndex
+    );
+
+    this.emitFireworkEvent(
+      'firework:burst',
+      {
+        shellId: shellEntity.shellId + '-ascent-' + burstIndex,
+        shellType: subPreset.shellType || 'ascent-sub-shell',
+        shapeType: subPreset.shapeType || 'sphere',
+        effectType: subPreset.effectType || 'standard',
+        colorHex: subColor.getHex(),
+        position: {
+          x: burstPos.x,
+          y: burstPos.y,
+          z: burstPos.z
+        },
+        intensity: 0.15,
+        duration: 0.5
+      }
+    );
+  }
+
   resolveBurstParticleCount(shape, effectType, preset) {
+    if (preset?.isAscentChild) {
+      return Math.round((14 + Math.floor(Math.random() * 6)) * this.graphicsQualityMultiplier);
+    }
+
     if (preset?.shellType === 'ringComet') {
       return 10 + Math.floor(Math.random() * 6); // 10-15 particles for sparse comet ring
     }
@@ -1418,6 +1497,31 @@ export class FireworkSystem {
 
   handleShellUpdate(item, deltaTime, finished) {
     const shouldBurst = item.update(deltaTime);
+
+    // Xử lý nổ pháo con trên đường bay lên (Ascent Sub-Bursts Trail)
+    if (
+      item.preset?.cometTrail === 'ascent-bursts'
+      || Boolean(item.preset?.ascentBursts)
+    ) {
+      if (!item._ascentBurstMilestones) {
+        const count = Math.max(2, Math.min(6, item.preset?.ascentBurstCount || 4));
+        item._ascentBurstMilestones = [];
+        const step = (0.80 - 0.22) / Math.max(1, count - 1);
+        for (let b = 0; b < count; b++) {
+          item._ascentBurstMilestones.push(0.22 + b * step);
+        }
+        item._nextAscentBurstIndex = 0;
+      }
+
+      if (item._nextAscentBurstIndex < item._ascentBurstMilestones.length) {
+        const currentProgress = item.getProgress ? item.getProgress() : 0;
+        const targetProgress = item._ascentBurstMilestones[item._nextAscentBurstIndex];
+        if (currentProgress >= targetProgress) {
+          this.triggerAscentSubBurst(item, item._nextAscentBurstIndex);
+          item._nextAscentBurstIndex++;
+        }
+      }
+    }
 
     const launchTrail = item.preset?.launchTrail !== false;
     const activeTrailChance = item.preset?.trailChance !== undefined

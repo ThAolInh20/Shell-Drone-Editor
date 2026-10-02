@@ -69,8 +69,17 @@ export class ShowEventDispatcher {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+          } else if (evt.cometTrail === 'ascent-bursts') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.ascentBursts = true;
+            overrides.ascentSubShellType = evt.ascentSubShellType || 'random';
+            overrides.ascentBurstCount = evt.ascentBurstCount ? parseInt(evt.ascentBurstCount, 10) : 4;
           }
         }
+        if (evt.ascentSubShellType !== undefined) overrides.ascentSubShellType = evt.ascentSubShellType;
+        if (evt.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(evt.ascentBurstCount, 10);
       }
 
       const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 

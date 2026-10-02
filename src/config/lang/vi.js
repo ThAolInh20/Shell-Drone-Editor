@@ -365,6 +365,8 @@ export default {
         useAngle: "Cố định góc bắn",
         angle: "Góc bắn",
         cometTrail: "Hiệu ứng tia đuôi",
+        ascentSubShellType: "Loại pháo con đường bay",
+        ascentBurstCount: "Số pháo con bung nổ",
         color: "Màu sắc pháo",
         customColor: "Màu tùy chỉnh",
         shellSize: "Kích thước shell",
@@ -520,7 +522,20 @@ export default {
           none: "Không có",
           thin: "Mỏng thẳng siêu tốc",
           normal: "Bình thường",
-          thick: "Nhẹ"
+          thick: "Nhẹ",
+          "ascent-bursts": "Thăng thiên nổ pháo con"
+        },
+        ascentSubShellType: {
+          random: "Ngẫu nhiên",
+          crysanthemum: "Hoa cúc",
+          crossette: "Chữ thập",
+          strobe: "Chớp tắt",
+          crackle: "Lách tách",
+          willow: "Liễu rủ",
+          ring: "Vòng tròn",
+          star: "Ngôi sao",
+          flow: "Bơi lội",
+          sparking: "Tia lửa"
         }
       },
       colors: {

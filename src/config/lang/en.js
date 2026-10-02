@@ -365,6 +365,8 @@ export default {
         useAngle: "Custom Angle",
         angle: "Launch Angle",
         cometTrail: "Launch Trail",
+        ascentSubShellType: "Ascent Sub Shell",
+        ascentBurstCount: "Ascent Bursts Count",
         color: "Shell Color",
         customColor: "Custom Color",
         shellSize: "Shell Size",
@@ -520,7 +522,20 @@ export default {
           none: "None",
           thin: "Thin Straight",
           normal: "Normal",
-          thick: "Light"
+          thick: "Light",
+          "ascent-bursts": "Ascending Sub Bursts"
+        },
+        ascentSubShellType: {
+          random: "Random",
+          crysanthemum: "Chrysanthemum",
+          crossette: "Crossette",
+          strobe: "Strobe",
+          crackle: "Crackle",
+          willow: "Willow",
+          ring: "Ring",
+          star: "Star",
+          flow: "Flow",
+          sparking: "Sparking"
         }
       },
       colors: {

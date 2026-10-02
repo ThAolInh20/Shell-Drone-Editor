@@ -315,8 +315,34 @@ export class PropertyInspector {
                 'normal',
                 'thin',
                 'thick',
-                'none'
+                'none',
+                'ascent-bursts'
               ]
+            },
+            {
+              name: 'ascentSubShellType',
+              labelKey: 'ascentSubShellType',
+              type: 'select',
+              options: [
+                'random',
+                'crysanthemum',
+                'crossette',
+                'strobe',
+                'crackle',
+                'willow',
+                'ring',
+                'star',
+                'flow',
+                'sparking'
+              ],
+              visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
+            },
+            {
+              name: 'ascentBurstCount',
+              labelKey: 'ascentBurstCount',
+              type: 'number',
+              step: '1',
+              visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
             }
           ]
         },

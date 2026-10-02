@@ -343,6 +343,8 @@ export default {
         useAngle: "発射角度を指定",
         angle: "発射角度",
         cometTrail: "Comet",
+        ascentSubShellType: "上昇中子弾タイプ",
+        ascentBurstCount: "上昇中子弾炸裂数",
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
@@ -506,7 +508,20 @@ export default {
           none: "なし",
           thin: "細直高速",
           normal: "通常",
-          thick: "ライト"
+          thick: "ライト",
+          "ascent-bursts": "上昇中子弾炸裂 Ascent Bursts"
+        },
+        ascentSubShellType: {
+          random: "ランダム",
+          crysanthemum: "菊",
+          crossette: "クロセット",
+          strobe: "ストロボ",
+          crackle: "クラックル",
+          willow: "柳",
+          ring: "リング",
+          star: "星",
+          flow: "遊泳",
+          sparking: "火花"
         }
       },
       colors: {
