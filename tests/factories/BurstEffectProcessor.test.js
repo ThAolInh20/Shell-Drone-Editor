@@ -73,4 +73,13 @@ describe('BurstEffectProcessor', () => {
     expect(result.gravityScale).toBe(0.123);
     expect(result.emitSpark).toBe(true);
   });
+
+  it('should handle crossette strategy correctly', () => {
+    expect(BurstEffectProcessor.normalizeEffectType('crossette')).toBe('crossette');
+    const velocity = new THREE.Vector3(10, 20, 30);
+    const state = BurstEffectProcessor.initialize('crossette', 5);
+    const result = BurstEffectProcessor.updateVelocity(velocity, 0, 0.016, 0.2, 2.0, state);
+    expect(result.spawnTrail).toBe(true);
+    expect(result.trailLife).toBeDefined();
+  });
 });

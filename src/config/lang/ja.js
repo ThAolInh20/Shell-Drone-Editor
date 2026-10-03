@@ -324,6 +324,7 @@ export default {
         cometConfig: "Comet 設定",
         angleConfig: "発射角度",
         visualEffects: "ライトエフェクト",
+        nestedStages: "多重ネスト花火設定",
         geometryOffsets: "座標とオフセット",
         beatSettings: "Beat Editor"
       },
@@ -342,6 +343,8 @@ export default {
         useAngle: "発射角度を指定",
         angle: "発射角度",
         cometTrail: "Comet",
+        ascentSubShellType: "上昇中子弾タイプ",
+        ascentBurstCount: "上昇中子弾炸裂数",
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
@@ -354,6 +357,7 @@ export default {
         ghost: "ゴースト明滅",
         ghostFlare: "3段階ゴーストフレア Ghost Flare",
         flow: "遊泳 Flow",
+        crossette: "クロセット十字分裂",
         noTrail: "トレイルなし",
         activeEffects: "有効エフェクト",
         ratioX: "比率 X",
@@ -370,7 +374,15 @@ export default {
         confirmClearBeats: "Are you sure you want to clear all beat points?",
         deleteBeat: "Delete this beat",
         analyzing: "Analyzing audio...",
-        analyzeError: "Error analyzing audio:"
+        analyzeError: "Error analyzing audio:",
+        stage: "段階",
+        addStage: "段階を追加",
+        removeStage: "この段階を削除",
+        duplicateStage: "この段階を複製",
+        templates: "プリセットテンプレート",
+        delay: "爆発遅延",
+        stageScale: "スケール倍率",
+        nestingMode: "ネストモード"
       },
       options: {
         type: {
@@ -397,7 +409,8 @@ export default {
           "willow-up": "上方噴射柳",
           "half-flash": "半球フラッシュ",
           "split-flash": "赤道分割フラッシュ",
-          "double-helix": "二重螺旋 Double Helix"
+          "double-helix": "二重螺旋 Double Helix",
+          waterfall: "ウォーターフォール滝"
         },
         dynamicsType: {
           standard: "標準放射",
@@ -419,7 +432,8 @@ export default {
           "sparking-v2": "即時火花残光",
           "swimming-star": "スイミングスター",
           "ghost-kamuro": "ゴースト冠菊 Ghost Kamuro",
-          "double-helix": "二重螺旋旋回 Double Helix"
+          "double-helix": "二重螺旋旋回 Double Helix",
+          crossette: "クロセット十字分裂"
         },
         pattern: {
           random: "ランダム",
@@ -473,13 +487,41 @@ export default {
           ghostKamuro: "ゴースト冠菊 Ghost Kamuro",
           ghost_kamuro: "ゴースト冠菊 Ghost Kamuro",
           doubleHelix: "二重螺旋花火 Double Helix",
-          double_helix: "二重螺旋花火 Double Helix"
+          double_helix: "二重螺旋花火 Double Helix",
+          crossette: "十字花火 Crossette",
+          multiNested: "★ 多重ネスト花火 Multi Nested",
+          multi_nested: "★ 多重ネスト花火 Multi Nested"
+        },
+        nestingMode: {
+          concentric: "同心円時系列爆発 Time Cascade",
+          satellite: "衛星分散爆発 Satellite Dispersion"
+        },
+        templates: {
+          custom: "カスタム設定",
+          chrysanthemumSimultaneous: "4層菊花同時炸裂カスケード",
+          classic: "クラシック冠菊カスケード Classic",
+          satellite: "衛星スタークラスター Satellite",
+          ghost: "ゴーストストロボシンフォニー Ghost Strobe",
+          crossette: "クロセットマトリックス Crossette"
         },
         cometTrail: {
           none: "なし",
           thin: "細直高速",
           normal: "通常",
-          thick: "ライト"
+          thick: "ライト",
+          "ascent-bursts": "上昇中子弾炸裂 Ascent Bursts"
+        },
+        ascentSubShellType: {
+          random: "ランダム",
+          crysanthemum: "菊",
+          crossette: "クロセット",
+          strobe: "ストロボ",
+          crackle: "クラックル",
+          willow: "柳",
+          ring: "リング",
+          star: "星",
+          flow: "遊泳",
+          sparking: "火花"
         }
       },
       colors: {

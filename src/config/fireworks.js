@@ -80,7 +80,8 @@ export const FIREWORK_CONFIG = {
     'crysanthemum-spiral': 1.25,
     'crysanthemum-spiral-v2': 1.35,
     'ghost-kamuro': 0.8,
-    'double-helix': 1.25
+    'double-helix': 1.25,
+    crossette: 0.6
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)

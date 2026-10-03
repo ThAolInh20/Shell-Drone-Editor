@@ -1,4 +1,5 @@
 import { t } from '../config/lang/i18n.js';
+import en from '../config/lang/en.js';
 import { editorConfig } from '../config/editor.js';
 import {
   AVAILABLE_SHAPES,
@@ -9,22 +10,29 @@ import {
   resolveFireworkComposition
 } from '../factories/FireworkCompositionHelper.js';
 
+function getEnglishOptionLabel(fieldName, opt) {
+  if (opt === '' || opt === undefined || opt === null) {
+    return en?.editor?.inspector?.options?.[fieldName]?.empty || '';
+  }
+  const enOptions = en?.editor?.inspector?.options?.[fieldName];
+  if (enOptions && enOptions[opt]) {
+    return enOptions[opt];
+  }
+  return String(opt);
+}
+
 export const AVAILABLE_EFFECT_TAGS = [
-  {
-    key: 'strobe',
-    labelKey: 'strobe'
-  },
-  {
-    key: 'white-strobe',
-    labelKey: 'whiteStrobe'
-  },
-  {
-    key: 'glitter-strobe',
-    labelKey: 'glitterStrobe'
-  },
   {
     key: 'crackle',
     labelKey: 'crackle'
+  },
+  {
+    key: 'crossette',
+    labelKey: 'crossette'
+  },
+  {
+    key: 'flow',
+    labelKey: 'flow'
   },
   {
     key: 'ghost',
@@ -35,12 +43,20 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghostFlare'
   },
   {
-    key: 'flow',
-    labelKey: 'flow'
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
   },
   {
     key: 'no-trail',
     labelKey: 'noTrail'
+  },
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
   }
 ];
 
@@ -50,6 +66,7 @@ export class PropertyInspector {
     this.onUpdate = onUpdate;
     this.presetOptions = presetOptions;
     this.selectedEvent = null;
+    this.activeStageIndex = 0;
     this.collapsedGroups = {}; // Keep track of open/closed states
     this.showHelpState = {}; // Keep track of help banner visibility states
 
@@ -247,6 +264,14 @@ export class PropertyInspector {
           ]
         },
         {
+          groupKey: 'nestedStages',
+          visibleIf: (event) => (
+            event?.preset === 'multiNested'
+            || Boolean(event?.multiNested)
+          ),
+          customRender: true
+        },
+        {
           groupKey: (this.selectedEvent && this.isCometEvent(this.selectedEvent))
             ? 'cometConfig'
             : 'angleConfig',
@@ -289,8 +314,34 @@ export class PropertyInspector {
                 'normal',
                 'thin',
                 'thick',
-                'none'
+                'none',
+                'ascent-bursts'
               ]
+            },
+            {
+              name: 'ascentSubShellType',
+              labelKey: 'ascentSubShellType',
+              type: 'select',
+              options: [
+                'random',
+                'crysanthemum',
+                'crossette',
+                'strobe',
+                'crackle',
+                'willow',
+                'ring',
+                'star',
+                'flow',
+                'sparking'
+              ],
+              visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
+            },
+            {
+              name: 'ascentBurstCount',
+              labelKey: 'ascentBurstCount',
+              type: 'number',
+              step: '1',
+              visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
             }
           ]
         },
@@ -438,6 +489,8 @@ export class PropertyInspector {
         if (group.customRender) {
           if (group.groupKey === 'beatSettings') {
             this.renderBeatSettings(content);
+          } else if (group.groupKey === 'nestedStages') {
+            this.renderNestedStages(content);
           }
         } else if (group.fields) {
           group.fields.forEach(field => {
@@ -495,7 +548,18 @@ export class PropertyInspector {
       input = document.createElement('select');
       input.className = 'inspector-input';
       input.dataset.fieldName = field.name;
-      field.options.forEach(opt => {
+
+      const sortedOptions = [...field.options].sort((a, b) => {
+        if (a === '') return -1;
+        if (b === '') return 1;
+        if (a === 'random') return -1;
+        if (b === 'random') return 1;
+        const labelA = getEnglishOptionLabel(field.name, a);
+        const labelB = getEnglishOptionLabel(field.name, b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedOptions.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt;
         const lookupKey = opt === '' ? 'empty' : opt;
@@ -541,17 +605,27 @@ export class PropertyInspector {
         this.selectedEvent[field.name] = val;
       }
 
-      if (field.name === 'preset' && val) {
-        const template = getTemplateForPreset(val);
-        if (template) {
-          this.selectedEvent.shapeType = template.shape;
-          this.selectedEvent.dynamicsType = template.dynamics;
-          this.selectedEvent.pistil = template.modifiers.pistil;
-          this.selectedEvent.instantBurst = template.modifiers.instantBurst;
-          this.selectedEvent.effects = [...template.effects];
-          this.triggerUpdate();
-          this.render();
-          return;
+      if (field.name === 'preset') {
+        if (val !== 'multiNested') {
+          delete this.selectedEvent.multiNested;
+          delete this.selectedEvent.stages;
+          delete this.selectedEvent.nestingMode;
+          delete this.selectedEvent._selectedTemplateKey;
+        } else {
+          this.selectedEvent.multiNested = true;
+        }
+        if (val) {
+          const template = getTemplateForPreset(val);
+          if (template) {
+            this.selectedEvent.shapeType = template.shape;
+            this.selectedEvent.dynamicsType = template.dynamics;
+            this.selectedEvent.pistil = template.modifiers.pistil;
+            this.selectedEvent.instantBurst = template.modifiers.instantBurst;
+            this.selectedEvent.effects = [...template.effects];
+            this.triggerUpdate();
+            this.render();
+            return;
+          }
         }
       }
 
@@ -711,7 +785,13 @@ export class PropertyInspector {
       select.disabled = true;
       select.style.opacity = '0.5';
     } else {
-      availableToAdd.forEach((eff) => {
+      const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
+        const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
+        const labelB = en?.editor?.inspector?.fields?.[b.labelKey] || b.key;
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedAvailableToAdd.forEach((eff) => {
         const opt = document.createElement('option');
         opt.value = eff.key;
         opt.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
@@ -1138,4 +1218,1040 @@ export class PropertyInspector {
 
     parent.appendChild(btnContainer);
   }
+
+  renderNestedStages(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!Array.isArray(event.stages) || event.stages.length === 0) {
+      const defaultColor = event.color || '#ff4400';
+      event.stages = [
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: defaultColor,
+          delay: 0.0,
+          scale: 1.0,
+          effects: ['strobe']
+        },
+        {
+          shapeType: 'ring',
+          dynamicsType: 'flow',
+          color: '#00e5ff',
+          delay: 0.45,
+          scale: 0.82,
+          effects: []
+        },
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'crossette',
+          color: '#ffd700',
+          delay: 0.90,
+          scale: 0.65,
+          effects: ['crossette']
+        },
+        {
+          shapeType: 'sphere',
+          dynamicsType: 'willow',
+          color: '#ffffff',
+          delay: 1.35,
+          scale: 0.50,
+          effects: ['glitter-strobe']
+        }
+      ];
+    }
+
+    const stages = event.stages;
+    if (typeof this.activeStageIndex !== 'number' || this.activeStageIndex >= stages.length) {
+      this.activeStageIndex = 0;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '10px';
+
+    // 1. Template Presets
+    const templateWrapper = document.createElement('div');
+    templateWrapper.style.display = 'flex';
+    templateWrapper.style.flexDirection = 'column';
+    templateWrapper.style.gap = '4px';
+
+    const templateLabel = document.createElement('label');
+    templateLabel.className = 'inspector-label';
+    templateLabel.textContent =
+      t('editor.inspector.fields.templates') ||
+      'Quick Templates';
+
+    const templateSelect = document.createElement('select');
+    templateSelect.className = 'inspector-input';
+    templateSelect.style.fontSize = '11px';
+
+    const TEMPLATE_PRESETS = [
+      {
+        key: 'custom',
+        label: t('editor.inspector.options.templates.custom') || 'Custom'
+      },
+      {
+        key: 'chrysanthemumSimultaneous',
+        label:
+          t('editor.inspector.options.templates.chrysanthemumSimultaneous') ||
+          '4 Layer Simultaneous Chrysanthemum',
+        mode: 'concentric',
+        stages: [
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ff3333',
+            delay: 0.0,
+            scale: 1.0,
+            effects: []
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ffd700',
+            delay: 0.0,
+            scale: 0.78,
+            effects: []
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#00e5ff',
+            delay: 0.0,
+            scale: 0.56,
+            effects: []
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ffffff',
+            delay: 0.0,
+            scale: 0.35,
+            effects: ['strobe']
+          }
+        ]
+      },
+      {
+        key: 'classic',
+        label: t('editor.inspector.options.templates.classic') || 'Classic Brocade Cascade',
+        mode: 'concentric',
+        stages: [
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ff4400',
+            delay: 0.0,
+            scale: 1.0,
+            effects: ['strobe']
+          },
+          {
+            shapeType: 'ring',
+            dynamicsType: 'flow',
+            color: '#00e5ff',
+            delay: 0.45,
+            scale: 0.82,
+            effects: []
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'crossette',
+            color: '#ffd700',
+            delay: 0.90,
+            scale: 0.65,
+            effects: ['crossette']
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'willow',
+            color: '#ffffff',
+            delay: 1.35,
+            scale: 0.50,
+            effects: ['glitter-strobe']
+          }
+        ]
+      },
+      {
+        key: 'satellite',
+        label: t('editor.inspector.options.templates.satellite') || 'Satellite Star Cluster',
+        mode: 'satellite',
+        stages: [
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ff2255',
+            delay: 0.0,
+            scale: 1.0,
+            effects: ['strobe']
+          },
+          {
+            shapeType: 'star',
+            dynamicsType: 'standard',
+            color: '#00e5ff',
+            delay: 0.35,
+            scale: 0.85,
+            effects: ['glitter-strobe']
+          },
+          {
+            shapeType: 'star',
+            dynamicsType: 'flow',
+            color: '#ffd700',
+            delay: 0.70,
+            scale: 0.70,
+            effects: ['crackle']
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'crossette',
+            color: '#cc44ff',
+            delay: 1.05,
+            scale: 0.55,
+            effects: ['crossette']
+          }
+        ]
+      },
+      {
+        key: 'ghost',
+        label: t('editor.inspector.options.templates.ghost') || 'Ghost Strobe Symphony',
+        mode: 'concentric',
+        stages: [
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#00ff88',
+            delay: 0.0,
+            scale: 1.0,
+            effects: ['ghost']
+          },
+          {
+            shapeType: 'double-helix',
+            dynamicsType: 'flow',
+            color: '#00d0ff',
+            delay: 0.50,
+            scale: 0.80,
+            effects: ['ghost-flare']
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'willow',
+            color: '#ffffff',
+            delay: 1.00,
+            scale: 0.60,
+            effects: ['white-strobe']
+          }
+        ]
+      },
+      {
+        key: 'crossette',
+        label: t('editor.inspector.options.templates.crossette') || 'Crossette Matrix',
+        mode: 'concentric',
+        stages: [
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'crossette',
+            color: '#ff3366',
+            delay: 0.0,
+            scale: 1.0,
+            effects: ['crossette']
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'crossette',
+            color: '#ffd700',
+            delay: 0.40,
+            scale: 0.80,
+            effects: ['crossette']
+          },
+          {
+            shapeType: 'ring',
+            dynamicsType: 'crossette',
+            color: '#00ffcc',
+            delay: 0.80,
+            scale: 0.65,
+            effects: ['crossette']
+          },
+          {
+            shapeType: 'sphere',
+            dynamicsType: 'willow',
+            color: '#ffffff',
+            delay: 1.20,
+            scale: 0.50,
+            effects: ['glitter-strobe']
+          }
+        ]
+      }
+    ];
+
+    const activeTplKey = event._selectedTemplateKey || 'custom';
+    const sortedTemplates = [...TEMPLATE_PRESETS].sort((a, b) => {
+      if (a.key === 'custom') return -1;
+      if (b.key === 'custom') return 1;
+      const labelA = en?.editor?.inspector?.options?.templates?.[a.key] || a.label;
+      const labelB = en?.editor?.inspector?.options?.templates?.[b.key] || b.label;
+      return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+    });
+
+    sortedTemplates.forEach(tpl => {
+      const opt = document.createElement('option');
+      opt.value = tpl.key;
+      opt.textContent = tpl.label;
+      if (tpl.key === activeTplKey) {
+        opt.selected = true;
+      }
+      templateSelect.appendChild(opt);
+    });
+
+    templateSelect.addEventListener(
+      'change',
+      (e) => {
+        const selectedTpl = TEMPLATE_PRESETS.find(t => t.key === e.target.value);
+        if (selectedTpl && selectedTpl.stages) {
+          this.triggerUpdate('beforeChange');
+          event.preset = 'multiNested';
+          event.multiNested = true;
+          event.nestingMode = selectedTpl.mode;
+          event.stages = JSON.parse(JSON.stringify(selectedTpl.stages));
+          event._selectedTemplateKey = selectedTpl.key;
+          this.activeStageIndex = 0;
+          this.triggerUpdate();
+          this.onUpdate();
+          this.render();
+        }
+      }
+    );
+
+    templateWrapper.appendChild(templateLabel);
+    templateWrapper.appendChild(templateSelect);
+    container.appendChild(templateWrapper);
+
+    // 2. Nesting Mode Segmented Buttons
+    const modeWrapper = document.createElement('div');
+    modeWrapper.style.display = 'flex';
+    modeWrapper.style.flexDirection = 'column';
+    modeWrapper.style.gap = '4px';
+
+    const modeLabel = document.createElement('label');
+    modeLabel.className = 'inspector-label';
+    modeLabel.textContent =
+      t('editor.inspector.fields.nestingMode') ||
+      'Nesting Pattern';
+
+    const modeButtonGroup = document.createElement('div');
+    modeButtonGroup.style.display = 'grid';
+    modeButtonGroup.style.gridTemplateColumns = '1fr 1fr';
+    modeButtonGroup.style.gap = '6px';
+
+    const currentMode = event.nestingMode || 'concentric';
+    const modes = [
+      {
+        key: 'concentric',
+        label: t('editor.inspector.options.nestingMode.concentric') || 'Concentric Time Cascade'
+      },
+      {
+        key: 'satellite',
+        label: t('editor.inspector.options.nestingMode.satellite') || 'Satellite Dispersion'
+      }
+    ];
+
+    modes.forEach(m => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      const isActive = currentMode === m.key;
+      btn.style.padding = '6px 4px';
+      btn.style.fontSize = '11px';
+      btn.style.borderRadius = '4px';
+      btn.style.cursor = 'pointer';
+      btn.style.border = isActive
+        ? '1px solid #3498db'
+        : '1px solid rgba(255, 255, 255, 0.12)';
+      btn.style.background = isActive
+        ? 'rgba(52, 152, 219, 0.25)'
+        : 'rgba(255, 255, 255, 0.04)';
+      btn.style.color = isActive
+        ? '#ffffff'
+        : '#8a9ba8';
+      btn.style.fontWeight = isActive
+        ? 'bold'
+        : 'normal';
+      btn.textContent = m.label;
+
+      btn.addEventListener(
+        'click',
+        () => {
+          if (event.nestingMode !== m.key) {
+            this.triggerUpdate('beforeChange');
+            event.nestingMode = m.key;
+            this.triggerUpdate();
+            this.render();
+          }
+        }
+      );
+      modeButtonGroup.appendChild(btn);
+    });
+
+    modeWrapper.appendChild(modeLabel);
+    modeWrapper.appendChild(modeButtonGroup);
+    container.appendChild(modeWrapper);
+
+    // 3. Stage Tabs Bar
+    const tabsWrapper = document.createElement('div');
+    tabsWrapper.style.display = 'flex';
+    tabsWrapper.style.gap = '4px';
+    tabsWrapper.style.alignItems = 'center';
+    tabsWrapper.style.overflowX = 'auto';
+    tabsWrapper.style.paddingBottom = '4px';
+
+    stages.forEach((stage, idx) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      const isSelected = idx === this.activeStageIndex;
+      tabBtn.style.display = 'flex';
+      tabBtn.style.alignItems = 'center';
+      tabBtn.style.gap = '5px';
+      tabBtn.style.padding = '5px 8px';
+      tabBtn.style.fontSize = '11px';
+      tabBtn.style.borderRadius = '4px';
+      tabBtn.style.cursor = 'pointer';
+      tabBtn.style.border = isSelected
+        ? '1px solid #3498db'
+        : '1px solid rgba(255, 255, 255, 0.12)';
+      tabBtn.style.background = isSelected
+        ? 'rgba(52, 152, 219, 0.3)'
+        : 'rgba(255, 255, 255, 0.04)';
+      tabBtn.style.color = isSelected
+        ? '#ffffff'
+        : '#8a9ba8';
+      tabBtn.style.fontWeight = isSelected
+        ? 'bold'
+        : 'normal';
+
+      const dot = document.createElement('span');
+      dot.style.width = '7px';
+      dot.style.height = '7px';
+      dot.style.borderRadius = '50%';
+      dot.style.background = stage.color || '#ff4400';
+      dot.style.flexShrink = '0';
+      tabBtn.appendChild(dot);
+
+      const tabText = document.createElement('span');
+      const stageDelay = typeof stage.delay === 'number' ? stage.delay.toFixed(2) : '0.00';
+      tabText.textContent = `S${idx + 1} ${stageDelay}s`;
+      tabBtn.appendChild(tabText);
+
+      tabBtn.addEventListener(
+        'click',
+        () => {
+          this.activeStageIndex = idx;
+          this.render();
+        }
+      );
+      tabsWrapper.appendChild(tabBtn);
+    });
+
+    if (stages.length < 5) {
+      const addTabBtn = document.createElement('button');
+      addTabBtn.type = 'button';
+      addTabBtn.style.padding = '5px 8px';
+      addTabBtn.style.fontSize = '11px';
+      addTabBtn.style.borderRadius = '4px';
+      addTabBtn.style.cursor = 'pointer';
+      addTabBtn.style.border = '1px dashed rgba(255, 255, 255, 0.25)';
+      addTabBtn.style.background = 'rgba(255, 255, 255, 0.04)';
+      addTabBtn.style.color = '#3498db';
+      addTabBtn.textContent = '+ ' + (t('editor.inspector.fields.addStage') || 'Add');
+      addTabBtn.title = t('editor.inspector.fields.addStage') || 'Add Stage';
+
+      addTabBtn.addEventListener(
+        'click',
+        () => {
+          this.triggerUpdate('beforeChange');
+          const nextIdx = stages.length;
+          const fallbackColors = [
+            '#ff4400',
+            '#00e5ff',
+            '#ffd700',
+            '#ffffff',
+            '#ff00ff'
+          ];
+          stages.push({
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: fallbackColors[nextIdx % fallbackColors.length],
+            delay: nextIdx * 0.45,
+            scale: Math.max(0.35, 1.0 - nextIdx * 0.15),
+            effects: []
+          });
+          this.activeStageIndex = stages.length - 1;
+          this.triggerUpdate();
+          this.render();
+        }
+      );
+      tabsWrapper.appendChild(addTabBtn);
+    }
+
+    container.appendChild(tabsWrapper);
+
+    // 4. Visual Cascade Timeline Strip
+    const stageDelays = stages.map(s => (typeof s.delay === 'number' ? s.delay : 0));
+    const maxDelayVal = Math.max(2.0, Math.max(...stageDelays) + 0.3);
+
+    const timelineStrip = document.createElement('div');
+    timelineStrip.style.position = 'relative';
+    timelineStrip.style.height = '24px';
+    timelineStrip.style.background = 'rgba(0, 0, 0, 0.4)';
+    timelineStrip.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+    timelineStrip.style.borderRadius = '4px';
+    timelineStrip.style.display = 'flex';
+    timelineStrip.style.alignItems = 'center';
+    timelineStrip.style.padding = '0 6px';
+
+    // Grid ticks on strip
+    for (let s = 0.5; s <= maxDelayVal; s += 0.5) {
+      const tick = document.createElement('div');
+      tick.style.position = 'absolute';
+      tick.style.left = `${(s / maxDelayVal) * 94 + 3}%`;
+      tick.style.top = '0';
+      tick.style.bottom = '0';
+      tick.style.width = '1px';
+      tick.style.background = 'rgba(255, 255, 255, 0.05)';
+      timelineStrip.appendChild(tick);
+    }
+
+    stages.forEach((stage, idx) => {
+      const pip = document.createElement('div');
+      const isSelected = idx === this.activeStageIndex;
+      const sDelay = typeof stage.delay === 'number' ? stage.delay : 0;
+      const leftPercent = Math.min(94, Math.max(3, (sDelay / maxDelayVal) * 94 + 3));
+
+      pip.style.position = 'absolute';
+      pip.style.left = `${leftPercent}%`;
+      pip.style.transform = 'translateX(-50%)';
+      pip.style.width = isSelected ? '14px' : '10px';
+      pip.style.height = isSelected ? '14px' : '10px';
+      pip.style.borderRadius = '50%';
+      pip.style.background = stage.color || '#ff4400';
+      pip.style.border = isSelected ? '2px solid #ffffff' : '1px solid rgba(0, 0, 0, 0.6)';
+      pip.style.boxShadow = isSelected ? `0 0 8px ${stage.color || '#3498db'}` : 'none';
+      pip.style.cursor = 'pointer';
+      pip.style.zIndex = isSelected ? '2' : '1';
+      pip.title = `Stage ${idx + 1} (${sDelay.toFixed(2)}s)`;
+
+      pip.addEventListener(
+        'click',
+        () => {
+          this.activeStageIndex = idx;
+          this.render();
+        }
+      );
+      timelineStrip.appendChild(pip);
+    });
+
+    container.appendChild(timelineStrip);
+
+    // 5. Active Stage Editor Card
+    const currentIdx = this.activeStageIndex;
+    const stage = stages[currentIdx];
+
+    if (stage) {
+      const card = document.createElement('div');
+      card.style.background = 'rgba(255, 255, 255, 0.03)';
+      card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '10px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '8px';
+
+      // Stage Card Header: Indicator & Actions
+      const cardHeader = document.createElement('div');
+      cardHeader.style.display = 'flex';
+      cardHeader.style.justifyContent = 'space-between';
+      cardHeader.style.alignItems = 'center';
+
+      const titleGroup = document.createElement('div');
+      titleGroup.style.display = 'flex';
+      titleGroup.style.alignItems = 'center';
+      titleGroup.style.gap = '6px';
+
+      const colorSwatch = document.createElement('div');
+      colorSwatch.style.width = '10px';
+      colorSwatch.style.height = '10px';
+      colorSwatch.style.borderRadius = '50%';
+      colorSwatch.style.background = stage.color || '#ff4400';
+
+      const title = document.createElement('span');
+      title.style.fontWeight = 'bold';
+      title.style.fontSize = '12px';
+      title.style.color = '#ffffff';
+      title.textContent = `${t('editor.inspector.fields.stage') || 'Stage'} ${currentIdx + 1} / ${stages.length}`;
+
+      titleGroup.appendChild(colorSwatch);
+      titleGroup.appendChild(title);
+      cardHeader.appendChild(titleGroup);
+
+      const actionGroup = document.createElement('div');
+      actionGroup.style.display = 'flex';
+      actionGroup.style.gap = '4px';
+
+      // Duplicate Stage
+      if (stages.length < 5) {
+        const dupBtn = document.createElement('button');
+        dupBtn.type = 'button';
+        dupBtn.style.background = 'rgba(255, 255, 255, 0.06)';
+        dupBtn.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+        dupBtn.style.color = '#c2cbd2';
+        dupBtn.style.borderRadius = '3px';
+        dupBtn.style.padding = '2px 6px';
+        dupBtn.style.fontSize = '10px';
+        dupBtn.style.cursor = 'pointer';
+        dupBtn.textContent = t('editor.inspector.fields.duplicateStage') || 'Duplicate';
+        dupBtn.title = t('editor.inspector.fields.duplicateStage') || 'Duplicate Stage';
+
+        dupBtn.addEventListener(
+          'click',
+          () => {
+            this.triggerUpdate('beforeChange');
+            const clone = JSON.parse(JSON.stringify(stage));
+            clone.delay = parseFloat(((clone.delay || 0) + 0.45).toFixed(2));
+            stages.splice(currentIdx + 1, 0, clone);
+            this.activeStageIndex = currentIdx + 1;
+            this.triggerUpdate();
+            this.render();
+          }
+        );
+        actionGroup.appendChild(dupBtn);
+      }
+
+      // Delete Stage
+      if (stages.length > 2) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.style.background = 'rgba(231, 76, 60, 0.15)';
+        delBtn.style.border = '1px solid rgba(231, 76, 60, 0.3)';
+        delBtn.style.color = '#ff6b6b';
+        delBtn.style.borderRadius = '3px';
+        delBtn.style.padding = '2px 6px';
+        delBtn.style.fontSize = '10px';
+        delBtn.style.cursor = 'pointer';
+        delBtn.textContent = t('editor.inspector.fields.removeStage') || 'Delete';
+        delBtn.title = t('editor.inspector.fields.removeStage') || 'Delete Stage';
+
+        delBtn.addEventListener(
+          'click',
+          () => {
+            this.triggerUpdate('beforeChange');
+            stages.splice(currentIdx, 1);
+            this.activeStageIndex = Math.max(0, currentIdx - 1);
+            this.triggerUpdate();
+            this.render();
+          }
+        );
+        actionGroup.appendChild(delBtn);
+      }
+
+      cardHeader.appendChild(actionGroup);
+      card.appendChild(cardHeader);
+
+      // Row 1: Shape & Dynamics
+      const row1 = document.createElement('div');
+      row1.style.display = 'grid';
+      row1.style.gridTemplateColumns = '1fr 1fr';
+      row1.style.gap = '6px';
+
+      // Shape select
+      const shapeCol = document.createElement('div');
+      const shapeLbl = document.createElement('label');
+      shapeLbl.className = 'inspector-label';
+      shapeLbl.style.fontSize = '10px';
+      shapeLbl.textContent =
+        t('editor.inspector.fields.shapeType') ||
+        'Shape';
+      const shapeSel = document.createElement('select');
+      shapeSel.className = 'inspector-input';
+      shapeSel.style.fontSize = '11px';
+
+      const sortedShapes = [...AVAILABLE_SHAPES].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('shapeType', a);
+        const labelB = getEnglishOptionLabel('shapeType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedShapes.forEach(sh => {
+        const opt = document.createElement('option');
+        opt.value = sh;
+        opt.textContent =
+          t(`editor.inspector.options.shapeType.${sh}`) ||
+          sh;
+        opt.selected = (stage.shapeType || 'sphere') === sh;
+        shapeSel.appendChild(opt);
+      });
+      shapeSel.addEventListener(
+        'change',
+        (e) => {
+          this.triggerUpdate('beforeChange');
+          stage.shapeType = e.target.value;
+          this.triggerUpdate();
+        }
+      );
+      shapeCol.appendChild(shapeLbl);
+      shapeCol.appendChild(shapeSel);
+
+      // Dynamics select
+      const dynCol = document.createElement('div');
+      const dynLbl = document.createElement('label');
+      dynLbl.className = 'inspector-label';
+      dynLbl.style.fontSize = '10px';
+      dynLbl.textContent =
+        t('editor.inspector.fields.dynamicsType') ||
+        'Dynamics';
+      const dynSel = document.createElement('select');
+      dynSel.className = 'inspector-input';
+      dynSel.style.fontSize = '11px';
+
+      const sortedDynamics = [...AVAILABLE_DYNAMICS].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('dynamicsType', a);
+        const labelB = getEnglishOptionLabel('dynamicsType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      sortedDynamics.forEach(dyn => {
+        const opt = document.createElement('option');
+        opt.value = dyn;
+        opt.textContent =
+          t(`editor.inspector.options.dynamicsType.${dyn}`) ||
+          dyn;
+        opt.selected = (stage.dynamicsType || 'standard') === dyn;
+        dynSel.appendChild(opt);
+      });
+      dynSel.addEventListener(
+        'change',
+        (e) => {
+          this.triggerUpdate('beforeChange');
+          stage.dynamicsType = e.target.value;
+          this.triggerUpdate();
+        }
+      );
+      dynCol.appendChild(dynLbl);
+      dynCol.appendChild(dynSel);
+
+      row1.appendChild(shapeCol);
+      row1.appendChild(dynCol);
+      card.appendChild(row1);
+
+      // Row 2: Color Palette Swatches & Custom Picker
+      const colorWrapper = document.createElement('div');
+      colorWrapper.style.display = 'flex';
+      colorWrapper.style.flexDirection = 'column';
+      colorWrapper.style.gap = '4px';
+
+      const colorLbl = document.createElement('label');
+      colorLbl.className = 'inspector-label';
+      colorLbl.style.fontSize = '10px';
+      colorLbl.textContent =
+        t('editor.inspector.fields.color') ||
+        'Color';
+
+      const colorPaletteRow = document.createElement('div');
+      colorPaletteRow.style.display = 'flex';
+      colorPaletteRow.style.alignItems = 'center';
+      colorPaletteRow.style.flexWrap = 'wrap';
+      colorPaletteRow.style.gap = '5px';
+
+      const COLOR_PALETTE = [
+        { key: 'red', hex: '#ff3333' },
+        { key: 'gold', hex: '#ffd700' },
+        { key: 'white', hex: '#ffffff' },
+        { key: 'blue', hex: '#007aff' },
+        { key: 'green', hex: '#34c759' },
+        { key: 'purple', hex: '#af52de' },
+        { key: 'pink', hex: '#ff2d55' },
+        { key: 'aqua', hex: '#00e5ff' }
+      ];
+
+      COLOR_PALETTE.forEach(c => {
+        const swatch = document.createElement('div');
+        const isActiveColor = (stage.color || '').toLowerCase() === c.hex.toLowerCase();
+        swatch.style.width = '18px';
+        swatch.style.height = '18px';
+        swatch.style.borderRadius = '50%';
+        swatch.style.background = c.hex;
+        swatch.style.cursor = 'pointer';
+        swatch.style.border = isActiveColor
+          ? '2px solid #ffffff'
+          : '1px solid rgba(0, 0, 0, 0.4)';
+        swatch.style.boxShadow = isActiveColor
+          ? '0 0 6px rgba(255, 255, 255, 0.8)'
+          : 'none';
+        swatch.title = c.key;
+
+        swatch.addEventListener(
+          'click',
+          () => {
+            this.triggerUpdate('beforeChange');
+            stage.color = c.hex;
+            this.triggerUpdate();
+            this.render();
+          }
+        );
+        colorPaletteRow.appendChild(swatch);
+      });
+
+      const customColorInput = document.createElement('input');
+      customColorInput.type = 'color';
+      customColorInput.value = stage.color || '#ff4400';
+      customColorInput.style.width = '20px';
+      customColorInput.style.height = '20px';
+      customColorInput.style.border = 'none';
+      customColorInput.style.borderRadius = '3px';
+      customColorInput.style.cursor = 'pointer';
+      customColorInput.style.background = 'transparent';
+      customColorInput.title = t('editor.inspector.fields.customColor') || 'Custom Color';
+
+      customColorInput.addEventListener(
+        'change',
+        (e) => {
+          this.triggerUpdate('beforeChange');
+          stage.color = e.target.value;
+          this.triggerUpdate();
+          this.render();
+        }
+      );
+      colorPaletteRow.appendChild(customColorInput);
+
+      colorWrapper.appendChild(colorLbl);
+      colorWrapper.appendChild(colorPaletteRow);
+      card.appendChild(colorWrapper);
+
+      // Row 3: Burst Delay Slider & Number
+      const delayWrapper = document.createElement('div');
+      delayWrapper.style.display = 'flex';
+      delayWrapper.style.flexDirection = 'column';
+      delayWrapper.style.gap = '2px';
+
+      const delayHeader = document.createElement('div');
+      delayHeader.style.display = 'flex';
+      delayHeader.style.justifyContent = 'space-between';
+
+      const delayLbl = document.createElement('label');
+      delayLbl.className = 'inspector-label';
+      delayLbl.style.fontSize = '10px';
+      delayLbl.textContent =
+        t('editor.inspector.fields.delay') ||
+        'Burst Delay';
+
+      const delayValText = document.createElement('span');
+      delayValText.style.fontSize = '11px';
+      delayValText.style.color = '#3498db';
+      delayValText.textContent = `${(stage.delay || 0).toFixed(2)}s`;
+
+      delayHeader.appendChild(delayLbl);
+      delayHeader.appendChild(delayValText);
+      delayWrapper.appendChild(delayHeader);
+
+      const delayInputRow = document.createElement('div');
+      delayInputRow.style.display = 'flex';
+      delayInputRow.style.alignItems = 'center';
+      delayInputRow.style.gap = '8px';
+
+      const delaySlider = document.createElement('input');
+      delaySlider.type = 'range';
+      delaySlider.min = '0';
+      delaySlider.max = '3';
+      delaySlider.step = '0.05';
+      delaySlider.value = stage.delay !== undefined ? stage.delay : (currentIdx * 0.45);
+      delaySlider.style.flex = '1';
+
+      const delayNum = document.createElement('input');
+      delayNum.type = 'number';
+      delayNum.className = 'inspector-input';
+      delayNum.style.width = '60px';
+      delayNum.style.fontSize = '11px';
+      delayNum.step = '0.05';
+      delayNum.min = '0';
+      delayNum.max = '3';
+      delayNum.value = stage.delay !== undefined ? stage.delay : (currentIdx * 0.45);
+
+      delaySlider.addEventListener(
+        'input',
+        (e) => {
+          const val = parseFloat(e.target.value) || 0;
+          stage.delay = val;
+          delayNum.value = val;
+          delayValText.textContent = `${val.toFixed(2)}s`;
+          this.triggerUpdate();
+        }
+      );
+
+      delayNum.addEventListener(
+        'change',
+        (e) => {
+          const val = parseFloat(e.target.value) || 0;
+          this.triggerUpdate('beforeChange');
+          stage.delay = val;
+          delaySlider.value = val;
+          delayValText.textContent = `${val.toFixed(2)}s`;
+          this.triggerUpdate();
+          this.render();
+        }
+      );
+
+      delayInputRow.appendChild(delaySlider);
+      delayInputRow.appendChild(delayNum);
+      delayWrapper.appendChild(delayInputRow);
+      card.appendChild(delayWrapper);
+
+      // Row 4: Scale Multiplier Slider & Number
+      const scaleWrapper = document.createElement('div');
+      scaleWrapper.style.display = 'flex';
+      scaleWrapper.style.flexDirection = 'column';
+      scaleWrapper.style.gap = '2px';
+
+      const scaleHeader = document.createElement('div');
+      scaleHeader.style.display = 'flex';
+      scaleHeader.style.justifyContent = 'space-between';
+
+      const scaleLbl = document.createElement('label');
+      scaleLbl.className = 'inspector-label';
+      scaleLbl.style.fontSize = '10px';
+      scaleLbl.textContent =
+        t('editor.inspector.fields.stageScale') ||
+        'Scale Multiplier';
+
+      const scaleValText = document.createElement('span');
+      scaleValText.style.fontSize = '11px';
+      scaleValText.style.color = '#3498db';
+      scaleValText.textContent = `${(stage.scale !== undefined ? stage.scale : 1.0).toFixed(2)}x`;
+
+      scaleHeader.appendChild(scaleLbl);
+      scaleHeader.appendChild(scaleValText);
+      scaleWrapper.appendChild(scaleHeader);
+
+      const scaleInputRow = document.createElement('div');
+      scaleInputRow.style.display = 'flex';
+      scaleInputRow.style.alignItems = 'center';
+      scaleInputRow.style.gap = '8px';
+
+      const scaleSlider = document.createElement('input');
+      scaleSlider.type = 'range';
+      scaleSlider.min = '0.2';
+      scaleSlider.max = '2.0';
+      scaleSlider.step = '0.05';
+      scaleSlider.value = stage.scale !== undefined ? stage.scale : 1.0;
+      scaleSlider.style.flex = '1';
+
+      const scaleNum = document.createElement('input');
+      scaleNum.type = 'number';
+      scaleNum.className = 'inspector-input';
+      scaleNum.style.width = '60px';
+      scaleNum.style.fontSize = '11px';
+      scaleNum.step = '0.05';
+      scaleNum.min = '0.2';
+      scaleNum.max = '2.0';
+      scaleNum.value = stage.scale !== undefined ? stage.scale : 1.0;
+
+      scaleSlider.addEventListener(
+        'input',
+        (e) => {
+          const val = parseFloat(e.target.value) || 1.0;
+          stage.scale = val;
+          scaleNum.value = val;
+          scaleValText.textContent = `${val.toFixed(2)}x`;
+          this.triggerUpdate();
+        }
+      );
+
+      scaleNum.addEventListener(
+        'change',
+        (e) => {
+          const val = parseFloat(e.target.value) || 1.0;
+          this.triggerUpdate('beforeChange');
+          stage.scale = val;
+          scaleSlider.value = val;
+          scaleValText.textContent = `${val.toFixed(2)}x`;
+          this.triggerUpdate();
+        }
+      );
+
+      scaleInputRow.appendChild(scaleSlider);
+      scaleInputRow.appendChild(scaleNum);
+      scaleWrapper.appendChild(scaleInputRow);
+      card.appendChild(scaleWrapper);
+
+      // Row 5: Active Optical Effects Chips
+      const effectsWrapper = document.createElement('div');
+      effectsWrapper.style.display = 'flex';
+      effectsWrapper.style.flexDirection = 'column';
+      effectsWrapper.style.gap = '4px';
+
+      const effLbl = document.createElement('label');
+      effLbl.className = 'inspector-label';
+      effLbl.style.fontSize = '10px';
+      effLbl.textContent =
+        t('editor.inspector.fields.activeEffects') ||
+        'Active Effects';
+
+      const chipsWrapper = document.createElement('div');
+      chipsWrapper.style.display = 'flex';
+      chipsWrapper.style.flexWrap = 'wrap';
+      chipsWrapper.style.gap = '4px';
+
+      const currentEffects = Array.isArray(stage.effects) ? stage.effects : [];
+      AVAILABLE_EFFECT_TAGS.forEach(eff => {
+        const isEffectActive = currentEffects.includes(eff.key);
+        const chip = document.createElement('span');
+        chip.className = 'effect-chip';
+        chip.style.fontSize = '10px';
+        chip.style.padding = '3px 7px';
+        chip.style.cursor = 'pointer';
+        chip.style.borderRadius = '4px';
+        chip.style.userSelect = 'none';
+        chip.style.border = isEffectActive
+          ? '1px solid #4a9eff'
+          : '1px solid rgba(255,255,255,0.12)';
+        chip.style.background = isEffectActive
+          ? 'rgba(74, 158, 255, 0.25)'
+          : 'rgba(255,255,255,0.04)';
+        chip.style.color = isEffectActive
+          ? '#ffffff'
+          : '#8a9ba8';
+        chip.style.fontWeight = isEffectActive
+          ? 'bold'
+          : 'normal';
+        chip.textContent =
+          t(`editor.inspector.fields.${eff.labelKey}`) ||
+          eff.key;
+
+        chip.addEventListener(
+          'click',
+          () => {
+            this.triggerUpdate('beforeChange');
+            if (!Array.isArray(stage.effects)) {
+              stage.effects = [];
+            }
+            const activeIdx = stage.effects.indexOf(eff.key);
+            if (activeIdx >= 0) {
+              stage.effects.splice(activeIdx, 1);
+            } else {
+              stage.effects.push(eff.key);
+            }
+            this.triggerUpdate();
+            this.render();
+          }
+        );
+
+        chipsWrapper.appendChild(chip);
+      });
+
+      effectsWrapper.appendChild(effLbl);
+      effectsWrapper.appendChild(chipsWrapper);
+      card.appendChild(effectsWrapper);
+
+      container.appendChild(card);
+    }
+
+    parent.appendChild(container);
+  }
 }
+

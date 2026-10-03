@@ -39,7 +39,8 @@ export const AVAILABLE_DYNAMICS = [
   'sparking-v2',
   'swimming-star',
   'ghost-kamuro',
-  'double-helix'
+  'double-helix',
+  'crossette'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -55,7 +56,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'ghost',
   'ghost-flare',
   'flow',
-  'no-trail'
+  'no-trail',
+  'crossette'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -126,6 +128,12 @@ export const PRESET_TEMPLATES = {
     effects: []
   },
   crysanthemumNested: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  multiNested: {
     shape: 'sphere',
     dynamics: 'standard',
     modifiers: { pistil: false, instantBurst: false },
@@ -388,6 +396,12 @@ export const PRESET_TEMPLATES = {
     dynamics: 'double-helix',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
+  },
+  crossette: {
+    shape: 'sphere',
+    dynamics: 'crossette',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['crossette']
   }
 };
 

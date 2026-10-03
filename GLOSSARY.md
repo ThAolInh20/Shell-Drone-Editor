@@ -90,4 +90,70 @@ Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ n
 ### Màn hình Editor Formation / Editor Static
 - Định nghĩa: Màn hình thiết kế đội hình tĩnh và bố cục sắp xếp drone (Static Formation Designer).
 - Phím tắt chuyển đổi: `Ctrl + 3` (hoặc `Cmd + 3` trên macOS).
-- Trong code: Khởi chạy qua [src/formation/main.js](../src/formation/main.js) (thông qua [formation.html](../formation.html)).
+- Trong code: Khởi chạy qua [src/formation/main.js](./src/formation/main.js) (thông qua [formation.html](./formation.html)).
+
+---
+
+## 6. Thuật ngữ Hệ thống Pháo hoa (Firework System Terms)
+
+### Shell
+- Định nghĩa: Quả pháo hoa hoàn chỉnh bao gồm thân pháo, thuốc nổ, hạt màu và hiệu ứng được nạp vào kịch bản.
+- Trong code: Lớp `ShellEntity` và các preset định nghĩa trong [src/factories/ShellPresetFactory.js](./src/factories/ShellPresetFactory.js).
+
+### Lift / Launch
+- Định nghĩa: Giai đoạn quả pháo được phóng từ mặt đất lên độ cao định trước trước khi phát nổ.
+- Trong code: Thuộc tính `launchTrail`, âm thanh `lift` trong [src/systems/AudioSystem.js](./src/systems/AudioSystem.js).
+
+### Burst
+- Định nghĩa: Thời điểm và hành động quả pháo phát nổ bung tỏa các hạt màu trên bầu trời.
+- Trong code: Phương thức `createBurst` và `updateBurstParticles` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
+
+### Shape (Hình học không gian ban đầu)
+- Định nghĩa: Cấu trúc hình học phân bổ vị trí và hướng vận tốc của các hạt tại thời điểm bắt đầu nổ (t = 0).
+- Các dạng tiêu biểu: Sphere (hình cầu), Ring (vành nhẫn), Heart (trái tim), Star (ngôi sao), Willow (vòm liễu), Double Helix (xoắn kép).
+- Trong code: Xử lý chuyên trách bởi [src/factories/BurstShapeGenerator.js](./src/factories/BurstShapeGenerator.js).
+
+### Active Effects (Hiệu ứng bổ trợ có thể xếp chồng)
+- Định nghĩa: Các thẻ hiệu ứng quang học và hành vi độc lập có thể bật/tắt hoặc kết hợp đồng thời (stackable) trên bất kỳ loại pháo hoa nào, không phụ thuộc vào Preset hay Shape cố định.
+- Các dạng tiêu biểu:
+  - `strobe`: Chớp nháy màu theo chu kỳ tần số cao.
+  - `white-strobe`: Chớp nháy ánh sáng trắng lấp lánh ở nửa sau vòng đời.
+  - `glitter-strobe`: Chớp nháy kim tuyến siêu nhanh tạo độ lấp lánh dày đặc.
+  - `crackle`: Nổ vi hạt lách tách thành chùm tia lửa cầu mini ở 65% vòng đời.
+  - `ghost`: Biến quang quét góc 3D từ bóng tối sang ánh sáng.
+  - `ghost-flare`: Biến quang 3 giai đoạn gồm sáng ban đầu, ẩn tối ở giữa và tái bừng sáng chói lọi ở cuối.
+  - `flow`: Tạo chuyển động xoáy uốn lượn tự do cho từng hạt.
+  - `no-trail`: Tắt vệt đuôi sáng để giữ điểm nổ gọn gàng, sắc nét.
+  - `crossette`: Phân tách hạt pháo chính thành 4 tia vuông góc tại giữa vòng đời.
+- Trong code: Khai báo qua danh sách `AVAILABLE_EFFECT_TAGS` trong [src/factories/FireworkCompositionHelper.js](./src/factories/FireworkCompositionHelper.js) và quản lý trong mảng `effects` / `activeEffects` của sự kiện pháo hoa trên [src/ui/PropertyInspector.js](./src/ui/PropertyInspector.js).
+
+### Dynamics (Động lực học hạt sau nổ)
+- Định nghĩa: Quy luật chuyển động, lực cản không khí, độ trôi, độ chùng và xoáy của hạt theo thời gian (t > 0).
+- Các dạng tiêu biểu: Standard (tỏa đều), Willow (liễu rủ tàn), Flow (dòng chảy uốn lượn), Falling Leaves (lá rơi chao đảo), Falling Comets (sao chổi rơi).
+- Trong code: Xử lý chuyên trách bởi [src/factories/BurstEffectProcessor.js](./src/factories/BurstEffectProcessor.js).
+
+### Pistil (Nhụy tâm / Lõi pháo)
+- Định nghĩa: Cấu trúc hạt tạo thành lõi nhụy ở trung tâm quả pháo với màu sắc tương phản hoặc thời gian cháy riêng.
+- Trong code: Thuộc tính `pistil: true` và `pistilColor` trong cấu hình pháo.
+
+### Crossette (Sao tách chữ thập)
+- Trong code: Cờ `isCrossette`, tập chỉ số hạt `crossetteIndices`, thời gian `crossetteSplitTime` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
+
+### Crackle (Nổ vi hạt lách tách)
+- Trong code: Cờ `crackle`, phương thức `spawnMicroCrackle` trong [src/systems/TrailSystem.js](./src/systems/TrailSystem.js) và sự kiện `firework:crackle`.
+
+### Dying Ember (Hạt than tàn)
+- Trong code: Thuộc tính `isDyingEmber` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
+
+### Comet (Sao chổi)
+- Trong code: Hệ thống [src/systems/CometSystem.js](./src/systems/CometSystem.js) và các kiểu sự kiện `cometsequence`.
+
+### Bouquet (Chùm pháo / Pháo cụm)
+- Trong code: Phương thức `triggerBouquetBurst` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
+
+### Ghost / Ghost Flare (Pháo biến quang / Tàng hình)
+- Trong code: Hiệu ứng `ghost`, `ghost-flare`, `ghost-kamuro` trong [src/factories/BurstEffectProcessor.js](./src/factories/BurstEffectProcessor.js).
+
+### Strobe / Glitter (Nhấp nháy / Kim tuyến)
+- Trong code: Hiệu ứng `strobe`, `white-strobe`, `glitter-strobe` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
+

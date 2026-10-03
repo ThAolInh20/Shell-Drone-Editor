@@ -363,7 +363,10 @@ export class FireworkSequencer {
         || config.strobe !== undefined 
         || config.crackle !== undefined
         || config.flow !== undefined
-        || config.cometTrail !== undefined) 
+        || config.cometTrail !== undefined
+        || config.stages !== undefined
+        || config.nestingMode !== undefined
+        || config.multiNested !== undefined) 
       {
         overrides = { ...(overrides || {}) };
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
@@ -375,6 +378,9 @@ export class FireworkSequencer {
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
         if (config.flow !== undefined) overrides.flow = config.flow;
+        if (config.stages !== undefined) overrides.stages = config.stages;
+        if (config.nestingMode !== undefined) overrides.nestingMode = config.nestingMode;
+        if (config.multiNested !== undefined) overrides.multiNested = config.multiNested;
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
@@ -392,8 +398,17 @@ export class FireworkSequencer {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+          } else if (config.cometTrail === 'ascent-bursts') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.ascentBursts = true;
+            overrides.ascentSubShellType = config.ascentSubShellType || 'random';
+            overrides.ascentBurstCount = config.ascentBurstCount ? parseInt(config.ascentBurstCount, 10) : 4;
           }
         }
+        if (config.ascentSubShellType !== undefined) overrides.ascentSubShellType = config.ascentSubShellType;
+        if (config.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(config.ascentBurstCount, 10);
       }
 
       this.activeTasks.push({

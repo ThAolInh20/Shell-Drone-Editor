@@ -338,13 +338,22 @@ export default {
         geometryOffsets: "Geometry & Offsets",
         beatSettings: "Beat Editor",
         groupSettings: "Group Settings",
-        groupChildren: "Grouped Events"
+        groupChildren: "Grouped Events",
+        nestedStages: "Multi Nested Stages"
       },
       fields: {
         time: "Start Time s",
         name: "Group Name",
         volume: "Volume",
         url: "File URL",
+        stage: "Stage",
+        addStage: "Add Stage",
+        removeStage: "Remove Stage",
+        duplicateStage: "Duplicate Stage",
+        templates: "Quick Templates",
+        delay: "Burst Delay",
+        stageScale: "Scale Multiplier",
+        nestingMode: "Nesting Pattern",
         type: "Type",
         pattern: "Pattern",
         preset: "Preset",
@@ -356,6 +365,8 @@ export default {
         useAngle: "Custom Angle",
         angle: "Launch Angle",
         cometTrail: "Launch Trail",
+        ascentSubShellType: "Ascent Sub Shell",
+        ascentBurstCount: "Ascent Bursts Count",
         color: "Shell Color",
         customColor: "Custom Color",
         shellSize: "Shell Size",
@@ -369,6 +380,7 @@ export default {
         ghostFlare: "Ghost 3 Stage Flare",
         flow: "Flow Fish swimming",
         noTrail: "No Trail",
+        crossette: "Crossette Cross Split",
         activeEffects: "Active Effects",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",
@@ -434,7 +446,8 @@ export default {
           "sparking-v2": "Sparking V2 Instant Ember",
           "swimming-star": "Swimming Star Slow Fish Flow",
           "ghost-kamuro": "Ghost Kamuro Willow",
-          "double-helix": "Double Helix Orbit"
+          "double-helix": "Double Helix Orbit",
+          crossette: "Crossette Cross Split"
         },
         pattern: {
           random: "Random",
@@ -488,13 +501,41 @@ export default {
           ghostKamuro: "Ghost Kamuro",
           ghost_kamuro: "Ghost Kamuro",
           doubleHelix: "Double Helix",
-          double_helix: "Double Helix"
+          double_helix: "Double Helix",
+          crossette: "Crossette",
+          multiNested: "★ Multi Nested Shell",
+          multi_nested: "★ Multi Nested Shell"
+        },
+        nestingMode: {
+          concentric: "Concentric Time Cascade",
+          satellite: "Satellite Dispersion"
+        },
+        templates: {
+          custom: "Custom",
+          chrysanthemumSimultaneous: "4 Layer Simultaneous Chrysanthemum",
+          classic: "Classic Brocade Cascade",
+          satellite: "Satellite Star Cluster",
+          ghost: "Ghost Strobe Symphony",
+          crossette: "Crossette Matrix"
         },
         cometTrail: {
           none: "None",
           thin: "Thin Straight",
           normal: "Normal",
-          thick: "Light"
+          thick: "Light",
+          "ascent-bursts": "Ascending Sub Bursts"
+        },
+        ascentSubShellType: {
+          random: "Random",
+          crysanthemum: "Chrysanthemum",
+          crossette: "Crossette",
+          strobe: "Strobe",
+          crackle: "Crackle",
+          willow: "Willow",
+          ring: "Ring",
+          star: "Star",
+          flow: "Flow",
+          sparking: "Sparking"
         }
       },
       colors: {
