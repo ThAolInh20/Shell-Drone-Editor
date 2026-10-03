@@ -268,7 +268,6 @@ export class PropertyInspector {
           visibleIf: (event) => (
             event?.preset === 'multiNested'
             || Boolean(event?.multiNested)
-            || (Array.isArray(event?.stages) && event.stages.length > 0)
           ),
           customRender: true
         },
@@ -606,17 +605,27 @@ export class PropertyInspector {
         this.selectedEvent[field.name] = val;
       }
 
-      if (field.name === 'preset' && val) {
-        const template = getTemplateForPreset(val);
-        if (template) {
-          this.selectedEvent.shapeType = template.shape;
-          this.selectedEvent.dynamicsType = template.dynamics;
-          this.selectedEvent.pistil = template.modifiers.pistil;
-          this.selectedEvent.instantBurst = template.modifiers.instantBurst;
-          this.selectedEvent.effects = [...template.effects];
-          this.triggerUpdate();
-          this.render();
-          return;
+      if (field.name === 'preset') {
+        if (val !== 'multiNested') {
+          delete this.selectedEvent.multiNested;
+          delete this.selectedEvent.stages;
+          delete this.selectedEvent.nestingMode;
+          delete this.selectedEvent._selectedTemplateKey;
+        } else {
+          this.selectedEvent.multiNested = true;
+        }
+        if (val) {
+          const template = getTemplateForPreset(val);
+          if (template) {
+            this.selectedEvent.shapeType = template.shape;
+            this.selectedEvent.dynamicsType = template.dynamics;
+            this.selectedEvent.pistil = template.modifiers.pistil;
+            this.selectedEvent.instantBurst = template.modifiers.instantBurst;
+            this.selectedEvent.effects = [...template.effects];
+            this.triggerUpdate();
+            this.render();
+            return;
+          }
         }
       }
 

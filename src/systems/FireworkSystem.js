@@ -1760,7 +1760,7 @@ export class FireworkSystem {
 
     if (
       item.preset?.multiNested
-      || (Array.isArray(item.preset?.stages) && item.preset.stages.length > 0)
+      || (item.preset?.preset === 'multiNested' && Array.isArray(item.preset?.stages) && item.preset.stages.length > 0)
     ) {
       this.triggerMultiNestedBurst(
         burstPosition,
