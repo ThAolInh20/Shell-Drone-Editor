@@ -306,6 +306,8 @@ export default {
     smoke_quality: "Smoke Quality",
     smoke_density: "Smoke Density",
     smoke_wind_speed: "Smoke Wind Speed",
+    smoke_unlimited: "Cinematic Smoke Unlimited",
+    smoke_lifespan: "Smoke Lifespan",
     volume_master: "Master Volume",
     volume_lift: "Lift Volume",
     volume_burst: "Burst Volume Large",

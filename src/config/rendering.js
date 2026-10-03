@@ -20,7 +20,9 @@ export const renderingConfig = {
   smoke: {
     quality: 'medium',
     density: 1.0,
-    windSpeed: 1.0
+    windSpeed: 1.0,
+    unlimited: false,
+    lifespanMultiplier: 1.0
   },
   performance: {
     fpsThreshold: 70,

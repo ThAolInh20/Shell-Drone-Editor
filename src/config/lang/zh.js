@@ -295,6 +295,8 @@ export default {
     smoke_quality: "烟雾质量",
     smoke_density: "烟雾密度",
     smoke_wind_speed: "烟雾风速",
+    smoke_unlimited: "解锁电影级无限制烟雾",
+    smoke_lifespan: "烟雾停留时间",
     volume_master: "主音量",
     volume_lift: "发射音量",
     volume_burst: "主爆炸音量",

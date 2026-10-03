@@ -78,7 +78,8 @@ const inputSystem = new InputSystem(
   renderer,
   postProcessing,
   audioSystem,
-  sceneManager
+  sceneManager,
+  smokeSystem
 );
 const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
 

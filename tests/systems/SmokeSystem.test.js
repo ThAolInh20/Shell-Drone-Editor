@@ -120,4 +120,32 @@ describe('SmokeSystem', () => {
     expect(smokeSystem.activePuffCount).toBe(0);
     expect(smokeSystem.smokeGeometry.drawRange.count).toBe(0);
   });
+
+  it('should support unlimited smoke mode with expanded capacity', () => {
+    smokeSystem.setQuality('low');
+    expect(smokeSystem.maxPuffs).toBe(600);
+
+    smokeSystem.setUnlimited(true);
+    expect(smokeSystem.unlimited).toBe(true);
+    expect(smokeSystem.maxPuffs).toBe(20000);
+
+    smokeSystem.setUnlimited(false);
+    expect(smokeSystem.unlimited).toBe(false);
+    expect(smokeSystem.maxPuffs).toBe(600);
+  });
+
+  it('should apply lifespan multiplier to spawned puffs', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+    smokeSystem.setLifespanMultiplier(3.0);
+
+    smokeSystem.spawnPuff(
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 1, 0),
+      { life: 4.0 }
+    );
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    expect(smokeSystem.puffs[0].life).toBeCloseTo(12.0);
+  });
 });

@@ -7,8 +7,11 @@ const QUALITY_CAPACITIES = {
   off: 0,
   low: 600,
   medium: 1800,
-  high: 4000
+  high: 4000,
+  unlimited: 20000
 };
+
+const BUFFER_CAPACITY = QUALITY_CAPACITIES.unlimited;
 
 export class SmokeSystem {
   constructor(sceneManager) {
@@ -16,7 +19,11 @@ export class SmokeSystem {
     this.quality = renderingConfig.smoke?.quality ?? 'medium';
     this.density = renderingConfig.smoke?.density ?? 1.0;
     this.windSpeed = renderingConfig.smoke?.windSpeed ?? 1.0;
-    this.maxPuffs = QUALITY_CAPACITIES[this.quality] ?? 1800;
+    this.unlimited = Boolean(renderingConfig.smoke?.unlimited);
+    this.lifespanMultiplier = renderingConfig.smoke?.lifespanMultiplier ?? 1.0;
+    this.maxPuffs = this.unlimited
+      ? QUALITY_CAPACITIES.unlimited
+      : (QUALITY_CAPACITIES[this.quality] ?? 1800);
 
     this.smokeTexture = this.createSmokeTexture();
     this.puffs = [];
@@ -32,11 +39,11 @@ export class SmokeSystem {
     this.currentWind = this.baseWind.clone().multiplyScalar(this.windSpeed);
 
     // Pre-allocated Float32Array ring buffers to eliminate GC pauses
-    this.positionsArray = new Float32Array(QUALITY_CAPACITIES.high * 3);
-    this.colorsArray = new Float32Array(QUALITY_CAPACITIES.high * 3);
-    this.sizesArray = new Float32Array(QUALITY_CAPACITIES.high);
-    this.opacitiesArray = new Float32Array(QUALITY_CAPACITIES.high);
-    this.seedsArray = new Float32Array(QUALITY_CAPACITIES.high);
+    this.positionsArray = new Float32Array(BUFFER_CAPACITY * 3);
+    this.colorsArray = new Float32Array(BUFFER_CAPACITY * 3);
+    this.sizesArray = new Float32Array(BUFFER_CAPACITY);
+    this.opacitiesArray = new Float32Array(BUFFER_CAPACITY);
+    this.seedsArray = new Float32Array(BUFFER_CAPACITY);
 
     this.smokeGeometry = new THREE.BufferGeometry();
     this.smokeGeometry.setAttribute(
@@ -225,13 +232,33 @@ export class SmokeSystem {
 
   setQuality(qualityStr) {
     this.quality = qualityStr;
-    this.maxPuffs = QUALITY_CAPACITIES[qualityStr] ?? 1800;
+    if (this.unlimited) {
+      this.maxPuffs = QUALITY_CAPACITIES.unlimited;
+    } else {
+      this.maxPuffs = QUALITY_CAPACITIES[qualityStr] ?? 1800;
+    }
     if (this.quality === 'off') {
       this.clear();
       this.smokePoints.visible = false;
     } else {
       this.smokePoints.visible = true;
     }
+  }
+
+  setUnlimited(enabled) {
+    this.unlimited = Boolean(enabled);
+    if (this.unlimited) {
+      this.maxPuffs = QUALITY_CAPACITIES.unlimited;
+    } else {
+      this.maxPuffs = QUALITY_CAPACITIES[this.quality] ?? 1800;
+    }
+  }
+
+  setLifespanMultiplier(multiplier) {
+    this.lifespanMultiplier = Math.max(
+      0.5,
+      Math.min(10.0, Number(multiplier) || 1.0)
+    );
   }
 
   setDensity(densityVal) {
@@ -339,13 +366,22 @@ export class SmokeSystem {
 
     const cfg = FIREWORK_CONFIG.SMOKE;
     const defaultLife = cfg.trailLifeMin + Math.random() * (cfg.trailLifeMax - cfg.trailLifeMin);
+    const rawLife = options.life ?? defaultLife;
+    const effectiveLife = rawLife * this.lifespanMultiplier;
+
+    // Expand growth gently with square root when lifespan is increased
+    const growthMod = Math.max(
+      0.4,
+      1.0 / Math.sqrt(Math.max(1.0, this.lifespanMultiplier))
+    );
+    const growth = (options.growth ?? cfg.trailGrowth) * growthMod;
 
     this.puffs.push({
       position: origin.clone(),
       velocity: velocity.clone(),
       age: 0,
-      life: options.life ?? defaultLife,
-      growth: options.growth ?? cfg.trailGrowth,
+      life: effectiveLife,
+      growth: growth,
       drag: options.drag ?? cfg.trailDrag,
       buoyancy: options.buoyancy ?? cfg.trailBuoyancy,
       seed: options.seed ?? Math.random(),
@@ -365,7 +401,9 @@ export class SmokeSystem {
       detail.position?.z ?? 0
     );
 
-    const count = this.quality === 'high' ? 8 : (this.quality === 'low' ? 3 : 5);
+    const count = this.unlimited
+      ? 14
+      : (this.quality === 'high' ? 8 : (this.quality === 'low' ? 3 : 5));
 
     for (let i = 0; i < count; i++) {
       const drift = new THREE.Vector3(
@@ -417,8 +455,12 @@ export class SmokeSystem {
     );
 
     // Xac dinh so cum con (micro-clusters) va so hat moi cum
-    const clusterCount = this.quality === 'high' ? 5 : (this.quality === 'low' ? 2 : 3);
-    const puffsPerCluster = Math.round((this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4)) * (0.8 + 0.4 * intensity));
+    const clusterCount = this.unlimited
+      ? 7
+      : (this.quality === 'high' ? 5 : (this.quality === 'low' ? 2 : 3));
+    const puffsPerCluster = Math.round(
+      (this.unlimited ? 10 : (this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4))) * (0.8 + 0.4 * intensity)
+    );
     const burstSpreadRadius = 4.0 + intensity * 6.0;
 
     for (let c = 0; c < clusterCount; c++) {

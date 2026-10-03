@@ -244,6 +244,47 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_unlimited',
+    label: 'Cinematic Smoke Unlimited',
+    type: 'checkbox',
+    category: 'graphics',
+    default: false,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.unlimited = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setUnlimited(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_lifespan',
+    label: 'Smoke Lifespan',
+    type: 'slider',
+    category: 'graphics',
+    min: 1.0,
+    max: 5.0,
+    step: 0.25,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.lifespanMultiplier = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setLifespanMultiplier(value);
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',

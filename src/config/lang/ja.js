@@ -295,6 +295,8 @@ export default {
     smoke_quality: "煙の品質",
     smoke_density: "煙の密度",
     smoke_wind_speed: "煙の風速",
+    smoke_unlimited: "シネマティック無制限煙モード",
+    smoke_lifespan: "煙の持続時間",
     volume_master: "マスター音量",
     volume_lift: "打ち上げ音量",
     volume_burst: "大爆発音量",

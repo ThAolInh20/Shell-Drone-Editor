@@ -306,6 +306,8 @@ export default {
     smoke_quality: "Chất lượng khói",
     smoke_density: "Mật độ khói",
     smoke_wind_speed: "Tốc độ gió khói",
+    smoke_unlimited: "Mở khóa khói điện ảnh không giới hạn",
+    smoke_lifespan: "Thời gian tồn tại của khói",
     volume_master: "Âm lượng tổng",
     volume_lift: "Âm lượng phóng pháo",
     volume_burst: "Âm lượng nổ lớn",
