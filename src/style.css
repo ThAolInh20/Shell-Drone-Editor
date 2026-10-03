@@ -192,9 +192,9 @@ body {
 
 /* Custom Settings styles inside the pause panel */
 .settings-section {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -206,13 +206,64 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #ffd86b;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-subgroup {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.settings-subgroup:hover {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.settings-subgroup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.settings-subgroup-badge {
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: #00f3ff;
+  box-shadow: 0 0 6px rgba(0, 243, 255, 0.5);
+  display: inline-block;
+}
+
+.settings-subgroup-title {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8d5ff;
 }
 
 .settings-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.settings-subgroup .settings-row + .settings-row {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .settings-slider-header {
@@ -223,7 +274,7 @@ body {
 
 .settings-label {
   font-size: 13px;
-  color: rgba(245, 247, 255, 0.85);
+  color: rgba(245, 247, 255, 0.88);
   font-weight: 550;
   text-transform: none;
   letter-spacing: normal;

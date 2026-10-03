@@ -217,127 +217,63 @@ export class InputSystem {
         (s) => s.category === catKey
       );
 
+      const subgroups = {};
       for (const item of catItems) {
-        const row = document.createElement('div');
-        row.className = 'settings-row';
+        const subKey = item.subgroup || 'default';
+        if (!subgroups[subKey]) {
+          subgroups[subKey] = [];
+        }
+        subgroups[subKey].push(item);
+      }
 
-        const saved = localStorage.getItem(`settings_${item.key}`);
-        let currentVal = item.default;
-        if (saved !== null) {
-          currentVal = item.type === 'checkbox'
-            ? saved === 'true'
-            : (item.type === 'select' ? saved : parseFloat(saved));
+      for (const [subKey, items] of Object.entries(subgroups)) {
+        const card = document.createElement('div');
+        card.className = 'settings-subgroup';
+
+        const subTitleText = t(`editor.subgroup_${subKey}`);
+        if (subTitleText) {
+          const subHeader = document.createElement('div');
+          subHeader.className = 'settings-subgroup-header';
+
+          const badge = document.createElement('span');
+          badge.className = 'settings-subgroup-badge';
+
+          const subTitle = document.createElement('span');
+          subTitle.className = 'settings-subgroup-title';
+          subTitle.textContent = subTitleText;
+
+          subHeader.appendChild(badge);
+          subHeader.appendChild(subTitle);
+          card.appendChild(subHeader);
         }
 
-        if (item.type === 'slider') {
-          const header = document.createElement('div');
-          header.className = 'settings-slider-header';
-
-          const labelSpan = document.createElement('span');
-          labelSpan.className = 'settings-label';
-          labelSpan.textContent = t(`editor.${item.key}`) || item.label;
-
-          const valSpan = document.createElement('span');
-          valSpan.className = 'settings-value';
-          valSpan.textContent = currentVal.toFixed(2);
-
-          header.appendChild(labelSpan);
-          header.appendChild(valSpan);
-          row.appendChild(header);
-
-          const slider = document.createElement('input');
-          slider.type = 'range';
-          slider.className = 'settings-slider';
-          slider.min = item.min;
-          slider.max = item.max;
-          slider.step = item.step;
-          slider.value = currentVal;
-
-          slider.addEventListener('input', () => {
-            const val = parseFloat(slider.value);
-            valSpan.textContent = val.toFixed(2);
-            item.apply(val, this.settingsContext);
-          });
-
-          slider.addEventListener('change', () => {
-            const val = parseFloat(slider.value);
-            localStorage.setItem(
-              `settings_${item.key}`,
-              val.toString()
-            );
-          });
-
-          row.appendChild(slider);
-
-          item.inputElement = slider;
-          item.valueDisplayElement = valSpan;
-        } else if (item.type === 'checkbox') {
-          const cbLabel = document.createElement('label');
-          cbLabel.className = 'settings-checkbox-label';
-
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.className = 'settings-checkbox';
-          checkbox.checked = currentVal;
-
-          checkbox.addEventListener('change', () => {
-            const val = checkbox.checked;
-            localStorage.setItem(
-              `settings_${item.key}`,
-              val.toString()
-            );
-            item.apply(val, this.settingsContext);
-          });
-
-          const labelText = document.createTextNode(' ' + (t(`editor.${item.key}`) || item.label));
-
-          cbLabel.appendChild(checkbox);
-          cbLabel.appendChild(labelText);
-          row.appendChild(cbLabel);
-
-          item.inputElement = checkbox;
-        } else if (item.type === 'select') {
-          const header = document.createElement('div');
-          header.className = 'settings-slider-header';
-          header.style.marginBottom = '6px';
-
-          const labelSpan = document.createElement('span');
-          labelSpan.className = 'settings-label';
-          labelSpan.textContent = t(`editor.${item.key}`) || item.label;
-          header.appendChild(labelSpan);
-          row.appendChild(header);
-
-          const select = document.createElement('select');
-          select.className = 'firework-pause-select';
-
-          for (const optKey of (item.options || [])) {
-            const optionElement = document.createElement('option');
-            optionElement.value = optKey;
-            optionElement.textContent = t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) || t(`editor.${optKey}`) || optKey.toUpperCase();
-            if (optKey === currentVal) {
-              optionElement.selected = true;
-            }
-            select.appendChild(optionElement);
-          }
-
-          select.addEventListener('change', () => {
-            const val = select.value;
-            localStorage.setItem(
-              `settings_${item.key}`,
-              val
-            );
-            item.apply(val, this.settingsContext);
-          });
-
-          row.appendChild(select);
-          item.inputElement = select;
+        for (const item of items) {
+          const row = this.renderSettingItem(item);
+          card.appendChild(row);
         }
 
-        section.appendChild(row);
+        section.appendChild(card);
       }
 
       // Add Quality Select specifically at the bottom of the graphics section
       if (catKey === 'graphics') {
+        const profileCard = document.createElement('div');
+        profileCard.className = 'settings-subgroup';
+
+        const profileHeader = document.createElement('div');
+        profileHeader.className = 'settings-subgroup-header';
+
+        const badge = document.createElement('span');
+        badge.className = 'settings-subgroup-badge';
+
+        const subTitle = document.createElement('span');
+        subTitle.className = 'settings-subgroup-title';
+        subTitle.textContent = t('editor.subgroup_profile') || 'Quality Profile Preset';
+
+        profileHeader.appendChild(badge);
+        profileHeader.appendChild(subTitle);
+        profileCard.appendChild(profileHeader);
+
         const row = document.createElement('div');
         row.className = 'settings-row';
 
@@ -386,7 +322,8 @@ export class InputSystem {
         });
 
         row.appendChild(this.qualitySelect);
-        section.appendChild(row);
+        profileCard.appendChild(row);
+        section.appendChild(profileCard);
       }
 
       panel.appendChild(section);
@@ -565,6 +502,125 @@ export class InputSystem {
 
     this.pauseOverlay.appendChild(panel);
     document.body.appendChild(this.pauseOverlay);
+  }
+
+  renderSettingItem(item) {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const saved = localStorage.getItem(`settings_${item.key}`);
+    let currentVal = item.default;
+    if (saved !== null) {
+      currentVal = item.type === 'checkbox'
+        ? saved === 'true'
+        : (item.type === 'select' ? saved : parseFloat(saved));
+    }
+
+    if (item.type === 'slider') {
+      const header = document.createElement('div');
+      header.className = 'settings-slider-header';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'settings-label';
+      labelSpan.textContent = t(`editor.${item.key}`) || item.label;
+
+      const valSpan = document.createElement('span');
+      valSpan.className = 'settings-value';
+      valSpan.textContent = currentVal.toFixed(2);
+
+      header.appendChild(labelSpan);
+      header.appendChild(valSpan);
+      row.appendChild(header);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'settings-slider';
+      slider.min = item.min;
+      slider.max = item.max;
+      slider.step = item.step;
+      slider.value = currentVal;
+
+      slider.addEventListener('input', () => {
+        const val = parseFloat(slider.value);
+        valSpan.textContent = val.toFixed(2);
+        item.apply(val, this.settingsContext);
+      });
+
+      slider.addEventListener('change', () => {
+        const val = parseFloat(slider.value);
+        localStorage.setItem(
+          `settings_${item.key}`,
+          val.toString()
+        );
+      });
+
+      row.appendChild(slider);
+
+      item.inputElement = slider;
+      item.valueDisplayElement = valSpan;
+    } else if (item.type === 'checkbox') {
+      const cbLabel = document.createElement('label');
+      cbLabel.className = 'settings-checkbox-label';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'settings-checkbox';
+      checkbox.checked = currentVal;
+
+      checkbox.addEventListener('change', () => {
+        const val = checkbox.checked;
+        localStorage.setItem(
+          `settings_${item.key}`,
+          val.toString()
+        );
+        item.apply(val, this.settingsContext);
+      });
+
+      const labelText = document.createTextNode(' ' + (t(`editor.${item.key}`) || item.label));
+
+      cbLabel.appendChild(checkbox);
+      cbLabel.appendChild(labelText);
+      row.appendChild(cbLabel);
+
+      item.inputElement = checkbox;
+    } else if (item.type === 'select') {
+      const header = document.createElement('div');
+      header.className = 'settings-slider-header';
+      header.style.marginBottom = '6px';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'settings-label';
+      labelSpan.textContent = t(`editor.${item.key}`) || item.label;
+      header.appendChild(labelSpan);
+      row.appendChild(header);
+
+      const select = document.createElement('select');
+      select.className = 'firework-pause-select';
+
+      for (const optKey of (item.options || [])) {
+        const optionElement = document.createElement('option');
+        optionElement.value = optKey;
+        optionElement.textContent = t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) || t(`editor.${optKey}`) || optKey.toUpperCase();
+        if (optKey === currentVal) {
+          optionElement.selected = true;
+        }
+        select.appendChild(optionElement);
+      }
+
+      select.addEventListener('change', () => {
+        const val = select.value;
+        localStorage.setItem(
+          `settings_${item.key}`,
+          val
+        );
+        item.apply(val, this.settingsContext);
+      });
+
+      row.appendChild(select);
+      item.inputElement = select;
+    }
+
+    return row;
   }
 
   getSelectedPresetKey() {

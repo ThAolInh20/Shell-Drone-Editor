@@ -4,9 +4,10 @@ import { AUDIO_CONFIG } from './audio.js';
 export const SETTINGS_DEFINITION = [
   {
     key: 'auto_save_enabled',
-    label: 'Auto-Save (Direct Save)',
+    label: 'Auto-Save Direct',
     type: 'checkbox',
     category: 'general',
+    subgroup: 'editor_storage',
     default: true,
     apply(
       value,
@@ -26,6 +27,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Exposure',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'camera_post',
     min: 0.2,
     max: 2.5,
     step: 0.02,
@@ -49,6 +51,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Bloom Enabled',
     type: 'checkbox',
     category: 'graphics',
+    subgroup: 'camera_post',
     default: true,
     apply(
       value,
@@ -69,6 +72,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Bloom Strength',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 1.2,
     step: 0.02,
@@ -92,6 +96,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Bloom Radius',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 2.0,
     step: 0.05,
@@ -115,6 +120,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Bloom Threshold',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 1.0,
     step: 0.02,
@@ -135,9 +141,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'lake_mirror_reflection',
-    label: 'Lake Mirror Reflection (Trail)',
+    label: 'Lake Mirror Reflection',
     type: 'checkbox',
     category: 'graphics',
+    subgroup: 'water',
     default: true,
     apply(
       value,
@@ -157,6 +164,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Lake Wave Distortion',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'water',
     min: 0.0,
     max: 0.08,
     step: 0.005,
@@ -175,120 +183,11 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
-    key: 'smoke_quality',
-    label: 'Smoke Quality',
-    type: 'select',
-    options: [
-      'off',
-      'low',
-      'medium',
-      'high'
-    ],
-    category: 'graphics',
-    default: 'medium',
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.smoke.quality = value;
-      if (
-        context &&
-        context.smokeSystem
-      ) {
-        context.smokeSystem.setQuality(value);
-      }
-    }
-  },
-  {
-    key: 'smoke_density',
-    label: 'Smoke Density',
-    type: 'slider',
-    category: 'graphics',
-    min: 0.1,
-    max: 2.0,
-    step: 0.05,
-    default: 1.0,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.smoke.density = value;
-      if (
-        context &&
-        context.smokeSystem
-      ) {
-        context.smokeSystem.setDensity(value);
-      }
-    }
-  },
-  {
-    key: 'smoke_wind_speed',
-    label: 'Smoke Wind Speed',
-    type: 'slider',
-    category: 'graphics',
-    min: 0.0,
-    max: 2.0,
-    step: 0.05,
-    default: 1.0,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.smoke.windSpeed = value;
-      if (
-        context &&
-        context.smokeSystem
-      ) {
-        context.smokeSystem.setWindSpeed(value);
-      }
-    }
-  },
-  {
-    key: 'smoke_unlimited',
-    label: 'Cinematic Smoke Unlimited',
-    type: 'checkbox',
-    category: 'graphics',
-    default: false,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.smoke.unlimited = value;
-      if (
-        context &&
-        context.smokeSystem
-      ) {
-        context.smokeSystem.setUnlimited(value);
-      }
-    }
-  },
-  {
-    key: 'smoke_lifespan',
-    label: 'Smoke Lifespan',
-    type: 'slider',
-    category: 'graphics',
-    min: 1.0,
-    max: 5.0,
-    step: 0.25,
-    default: 1.0,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.smoke.lifespanMultiplier = value;
-      if (
-        context &&
-        context.smokeSystem
-      ) {
-        context.smokeSystem.setLifespanMultiplier(value);
-      }
-    }
-  },
-  {
     key: 'sky_cloud_coverage',
     label: 'Night Cloud Coverage',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'sky',
     min: 0.0,
     max: 1.0,
     step: 0.05,
@@ -312,6 +211,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Cloud Movement Speed',
     type: 'slider',
     category: 'graphics',
+    subgroup: 'sky',
     min: 0.0,
     max: 3.0,
     step: 0.1,
@@ -331,10 +231,126 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_quality',
+    label: 'Smoke Quality',
+    type: 'select',
+    options: [
+      'off',
+      'low',
+      'medium',
+      'high'
+    ],
+    category: 'graphics',
+    subgroup: 'smoke',
+    default: 'medium',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.quality = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setQuality(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_density',
+    label: 'Smoke Density',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'smoke',
+    min: 0.1,
+    max: 2.0,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.density = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setDensity(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_wind_speed',
+    label: 'Smoke Wind Speed',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'smoke',
+    min: 0.0,
+    max: 2.0,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.windSpeed = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setWindSpeed(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_unlimited',
+    label: 'Cinematic Smoke Unlimited',
+    type: 'checkbox',
+    category: 'graphics',
+    subgroup: 'smoke',
+    default: false,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.unlimited = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setUnlimited(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_lifespan',
+    label: 'Smoke Lifespan',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'smoke',
+    min: 1.0,
+    max: 5.0,
+    step: 0.25,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.lifespanMultiplier = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setLifespanMultiplier(value);
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_master',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -351,6 +367,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Lift Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -372,9 +389,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_burst',
-    label: 'Burst Volume (Large)',
+    label: 'Burst Volume Large',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -396,9 +414,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_burst_small',
-    label: 'Burst Volume (Small)',
+    label: 'Burst Volume Small',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -423,6 +442,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Crackle Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_effects',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -444,9 +464,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_crackle_small',
-    label: 'Crackle Volume (Small)',
+    label: 'Crackle Volume Small',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_effects',
     min: 0.0,
     max: 1.5,
     step: 0.05,
