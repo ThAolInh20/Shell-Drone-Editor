@@ -297,6 +297,8 @@ export default {
     smoke_wind_speed: "烟雾风速",
     smoke_unlimited: "解锁电影级无限制烟雾",
     smoke_lifespan: "烟雾停留时间",
+    sky_cloud_coverage: "夜空云层密度",
+    sky_cloud_speed: "云层移动速度",
     volume_master: "主音量",
     volume_lift: "发射音量",
     volume_burst: "主爆炸音量",

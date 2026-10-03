@@ -308,6 +308,8 @@ export default {
     smoke_wind_speed: "Tốc độ gió khói",
     smoke_unlimited: "Mở khóa khói điện ảnh không giới hạn",
     smoke_lifespan: "Thời gian tồn tại của khói",
+    sky_cloud_coverage: "Mật độ mây đêm",
+    sky_cloud_speed: "Tốc độ trôi của mây",
     volume_master: "Âm lượng tổng",
     volume_lift: "Âm lượng phóng pháo",
     volume_burst: "Âm lượng nổ lớn",

@@ -308,6 +308,8 @@ export default {
     smoke_wind_speed: "Smoke Wind Speed",
     smoke_unlimited: "Cinematic Smoke Unlimited",
     smoke_lifespan: "Smoke Lifespan",
+    sky_cloud_coverage: "Night Cloud Coverage",
+    sky_cloud_speed: "Cloud Movement Speed",
     volume_master: "Master Volume",
     volume_lift: "Lift Volume",
     volume_burst: "Burst Volume Large",

@@ -24,6 +24,10 @@ export const renderingConfig = {
     unlimited: false,
     lifespanMultiplier: 1.0
   },
+  sky: {
+    cloudCoverage: 0.55,
+    cloudSpeed: 1.0
+  },
   performance: {
     fpsThreshold: 70,
     minFrameCount: 40

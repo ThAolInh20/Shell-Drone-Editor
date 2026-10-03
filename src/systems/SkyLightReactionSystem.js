@@ -161,6 +161,13 @@ export class SkyLightReactionSystem {
           flashIntensity * 0.25
         );
       }
+      if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+        this.sceneManager.skyDome.setBurstFlash(
+          strongest.position,
+          strongest.color,
+          flashIntensity
+        );
+      }
     } else {
       this.reusableBurstLight.intensity = 0;
       if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
@@ -171,6 +178,9 @@ export class SkyLightReactionSystem {
       }
       if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
         this.sceneManager.distantMountains.setBurstFlash(null, 0);
+      }
+      if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+        this.sceneManager.skyDome.setBurstFlash(null, null, 0);
       }
     }
   }
@@ -205,6 +215,9 @@ export class SkyLightReactionSystem {
     }
     if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
       this.sceneManager.distantMountains.setBurstFlash(null, 0);
+    }
+    if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+      this.sceneManager.skyDome.setBurstFlash(null, null, 0);
     }
   }
 }

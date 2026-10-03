@@ -285,6 +285,52 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'sky_cloud_coverage',
+    label: 'Night Cloud Coverage',
+    type: 'slider',
+    category: 'graphics',
+    min: 0.0,
+    max: 1.0,
+    step: 0.05,
+    default: 0.55,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudCoverage = value;
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.skyDome
+      ) {
+        context.sceneManager.skyDome.setCloudCoverage(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_speed',
+    label: 'Cloud Movement Speed',
+    type: 'slider',
+    category: 'graphics',
+    min: 0.0,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudSpeed = value;
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.skyDome
+      ) {
+        context.sceneManager.skyDome.setCloudSpeed(value);
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',

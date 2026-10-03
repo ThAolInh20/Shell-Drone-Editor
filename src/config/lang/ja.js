@@ -297,6 +297,8 @@ export default {
     smoke_wind_speed: "煙の風速",
     smoke_unlimited: "シネマティック無制限煙モード",
     smoke_lifespan: "煙の持続時間",
+    sky_cloud_coverage: "夜空の雲量",
+    sky_cloud_speed: "雲の移動速度",
     volume_master: "マスター音量",
     volume_lift: "打ち上げ音量",
     volume_burst: "大爆発音量",

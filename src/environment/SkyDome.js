@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { renderingConfig } from '../config/rendering.js';
 
 export class SkyDome {
   constructor(options = {}) {
@@ -10,6 +11,8 @@ export class SkyDome {
     this.topColor = new THREE.Color(options.topColor || 0x02020a);
     this.bottomColor = new THREE.Color(options.bottomColor || 0x091226);
     this.starCount = options.starCount || 2200;
+    this.cloudCoverage = options.cloudCoverage ?? renderingConfig.sky?.cloudCoverage ?? 0.55;
+    this.cloudSpeed = options.cloudSpeed ?? renderingConfig.sky?.cloudSpeed ?? 1.0;
 
     this.time = 0;
 
@@ -35,14 +38,74 @@ export class SkyDome {
       uniform vec3 uBottomColor;
       uniform float uOffset;
       uniform float uExponent;
+      uniform float uTime;
+      uniform float uCloudCoverage;
+      uniform float uCloudSpeed;
+      uniform vec3 uFlashPos;
+      uniform vec3 uFlashColor;
+      uniform float uFlashIntensity;
 
       varying vec3 vWorldPosition;
+
+      float hash(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        mat2 rot = mat2(0.87758, 0.47942, -0.47942, 0.87758);
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p = rot * p * 2.02 + vec2(1.7, 3.2);
+          a *= 0.5;
+        }
+        return v;
+      }
 
       void main() {
         float h = normalize(vWorldPosition + vec3(0.0, uOffset, 0.0)).y;
         float factor = max(pow(max(h, 0.0), uExponent), 0.0);
-        vec3 color = mix(uBottomColor, uTopColor, factor);
-        gl_FragColor = vec4(color, 1.0);
+        vec3 skyColor = mix(uBottomColor, uTopColor, factor);
+
+        vec3 dir = normalize(vWorldPosition);
+        if (dir.y > 0.01 && uCloudCoverage > 0.001) {
+          vec2 cloudUV = (dir.xz / (dir.y + 0.16)) * 1.8;
+          float t = uTime * uCloudSpeed * 0.045;
+          vec2 wind1 = vec2(t * 1.0, t * 0.28);
+          vec2 wind2 = vec2(-t * 0.45, t * 0.65);
+
+          float n1 = fbm(cloudUV * 0.9 + wind1);
+          float n2 = fbm(cloudUV * 1.8 + wind2 + vec2(n1 * 0.5));
+          float cloudDensity = smoothstep(0.40, 0.75, n2) * smoothstep(0.01, 0.22, dir.y) * uCloudCoverage;
+
+          vec3 cloudIllumination = vec3(0.0);
+          if (uFlashIntensity > 0.001) {
+            float distToFlash = length(vWorldPosition - uFlashPos);
+            float flashAtten = clamp(1.0 - distToFlash / 1800.0, 0.0, 1.0);
+            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * 2.8);
+          }
+
+          vec3 baseCloudColor = mix(uBottomColor * 1.35, vec3(0.08, 0.11, 0.20), 0.65);
+          vec3 finalCloudColor = baseCloudColor + cloudIllumination;
+
+          skyColor = mix(skyColor, finalCloudColor, cloudDensity * 0.78);
+        }
+
+        gl_FragColor = vec4(skyColor, 1.0);
       }
     `;
 
@@ -58,6 +121,24 @@ export class SkyDome {
       },
       uExponent: {
         value: 0.65
+      },
+      uTime: {
+        value: 0.0
+      },
+      uCloudCoverage: {
+        value: this.cloudCoverage
+      },
+      uCloudSpeed: {
+        value: this.cloudSpeed
+      },
+      uFlashPos: {
+        value: new THREE.Vector3(0, 120, 0)
+      },
+      uFlashColor: {
+        value: new THREE.Color(0x000000)
+      },
+      uFlashIntensity: {
+        value: 0.0
       }
     };
 
@@ -190,6 +271,32 @@ export class SkyDome {
     });
   }
 
+  setBurstFlash(position, color, intensity) {
+    if (position && this.domeUniforms.uFlashPos) {
+      this.domeUniforms.uFlashPos.value.copy(position);
+    }
+    if (color && this.domeUniforms.uFlashColor) {
+      this.domeUniforms.uFlashColor.value.copy(color);
+    }
+    if (this.domeUniforms.uFlashIntensity) {
+      this.domeUniforms.uFlashIntensity.value = intensity || 0.0;
+    }
+  }
+
+  setCloudCoverage(coverage) {
+    this.cloudCoverage = Math.max(0.0, Math.min(1.0, Number(coverage) || 0.0));
+    if (this.domeUniforms?.uCloudCoverage) {
+      this.domeUniforms.uCloudCoverage.value = this.cloudCoverage;
+    }
+  }
+
+  setCloudSpeed(speed) {
+    this.cloudSpeed = Math.max(0.0, Math.min(5.0, Number(speed) || 0.0));
+    if (this.domeUniforms?.uCloudSpeed) {
+      this.domeUniforms.uCloudSpeed.value = this.cloudSpeed;
+    }
+  }
+
   setSkyColors(topColor, bottomColor) {
     if (topColor) {
       this.domeUniforms.uTopColor.value.copy(topColor);
@@ -201,6 +308,9 @@ export class SkyDome {
 
   update(deltaTime) {
     this.time += deltaTime;
+    if (this.domeUniforms?.uTime) {
+      this.domeUniforms.uTime.value = this.time;
+    }
     if (this.starUniforms) {
       this.starUniforms.uTime.value = this.time;
     }
