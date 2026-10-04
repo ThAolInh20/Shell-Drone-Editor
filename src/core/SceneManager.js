@@ -44,7 +44,9 @@ export class SceneManager {
     this.instance.add(this.distantMountains.group);
 
     // Initialize Floating Launch Barges on the lake
-    this.launchBarge = new LaunchBarge();
+    this.launchBarge = new LaunchBarge({
+      eventBus: this.eventBus
+    });
     this.instance.add(this.launchBarge.group);
 
     // Initialize River Props (Floating lanterns and boats)

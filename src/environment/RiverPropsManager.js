@@ -895,12 +895,24 @@ export class RiverPropsManager {
         const boat = this.boats[b];
         boat.x += boat.dir * boat.speed * boatSpeedScale * deltaTime;
 
-        // Wrap boat coordinates smoothly
-        if (boat.dir > 0 && boat.x > 450) {
-          boat.x = -450;
-        } else if (boat.dir < 0 && boat.x < -450) {
+        // Turn boat around when reaching river boundary
+        if (boat.dir > 0 && boat.x >= 450) {
           boat.x = 450;
+          boat.dir = -1;
+        } else if (boat.dir < 0 && boat.x <= -450) {
+          boat.x = -450;
+          boat.dir = 1;
         }
+
+        // Smooth rotation turn around
+        const targetRotY = boat.dir > 0 ? 0 : Math.PI;
+        if (boat.currentRotY === undefined) {
+          boat.currentRotY = targetRotY;
+        }
+        let rotDiff = targetRotY - boat.currentRotY;
+        while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+        while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+        boat.currentRotY += rotDiff * Math.min(1.0, deltaTime * 2.5);
 
         // Additional physics list and trim caused by passenger weight
         let passengerPitch = 0;
@@ -927,7 +939,7 @@ export class RiverPropsManager {
           );
           boat.model.rotation.set(
             rockPitch,
-            boat.dir > 0 ? 0 : Math.PI,
+            boat.currentRotY,
             rockRoll
           );
           boat.model.updateMatrixWorld(true);

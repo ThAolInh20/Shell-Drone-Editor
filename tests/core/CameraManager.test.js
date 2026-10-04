@@ -171,4 +171,16 @@ describe('CameraManager', () => {
     cameraManager.handleWasdInput(1, 0, true, 0.1);
     expect(steered).toBe(true);
   });
+
+  it('should reverse heading when hitting spatial boundaries in birds_eye mode', () => {
+    cameraManager.setMode('birds_eye');
+    cameraManager.birdsEyePos.set(499, 220, 380);
+    cameraManager.birdsEyeDriftHeading.set(1, 0, 0);
+
+    // Update will push it past 500
+    cameraManager.update(0.5);
+
+    expect(cameraManager.birdsEyePos.x).toBe(500);
+    expect(cameraManager.birdsEyeDriftHeading.x).toBeLessThan(0);
+  });
 });

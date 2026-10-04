@@ -92,4 +92,16 @@ describe('RiverPropsManager', () => {
     expect(transform.localZ).toBe(1.0);
     expect(transform.y).toBeGreaterThan(0);
   });
+
+  it('should reverse boat direction when reaching river boundary', () => {
+    const boat = riverProps.boats[0];
+    boat.x = 449;
+    boat.dir = 1;
+
+    // Advance simulation to push boat past 450
+    riverProps.update(1.0);
+
+    expect(boat.dir).toBe(-1);
+    expect(boat.x).toBeLessThanOrEqual(450);
+  });
 });

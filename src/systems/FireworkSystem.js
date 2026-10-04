@@ -262,7 +262,38 @@ export class FireworkSystem {
       || Boolean(shellPreset['no-burst']);
     const isInstant = Boolean(shellPreset.instantBurst) || hasNoBurst;
 
+    const launchDir = velocity && velocity.lengthSq() > 0.001
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
     if (isInstant) {
+      this.emitFireworkEvent(
+        'firework:launch',
+        {
+          shellId,
+          shellType: shellPreset.shellType ?? shellPreset.shapeType,
+          shapeType: shellPreset.shapeType,
+          effectType: shellPreset.effectType ?? 'standard',
+          colorHex: finalColor.getHex(),
+          position: {
+            x: position.x,
+            y: position.y,
+            z: position.z
+          },
+          velocity: {
+            x: velocity.x,
+            y: velocity.y,
+            z: velocity.z
+          },
+          direction: {
+            x: launchDir.x,
+            y: launchDir.y,
+            z: launchDir.z
+          },
+          intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
+        }
+      );
+
       const burstPos = new THREE.Vector3(
         position.x,
         targetHeight,
@@ -341,19 +372,32 @@ export class FireworkSystem {
 
     this.emitDiagnostics();
 
-    this.emitFireworkEvent('firework:launch', {
-      shellId,
-      shellType: shell.shellType,
-      shapeType: shell.shapeType,
-      effectType: shellPreset.effectType ?? 'standard',
-      colorHex: finalColor.getHex(),
-      position: {
-        x: position.x,
-        y: position.y,
-        z: position.z
-      },
-      intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
-    });
+    this.emitFireworkEvent(
+      'firework:launch',
+      {
+        shellId,
+        shellType: shell.shellType,
+        shapeType: shell.shapeType,
+        effectType: shellPreset.effectType ?? 'standard',
+        colorHex: finalColor.getHex(),
+        position: {
+          x: position.x,
+          y: position.y,
+          z: position.z
+        },
+        velocity: {
+          x: velocity.x,
+          y: velocity.y,
+          z: velocity.z
+        },
+        direction: {
+          x: launchDir.x,
+          y: launchDir.y,
+          z: launchDir.z
+        },
+        intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
+      }
+    );
   }
 
   getLaunchZone() {

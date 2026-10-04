@@ -321,16 +321,21 @@ export class CameraManager {
       this.birdsEyePos.x += this.birdsEyeDriftHeading.x * driftSpeed * deltaTime;
       this.birdsEyePos.z += this.birdsEyeDriftHeading.z * driftSpeed * deltaTime;
 
-      // Wrap-around bounds smoothly
-      if (this.birdsEyePos.x > 500) {
-        this.birdsEyePos.x = -500;
-      } else if (this.birdsEyePos.x < -500) {
+      // Bounce / reverse direction when reaching spatial boundary limits
+      if (this.birdsEyePos.x >= 500) {
         this.birdsEyePos.x = 500;
+        this.birdsEyeDriftHeading.x = -Math.abs(this.birdsEyeDriftHeading.x);
+      } else if (this.birdsEyePos.x <= -500) {
+        this.birdsEyePos.x = -500;
+        this.birdsEyeDriftHeading.x = Math.abs(this.birdsEyeDriftHeading.x);
       }
-      if (this.birdsEyePos.z > 550) {
-        this.birdsEyePos.z = 220;
-      } else if (this.birdsEyePos.z < 180) {
-        this.birdsEyePos.z = 520;
+
+      if (this.birdsEyePos.z >= 550) {
+        this.birdsEyePos.z = 550;
+        this.birdsEyeDriftHeading.z = -Math.abs(this.birdsEyeDriftHeading.z);
+      } else if (this.birdsEyePos.z <= 180) {
+        this.birdsEyePos.z = 180;
+        this.birdsEyeDriftHeading.z = Math.abs(this.birdsEyeDriftHeading.z);
       }
 
       this.instance.position.copy(this.birdsEyePos);

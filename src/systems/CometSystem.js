@@ -130,20 +130,39 @@ export class CometSystem {
       this.activeComets.push(comet);
     }
 
-    // Emit a launch event so AudioSystem can play the launch sound
-    this.emitFireworkEvent('firework:launch', {
-      shellId: Date.now(), // Fake ID for audio
-      shellType: 'comet_cluster',
-      shapeType: 'comet',
-      effectType: 'comet',
-      colorHex: clusterColor.getHex(),
-      position: {
-        x: basePosition.x,
-        y: basePosition.y,
-        z: basePosition.z
-      },
-      intensity: 0.8
-    });
+    const baseTargetHeight = this.resolveBurstHeight(preset, ratioY);
+    const baseVelocity = this.resolveLaunchVelocity(baseTargetHeight, angleOffset || 0);
+    const launchDir = baseVelocity.lengthSq() > 0.001
+      ? baseVelocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    // Emit a launch event so AudioSystem and LaunchBarge can react
+    this.emitFireworkEvent(
+      'firework:launch',
+      {
+        shellId: Date.now(),
+        shellType: 'comet_cluster',
+        shapeType: 'comet',
+        effectType: 'comet',
+        colorHex: clusterColor.getHex(),
+        position: {
+          x: basePosition.x,
+          y: basePosition.y,
+          z: basePosition.z
+        },
+        velocity: {
+          x: baseVelocity.x,
+          y: baseVelocity.y,
+          z: baseVelocity.z
+        },
+        direction: {
+          x: launchDir.x,
+          y: launchDir.y,
+          z: launchDir.z
+        },
+        intensity: 0.8
+      }
+    );
   }
 
   resolveLaunchPosition(ratioX, ratioZ, sectorId) {
