@@ -66,43 +66,254 @@ body {
 }
 
 .firework-pause-panel {
-  width: min(92vw, 420px);
-  max-height: 85vh;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-  padding: 24px;
+  width: min(94vw, 780px);
+  height: min(88vh, 620px);
+  max-height: 88vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 24px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: linear-gradient(180deg, rgba(18, 21, 35, 0.96), rgba(7, 9, 16, 0.98));
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(180deg, rgba(16, 20, 34, 0.98), rgba(8, 10, 18, 0.99));
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
   color: #f5f7ff;
   font-family: var(--sans);
   color-scheme: dark;
+  overflow: hidden;
 }
 
-.firework-pause-panel::-webkit-scrollbar {
-  width: 6px;
+.settings-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.firework-pause-panel::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
-  border-radius: 99px;
+.settings-modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: rgba(245, 247, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.settings-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .firework-pause-title {
   font-family: var(--heading);
-  font-size: 30px;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  margin-bottom: 8px;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: #fff;
 }
 
 .firework-pause-description {
+  color: rgba(245, 247, 255, 0.65);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.settings-body-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.settings-tabs-sidebar {
+  width: 195px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding-right: 14px;
+}
+
+.settings-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
   color: rgba(245, 247, 255, 0.72);
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 18px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.settings-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-tab-btn.active {
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.14) 0%, rgba(0, 243, 255, 0.02) 100%);
+  color: #00f3ff;
+  border-color: rgba(0, 243, 255, 0.35);
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.12);
+}
+
+.settings-tab-indicator {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.settings-tab-btn.active .settings-tab-indicator {
+  background: #00f3ff;
+  box-shadow: 0 0 8px #00f3ff;
+}
+
+.settings-tab-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-sidebar-footer {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-reset-btn {
+  width: 100%;
+  border: 1px solid rgba(211, 47, 47, 0.4);
+  border-radius: 8px;
+  background: rgba(211, 47, 47, 0.14);
+  color: #ff8a80;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.settings-reset-btn:hover {
+  background: rgba(211, 47, 47, 0.28);
+  color: #fff;
+  border-color: rgba(211, 47, 47, 0.7);
+  box-shadow: 0 0 12px rgba(211, 47, 47, 0.3);
+}
+
+.settings-tabs-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.settings-tabs-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-tabs-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 99px;
+}
+
+.settings-tab-pane {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-tab-pane.active {
+  display: flex;
+  animation: settingsPaneFadeIn 0.2s ease-out;
+}
+
+@keyframes settingsPaneFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-tool-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.settings-tool-card:hover {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.settings-tool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-tool-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd86b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.settings-tool-desc {
+  font-size: 12px;
+  color: rgba(245, 247, 255, 0.7);
+  line-height: 1.45;
 }
 
 .firework-pause-selected {
@@ -148,8 +359,8 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background-color: #111827;
   color: #f9fafb;
-  padding: 12px 14px;
-  font-size: 15px;
+  padding: 10px 12px;
+  font-size: 13px;
   outline: none;
 }
 
@@ -166,14 +377,18 @@ body {
 .firework-pause-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 18px;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 14px;
 }
 
 .firework-pause-button {
   border: 0;
   border-radius: 999px;
-  padding: 12px 18px;
-  font-size: 14px;
+  padding: 10px 18px;
+  font-size: 13px;
   font-weight: 600;
   color: #10131b;
   background: linear-gradient(180deg, #ffd86b, #ffb93f);
@@ -192,17 +407,14 @@ body {
 
 /* Custom Settings styles inside the pause panel */
 .settings-section {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .settings-section-title {
   font-family: var(--heading);
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #ffd86b;
@@ -216,10 +428,10 @@ body {
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   transition: border-color 0.2s ease, background 0.2s ease;
 }

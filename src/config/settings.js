@@ -3,30 +3,10 @@ import { AUDIO_CONFIG } from './audio.js';
 
 export const SETTINGS_DEFINITION = [
   {
-    key: 'auto_save_enabled',
-    label: 'Auto-Save Direct',
-    type: 'checkbox',
-    category: 'general',
-    subgroup: 'editor_storage',
-    default: true,
-    apply(
-      value,
-      context
-    ) {
-      if (
-        context &&
-        context.timelineEditor &&
-        typeof context.timelineEditor.setAutoSave === 'function'
-      ) {
-        context.timelineEditor.setAutoSave(value);
-      }
-    }
-  },
-  {
     key: 'exposure',
     label: 'Exposure',
     type: 'slider',
-    category: 'graphics',
+    category: 'system',
     subgroup: 'camera_post',
     min: 0.2,
     max: 2.5,
@@ -47,11 +27,124 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'bloom_enabled',
+    label: 'Bloom Enabled',
+    type: 'checkbox',
+    category: 'system',
+    subgroup: 'camera_post',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.post.bloom.enabled = value;
+      if (
+        context &&
+        context.postProcessing &&
+        context.postProcessing.bloomPass
+      ) {
+        context.postProcessing.bloomPass.enabled = value;
+      }
+    }
+  },
+  {
+    key: 'bloom_strength',
+    label: 'Bloom Strength',
+    type: 'slider',
+    category: 'system',
+    subgroup: 'camera_post',
+    min: 0.0,
+    max: 1.2,
+    step: 0.02,
+    default: 0.18,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.post.bloom.strength = value;
+      if (
+        context &&
+        context.postProcessing &&
+        context.postProcessing.bloomPass
+      ) {
+        context.postProcessing.bloomPass.strength = value;
+      }
+    }
+  },
+  {
+    key: 'bloom_radius',
+    label: 'Bloom Radius',
+    type: 'slider',
+    category: 'system',
+    subgroup: 'camera_post',
+    min: 0.0,
+    max: 2.0,
+    step: 0.05,
+    default: 0.2,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.post.bloom.radius = value;
+      if (
+        context &&
+        context.postProcessing &&
+        context.postProcessing.bloomPass
+      ) {
+        context.postProcessing.bloomPass.radius = value;
+      }
+    }
+  },
+  {
+    key: 'bloom_threshold',
+    label: 'Bloom Threshold',
+    type: 'slider',
+    category: 'system',
+    subgroup: 'camera_post',
+    min: 0.0,
+    max: 1.0,
+    step: 0.02,
+    default: 0.78,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.post.bloom.threshold = value;
+      if (
+        context &&
+        context.postProcessing &&
+        context.postProcessing.bloomPass
+      ) {
+        context.postProcessing.bloomPass.threshold = value;
+      }
+    }
+  },
+  {
+    key: 'auto_save_enabled',
+    label: 'Auto-Save Direct',
+    type: 'checkbox',
+    category: 'system',
+    subgroup: 'editor_storage',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.timelineEditor &&
+        typeof context.timelineEditor.setAutoSave === 'function'
+      ) {
+        context.timelineEditor.setAutoSave(value);
+      }
+    }
+  },
+  {
     key: 'camera_mode',
     label: 'Camera Perspective Mode',
     type: 'select',
-    category: 'graphics',
-    subgroup: 'camera_post',
+    category: 'entities',
+    subgroup: 'camera_view',
     options: [
       'free',
       'boat',
@@ -75,8 +168,8 @@ export const SETTINGS_DEFINITION = [
     key: 'camera_speed',
     label: 'Camera Movement Speed',
     type: 'slider',
-    category: 'graphics',
-    subgroup: 'camera_post',
+    category: 'entities',
+    subgroup: 'camera_view',
     min: 0.2,
     max: 3.0,
     step: 0.1,
@@ -101,103 +194,10 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
-    key: 'bloom_enabled',
-    label: 'Bloom Enabled',
-    type: 'checkbox',
-    category: 'graphics',
-    subgroup: 'camera_post',
-    default: true,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.post.bloom.enabled = value;
-      if (
-        context &&
-        context.postProcessing &&
-        context.postProcessing.bloomPass
-      ) {
-        context.postProcessing.bloomPass.enabled = value;
-      }
-    }
-  },
-  {
-    key: 'bloom_strength',
-    label: 'Bloom Strength',
-    type: 'slider',
-    category: 'graphics',
-    subgroup: 'camera_post',
-    min: 0.0,
-    max: 1.2,
-    step: 0.02,
-    default: 0.18,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.post.bloom.strength = value;
-      if (
-        context &&
-        context.postProcessing &&
-        context.postProcessing.bloomPass
-      ) {
-        context.postProcessing.bloomPass.strength = value;
-      }
-    }
-  },
-  {
-    key: 'bloom_radius',
-    label: 'Bloom Radius',
-    type: 'slider',
-    category: 'graphics',
-    subgroup: 'camera_post',
-    min: 0.0,
-    max: 2.0,
-    step: 0.05,
-    default: 0.2,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.post.bloom.radius = value;
-      if (
-        context &&
-        context.postProcessing &&
-        context.postProcessing.bloomPass
-      ) {
-        context.postProcessing.bloomPass.radius = value;
-      }
-    }
-  },
-  {
-    key: 'bloom_threshold',
-    label: 'Bloom Threshold',
-    type: 'slider',
-    category: 'graphics',
-    subgroup: 'camera_post',
-    min: 0.0,
-    max: 1.0,
-    step: 0.02,
-    default: 0.78,
-    apply(
-      value,
-      context
-    ) {
-      renderingConfig.post.bloom.threshold = value;
-      if (
-        context &&
-        context.postProcessing &&
-        context.postProcessing.bloomPass
-      ) {
-        context.postProcessing.bloomPass.threshold = value;
-      }
-    }
-  },
-  {
     key: 'lake_mirror_reflection',
     label: 'Lake Mirror Reflection',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'water',
     default: true,
     apply(
@@ -217,7 +217,7 @@ export const SETTINGS_DEFINITION = [
     key: 'lake_wave_distortion',
     label: 'Lake Wave Distortion',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'water',
     min: 0.0,
     max: 0.08,
@@ -240,7 +240,7 @@ export const SETTINGS_DEFINITION = [
     key: 'river_lanterns_enabled',
     label: 'Floating Lanterns',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'river_props',
     default: true,
     apply(
@@ -260,7 +260,7 @@ export const SETTINGS_DEFINITION = [
     key: 'river_lanterns_count',
     label: 'Lanterns Count',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'river_props',
     min: 10,
     max: 200,
@@ -283,7 +283,7 @@ export const SETTINGS_DEFINITION = [
     key: 'river_boats_enabled',
     label: 'River Boats',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'river_props',
     default: true,
     apply(
@@ -303,7 +303,7 @@ export const SETTINGS_DEFINITION = [
     key: 'river_drift_speed',
     label: 'River Drift Speed',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'river_props',
     min: 0.1,
     max: 3.0,
@@ -326,7 +326,7 @@ export const SETTINGS_DEFINITION = [
     key: 'sky_moon_day',
     label: 'Lunar Cycle Day',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'sky',
     min: 1,
     max: 30,
@@ -350,7 +350,7 @@ export const SETTINGS_DEFINITION = [
     key: 'sky_moon_position',
     label: 'Moon Position',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'sky',
     min: -1.0,
     max: 1.0,
@@ -374,7 +374,7 @@ export const SETTINGS_DEFINITION = [
     key: 'sky_moon_altitude',
     label: 'Moon Altitude',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'sky',
     min: 150,
     max: 850,
@@ -398,7 +398,7 @@ export const SETTINGS_DEFINITION = [
     key: 'sky_cloud_coverage',
     label: 'Night Cloud Coverage',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'sky',
     min: 0.0,
     max: 1.0,
@@ -422,7 +422,7 @@ export const SETTINGS_DEFINITION = [
     key: 'sky_cloud_speed',
     label: 'Cloud Movement Speed',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'sky',
     min: 0.0,
     max: 3.0,
@@ -452,7 +452,7 @@ export const SETTINGS_DEFINITION = [
       'medium',
       'high'
     ],
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'smoke',
     default: 'medium',
     apply(
@@ -472,7 +472,7 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_density',
     label: 'Smoke Density',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'smoke',
     min: 0.1,
     max: 2.0,
@@ -495,7 +495,7 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_wind_speed',
     label: 'Smoke Wind Speed',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'smoke',
     min: 0.0,
     max: 2.0,
@@ -518,7 +518,7 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_unlimited',
     label: 'Cinematic Smoke Unlimited',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'smoke',
     default: false,
     apply(
@@ -538,7 +538,7 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_lifespan',
     label: 'Smoke Lifespan',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
     subgroup: 'smoke',
     min: 1.0,
     max: 5.0,

@@ -187,6 +187,12 @@ export class InputSystem {
     const panel = document.createElement('div');
     panel.className = 'firework-pause-panel';
 
+    const header = document.createElement('div');
+    header.className = 'settings-modal-header';
+
+    const headerText = document.createElement('div');
+    headerText.className = 'settings-modal-header-text';
+
     const title = document.createElement('div');
     title.className = 'firework-pause-title';
     title.textContent = t('editor.settingsTitle') || 'Settings & Controls';
@@ -195,174 +201,351 @@ export class InputSystem {
     description.className = 'firework-pause-description';
     description.textContent = t('editor.settingsDescription') || 'Press ESC to resume. Adjust settings below:';
 
-    panel.appendChild(title);
-    panel.appendChild(description);
+    headerText.appendChild(title);
+    headerText.appendChild(description);
 
-    const categories = {
-      general: t('editor.settingsGeneral') || 'General & Editor',
-      graphics: t('editor.settingsGraphics') || 'Graphics & Post-processing',
-      audio: t('editor.settingsAudio') || 'Audio (Volumes)'
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'settings-close-btn';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute(
+      'aria-label',
+      'Close'
+    );
+    closeBtn.addEventListener('click', () => this.resume());
+
+    header.appendChild(headerText);
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const bodyContainer = document.createElement('div');
+    bodyContainer.className = 'settings-body-container';
+
+    const sidebar = document.createElement('div');
+    sidebar.className = 'settings-tabs-sidebar';
+
+    const navList = document.createElement('div');
+    navList.className = 'settings-nav-list';
+
+    const tabs = [
+      {
+        key: 'system',
+        label: t('editor.settingsTab_system') || 'System'
+      },
+      {
+        key: 'entities',
+        label: t('editor.settingsTab_entities') || 'Entities & Environment'
+      },
+      {
+        key: 'audio',
+        label: t('editor.settingsTab_audio') || 'Audio'
+      },
+      {
+        key: 'tools',
+        label: t('editor.settingsTab_tools') || 'Tools & Editors'
+      }
+    ];
+
+    const tabButtons = [];
+    const tabPanes = [];
+
+    const contentArea = document.createElement('div');
+    contentArea.className = 'settings-tabs-content';
+
+    this.switchSettingsTab = (tabKey) => {
+      this.activeSettingsTab = tabKey;
+      for (const btn of tabButtons) {
+        if (btn.dataset.tab === tabKey) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+      for (const pane of tabPanes) {
+        if (pane.dataset.tab === tabKey) {
+          pane.classList.add('active');
+        } else {
+          pane.classList.remove('active');
+        }
+      }
     };
 
-    for (const [catKey, catTitle] of Object.entries(categories)) {
-      const section = document.createElement('div');
-      section.className = 'settings-section';
+    for (let i = 0; i < tabs.length; i++) {
+      const tabDef = tabs[i];
 
-      const secHeader = document.createElement('div');
-      secHeader.className = 'settings-section-title';
-      secHeader.textContent = catTitle;
-      section.appendChild(secHeader);
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      tabBtn.className = 'settings-tab-btn' + (i === 0 ? ' active' : '');
+      tabBtn.dataset.tab = tabDef.key;
 
-      const catItems = SETTINGS_DEFINITION.filter(
-        (s) => s.category === catKey
-      );
+      const indicator = document.createElement('span');
+      indicator.className = 'settings-tab-indicator';
 
-      const subgroups = {};
-      for (const item of catItems) {
-        const subKey = item.subgroup || 'default';
-        if (!subgroups[subKey]) {
-          subgroups[subKey] = [];
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'settings-tab-text';
+      labelSpan.textContent = tabDef.label;
+
+      tabBtn.appendChild(indicator);
+      tabBtn.appendChild(labelSpan);
+
+      tabBtn.addEventListener('click', () => {
+        this.switchSettingsTab(tabDef.key);
+      });
+
+      tabButtons.push(tabBtn);
+      navList.appendChild(tabBtn);
+
+      const pane = document.createElement('div');
+      pane.className = 'settings-tab-pane' + (i === 0 ? ' active' : '');
+      pane.dataset.tab = tabDef.key;
+
+      if (tabDef.key === 'tools') {
+        const toolsList = [
+          {
+            title: t('editor.settingsTimelineEditor') || 'Timeline Editor',
+            description: 'Advanced multi-track timeline sequencer with audio waveforms and keyframes.',
+            btnText: t('editor.settingsTimelineEditor') || 'Timeline Editor',
+            bg: 'linear-gradient(180deg, #1e3c72 0%, #2a5298 100%)',
+            border: 'rgba(0, 243, 255, 0.3)',
+            action: () => {
+              window.location.href = 'editor.html';
+            }
+          },
+          {
+            title: t('editor.settingsStaticEditor') || 'Static Formation Editor',
+            description: '3D point cloud editor for creating custom drone shapes and holograms.',
+            btnText: t('editor.settingsStaticEditor') || 'Static Editor',
+            bg: 'linear-gradient(180deg, #aa3bff 0%, #8a1bef 100%)',
+            border: 'rgba(170, 59, 255, 0.3)',
+            action: () => {
+              window.location.href = 'formation.html';
+            }
+          },
+          {
+            title: t('editor.settingsUserGuide') || 'User Guide',
+            description: 'Complete user manual, shortcuts, and documentation for the system.',
+            btnText: t('editor.settingsUserGuide') || 'User Guide',
+            bg: 'linear-gradient(180deg, #11998e 0%, #38ef7d 100%)',
+            border: 'rgba(56, 239, 125, 0.3)',
+            action: () => {
+              if (
+                window.electronAPI &&
+                typeof window.electronAPI.openExternal === 'function'
+              ) {
+                window.electronAPI.openExternal(DOCS_CONFIG.userGuideUrl);
+              } else {
+                window.open(
+                  DOCS_CONFIG.userGuideUrl,
+                  '_blank',
+                  'noopener,noreferrer'
+                );
+              }
+            }
+          }
+        ];
+
+        for (const tool of toolsList) {
+          const toolCard = document.createElement('div');
+          toolCard.className = 'settings-tool-card';
+
+          const toolHeader = document.createElement('div');
+          toolHeader.className = 'settings-tool-header';
+
+          const toolTitle = document.createElement('div');
+          toolTitle.className = 'settings-tool-title';
+          toolTitle.textContent = tool.title;
+
+          toolHeader.appendChild(toolTitle);
+          toolCard.appendChild(toolHeader);
+
+          const toolDesc = document.createElement('div');
+          toolDesc.className = 'settings-tool-desc';
+          toolDesc.textContent = tool.description;
+          toolCard.appendChild(toolDesc);
+
+          const toolBtn = document.createElement('button');
+          toolBtn.type = 'button';
+          toolBtn.className = 'firework-pause-button';
+          toolBtn.style.background = tool.bg;
+          toolBtn.style.border = `1px solid ${tool.border}`;
+          toolBtn.style.color = '#fff';
+          toolBtn.style.alignSelf = 'flex-start';
+          toolBtn.style.marginTop = '4px';
+          toolBtn.textContent = tool.btnText;
+          toolBtn.addEventListener('click', tool.action);
+
+          toolCard.appendChild(toolBtn);
+          pane.appendChild(toolCard);
         }
-        subgroups[subKey].push(item);
-      }
+      } else {
+        const catItems = SETTINGS_DEFINITION.filter(
+          (s) => s.category === tabDef.key
+        );
 
-      for (const [subKey, items] of Object.entries(subgroups)) {
-        const card = document.createElement('div');
-        card.className = 'settings-subgroup';
+        const subgroups = {};
+        for (const item of catItems) {
+          const subKey = item.subgroup || 'default';
+          if (!subgroups[subKey]) {
+            subgroups[subKey] = [];
+          }
+          subgroups[subKey].push(item);
+        }
 
-        const subTitleText = t(`editor.subgroup_${subKey}`);
-        if (subTitleText) {
-          const subHeader = document.createElement('div');
-          subHeader.className = 'settings-subgroup-header';
+        for (const [subKey, items] of Object.entries(subgroups)) {
+          const card = document.createElement('div');
+          card.className = 'settings-subgroup';
+
+          const subTitleText = t(`editor.subgroup_${subKey}`);
+          if (subTitleText) {
+            const subHeader = document.createElement('div');
+            subHeader.className = 'settings-subgroup-header';
+
+            const badge = document.createElement('span');
+            badge.className = 'settings-subgroup-badge';
+
+            const subTitle = document.createElement('span');
+            subTitle.className = 'settings-subgroup-title';
+            subTitle.textContent = subTitleText;
+
+            subHeader.appendChild(badge);
+            subHeader.appendChild(subTitle);
+            card.appendChild(subHeader);
+          }
+
+          for (const item of items) {
+            const row = this.renderSettingItem(item);
+            card.appendChild(row);
+          }
+
+          pane.appendChild(card);
+        }
+
+        if (tabDef.key === 'system') {
+          const profileCard = document.createElement('div');
+          profileCard.className = 'settings-subgroup';
+
+          const profileHeader = document.createElement('div');
+          profileHeader.className = 'settings-subgroup-header';
 
           const badge = document.createElement('span');
           badge.className = 'settings-subgroup-badge';
 
           const subTitle = document.createElement('span');
           subTitle.className = 'settings-subgroup-title';
-          subTitle.textContent = subTitleText;
+          subTitle.textContent = t('editor.subgroup_profile') || 'Quality Profile Preset';
 
-          subHeader.appendChild(badge);
-          subHeader.appendChild(subTitle);
-          card.appendChild(subHeader);
-        }
+          profileHeader.appendChild(badge);
+          profileHeader.appendChild(subTitle);
+          profileCard.appendChild(profileHeader);
 
-        for (const item of items) {
-          const row = this.renderSettingItem(item);
-          card.appendChild(row);
-        }
+          const row = document.createElement('div');
+          row.className = 'settings-row';
 
-        section.appendChild(card);
-      }
+          const qLabel = document.createElement('div');
+          qLabel.className = 'settings-label';
+          qLabel.style.marginBottom = '6px';
+          qLabel.textContent = t('editor.graphicsQuality') || 'Graphics Quality';
+          row.appendChild(qLabel);
 
-      // Add Quality Select specifically at the bottom of the graphics section
-      if (catKey === 'graphics') {
-        const profileCard = document.createElement('div');
-        profileCard.className = 'settings-subgroup';
+          this.qualitySelect = document.createElement('select');
+          this.qualitySelect.className = 'firework-pause-select';
 
-        const profileHeader = document.createElement('div');
-        profileHeader.className = 'settings-subgroup-header';
+          const qualityOptions = [
+            {
+              key: 'low',
+              label: t('editor.graphicsLow') || 'Low'
+            },
+            {
+              key: 'medium',
+              label: t('editor.graphicsMedium') || 'Medium'
+            },
+            {
+              key: 'high',
+              label: t('editor.graphicsHigh') || 'High'
+            }
+          ];
 
-        const badge = document.createElement('span');
-        badge.className = 'settings-subgroup-badge';
-
-        const subTitle = document.createElement('span');
-        subTitle.className = 'settings-subgroup-title';
-        subTitle.textContent = t('editor.subgroup_profile') || 'Quality Profile Preset';
-
-        profileHeader.appendChild(badge);
-        profileHeader.appendChild(subTitle);
-        profileCard.appendChild(profileHeader);
-
-        const row = document.createElement('div');
-        row.className = 'settings-row';
-
-        const qLabel = document.createElement('div');
-        qLabel.className = 'settings-label';
-        qLabel.style.marginBottom = '6px';
-        qLabel.textContent = t('editor.graphicsQuality') || 'Graphics Quality';
-        row.appendChild(qLabel);
-
-        this.qualitySelect = document.createElement('select');
-        this.qualitySelect.className = 'firework-pause-select';
-
-        const qualityOptions = [
-          {
-            key: 'low',
-            label: t('editor.graphicsLow') || 'Low'
-          },
-          {
-            key: 'medium',
-            label: t('editor.graphicsMedium') || 'Medium'
-          },
-          {
-            key: 'high',
-            label: t('editor.graphicsHigh') || 'High'
+          for (const option of qualityOptions) {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.key;
+            optionElement.textContent = option.label;
+            this.qualitySelect.appendChild(optionElement);
           }
-        ];
 
-        for (const option of qualityOptions) {
-          const optionElement = document.createElement('option');
-          optionElement.value = option.key;
-          optionElement.textContent = option.label;
-          this.qualitySelect.appendChild(optionElement);
+          this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
+          this.qualitySelect.addEventListener('change', () => {
+            const quality = this.qualitySelect.value;
+            localStorage.setItem(
+              'graphics_quality',
+              quality
+            );
+            globalEventBus.emit(
+              'graphics:quality',
+              quality
+            );
+          });
+
+          row.appendChild(this.qualitySelect);
+          profileCard.appendChild(row);
+          pane.appendChild(profileCard);
         }
-
-        this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
-        this.qualitySelect.addEventListener('change', () => {
-          const quality = this.qualitySelect.value;
-          localStorage.setItem(
-            'graphics_quality',
-            quality
-          );
-          globalEventBus.emit(
-            'graphics:quality',
-            quality
-          );
-        });
-
-        row.appendChild(this.qualitySelect);
-        profileCard.appendChild(row);
-        section.appendChild(profileCard);
       }
 
-      panel.appendChild(section);
+      tabPanes.push(pane);
+      contentArea.appendChild(pane);
     }
 
-    const buttonRow = document.createElement('div');
-    buttonRow.className = 'firework-pause-actions';
-    buttonRow.style.gap = '10px';
-
-    this.resumeButton = document.createElement('button');
-    this.resumeButton.type = 'button';
-    this.resumeButton.className = 'firework-pause-button';
-    this.resumeButton.textContent = t('editor.settingsResume') || 'Resume';
-    this.resumeButton.addEventListener('click', () => this.resume());
+    const sidebarFooter = document.createElement('div');
+    sidebarFooter.className = 'settings-sidebar-footer';
 
     const resetBtn = document.createElement('button');
     resetBtn.type = 'button';
-    resetBtn.className = 'firework-pause-button';
-    resetBtn.style.backgroundColor = '#d32f2f';
-    resetBtn.style.color = '#fff';
-    resetBtn.style.boxShadow = '0 8px 20px rgba(211, 47, 47, 0.22)';
-    resetBtn.textContent = t('editor.settingsReset') || 'Reset';
+    resetBtn.className = 'settings-reset-btn';
+    resetBtn.textContent = t('editor.settingsResetAll') || t('editor.settingsReset') || 'Reset All Settings';
     resetBtn.addEventListener('click', () => {
       resetSettings(this.settingsContext);
 
       for (const item of SETTINGS_DEFINITION) {
-        if (item.type === 'slider') {
+        if (item.type === 'slider' && item.inputElement) {
           item.inputElement.value = item.default;
-          item.valueDisplayElement.textContent = item.default.toFixed(2);
-        } else if (item.type === 'checkbox') {
+          if (item.valueDisplayElement) {
+            item.valueDisplayElement.textContent = item.default.toFixed(2);
+          }
+        } else if (item.type === 'checkbox' && item.inputElement) {
           item.inputElement.checked = item.default;
+        } else if (item.type === 'select' && item.inputElement) {
+          item.inputElement.value = item.default;
         }
       }
+
+      if (this.qualitySelect) {
+        this.qualitySelect.value = 'medium';
+        localStorage.setItem(
+          'graphics_quality',
+          'medium'
+        );
+        globalEventBus.emit(
+          'graphics:quality',
+          'medium'
+        );
+      }
     });
+
+    sidebarFooter.appendChild(resetBtn);
+    sidebar.appendChild(navList);
+    sidebar.appendChild(sidebarFooter);
+
+    bodyContainer.appendChild(sidebar);
+    bodyContainer.appendChild(contentArea);
+    panel.appendChild(bodyContainer);
+
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'firework-pause-actions';
 
     this.timelineButton = document.createElement('button');
     this.timelineButton.type = 'button';
     this.timelineButton.className = 'firework-pause-button';
-    this.timelineButton.textContent = t('editor.settingsTimeline') || 'Timeline (Ctrl+T)';
+    this.timelineButton.textContent = t('editor.settingsTimeline') || 'Timeline Ctrl+T';
     this.timelineButton.style.backgroundColor = '#1976d2';
     this.timelineButton.style.boxShadow = '0 8px 20px rgba(25, 118, 210, 0.22)';
     this.timelineButton.addEventListener('click', () => {
@@ -371,134 +554,15 @@ export class InputSystem {
       }
     });
 
-    buttonRow.appendChild(resetBtn);
+    this.resumeButton = document.createElement('button');
+    this.resumeButton.type = 'button';
+    this.resumeButton.className = 'firework-pause-button';
+    this.resumeButton.textContent = t('editor.settingsResume') || 'Resume';
+    this.resumeButton.addEventListener('click', () => this.resume());
+
     buttonRow.appendChild(this.timelineButton);
     buttonRow.appendChild(this.resumeButton);
     panel.appendChild(buttonRow);
-
-    const navSection = document.createElement('div');
-    navSection.style.marginTop = '20px';
-    navSection.style.paddingTop = '16px';
-    navSection.style.borderTop = '1px solid rgba(255, 255, 255, 0.12)';
-    navSection.style.display = 'flex';
-    navSection.style.flexDirection = 'column';
-    navSection.style.gap = '10px';
-
-    const navTitle = document.createElement('div');
-    navTitle.className = 'firework-pause-label';
-    navTitle.style.marginBottom = '4px';
-    navTitle.textContent = t('editor.settingsTools') || 'Tools & Editors';
-
-    const navButtons = document.createElement('div');
-    navButtons.style.display = 'flex';
-    navButtons.style.gap = '10px';
-
-    const btnTimeline = document.createElement('button');
-    btnTimeline.type = 'button';
-    btnTimeline.className = 'firework-pause-button';
-    btnTimeline.style.flex = '1';
-    btnTimeline.style.background = 'linear-gradient(180deg, #1e3c72 0%, #2a5298 100%)';
-    btnTimeline.style.color = '#fff';
-    btnTimeline.style.border = '1px solid rgba(0, 243, 255, 0.3)';
-    btnTimeline.style.boxShadow = '0 6px 15px rgba(42, 82, 152, 0.3)';
-    btnTimeline.style.fontSize = '13px';
-    btnTimeline.style.fontWeight = 'bold';
-    btnTimeline.style.padding = '10px 14px';
-    btnTimeline.style.borderRadius = '999px';
-    btnTimeline.style.cursor = 'pointer';
-    btnTimeline.style.transition = 'all 0.3s ease';
-    btnTimeline.textContent = t('editor.settingsTimelineEditor') || 'Timeline Editor';
-    btnTimeline.addEventListener('mouseover', () => {
-      btnTimeline.style.filter = 'brightness(1.15)';
-      btnTimeline.style.boxShadow = '0 0 15px rgba(0, 243, 255, 0.4)';
-    });
-    btnTimeline.addEventListener('mouseout', () => {
-      btnTimeline.style.filter = 'none';
-      btnTimeline.style.boxShadow = '0 6px 15px rgba(42, 82, 152, 0.3)';
-    });
-    btnTimeline.addEventListener('click', () => {
-      window.location.href = 'editor.html';
-    });
-
-    const btnStatic = document.createElement('button');
-    btnStatic.type = 'button';
-    btnStatic.className = 'firework-pause-button';
-    btnStatic.style.flex = '1';
-    btnStatic.style.background = 'linear-gradient(180deg, #aa3bff 0%, #8a1bef 100%)';
-    btnStatic.style.color = '#fff';
-    btnStatic.style.border = '1px solid rgba(170, 59, 255, 0.3)';
-    btnStatic.style.boxShadow = '0 6px 15px rgba(170, 59, 255, 0.3)';
-    btnStatic.style.fontSize = '13px';
-    btnStatic.style.fontWeight = 'bold';
-    btnStatic.style.padding = '10px 14px';
-    btnStatic.style.borderRadius = '999px';
-    btnStatic.style.cursor = 'pointer';
-    btnStatic.style.transition = 'all 0.3s ease';
-    btnStatic.textContent = t('editor.settingsStaticEditor') || 'Static Editor';
-    btnStatic.addEventListener('mouseover', () => {
-      btnStatic.style.filter = 'brightness(1.15)';
-      btnStatic.style.boxShadow = '0 0 15px rgba(170, 59, 255, 0.4)';
-    });
-    btnStatic.addEventListener('mouseout', () => {
-      btnStatic.style.filter = 'none';
-      btnStatic.style.boxShadow = '0 6px 15px rgba(170, 59, 255, 0.3)';
-    });
-    btnStatic.addEventListener('click', () => {
-      window.location.href = 'formation.html';
-    });
-
-    const btnGuide = document.createElement('a');
-    btnGuide.className = 'firework-pause-button';
-    btnGuide.style.flex = '1';
-    btnGuide.style.display = 'inline-flex';
-    btnGuide.style.alignItems = 'center';
-    btnGuide.style.justifyContent = 'center';
-    btnGuide.style.textAlign = 'center';
-    btnGuide.style.textDecoration = 'none';
-    btnGuide.style.background = 'linear-gradient(180deg, #11998e 0%, #38ef7d 100%)';
-    btnGuide.style.color = '#fff';
-    btnGuide.style.border = '1px solid rgba(56, 239, 125, 0.3)';
-    btnGuide.style.boxShadow = '0 6px 15px rgba(17, 153, 142, 0.3)';
-    btnGuide.style.fontSize = '13px';
-    btnGuide.style.fontWeight = 'bold';
-    btnGuide.style.padding = '10px 14px';
-    btnGuide.style.borderRadius = '999px';
-    btnGuide.style.cursor = 'pointer';
-    btnGuide.style.transition = 'all 0.3s ease';
-    btnGuide.textContent = t('editor.settingsUserGuide') || 'User Guide';
-    btnGuide.href = DOCS_CONFIG.userGuideUrl;
-    btnGuide.target = '_blank';
-    btnGuide.rel = 'noopener noreferrer';
-    btnGuide.addEventListener('mouseover', () => {
-      btnGuide.style.filter = 'brightness(1.15)';
-      btnGuide.style.boxShadow = '0 0 15px rgba(56, 239, 125, 0.4)';
-    });
-    btnGuide.addEventListener('mouseout', () => {
-      btnGuide.style.filter = 'none';
-      btnGuide.style.boxShadow = '0 6px 15px rgba(17, 153, 142, 0.3)';
-    });
-    btnGuide.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (
-        window.electronAPI &&
-        typeof window.electronAPI.openExternal === 'function'
-      ) {
-        window.electronAPI.openExternal(DOCS_CONFIG.userGuideUrl);
-      } else {
-        window.open(
-          DOCS_CONFIG.userGuideUrl,
-          '_blank',
-          'noopener,noreferrer'
-        );
-      }
-    });
-
-    navButtons.appendChild(btnTimeline);
-    navButtons.appendChild(btnStatic);
-    navButtons.appendChild(btnGuide);
-    navSection.appendChild(navTitle);
-    navSection.appendChild(navButtons);
-    panel.appendChild(navSection);
 
     this.pauseOverlay.appendChild(panel);
     document.body.appendChild(this.pauseOverlay);
@@ -600,10 +664,29 @@ export class InputSystem {
       for (const optKey of (item.options || [])) {
         const optionElement = document.createElement('option');
         optionElement.value = optKey;
-        optionElement.textContent = t(`editor.${item.key}_${optKey}`) ||
-          t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) ||
-          t(`editor.${optKey}`) ||
-          optKey.toUpperCase();
+        const fullKey = `editor.${item.key}_${optKey}`;
+        const transVal = t(fullKey);
+        let optText = '';
+
+        if (transVal && transVal !== fullKey) {
+          optText = transVal;
+        } else {
+          const graphicsKey = `editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`;
+          const transGraphics = t(graphicsKey);
+          if (transGraphics && transGraphics !== graphicsKey) {
+            optText = transGraphics;
+          } else {
+            const shortKey = `editor.${optKey}`;
+            const transShort = t(shortKey);
+            if (transShort && transShort !== shortKey) {
+              optText = transShort;
+            } else {
+              optText = optKey.charAt(0).toUpperCase() + optKey.slice(1);
+            }
+          }
+        }
+
+        optionElement.textContent = optText;
         if (optKey === currentVal) {
           optionElement.selected = true;
         }
@@ -692,7 +775,7 @@ export class InputSystem {
       if (saved !== null) {
         currentVal = item.type === 'checkbox'
           ? saved === 'true'
-          : parseFloat(saved);
+          : (item.type === 'select' ? saved : parseFloat(saved));
       }
 
       if (item.type === 'slider' && item.inputElement) {
@@ -702,6 +785,8 @@ export class InputSystem {
         }
       } else if (item.type === 'checkbox' && item.inputElement) {
         item.inputElement.checked = currentVal;
+      } else if (item.type === 'select' && item.inputElement) {
+        item.inputElement.value = currentVal;
       }
     }
 
