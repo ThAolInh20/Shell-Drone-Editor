@@ -349,15 +349,13 @@ export const SETTINGS_DEFINITION = [
   {
     key: 'sky_moon_position',
     label: 'Moon Position',
-    type: 'select',
-    options: [
-      'left',
-      'center',
-      'right'
-    ],
+    type: 'slider',
     category: 'graphics',
     subgroup: 'sky',
-    default: 'right',
+    min: -1.0,
+    max: 1.0,
+    step: 0.05,
+    default: 0.8,
     apply(
       value,
       context
@@ -375,15 +373,13 @@ export const SETTINGS_DEFINITION = [
   {
     key: 'sky_moon_altitude',
     label: 'Moon Altitude',
-    type: 'select',
-    options: [
-      'low',
-      'mid',
-      'high'
-    ],
+    type: 'slider',
     category: 'graphics',
     subgroup: 'sky',
-    default: 'mid',
+    min: 150,
+    max: 850,
+    step: 10,
+    default: 500,
     apply(
       value,
       context

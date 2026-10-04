@@ -103,5 +103,13 @@ describe('SkyDome', () => {
     expect(skyDome.moonAltitude).toBe('low');
     expect(skyDome.moonGroup.position.x).toBe(0);
     expect(skyDome.moonGroup.position.y).toBe(280);
+
+    // Test continuous slider values
+    skyDome.setMoonPosition(-0.5);
+    skyDome.setMoonAltitude(600);
+    expect(skyDome.moonPosition).toBe(-0.5);
+    expect(skyDome.moonAltitude).toBe(600);
+    expect(skyDome.moonGroup.position.x).toBeCloseTo(-0.5 * 650.0);
+    expect(skyDome.moonGroup.position.y).toBe(600);
   });
 });

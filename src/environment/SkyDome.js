@@ -393,15 +393,27 @@ export class SkyDome {
 
   _updateMoonTransform() {
     let x = 520;
-    if (this.moonPosition === 'left') {
+    if (typeof this.moonPosition === 'number') {
+      if (Math.abs(this.moonPosition) <= 1.0) {
+        x = this.moonPosition * 650.0;
+      } else {
+        x = Math.max(-750, Math.min(750, this.moonPosition));
+      }
+    } else if (this.moonPosition === 'left') {
       x = -520;
     } else if (this.moonPosition === 'center') {
       x = 0;
+    } else if (this.moonPosition === 'right') {
+      x = 520;
     }
 
     let y = 500;
-    if (this.moonAltitude === 'low') {
+    if (typeof this.moonAltitude === 'number') {
+      y = Math.max(120, Math.min(850, this.moonAltitude));
+    } else if (this.moonAltitude === 'low') {
       y = 280;
+    } else if (this.moonAltitude === 'mid') {
+      y = 500;
     } else if (this.moonAltitude === 'high') {
       y = 720;
     }
@@ -409,10 +421,18 @@ export class SkyDome {
     const z = -750;
 
     if (this.moonGroup) {
-      this.moonGroup.position.set(x, y, z);
+      this.moonGroup.position.set(
+        x,
+        y,
+        z
+      );
     }
     if (this.moonMesh) {
-      this.moonMesh.lookAt(0, 0, 0);
+      this.moonMesh.lookAt(
+        0,
+        0,
+        0
+      );
     }
     if (this.moonLight && this.moonGroup) {
       this.moonLight.position.copy(this.moonGroup.position);
@@ -420,12 +440,12 @@ export class SkyDome {
   }
 
   setMoonPosition(pos) {
-    this.moonPosition = pos || 'right';
+    this.moonPosition = pos !== undefined ? pos : 0.8;
     this._updateMoonTransform();
   }
 
   setMoonAltitude(alt) {
-    this.moonAltitude = alt || 'mid';
+    this.moonAltitude = alt !== undefined ? alt : 500;
     this._updateMoonTransform();
   }
 

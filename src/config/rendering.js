@@ -29,8 +29,8 @@ export const renderingConfig = {
     cloudSpeed: 1.0,
     moonDay: 15,
     moonPhase: 'full',
-    moonPosition: 'right',
-    moonAltitude: 'mid'
+    moonPosition: 0.8,
+    moonAltitude: 500
   },
   performance: {
     fpsThreshold: 70,
