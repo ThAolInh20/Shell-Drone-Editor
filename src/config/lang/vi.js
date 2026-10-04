@@ -393,6 +393,7 @@ export default {
         ghostFlare: "Ẩn hiện 3 giai đoạn Ghost Flare",
         flow: "Lượn sóng Flow",
         noTrail: "Không vệt đuôi",
+        noBurst: "Nổ tức thì không tiếng",
         crossette: "Sao tách chữ thập Crossette",
         activeEffects: "Hiệu ứng kích hoạt",
         ratioX: "Tỉ lệ X",

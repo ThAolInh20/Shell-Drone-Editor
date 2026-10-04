@@ -47,6 +47,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'glitterStrobe'
   },
   {
+    key: 'no-burst',
+    labelKey: 'noBurst'
+  },
+  {
     key: 'no-trail',
     labelKey: 'noTrail'
   },

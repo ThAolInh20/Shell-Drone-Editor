@@ -372,6 +372,7 @@ export default {
         flow: "遊泳 Flow",
         crossette: "クロセット十字分裂",
         noTrail: "トレイルなし",
+        noBurst: "無音即時爆発",
         activeEffects: "有効エフェクト",
         ratioX: "比率 X",
         ratioY: "比率 Y",

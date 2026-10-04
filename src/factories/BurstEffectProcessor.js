@@ -32,6 +32,7 @@ export class BurstEffectProcessor {
     'double-helix',
     'no-trail',
     'notrail',
+    'no-burst',
     'crossette'
   ]);
 
@@ -526,6 +527,15 @@ BurstEffectProcessor.registerEffect('notrail', {
     return {
       gravityScale: 0.3,
       spawnTrail: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('no-burst', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.25,
+      spawnTrail: true
     };
   }
 });

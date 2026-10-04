@@ -393,6 +393,7 @@ export default {
         ghostFlare: "Ghost 3 Stage Flare",
         flow: "Flow Fish swimming",
         noTrail: "No Trail",
+        noBurst: "No Burst Silent",
         crossette: "Crossette Cross Split",
         activeEffects: "Active Effects",
         ratioX: "Ratio X",

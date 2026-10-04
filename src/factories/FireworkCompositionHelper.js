@@ -57,6 +57,7 @@ export const AVAILABLE_EFFECT_TAGS = [
   'ghost-flare',
   'flow',
   'no-trail',
+  'no-burst',
   'crossette'
 ];
 

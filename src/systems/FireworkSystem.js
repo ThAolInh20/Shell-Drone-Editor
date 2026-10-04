@@ -258,7 +258,11 @@ export class FireworkSystem {
     const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
 
-    if (shellPreset.instantBurst) {
+    const hasNoBurst = (Array.isArray(shellPreset.effects) && shellPreset.effects.includes('no-burst'))
+      || Boolean(shellPreset['no-burst']);
+    const isInstant = Boolean(shellPreset.instantBurst) || hasNoBurst;
+
+    if (isInstant) {
       const burstPos = new THREE.Vector3(
         position.x,
         targetHeight,
@@ -305,6 +309,8 @@ export class FireworkSystem {
           shellType: shellPreset.shellType ?? shellPreset.shapeType,
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
+          effects: shellPreset.effects,
+          noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
           position: {
             x: burstPos.x,
@@ -1732,6 +1738,9 @@ export class FireworkSystem {
       const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
       const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
 
+      const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
+        || Boolean(item.preset?.['no-burst']);
+
       this.emitFireworkEvent(
         'firework:burst',
         {
@@ -1739,6 +1748,8 @@ export class FireworkSystem {
           shellType: item.shellType ?? item.shape,
           shapeType: item.shapeType ?? item.shape,
           effectType: item.preset?.effectType ?? item.shape,
+          effects: item.preset?.effects,
+          noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
           colorHex: item.color.getHex(),
           position: {
             x: burstPosition.x,
@@ -1784,11 +1795,16 @@ export class FireworkSystem {
     this.diagnostics.bursted += 1;
     this.emitDiagnostics();
 
+    const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
+      || Boolean(item.preset?.['no-burst']);
+
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
       shellType: item.shellType ?? item.shape,
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
+      effects: item.preset?.effects,
+      noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
       colorHex: item.color.getHex(),
       position: {
         x: burstPosition.x,
@@ -1796,9 +1812,7 @@ export class FireworkSystem {
         z: burstPosition.z
       },
       intensity: normalizedEnergy,
-
       duration: 1.25 + normalizedEnergy * 1.1
-
     });
   }
 

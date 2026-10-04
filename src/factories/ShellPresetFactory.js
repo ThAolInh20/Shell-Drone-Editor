@@ -70,6 +70,7 @@ export class ShellPresetFactory {
       'oval',
       'no-trail',
       'notrail',
+      'no-burst',
       'crossette'
     ]);
     this.presetMenuEntries = [

@@ -379,6 +379,7 @@ export default {
         ghostFlare: "三阶段幽灵闪光 Ghost Flare",
         flow: "游动 Flow",
         noTrail: "无尾迹",
+        noBurst: "无声即时爆炸",
         crossette: "十字分裂 Crossette",
         activeEffects: "已启用效果",
         ratioX: "比例 X",
