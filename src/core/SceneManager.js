@@ -6,6 +6,7 @@ import { DistantMountains } from '../environment/DistantMountains.js';
 import { PlanarReflector } from '../environment/PlanarReflector.js';
 import { WaterSurface } from '../environment/WaterSurface.js';
 import { LaunchBarge } from '../environment/LaunchBarge.js';
+import { RiverPropsManager } from '../environment/RiverPropsManager.js';
 
 export class SceneManager {
   constructor(eventBus = null) {
@@ -45,6 +46,10 @@ export class SceneManager {
     // Initialize Floating Launch Barges on the lake
     this.launchBarge = new LaunchBarge();
     this.instance.add(this.launchBarge.group);
+
+    // Initialize River Props (Floating lanterns and boats)
+    this.riverProps = new RiverPropsManager();
+    this.instance.add(this.riverProps.group);
 
     // Initialize Planar Reflector for water surface
     this.planarReflector = new PlanarReflector({
@@ -97,6 +102,9 @@ export class SceneManager {
     if (this.launchBarge) {
       this.launchBarge.update(deltaTime);
     }
+    if (this.riverProps) {
+      this.riverProps.update(deltaTime);
+    }
     if (this.waterSurface) {
       this.waterSurface.update(deltaTime);
     }
@@ -121,6 +129,84 @@ export class SceneManager {
     }
   }
 
+  setMoonDay(day) {
+    const d = Math.max(1, Math.min(30, parseInt(day, 10) || 15));
+    this.moonDay = d;
+
+    if (this.skyDome) {
+      this.skyDome.setMoonDay(d);
+    }
+
+    const phi = ((d - 1) / 29.0) * (Math.PI * 2.0);
+    const phaseValue = (1.0 - Math.cos(phi)) * 0.5;
+
+    // Dynamic environmental space lighting scaled to soft 70% level
+    if (this.ambientLight) {
+      this.ambientLight.intensity = this.baseAmbientIntensity + phaseValue * 0.07;
+    }
+    if (this.hemisphereLight) {
+      this.hemisphereLight.intensity = this.baseHemisphereIntensity + phaseValue * 0.05;
+    }
+    if (this.instance.fog) {
+      const darkFog = new THREE.Color(0x050a17);
+      const moonFog = new THREE.Color(0x081326);
+      this.instance.fog.color.copy(darkFog).lerp(moonFog, phaseValue * 0.5);
+    }
+    if (this.waterSurface) {
+      this.waterSurface.setMoonIntensity(phaseValue * 0.60);
+      if (this.skyDome) {
+        this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
+      }
+    }
+  }
+
+  setMoonPhase(phase) {
+    if (typeof phase === 'number') {
+      this.setMoonDay(phase);
+      return;
+    }
+
+    let targetDay = 15;
+    switch (phase) {
+      case 'off':
+        targetDay = 1;
+        break;
+      case 'crescent':
+        targetDay = 5;
+        break;
+      case 'half':
+        targetDay = 8;
+        break;
+      case 'gibbous':
+        targetDay = 12;
+        break;
+      case 'full':
+      default:
+        targetDay = 15;
+        break;
+    }
+
+    this.setMoonDay(targetDay);
+  }
+
+  setMoonPosition(pos) {
+    if (this.skyDome) {
+      this.skyDome.setMoonPosition(pos);
+      if (this.waterSurface) {
+        this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
+      }
+    }
+  }
+
+  setMoonAltitude(alt) {
+    if (this.skyDome) {
+      this.skyDome.setMoonAltitude(alt);
+      if (this.waterSurface) {
+        this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
+      }
+    }
+  }
+
   destroy() {
     if (this.skyDome) {
       this.skyDome.dispose();
@@ -130,6 +216,9 @@ export class SceneManager {
     }
     if (this.launchBarge) {
       this.launchBarge.dispose();
+    }
+    if (this.riverProps) {
+      this.riverProps.dispose();
     }
     if (this.waterSurface) {
       this.waterSurface.dispose();
@@ -281,5 +370,36 @@ export class SceneManager {
     floor.position.y = -50;
     floor.receiveShadow = true;
     this.instance.add(floor);
+  }
+
+  getBoatTransform(localX = 0, localZ = 0) {
+    return this.riverProps
+      ? this.riverProps.getLeadBoatTransform(localX, localZ)
+      : null;
+  }
+
+  setBoatPassengerPos(localX = 0, localZ = 0) {
+    if (
+      this.riverProps &&
+      typeof this.riverProps.setPassengerLocalPos === 'function'
+    ) {
+      this.riverProps.setPassengerLocalPos(localX, localZ);
+    }
+  }
+
+  steerBoat(
+    deltaX,
+    deltaZ,
+    speedMultiplier = 1.0
+  ) {
+    if (this.riverProps && typeof this.riverProps.steerLeadBoat === 'function') {
+      this.riverProps.steerLeadBoat(deltaX, deltaZ, speedMultiplier);
+    }
+  }
+
+  resetBoats() {
+    if (this.riverProps && typeof this.riverProps.resetBoats === 'function') {
+      this.riverProps.resetBoats();
+    }
   }
 }

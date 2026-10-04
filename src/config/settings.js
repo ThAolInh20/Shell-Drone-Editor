@@ -47,6 +47,60 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'camera_mode',
+    label: 'Camera Perspective Mode',
+    type: 'select',
+    category: 'graphics',
+    subgroup: 'camera_post',
+    options: [
+      'free',
+      'boat',
+      'birds_eye'
+    ],
+    default: 'free',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.camera.mode = value;
+      if (
+        context &&
+        context.cameraManager
+      ) {
+        context.cameraManager.setMode(value);
+      }
+    }
+  },
+  {
+    key: 'camera_speed',
+    label: 'Camera Movement Speed',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'camera_post',
+    min: 0.2,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.camera.speed = value;
+      if (
+        context &&
+        context.cameraManager
+      ) {
+        context.cameraManager.setSpeedMultiplier(value);
+      }
+      if (
+        context &&
+        context.movementSystem
+      ) {
+        context.movementSystem.setSpeedMultiplier(value);
+      }
+    }
+  },
+  {
     key: 'bloom_enabled',
     label: 'Bloom Enabled',
     type: 'checkbox',
@@ -179,6 +233,168 @@ export const SETTINGS_DEFINITION = [
         context.sceneManager.waterSurface
       ) {
         context.sceneManager.waterSurface.setWaveDistortion(value);
+      }
+    }
+  },
+  {
+    key: 'river_lanterns_enabled',
+    label: 'Floating Lanterns',
+    type: 'checkbox',
+    category: 'graphics',
+    subgroup: 'river_props',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setLanternsEnabled(value);
+      }
+    }
+  },
+  {
+    key: 'river_lanterns_count',
+    label: 'Lanterns Count',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'river_props',
+    min: 10,
+    max: 200,
+    step: 5,
+    default: 60,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setLanternsCount(value);
+      }
+    }
+  },
+  {
+    key: 'river_boats_enabled',
+    label: 'River Boats',
+    type: 'checkbox',
+    category: 'graphics',
+    subgroup: 'river_props',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setBoatsEnabled(value);
+      }
+    }
+  },
+  {
+    key: 'river_drift_speed',
+    label: 'River Drift Speed',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'river_props',
+    min: 0.1,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setDriftSpeed(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_day',
+    label: 'Lunar Cycle Day',
+    type: 'slider',
+    category: 'graphics',
+    subgroup: 'sky',
+    min: 1,
+    max: 30,
+    step: 1,
+    default: 15,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonDay = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonDay === 'function'
+      ) {
+        context.sceneManager.setMoonDay(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_position',
+    label: 'Moon Position',
+    type: 'select',
+    options: [
+      'left',
+      'center',
+      'right'
+    ],
+    category: 'graphics',
+    subgroup: 'sky',
+    default: 'right',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonPosition = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonPosition === 'function'
+      ) {
+        context.sceneManager.setMoonPosition(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_altitude',
+    label: 'Moon Altitude',
+    type: 'select',
+    options: [
+      'low',
+      'mid',
+      'high'
+    ],
+    category: 'graphics',
+    subgroup: 'sky',
+    default: 'mid',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonAltitude = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonAltitude === 'function'
+      ) {
+        context.sceneManager.setMoonAltitude(value);
       }
     }
   },

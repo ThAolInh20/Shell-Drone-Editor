@@ -76,4 +76,99 @@ describe('CameraManager', () => {
 
     expect(closeTrauma).toBeGreaterThan(farTrauma);
   });
+
+  it('should switch between camera modes and update position accordingly', () => {
+    // Free mode initial
+    expect(cameraManager.mode).toBe('free');
+
+    // Switch to boat mode with a mock sceneManager
+    cameraManager.sceneManager = {
+      setBoatPassengerPos: () => {},
+      getBoatTransform: () => ({
+        x: 100,
+        y: 4.3,
+        z: 150,
+        dir: 1
+      })
+    };
+
+    cameraManager.setMode('boat');
+    expect(cameraManager.mode).toBe('boat');
+
+    cameraManager.update(0.016);
+    expect(cameraManager.instance.position.x).toBeCloseTo(100);
+    expect(cameraManager.instance.position.y).toBeCloseTo(4.3);
+    expect(cameraManager.instance.position.z).toBeCloseTo(150);
+
+    // Switch to birds_eye mode
+    cameraManager.setMode('birds_eye');
+    expect(cameraManager.mode).toBe('birds_eye');
+
+    const initialX = cameraManager.birdsEyePos.x;
+    cameraManager.update(0.5);
+    // Drifts along heading
+    expect(cameraManager.instance.position.x).not.toBe(initialX);
+    expect(cameraManager.instance.position.y).toBeCloseTo(220);
+
+    // Test WASD steering in birds_eye mode
+    cameraManager.handleWasdInput(-1, 0, false, 0.1);
+    expect(cameraManager.birdsEyeDriftHeading.x).toBeCloseTo(-1);
+
+    // Switch back to free mode
+    cameraManager.setMode('free');
+    expect(cameraManager.mode).toBe('free');
+  });
+
+  it('should adjust speed multiplier correctly', () => {
+    expect(cameraManager.speedMultiplier).toBe(1.0);
+    cameraManager.setSpeedMultiplier(2.5);
+    expect(cameraManager.speedMultiplier).toBe(2.5);
+
+    cameraManager.setSpeedMultiplier(-1);
+    expect(cameraManager.speedMultiplier).toBe(0.1);
+  });
+
+  it('should reset position and orientation correctly on resetPosition call', () => {
+    // 1. Free mode reset
+    cameraManager.instance.position.set(50, 100, 200);
+    cameraManager.resetPosition();
+    expect(cameraManager.instance.position.x).toBe(0);
+    expect(cameraManager.instance.position.y).toBe(6);
+    expect(cameraManager.instance.position.z).toBe(420);
+
+    // 2. Boat mode reset
+    cameraManager.setMode('boat');
+    cameraManager.userBoatOffset.set(5, 2, -3);
+    cameraManager.resetPosition();
+    expect(cameraManager.userBoatOffset.x).toBe(0);
+    expect(cameraManager.userBoatOffset.y).toBe(0);
+    expect(cameraManager.userBoatOffset.z).toBe(0);
+
+    // 3. Birds eye mode reset
+    cameraManager.setMode('birds_eye');
+    cameraManager.birdsEyePos.set(100, 300, 100);
+    cameraManager.resetPosition();
+    expect(cameraManager.birdsEyePos.x).toBe(0);
+    expect(cameraManager.birdsEyePos.y).toBe(220);
+    expect(cameraManager.birdsEyePos.z).toBe(380);
+  });
+
+  it('should steer boat when shift is held in boat mode', () => {
+    let steered = false;
+    cameraManager.sceneManager = {
+      getBoatTransform: () => ({ x: 0, y: 0, z: 100, dir: 1 }),
+      steerBoat: (dx, dz) => {
+        steered = true;
+      }
+    };
+    cameraManager.setMode('boat');
+
+    // Without shift: adjusts user vantage offset
+    cameraManager.handleWasdInput(1, 0, false, 0.1);
+    expect(cameraManager.userBoatOffset.x).toBeGreaterThan(0);
+
+    // With shift: calls steerBoat
+    cameraManager.handleWasdInput(1, 0, true, 0.1);
+    expect(steered).toBe(true);
+  });
 });

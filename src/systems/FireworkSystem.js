@@ -106,7 +106,7 @@ export class FireworkSystem {
     this.globalBurstMaterial = new THREE.PointsMaterial({
       vertexColors: true,
       transparent: true,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });

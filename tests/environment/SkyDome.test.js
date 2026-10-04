@@ -63,4 +63,45 @@ describe('SkyDome', () => {
     expect(skyDome.domeUniforms.uTime.value).toBeCloseTo(0.5);
     expect(skyDome.starUniforms.uTime.value).toBeCloseTo(0.5);
   });
+
+  it('should initialize moon and update moon phases with lighting', () => {
+    expect(skyDome.moonGroup).toBeDefined();
+    expect(skyDome.moonMesh).toBeDefined();
+    expect(skyDome.moonLight).toBeDefined();
+    expect(skyDome.moonUniforms.uMoonPhaseValue.value).toBeCloseTo(1.0);
+
+    // Test full moon day 15
+    skyDome.setMoonDay(15);
+    expect(skyDome.moonDay).toBe(15);
+    expect(skyDome.moonUniforms.uMoonPhaseValue.value).toBeCloseTo(1.0, 1);
+    expect(skyDome.moonMesh.visible).toBe(true);
+
+    // Test new moon day 1
+    skyDome.setMoonDay(1);
+    expect(skyDome.moonDay).toBe(1);
+    expect(skyDome.moonUniforms.uMoonPhaseValue.value).toBeCloseTo(0.0, 2);
+    expect(skyDome.moonMesh.visible).toBe(false);
+
+    // Test first quarter day 8
+    skyDome.setMoonDay(8);
+    expect(skyDome.moonDay).toBe(8);
+    expect(skyDome.moonUniforms.uMoonPhaseValue.value).toBeGreaterThan(0.4);
+    expect(skyDome.moonMesh.visible).toBe(true);
+  });
+
+  it('should update moon position and altitude correctly', () => {
+    skyDome.setMoonPosition('left');
+    skyDome.setMoonAltitude('high');
+    expect(skyDome.moonPosition).toBe('left');
+    expect(skyDome.moonAltitude).toBe('high');
+    expect(skyDome.moonGroup.position.x).toBe(-520);
+    expect(skyDome.moonGroup.position.y).toBe(720);
+
+    skyDome.setMoonPosition('center');
+    skyDome.setMoonAltitude('low');
+    expect(skyDome.moonPosition).toBe('center');
+    expect(skyDome.moonAltitude).toBe('low');
+    expect(skyDome.moonGroup.position.x).toBe(0);
+    expect(skyDome.moonGroup.position.y).toBe(280);
+  });
 });

@@ -13,11 +13,22 @@ export class SkyDome {
     this.starCount = options.starCount || 2200;
     this.cloudCoverage = options.cloudCoverage ?? renderingConfig.sky?.cloudCoverage ?? 0.55;
     this.cloudSpeed = options.cloudSpeed ?? renderingConfig.sky?.cloudSpeed ?? 1.0;
+    this.moonDay = options.moonDay ?? renderingConfig.sky?.moonDay ?? 15;
+    this.moonPhase = options.moonPhase ?? renderingConfig.sky?.moonPhase ?? 'full';
+    this.moonPosition = options.moonPosition ?? renderingConfig.sky?.moonPosition ?? 'right';
+    this.moonAltitude = options.moonAltitude ?? renderingConfig.sky?.moonAltitude ?? 'mid';
 
     this.time = 0;
 
     this._createDome();
     this._createStarfield();
+    this._createMoon();
+    if (options.moonDay !== undefined) {
+      this.setMoonDay(this.moonDay);
+    } else {
+      this.setMoonPhase(this.moonPhase);
+    }
+    this._updateMoonTransform();
 
     this.setLayer(LAYER_REFLECTION);
   }
@@ -263,6 +274,220 @@ export class SkyDome {
 
     this.stars = new THREE.Points(starGeo, starMaterial);
     this.group.add(this.stars);
+  }
+
+  _createMoon() {
+    this.moonGroup = new THREE.Group();
+    this.moonGroup.name = 'MoonGroup';
+    // Positioned in upper right background sky
+    this.moonGroup.position.set(520, 500, -750);
+
+    const quadSize = 300;
+    const moonGeo = new THREE.PlaneGeometry(
+      quadSize,
+      quadSize
+    );
+
+    const moonVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const moonFragmentShader = `
+      uniform float uMoonAngle;
+      uniform float uMoonPhaseValue;
+      uniform vec3 uMoonColor;
+      varying vec2 vUv;
+
+      void main() {
+        vec2 center = vec2(0.5);
+        float dist = length(vUv - center);
+
+        if (dist > 0.5) {
+          discard;
+        }
+
+        float moonRadius = 0.22;
+        float moonAlpha = 0.0;
+        vec3 moonLitColor = vec3(0.0);
+
+        if (dist <= moonRadius) {
+          vec2 p = (vUv - center) / moonRadius;
+          float z = sqrt(max(0.0, 1.0 - p.x * p.x - p.y * p.y));
+          vec3 normal = vec3(p.x, p.y, z);
+
+          // Phase illumination directional vector based on 30-day lunar orbit angle
+          vec3 sunLightDir = normalize(vec3(-sin(uMoonAngle), 0.0, -cos(uMoonAngle)));
+          float NdotL = dot(normal, sunLightDir);
+          float lit = smoothstep(-0.02, 0.03, NdotL);
+
+          // Soft antialiased disc boundary mask
+          float discMask = smoothstep(moonRadius, moonRadius - 0.015, dist);
+          moonAlpha = lit * discMask;
+
+          // Subtle lunar maria and crater details
+          float n1 = sin(p.x * 14.0 + 1.2) * cos(p.y * 12.0 + 0.8) * 0.04;
+          float n2 = sin(p.x * 28.0) * sin(p.y * 26.0) * 0.02;
+          float detail = 0.96 + n1 + n2;
+
+          // Gentle limb darkening towards edges
+          float limb = 1.0 - pow(dist / moonRadius, 3.5) * 0.12;
+          moonLitColor = uMoonColor * (detail * 0.78) * limb;
+        }
+
+        // Soft atmospheric halo glow fading outward
+        float haloFactor = clamp((0.5 - dist) / 0.5, 0.0, 1.0);
+        float glow = pow(haloFactor, 3.2) * 0.20 * uMoonPhaseValue;
+        vec3 glowColor = vec3(0.84, 0.91, 1.0);
+
+        vec3 finalColor = mix(glowColor, moonLitColor, moonAlpha);
+        float finalAlpha = max(glow, moonAlpha);
+
+        gl_FragColor = vec4(finalColor, finalAlpha);
+      }
+    `;
+
+    this.moonUniforms = {
+      uMoonAngle: {
+        value: Math.PI
+      },
+      uMoonPhaseValue: {
+        value: 1.0
+      },
+      uMoonColor: {
+        value: new THREE.Color(0xeef4ff)
+      }
+    };
+
+    const moonMat = new THREE.ShaderMaterial({
+      vertexShader: moonVertexShader,
+      fragmentShader: moonFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: this.moonUniforms,
+      fog: false
+    });
+
+    this.moonMesh = new THREE.Mesh(
+      moonGeo,
+      moonMat
+    );
+    this.moonGroup.add(this.moonMesh);
+
+    // Directional moonlight illuminating the world (scaled to 70% ~0.20)
+    this.moonLight = new THREE.DirectionalLight(
+      0xd5e2ff,
+      0.20
+    );
+    this.moonLight.position.copy(this.moonGroup.position);
+    this.moonLight.target.position.set(0, 0, 0);
+
+    this.group.add(this.moonGroup);
+    this.group.add(this.moonLight);
+    this.group.add(this.moonLight.target);
+  }
+
+  _updateMoonTransform() {
+    let x = 520;
+    if (this.moonPosition === 'left') {
+      x = -520;
+    } else if (this.moonPosition === 'center') {
+      x = 0;
+    }
+
+    let y = 500;
+    if (this.moonAltitude === 'low') {
+      y = 280;
+    } else if (this.moonAltitude === 'high') {
+      y = 720;
+    }
+
+    const z = -750;
+
+    if (this.moonGroup) {
+      this.moonGroup.position.set(x, y, z);
+    }
+    if (this.moonMesh) {
+      this.moonMesh.lookAt(0, 0, 0);
+    }
+    if (this.moonLight && this.moonGroup) {
+      this.moonLight.position.copy(this.moonGroup.position);
+    }
+  }
+
+  setMoonPosition(pos) {
+    this.moonPosition = pos || 'right';
+    this._updateMoonTransform();
+  }
+
+  setMoonAltitude(alt) {
+    this.moonAltitude = alt || 'mid';
+    this._updateMoonTransform();
+  }
+
+  getMoonWorldPosition() {
+    return this.moonGroup
+      ? this.moonGroup.position.clone()
+      : new THREE.Vector3(520, 500, -750);
+  }
+
+  setMoonDay(day) {
+    const d = Math.max(1, Math.min(30, parseInt(day, 10) || 15));
+    this.moonDay = d;
+
+    // Angle phi from 0 (Day 1) to 2*PI (Day 30)
+    const phi = ((d - 1) / 29.0) * (Math.PI * 2.0);
+    // Smooth cosine illumination: Day 1: 0.0 -> Day 15: 1.0 -> Day 30: 0.0
+    const phaseValue = (1.0 - Math.cos(phi)) * 0.5;
+
+    if (this.moonUniforms) {
+      this.moonUniforms.uMoonAngle.value = phi;
+      this.moonUniforms.uMoonPhaseValue.value = phaseValue;
+    }
+
+    if (this.moonMesh) {
+      this.moonMesh.visible = phaseValue > 0.001;
+    }
+
+    if (this.moonLight) {
+      this.moonLight.visible = phaseValue > 0.001;
+      this.moonLight.intensity = phaseValue * 0.20;
+    }
+  }
+
+  setMoonPhase(phase) {
+    if (typeof phase === 'number') {
+      this.setMoonDay(phase);
+      return;
+    }
+
+    this.moonPhase = phase || 'full';
+    let targetDay = 15;
+
+    switch (this.moonPhase) {
+      case 'off':
+        targetDay = 1;
+        break;
+      case 'crescent':
+        targetDay = 5;
+        break;
+      case 'half':
+        targetDay = 8;
+        break;
+      case 'gibbous':
+        targetDay = 12;
+        break;
+      case 'full':
+      default:
+        targetDay = 15;
+        break;
+    }
+
+    this.setMoonDay(targetDay);
   }
 
   setLayer(layerIndex) {

@@ -600,7 +600,10 @@ export class InputSystem {
       for (const optKey of (item.options || [])) {
         const optionElement = document.createElement('option');
         optionElement.value = optKey;
-        optionElement.textContent = t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) || t(`editor.${optKey}`) || optKey.toUpperCase();
+        optionElement.textContent = t(`editor.${item.key}_${optKey}`) ||
+          t(`editor.graphics${optKey.charAt(0).toUpperCase() + optKey.slice(1)}`) ||
+          t(`editor.${optKey}`) ||
+          optKey.toUpperCase();
         if (optKey === currentVal) {
           optionElement.selected = true;
         }

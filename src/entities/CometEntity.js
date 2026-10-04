@@ -93,7 +93,7 @@ export class CometEntity {
         vertexColors: true,
         transparent: true,
         opacity: 0.92,
-        depthTest: false,
+        depthTest: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending
       });
