@@ -16,7 +16,8 @@ export const AVAILABLE_SHAPES = [
   'willow-arch',
   'half-flash',
   'split-flash',
-  'double-helix'
+  'double-helix',
+  'sparkling-branches'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -40,7 +41,9 @@ export const AVAILABLE_DYNAMICS = [
   'swimming-star',
   'ghost-kamuro',
   'double-helix',
-  'crossette'
+  'crossette',
+  'sparkle-trail',
+  'sparkling-branch-comet'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -58,7 +61,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'flow',
   'no-trail',
   'no-burst',
-  'crossette'
+  'crossette',
+  'sparkle-apex'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -403,6 +407,18 @@ export const PRESET_TEMPLATES = {
     dynamics: 'crossette',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['crossette']
+  },
+  sparkling_comet_branches: {
+    shape: 'sparkling-branches',
+    dynamics: 'sparkling-branch-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['sparkle-apex']
+  },
+  sparklingCometBranches: {
+    shape: 'sparkling-branches',
+    dynamics: 'sparkling-branch-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['sparkle-apex']
   }
 };
 

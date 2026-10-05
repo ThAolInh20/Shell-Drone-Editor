@@ -43,6 +43,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 19 | `swimming-star.mp4` | Swimming Star | Sao boi ngoan ngoeo | [ ] Chua quay |
 | 20 | `double-helix.mp4` | Double Helix | Xoan kep ADN 3D | [ ] Chua quay |
 | 21 | `flow.mp4` | Flow | Dong chay hat lien tuc | [ ] Chua quay |
+| 22 | `sparkle-trail.mp4` | Sparkle Trail | Duong bay tia sao choi vet mong thanh manh | [ ] Chua quay |
 
 ---
 
@@ -66,6 +67,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 12 | `upward-spray.mp4` | Upward Spray | Hinh quat huong len tu duoi | [ ] Chua quay |
 | 13 | `half-flash.mp4` | Half Flash | Nua phat sang doi lap | [ ] Chua quay |
 | 14 | `split-flash.mp4` | Split Flash | 4 goc phan tu chop tat | [ ] Chua quay |
+| 15 | `sparkling-branches.mp4` | Sparkling Branches | 4-5 nhanh toa deu moi nhanh 4-5 tia sao choi | [ ] Chua quay |
 
 ---
 
@@ -82,6 +84,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 5 | `ghost.mp4` | Ghost Shell | An hien doi mau dot ngot | [ ] Chua quay |
 | 6 | `ghost-flare.mp4` | Ghost Flare | Loe sang cuc dai truoc khi tat | [ ] Chua quay |
 | 7 | `pistil.mp4` | Pistil Inner Core | Loi phu nho ben trong vo cau lon | [ ] Chua quay |
+| 8 | `sparkle-apex.mp4` | Sparkle Apex | Chop sang ruc ro tai dinh tan | [ ] Chua quay |
 
 ---
 
@@ -99,6 +102,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 6 | `ring_gold.mp4` | Ring Gold | Vanh khuyen vang sang | [ ] Chua quay |
 | 7 | `bouquet_cluster.mp4` | Bouquet Cluster | Chum sao choi phong len dong loat | [ ] Chua quay |
 | 8 | `kamuro_ghost.mp4` | Kamuro Ghost | Tan rong doi mau am anh | [ ] Chua quay |
+| 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
 
 ---
 

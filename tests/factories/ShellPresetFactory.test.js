@@ -124,4 +124,16 @@ describe('ShellPresetFactory', () => {
     expect(preset.stages[0].delay).toBe(0.0);
     expect(preset.stages[3].delay).toBe(1.35);
   });
+
+  it('should create valid sparkling_comet_branches preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('sparkling_comet_branches');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('sparkling_comet_branches');
+    expect(preset.shapeType).toBe('sparkling-branches');
+    expect(preset.dynamicsType).toBe('sparkling-branch-comet');
+    expect(preset.sparkleAtEnd).toBe(true);
+    expect(preset.branchCount).toBe(5);
+    expect(preset.cometsPerBranch).toBe(5);
+  });
 });

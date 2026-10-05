@@ -35,7 +35,8 @@ export class ShellPresetFactory {
       'split-flash',
       'galaxy',
       'upward-spray',
-      'double-helix'
+      'double-helix',
+      'sparkling-branches'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -71,7 +72,10 @@ export class ShellPresetFactory {
       'no-trail',
       'notrail',
       'no-burst',
-      'crossette'
+      'crossette',
+      'sparkle-trail',
+      'sparkle-apex',
+      'sparkling-branch-comet'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -79,6 +83,7 @@ export class ShellPresetFactory {
       { key: 'comet_cluster_notrail', label: 'Comet Cluster No Trail' },
       { key: 'comet_cluster_cc', label: 'Comet Cluster Color Change' },
       { key: 'comet_cluster_thick', label: 'Comet Cluster Thick Trail' },
+      { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
@@ -194,6 +199,8 @@ export class ShellPresetFactory {
     this.presetsRegistry.set('comet_cluster_cc', (size) => this.cometClusterCC(size));
     this.presetsRegistry.set('comet_cluster_thick', (size) => this.cometClusterThick(size));
     this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
+    this.presetsRegistry.set('sparkling_comet_branches', (size) => this.sparklingCometBranchesShell(size));
+    this.presetsRegistry.set('sparklingCometBranches', (size) => this.sparklingCometBranchesShell(size));
     this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
     this.presetsRegistry.set('ghostKamuro', (size) => this.ghostKamuroShell(size));
     this.presetsRegistry.set('ghost_kamuro', (size) => this.ghostKamuroShell(size));
@@ -946,6 +953,25 @@ export class ShellPresetFactory {
       sparkleAtEnd: true,
       maxDecayTime: 1.8,
       strobe: true
+    };
+  }
+
+  sparklingCometBranchesShell(size = 1) {
+    return {
+      type: 'sparkling_comet_branches',
+      shellType: 'sparkling_comet_branches',
+      shapeType: 'sparkling-branches',
+      dynamicsType: 'sparkling-branch-comet',
+      effectType: 'sparkle-trail',
+      effects: ['sparkle-apex'],
+      branchCount: 5,
+      cometsPerBranch: 5,
+      sparkleAtEnd: true,
+      thinTrail: true,
+      launchTrail: true,
+      instantBurst: false,
+      color: this.randomColor({ limitWhite: true }),
+      shellSize: size
     };
   }
 

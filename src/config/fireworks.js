@@ -61,7 +61,8 @@ export const FIREWORK_CONFIG = {
     willow: 1.18,
     lightning: 1.16,
     star: 1.14,
-    'double-helix': 1.25
+    'double-helix': 1.25,
+    'sparkling-branches': 1.0
   },
 
   // Hệ số nhân số lượng hạt dựa trên hiệu ứng hình ảnh (Effect)
@@ -81,7 +82,10 @@ export const FIREWORK_CONFIG = {
     'crysanthemum-spiral-v2': 1.35,
     'ghost-kamuro': 0.8,
     'double-helix': 1.25,
-    crossette: 0.6
+    crossette: 0.6,
+    'sparkle-trail': 1.0,
+    'sparkling-branch-comet': 1.0,
+    'sparkle-apex': 1.0
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)

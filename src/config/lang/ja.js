@@ -460,6 +460,7 @@ export default {
           "half-flash": "半球フラッシュ",
           "split-flash": "赤道分割フラッシュ",
           "double-helix": "二重螺旋 Double Helix",
+          "sparkling-branches": "多方向スパークル分岐",
           waterfall: "ウォーターフォール滝"
         },
         dynamicsType: {
@@ -483,7 +484,9 @@ export default {
           "swimming-star": "スイミングスター",
           "ghost-kamuro": "ゴースト冠菊 Ghost Kamuro",
           "double-helix": "二重螺旋旋回 Double Helix",
-          crossette: "クロセット十字分裂"
+          crossette: "クロセット十字分裂",
+          "sparkle-trail": "スパークルトレイル",
+          "sparkling-branch-comet": "多方向分岐スパークル彗星"
         },
         pattern: {
           random: "ランダム",
@@ -539,6 +542,8 @@ export default {
           doubleHelix: "二重螺旋花火 Double Helix",
           double_helix: "二重螺旋花火 Double Helix",
           crossette: "十字花火 Crossette",
+          sparkling_comet_branches: "多方向スパークル彗星",
+          sparklingCometBranches: "多方向スパークル彗星",
           multiNested: "★ 多重ネスト花火 Multi Nested",
           multi_nested: "★ 多重ネスト花火 Multi Nested"
         },

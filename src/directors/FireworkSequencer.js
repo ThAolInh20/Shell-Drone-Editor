@@ -11,8 +11,9 @@ export class FireworkSequencer {
       task.timeToLaunch -= deltaTime;
 
       if (task.timeToLaunch <= 0) {
-        const isComet = task.isComet || (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet')) 
-                      || (typeof task.preset === 'string' && (task.preset.startsWith('comet_cluster') || task.preset.includes('comet')));
+        const isComet = task.isComet
+          || (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet'))
+          || (typeof task.preset === 'string' && (task.preset === 'comet' || task.preset.startsWith('comet_cluster')));
 
         if (isComet) {
           this.cometSystem.launchRandom(task.preset, task.options);

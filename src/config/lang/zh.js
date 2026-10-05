@@ -459,7 +459,8 @@ export default {
           "willow-up": "向上喷射垂柳",
           "half-flash": "半球闪光",
           "split-flash": "赤道分极闪光",
-          "double-helix": "双螺旋 Double Helix"
+          "double-helix": "双螺旋 Double Helix",
+          "sparkling-branches": "多分支闪耀彗星"
         },
         dynamicsType: {
           standard: "标准径向放射",
@@ -482,7 +483,9 @@ export default {
           "swimming-star": "缓游星芒",
           "ghost-kamuro": "幽灵柳絮 Ghost Kamuro",
           "double-helix": "双螺旋公转 Double Helix",
-          crossette: "十字分裂 Crossette"
+          crossette: "十字分裂 Crossette",
+          "sparkle-trail": "闪耀彗尾",
+          "sparkling-branch-comet": "多分支闪耀彗星"
         },
         pattern: {
           random: "随机",
@@ -538,6 +541,8 @@ export default {
           doubleHelix: "双螺旋烟花 Double Helix",
           double_helix: "双螺旋烟花 Double Helix",
           crossette: "十字烟花 Crossette",
+          sparkling_comet_branches: "多分支闪耀彗星花火",
+          sparklingCometBranches: "多分支闪耀彗星花火",
           multiNested: "★ 多层嵌套烟花 Multi Nested",
           multi_nested: "★ 多层嵌套烟花 Multi Nested"
         },

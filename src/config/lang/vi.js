@@ -474,7 +474,8 @@ export default {
           "willow-up": "Liễu vút bắn vọt lên",
           "half-flash": "Bán cầu phát sáng",
           "split-flash": "Phân cực xích đạo",
-          "double-helix": "Xoắn kép Double Helix"
+          "double-helix": "Xoắn kép Double Helix",
+          "sparkling-branches": "Sao chổi đa nhánh"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -497,7 +498,9 @@ export default {
           "swimming-star": "Sao bơi chậm",
           "ghost-kamuro": "Liễu rủ tàng hình Ghost Kamuro",
           "double-helix": "Xoắn kép xoay Double Helix",
-          crossette: "Sao tách chữ thập Crossette"
+          crossette: "Sao tách chữ thập Crossette",
+          "sparkle-trail": "Đuôi sao chổi lấp lánh",
+          "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -553,6 +556,8 @@ export default {
           doubleHelix: "Pháo xoắn kép Double Helix",
           double_helix: "Pháo xoắn kép Double Helix",
           crossette: "Pháo chữ thập Crossette",
+          sparkling_comet_branches: "Pháo Sao Chổi Đa Nhánh Lấp Lánh",
+          sparklingCometBranches: "Pháo Sao Chổi Đa Nhánh Lấp Lánh",
           multiNested: "★ Pháo lồng đa tầng Multi Nested",
           multi_nested: "★ Pháo lồng đa tầng Multi Nested"
         },

@@ -83,7 +83,7 @@ export class ShowEventDispatcher {
       }
 
       const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 
-                    || (typeof evt.preset === 'string' && (evt.preset.startsWith('comet_cluster') || evt.preset.includes('comet')));
+                    || (typeof evt.preset === 'string' && (evt.preset === 'comet' || evt.preset.startsWith('comet_cluster')));
 
       if (isComet && context.sequencer && context.sequencer.cometSystem) {
         context.sequencer.cometSystem.launchRandom(evt.preset, { 

@@ -154,6 +154,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Smooth Stream', 'Continuous Motion'],
     summary: 'Continuous fluid stream of stars flowing along directional vectors.'
   },
+  'sparkle-trail': {
+    name: 'Sparkle Trail',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sparkle-trail.mp4',
+    tags: ['Thin Trail', 'Crisp Streak'],
+    summary: 'Sub-comet stars travel with slender crisp trails and clean contrast.'
+  },
+  'sparkling-branch-comet': {
+    name: 'Sparkling Branch Comet',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sparkle-trail.mp4',
+    tags: ['Branch Comet', 'Apex Sparkle'],
+    summary: 'Branching sub-comets streaming outwards with synchronized apex sparkling.'
+  },
 
   // 3D Spatial Burst Shapes
   'sphere': {
@@ -162,6 +176,13 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/shapes/sphere.mp4',
     tags: ['Isotropic 3D', 'Classic Shell'],
     summary: 'Uniform 360-degree spherical explosion expanding in all directions.'
+  },
+  'sparkling-branches': {
+    name: 'Sparkling Branches',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sparkling-branches.mp4',
+    tags: ['Multi Branch', 'Directional Beams'],
+    summary: 'Burst partitions into four to five directional sub-comet star clusters.'
   },
   'ring': {
     name: 'Ring',
@@ -299,11 +320,27 @@ export const EFFECT_PREVIEW_METADATA = {
     summary: 'Terminal flare surge where stars intensify in brightness before fading.'
   },
   'pistil': {
-    name: 'Pistil (Inner Core)',
+    name: 'Pistil Inner Core',
     category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
     videoUrl: 'previews/effects/pistil.mp4',
     tags: ['Dual Shell', 'Inner Core Burst'],
     summary: 'Compact inner core burst inside a larger outer shell canopy.'
+  },
+  'sparkle-apex': {
+    name: 'Sparkle Apex Flash',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/sparkle-apex.mp4',
+    tags: ['Apex Flash', 'Sparkle Flash'],
+    summary: 'Bright synchronized sparkling flash at the apex and decay point of stars.'
+  },
+
+  // Preset Shell Templates
+  'sparkling-comet-branches': {
+    name: 'Sparkling Comet Multi Branch',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sparkling-comet-branches.mp4',
+    tags: ['Multi Branch', 'Apex Sparkle'],
+    summary: 'Shell explodes into four to five sub-comet branches with sparkling flashes at the apex.'
   }
 };
 

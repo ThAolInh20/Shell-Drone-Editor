@@ -138,8 +138,8 @@ export class PropertyInspector {
       return false;
     }
     if (typeof preset === 'string') {
-      return preset.startsWith('comet_cluster')
-        || preset.includes('comet');
+      return preset === 'comet'
+        || preset.startsWith('comet_cluster');
     }
     return preset.type === 'comet_cluster'
       || preset.type === 'comet';
@@ -162,7 +162,7 @@ export class PropertyInspector {
   getSchema() {
     const isCometPreset = (event) => {
       return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet'))
-        || (typeof event.preset === 'string' && (event.preset.startsWith('comet_cluster') || event.preset.includes('comet')));
+        || (typeof event.preset === 'string' && (event.preset === 'comet' || event.preset.startsWith('comet_cluster')));
     };
 
     return {

@@ -474,7 +474,8 @@ export default {
           "willow-up": "Willow Up Fountain",
           "half-flash": "Half Sphere Flash",
           "split-flash": "Split Sphere Flash",
-          "double-helix": "Double Helix"
+          "double-helix": "Double Helix",
+          "sparkling-branches": "Sparkling Branches"
         },
         dynamicsType: {
           standard: "Standard Radial",
@@ -497,7 +498,9 @@ export default {
           "swimming-star": "Swimming Star Slow Fish Flow",
           "ghost-kamuro": "Ghost Kamuro Willow",
           "double-helix": "Double Helix Orbit",
-          crossette: "Crossette Cross Split"
+          crossette: "Crossette Cross Split",
+          "sparkle-trail": "Sparkle Trail",
+          "sparkling-branch-comet": "Sparkling Branch Comet"
         },
         pattern: {
           random: "Random",
@@ -553,6 +556,8 @@ export default {
           doubleHelix: "Double Helix",
           double_helix: "Double Helix",
           crossette: "Crossette",
+          sparkling_comet_branches: "Sparkling Comet Multi Branch",
+          sparklingCometBranches: "Sparkling Comet Multi Branch",
           multiNested: "★ Multi Nested Shell",
           multi_nested: "★ Multi Nested Shell"
         },

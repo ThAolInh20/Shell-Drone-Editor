@@ -5,16 +5,16 @@
     "pattern": "intertwined-helix",
     "count": 3,
     "duration": 0.1,
-    "preset": "crysanthemumV2",
+    "preset": "sparkling_comet_branches",
     "sectorId": "center",
     "cometTrail": "normal",
     "uiDuration": 3.4,
-    "shapeType": "sphere",
-    "dynamicsType": "crysanthemum-trail",
+    "shapeType": "sparkling-branches",
+    "dynamicsType": "sparkling-branch-comet",
     "pistil": false,
     "instantBurst": false,
     "effects": [
-      "no-trail"
+      "sparkle-apex"
     ],
     "no-trail": true
   }

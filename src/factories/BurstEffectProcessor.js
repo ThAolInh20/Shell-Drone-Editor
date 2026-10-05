@@ -33,7 +33,10 @@ export class BurstEffectProcessor {
     'no-trail',
     'notrail',
     'no-burst',
-    'crossette'
+    'crossette',
+    'sparkle-trail',
+    'sparkle-apex',
+    'sparkling-branch-comet'
   ]);
 
   static effectsRegistry = new Map();
@@ -587,6 +590,45 @@ BurstEffectProcessor.registerEffect('crossette', {
       spawnTrail: true,
       trailLife: 0.65,
       trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkle-trail', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkle-apex', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkling-branch-comet', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
     };
   }
 });
