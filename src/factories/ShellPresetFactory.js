@@ -489,6 +489,9 @@ export class ShellPresetFactory {
       shellType: 'crysanthemumCC',
       shapeType: 'sphere',
       effectType: 'crysanthemum-cc',
+      effects: ['crysanthemum-cc'],
+      particleCountMultiplier: 1.35,
+      starLife: 2800 + size * 400,
       flower: false,
       smiley: false,
       hearth: false,
@@ -860,27 +863,15 @@ export class ShellPresetFactory {
     const base = this.basePreset(size);
     const color = base.color;
 
-    // Choose a second color based on transition color map
-    const colorMap = {
-      'white': 0xff4500,     // White -> Orange Red
-      0xffd700: 0x00bfff,    // Gold -> Sky Blue
-      0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
-      0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
-      0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
-      0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
-      0x8a2be2: 0xffd700     // Blue Violet -> Gold
-    };
-    const secondColor = colorMap[color] || 0xffffff;
-
     return {
       ...base,
       color,
-      secondColor,
       shellType: 'ghost',
       shapeType: 'sphere',
       effectType: 'ghost',
-      particleCountMultiplier: 1.5, // Nhiều hạt để thấy rõ làn sóng đổi màu quét qua
-      starLife: 1500 + size * 200,
+      effects: ['ghost'],
+      particleCountMultiplier: 1.35,
+      starLife: 2800 + size * 400,
       ghost: true
     };
   }

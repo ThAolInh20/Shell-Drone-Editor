@@ -128,9 +128,9 @@ export const PRESET_TEMPLATES = {
   },
   crysanthemumCC: {
     shape: 'sphere',
-    dynamics: 'standard',
-    modifiers: { pistil: true, instantBurst: false },
-    effects: []
+    dynamics: 'crysanthemum-cc',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['crysanthemum-cc']
   },
   crysanthemumNested: {
     shape: 'sphere',

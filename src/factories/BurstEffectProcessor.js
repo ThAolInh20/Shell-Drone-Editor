@@ -420,15 +420,81 @@ BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
 });
 
 BurstEffectProcessor.registerEffect('crysanthemum-cc', {
-  updateVelocity() {
-    return { gravityScale: 0.3 };
+  materialOpacity(age, maxLife, baseOpacity) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.85) {
+      return baseOpacity;
+    } else {
+      const t = (lifeRatio - 0.85) / 0.15;
+      return Math.max(0, baseOpacity * (1.0 - t));
+    }
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.38) {
+      // Giai đoạn 1: Bung tỏa nhanh với Màu thứ 1
+      velocity.multiplyScalar(0.994);
+      return {
+        gravityScale: 0.02,
+        spawnTrail: false
+      };
+    } else if (lifeRatio < 0.48) {
+      // Điểm chuyển giao: Phanh hãm đột ngột và chuyển biến sang Màu thứ 2
+      velocity.multiplyScalar(Math.pow(0.02, deltaTime * 14));
+      return {
+        gravityScale: 0.01,
+        spawnTrail: false
+      };
+    } else {
+      // Giai đoạn 2: Lơ lửng tồn tại rực rỡ với Màu thứ 2
+      velocity.multiplyScalar(0.92);
+      return {
+        gravityScale: 0.03,
+        spawnTrail: false
+      };
+    }
   }
 });
 
 BurstEffectProcessor.registerEffect('ghost', {
-  updateVelocity(velocity) {
-    velocity.multiplyScalar(0.996);
-    return { gravityScale: 0.15 };
+  materialOpacity(age, maxLife, baseOpacity) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.40) {
+      return 0.0;
+    } else if (lifeRatio < 0.48) {
+      const t = (lifeRatio - 0.40) / 0.08;
+      return baseOpacity * THREE.MathUtils.lerp(0.0, 1.0, t);
+    } else if (lifeRatio < 0.85) {
+      return baseOpacity;
+    } else {
+      const t = (lifeRatio - 0.85) / 0.15;
+      return Math.max(0, baseOpacity * (1.0 - t));
+    }
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.38) {
+      // Rapid ballistic expansion to target radius
+      velocity.multiplyScalar(0.994);
+      return {
+        gravityScale: 0.02,
+        spawnTrail: false
+      };
+    } else if (lifeRatio < 0.48) {
+      // Hãm phanh triệt để: Vận tốc giảm đột ngột về gần 0 ngay khi các hạt tới đích
+      velocity.multiplyScalar(Math.pow(0.02, deltaTime * 14));
+      return {
+        gravityScale: 0.01,
+        spawnTrail: false
+      };
+    } else {
+      // Lơ lửng gần như đứng yên tại vị trí đích, trôi cực chậm và êm dịu
+      velocity.multiplyScalar(0.92);
+      return {
+        gravityScale: 0.03,
+        spawnTrail: false
+      };
+    }
   }
 });
 

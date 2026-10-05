@@ -1269,8 +1269,16 @@ export class FireworkSystem {
       shapeType: resolvedShape
     };
 
+    const isGhostEffect = normalizedEffect === 'ghost'
+      || (Array.isArray(preset?.effects) && preset.effects.includes('ghost'))
+      || Boolean(preset?.ghost)
+      || preset?.shellType === 'ghost';
+    const isCCEffect = normalizedEffect === 'crysanthemum-cc'
+      || (Array.isArray(preset?.effects) && preset.effects.includes('crysanthemum-cc'))
+      || preset?.shellType === 'crysanthemumCC';
+
     let color2Blend = null;
-    if (normalizedEffect === 'ghost' || normalizedEffect === 'crysanthemum-cc') {
+    if (isGhostEffect || isCCEffect) {
       let secondColor;
       if (preset && preset.secondColor && preset.secondColor !== preset.color) {
         secondColor = new THREE.Color(preset.secondColor);
@@ -1312,7 +1320,7 @@ export class FireworkSystem {
     }
 
     const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
-    const hasPistil = Boolean(preset?.pistil);
+    const hasPistil = Boolean(preset?.pistil) && !isGhostEffect && !isCCEffect;
     const isCompositeCore = isJupiterComposite || hasPistil;
 
     let coreRatio = 0;
@@ -1583,7 +1591,9 @@ export class FireworkSystem {
           : null,
         age: 0,
         maxLife: particleMaxLife,
-        effectType: normalizedEffect,
+        effectType: isGhostEffect
+          ? 'ghost'
+          : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
         crackle: !preset?.isNestedChild
           && !isDyingEmber
           && (crackleEnabled || normalizedEffect === 'crackle'),
@@ -1970,6 +1980,9 @@ export class FireworkSystem {
 
     const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
       || Boolean(item.preset?.['no-burst']);
+    const isGhostShell = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('ghost'))
+      || item.preset?.effectType === 'ghost'
+      || Boolean(item.preset?.ghost);
 
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
@@ -1984,7 +1997,7 @@ export class FireworkSystem {
         y: burstPosition.y,
         z: burstPosition.z
       },
-      intensity: normalizedEnergy,
+      intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1
     });
   }
@@ -2273,6 +2286,16 @@ export class FireworkSystem {
 
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
+      const hasGhost = p.effectType === 'ghost'
+        || (Array.isArray(p.effects) && p.effects.includes('ghost'))
+        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
+        || Boolean(p.preset?.ghost)
+        || p.preset?.shellType === 'ghost';
+      const hasCC = p.effectType === 'crysanthemum-cc'
+        || (Array.isArray(p.effects) && p.effects.includes('crysanthemum-cc'))
+        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('crysanthemum-cc'))
+        || p.preset?.shellType === 'crysanthemumCC';
+      const isGhostInvisible = hasGhost && lifeRatio < 0.40;
       const hasGhostFlare = p.effects?.includes('ghost-flare')
         || p.preset?.effects?.includes('ghost-flare')
         || p.effectType === 'ghost-kamuro';
@@ -2284,6 +2307,7 @@ export class FireworkSystem {
       const allowTrail = spawnTrail
         && (!isChrysanthemumSpiral || isSpiralIgnited)
         && !isGhostFlareNoTrail
+        && !isGhostInvisible
         && !hasNoTrailActive;
 
       if (allowTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
@@ -2549,38 +2573,52 @@ export class FireworkSystem {
           g = p.baseColor.g * blink;
           b = p.baseColor.b * blink;
         }
-      } else if (p.effectType === 'ghost') {
-        const sweep = (lifeRatio / 0.8) * 3.0 - 1.5;
-        let intensity = 0;
-        if (p.ghostDot < sweep) {
+      } else if (hasGhost) {
+        let intensity = 0.0;
+        if (lifeRatio < 0.40) {
+          // Giai đoạn 1: Khi vừa nổ và bay ra vị trí đích -> Hoàn toàn tối, không màu sắc
+          intensity = 0.0;
+        } else if (lifeRatio < 0.48) {
+          // Giai đoạn 2: Hiện màu rực rỡ khi tới vị trí đích (flash reveal)
+          const t = (lifeRatio - 0.40) / 0.08;
+          intensity = THREE.MathUtils.lerp(0.0, 1.35, Math.sin(t * Math.PI * 0.5));
+        } else if (lifeRatio < 0.85) {
+          // Tồn tại rực rỡ lơ lửng lâu hơn ở vị trí đích
           intensity = 1.0;
-        } else if (p.ghostDot < sweep + 0.4) {
-          intensity = 1.0 - ((p.ghostDot - sweep) / 0.4);
+        } else {
+          // Giai đoạn 3: Mờ dần và biến mất
+          const t = (lifeRatio - 0.85) / 0.15;
+          intensity = Math.max(0.0, 1.0 - t);
         }
         r = p.baseColor.r * intensity;
         g = p.baseColor.g * intensity;
         b = p.baseColor.b * intensity;
-      } else if (p.effectType === 'crysanthemum-cc' && p.color2) {
-        let activeColor = p.baseColor;
-        let fade = 1.0;
-
-        if (lifeRatio < 0.4) {
-          activeColor = p.baseColor;
-          fade = 1.0;
-        } else if (lifeRatio < 0.5) {
-          activeColor = p.baseColor;
-          fade = (0.5 - lifeRatio) / 0.1;
-        } else if (lifeRatio < 0.6) {
-          activeColor = p.color2;
-          fade = (lifeRatio - 0.5) / 0.1;
+      } else if (hasCC && p.color2) {
+        if (lifeRatio < 0.40) {
+          // Lần 1: Bay bung tỏa với Màu thứ 1
+          r = p.baseColor.r;
+          g = p.baseColor.g;
+          b = p.baseColor.b;
+        } else if (lifeRatio < 0.48) {
+          // Điểm tới đích: Phanh hãm và biến đổi màu sắc (Color Change flash reveal)
+          const t = (lifeRatio - 0.40) / 0.08;
+          const flashMultiplier = 1.0 + Math.sin(t * Math.PI) * 0.35;
+          r = THREE.MathUtils.lerp(p.baseColor.r, p.color2.r, t) * flashMultiplier;
+          g = THREE.MathUtils.lerp(p.baseColor.g, p.color2.g, t) * flashMultiplier;
+          b = THREE.MathUtils.lerp(p.baseColor.b, p.color2.b, t) * flashMultiplier;
+        } else if (lifeRatio < 0.85) {
+          // Lần 2: Lơ lửng tồn tại rực rỡ với Màu thứ 2
+          r = p.color2.r;
+          g = p.color2.g;
+          b = p.color2.b;
         } else {
-          activeColor = p.color2;
-          fade = 1.0;
+          // Giai đoạn kết thúc: Mờ dần Màu thứ 2
+          const t = (lifeRatio - 0.85) / 0.15;
+          const fade = Math.max(0.0, 1.0 - t);
+          r = p.color2.r * fade;
+          g = p.color2.g * fade;
+          b = p.color2.b * fade;
         }
-
-        r = activeColor.r * fade;
-        g = activeColor.g * fade;
-        b = activeColor.b * fade;
       } else if (p.effectType === 'crysanthemum-spiral' || p.effectType === 'crysanthemum-spiral-v2') {
         if (!isSpiralIgnited) {
           // Giai đoạn tiền kích hoạt: tia lửa ẩn tối rất mờ (0.02) lướt êm trong không trung
@@ -2626,7 +2664,16 @@ export class FireworkSystem {
 
       // Calculate size
       const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
-      p.renderSize = baseSize;
+      let renderSize = baseSize;
+      if (hasGhost) {
+        if (lifeRatio < 0.40) {
+          renderSize = 0;
+        } else if (lifeRatio < 0.48) {
+          const t = (lifeRatio - 0.40) / 0.08;
+          renderSize = baseSize * THREE.MathUtils.lerp(0.0, 1.0, t);
+        }
+      }
+      p.renderSize = renderSize;
       p.renderOpacity = opacity;
 
       activeParticles.push(p);

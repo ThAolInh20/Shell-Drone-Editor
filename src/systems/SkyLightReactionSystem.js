@@ -29,6 +29,9 @@ export class SkyLightReactionSystem {
   }
 
   onBurst(detail = {}) {
+    if (detail.intensity !== undefined && detail.intensity <= 0.001) {
+      return;
+    }
     const color = new THREE.Color(detail.colorHex ?? 0xffffff);
     const rawIntensity = THREE.MathUtils.clamp(detail.intensity ?? 0.6, 0.1, 1);
     const intensity = Math.pow(rawIntensity, 1.35);

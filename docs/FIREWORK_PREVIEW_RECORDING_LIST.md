@@ -81,7 +81,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 2 | `white-strobe.mp4` | White Strobe | Nhap nhay trang cuc sang | [ ] Chua quay |
 | 3 | `glitter-strobe.mp4` | Glitter Strobe | Lap lanh kim tuyen | [ ] Chua quay |
 | 4 | `crackle.mp4` | Crackle Dragon Eggs | No lep bep tia lua o cuoi | [ ] Chua quay |
-| 5 | `ghost.mp4` | Ghost Shell | An hien doi mau dot ngot | [ ] Chua quay |
+| 5 | `ghost.mp4` | Ghost Shell | Tang hinh khi bung, hien mau ruc ro khi toi dich roi bien mat | [ ] Chua quay |
 | 6 | `ghost-flare.mp4` | Ghost Flare | Loe sang cuc dai truoc khi tat | [ ] Chua quay |
 | 7 | `pistil.mp4` | Pistil Inner Core | Loi phu nho ben trong vo cau lon | [ ] Chua quay |
 | 8 | `sparkle-apex.mp4` | Sparkle Apex | Chop sang ruc ro tai dinh tan | [ ] Chua quay |
