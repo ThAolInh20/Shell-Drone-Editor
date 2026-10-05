@@ -133,12 +133,20 @@ export class ShellEntity {
 
     this.mesh = new THREE.Group();
 
-    const isThin = Boolean(preset?.thinTrail);
-    const coreSize = isThin ? SHELL_CORE_SIZE * 1.35 : SHELL_CORE_SIZE;
+    const isDetached = Boolean(preset?.detachedTrail)
+      || preset?.cometTrail === 'detached'
+      || preset?.cometTrail === 'detached-trail'
+      || this.shellType === 'comet_cluster_detached';
+    const isThin = Boolean(preset?.thinTrail) && !isDetached;
+    const coreSize = isDetached
+      ? SHELL_CORE_SIZE * 1.85
+      : (isThin ? SHELL_CORE_SIZE * 1.35 : SHELL_CORE_SIZE);
     const coreGeometry = new THREE.SphereGeometry(coreSize, 8, 8);
-    const coreColor = isThin
-      ? color.clone().offsetHSL(0, 0.05, 0.22).multiplyScalar(3.5)
-      : color;
+    const coreColor = isDetached
+      ? color.clone().offsetHSL(0, 0.05, 0.30).multiplyScalar(8.5)
+      : (isThin
+        ? color.clone().offsetHSL(0, 0.05, 0.22).multiplyScalar(3.5)
+        : color);
 
     const coreMaterial = new THREE.MeshBasicMaterial({
       color: coreColor,
@@ -151,11 +159,12 @@ export class ShellEntity {
     this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
     this.mesh.add(this.coreMesh);
 
-    // Lõi trung tâm siêu sáng (hot white core) làm nổi bật rực rỡ đầu hạt sao chổi
-    if (isThin) {
-      const innerGeometry = new THREE.SphereGeometry(coreSize * 0.55, 8, 8);
+    // Lõi trung tâm siêu sáng (hot white core) làm nổi bật rực rỡ đầu hạt
+    if (isThin || isDetached) {
+      const innerSizeRatio = isDetached ? 0.70 : 0.55;
+      const innerGeometry = new THREE.SphereGeometry(coreSize * innerSizeRatio, 8, 8);
       const innerMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0xffffff).multiplyScalar(4.0),
+        color: new THREE.Color(0xffffff).multiplyScalar(isDetached ? 10.0 : 4.0),
         transparent: true,
         opacity: 1.0,
         depthWrite: false,
@@ -166,14 +175,18 @@ export class ShellEntity {
       this.mesh.add(this.innerCoreMesh);
     }
 
-    const haloCount = isThin ? 18 : SHELL_HALO_COUNT;
+    const haloCount = isDetached ? 28 : (isThin ? 18 : SHELL_HALO_COUNT);
     const haloPositions = new Float32Array(haloCount * 3);
     const haloColors = new Float32Array(haloCount * 3);
 
     for (let i = 0; i < haloCount; i++) {
       const angle = Math.random() * Math.PI * 2;
       const elevation = (Math.random() - 0.5) * Math.PI;
-      const radius = SHELL_HALO_RADIUS * (isThin ? (0.28 + Math.random() * 0.55) : (0.35 + Math.random() * 0.65));
+      const radius = SHELL_HALO_RADIUS * (
+        isDetached
+          ? (0.15 + Math.random() * 0.35)
+          : (isThin ? (0.28 + Math.random() * 0.55) : (0.35 + Math.random() * 0.65))
+      );
       const offset = new THREE.Vector3(
         Math.cos(angle) * Math.cos(elevation) * radius,
         Math.sin(elevation) * radius * 0.75,
@@ -190,7 +203,7 @@ export class ShellEntity {
         (Math.random() - 0.5) * 0.14
       );
 
-      const colorMultiplier = isThin ? 3.2 : 1.0;
+      const colorMultiplier = isDetached ? 7.0 : (isThin ? 3.2 : 1.0);
       haloColors[i * 3] = haloColor.r * colorMultiplier;
       haloColors[i * 3 + 1] = haloColor.g * colorMultiplier;
       haloColors[i * 3 + 2] = haloColor.b * colorMultiplier;
@@ -200,12 +213,15 @@ export class ShellEntity {
     haloGeometry.setAttribute('position', new THREE.BufferAttribute(haloPositions, 3));
     haloGeometry.setAttribute('color', new THREE.BufferAttribute(haloColors, 3));
 
+    const haloSize = isDetached
+      ? SHELL_HALO_SIZE * 2.6
+      : (isThin ? SHELL_HALO_SIZE * 1.6 : SHELL_HALO_SIZE);
     const haloMaterial = new THREE.PointsMaterial({
-      size: isThin ? SHELL_HALO_SIZE * 1.6 : SHELL_HALO_SIZE,
+      size: haloSize,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
-      opacity: isThin ? 1.0 : 0.8,
+      opacity: (isThin || isDetached) ? 1.0 : 0.8,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       toneMapped: false

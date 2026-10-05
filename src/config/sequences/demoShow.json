@@ -2,20 +2,18 @@
   {
     "time": 0,
     "type": "sequence",
-    "pattern": "ripple",
+    "pattern": "intertwined-helix",
     "count": 3,
     "duration": 0.1,
-    "preset": "sparkling_comet_branches",
+    "preset": "bouquet",
     "sectorId": "center",
     "cometTrail": "normal",
     "uiDuration": 3.4,
-    "shapeType": "sparkling-branches",
-    "dynamicsType": "sparkling-branch-comet",
+    "shapeType": "upward-spray",
+    "dynamicsType": "bouquet-comet",
     "pistil": false,
     "instantBurst": false,
-    "effects": [
-      "sparkle-apex"
-    ],
+    "effects": [],
     "no-trail": true
   }
 ]

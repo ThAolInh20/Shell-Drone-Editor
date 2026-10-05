@@ -96,6 +96,24 @@ export const PRESET_TEMPLATES = {
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
+  comet_cluster_detached: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_single: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_single_beam: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   crysanthemum: {
     shape: 'sphere',
     dynamics: 'crysanthemum-trail',
@@ -426,7 +444,18 @@ export function getTemplateForPreset(presetKey) {
   if (!presetKey) {
     return PRESET_TEMPLATES.random;
   }
-  return PRESET_TEMPLATES[presetKey] || PRESET_TEMPLATES.random;
+  if (PRESET_TEMPLATES[presetKey]) {
+    return PRESET_TEMPLATES[presetKey];
+  }
+  const camelKey = String(presetKey).replace(/_([a-z0-9])/g, (_, g) => g.toUpperCase());
+  if (PRESET_TEMPLATES[camelKey]) {
+    return PRESET_TEMPLATES[camelKey];
+  }
+  const snakeKey = String(presetKey).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+  if (PRESET_TEMPLATES[snakeKey]) {
+    return PRESET_TEMPLATES[snakeKey];
+  }
+  return PRESET_TEMPLATES.random;
 }
 
 export function resolveFireworkComposition(eventOrPreset) {

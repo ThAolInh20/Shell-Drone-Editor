@@ -136,26 +136,56 @@ export class CometEntity {
       this.mesh.add(this.coreMesh);
     } else {
       // Use a slightly vertically elongated core for motion blur feel
-      const coreGeometry = new THREE.SphereGeometry(COMET_CORE_SIZE, 8, 8);
-      const isSparkly = Boolean(this.preset?.sparkleAtEnd);
-      if (isSparkly) {
+      const isDetached = Boolean(this.preset?.detachedTrail)
+        || this.preset?.cometTrail === 'detached'
+        || this.preset?.cometTrail === 'detached-trail'
+        || this.preset?.shellType === 'comet_cluster_detached';
+      const isSuperBright = isDetached
+        || Boolean(this.preset?.isSingleComet)
+        || Boolean(this.preset?.superBrightHead)
+        || this.preset?.shellType === 'comet_single';
+      const isSparkly = Boolean(this.isStrobeStar);
+
+      if (isSuperBright) {
+        this.coreColor = color.clone().offsetHSL(0, 0.05, 0.30).multiplyScalar(9.0);
+      } else if (isSparkly) {
         this.coreColor.multiplyScalar(0.3);
       }
+
+      const coreSize = isSuperBright ? COMET_CORE_SIZE * 1.6 : COMET_CORE_SIZE;
+      const coreGeometry = new THREE.SphereGeometry(coreSize, 8, 8);
       const coreMaterial = new THREE.MeshBasicMaterial({
         color: this.coreColor,
         transparent: true,
         opacity: isSparkly ? 0.85 : 1.0,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        toneMapped: !isSparkly
+        toneMapped: !isSparkly && !isSuperBright
       });
       this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
       if (isSparkly) {
         this.coreMesh.scale.set(0.4, 1.2, 0.4);
+      } else if (isSuperBright) {
+        this.coreMesh.scale.set(0.85, 1.7, 0.85);
       } else {
         this.coreMesh.scale.set(0.6, 1.8, 0.6); // Elongated in Y
       }
       this.mesh.add(this.coreMesh);
+
+      if (isSuperBright) {
+        const innerGeometry = new THREE.SphereGeometry(coreSize * 0.70, 8, 8);
+        const innerMaterial = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(0xffffff).multiplyScalar(12.0),
+          transparent: true,
+          opacity: 1.0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          toneMapped: false
+        });
+        const innerMesh = new THREE.Mesh(innerGeometry, innerMaterial);
+        innerMesh.scale.set(0.85, 1.7, 0.85);
+        this.mesh.add(innerMesh);
+      }
     }
 
     this.mesh.traverse((child) => {

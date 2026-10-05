@@ -1684,13 +1684,19 @@ export class FireworkSystem {
         customLife = Math.min(baseTrailLife, remainingLife);
       }
       const isFloralChild = item.shellType === 'floral-child';
-      const isThin = Boolean(item.preset?.thinTrail);
+      const isDetached = Boolean(item.preset?.detachedTrail)
+        || item.preset?.cometTrail === 'detached'
+        || item.preset?.cometTrail === 'detached-trail'
+        || item.shellType === 'comet_cluster_detached';
+      const isThin = (Boolean(item.preset?.thinTrail) || isDetached) && !isFloralChild;
       const isBouquetComet = (item.preset?.isBouquetComet || (isFloralChild && item.preset?.thickTrail)) && !isThin;
       const isThick = (item.preset?.thickTrail || isBouquetComet) && !isThin;
       const ascentCfg = FIREWORK_CONFIG.ASCENT;
 
       let baseLifeMul;
-      if (isThin) {
+      if (isDetached) {
+        baseLifeMul = 0.20;
+      } else if (isThin) {
         baseLifeMul = 0.22;
       } else if (isBouquetComet) {
         baseLifeMul = 0.95;
@@ -1700,15 +1706,17 @@ export class FireworkSystem {
         baseLifeMul = ascentCfg?.trailLifeMultiplier ?? 0.55;
       }
 
-      const lifeMultiplier = isThin
-        ? 0.22
-        : baseLifeMul * (0.6 + 0.4 * trailIntensity);
-      const opacity = isThin
-        ? 0.65 * trailIntensity
-        : Math.min(
-          1.0,
-          (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : 1.0)
-        );
+      const lifeMultiplier = isDetached
+        ? 0.20
+        : (isThin ? 0.22 : baseLifeMul * (0.6 + 0.4 * trailIntensity));
+      const opacity = isDetached
+        ? 0.38 * trailIntensity
+        : (isThin
+          ? 0.65 * trailIntensity
+          : Math.min(
+            1.0,
+            (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : 1.0)
+          ));
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
       const ovalFactor = Math.sin(Math.PI * progress);
@@ -1717,7 +1725,7 @@ export class FireworkSystem {
       const midDispBoost = ascentCfg?.midDispersionBoost ?? 2.2;
       
       let dispersion;
-      if (isThin) {
+      if (isThin || isDetached) {
         dispersion = 0.0;
       } else if (isBouquetComet) {
         dispersion = 0.35 + Math.random() * 0.2;
@@ -1728,7 +1736,7 @@ export class FireworkSystem {
       }
 
       let subSteps;
-      if (isThin) {
+      if (isThin || isDetached) {
         subSteps = 2;
       } else if (isBouquetComet) {
         subSteps = 2;
@@ -1742,13 +1750,15 @@ export class FireworkSystem {
 
       const prevPos = item.prevPosition || item.mesh.position;
       const currPos = item.mesh.position;
-      const extraChance = isThin
+      const extraChance = (isThin || isDetached)
         ? 0.0
         : (isBouquetComet ? 0.85 : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85));
 
       const particleColor = isBouquetComet
         ? item.color.clone().offsetHSL(0, 0, 0.15)
-        : (isThin ? item.color.clone().offsetHSL(0, 0.05, 0.05) : item.color);
+        : (isDetached
+          ? item.color.clone().offsetHSL(0, -0.15, -0.12)
+          : (isThin ? item.color.clone().offsetHSL(0, 0.05, 0.05) : item.color));
 
       for (let s = 1; s <= subSteps; s++) {
         const t = s / subSteps;
@@ -1757,6 +1767,18 @@ export class FireworkSystem {
           currPos,
           t
         );
+
+        if (isDetached) {
+          const vel = item.velocity;
+          const velSpeed = vel ? vel.length() : 0;
+          const velDir = velSpeed > 0.1
+            ? vel.clone().normalize()
+            : new THREE.Vector3(0, 1, 0);
+          // Khoảng cách phân tách rõ rệt theo vận tốc bay thực tế (16 - 28 mét)
+          const gapDistance = Math.max(16.0, Math.min(28.0, velSpeed * 0.22));
+          spawnPos.addScaledVector(velDir, -gapDistance);
+        }
+
         if (dispersion > 0.02) {
           spawnPos.x += (Math.random() - 0.5) * dispersion;
           spawnPos.z += (Math.random() - 0.5) * dispersion;
@@ -1773,7 +1795,7 @@ export class FireworkSystem {
         );
 
         // Ở giai đoạn giữa hoặc với bouquet comet, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
-        if (extraChance > 0.2 && Math.random() < extraChance) {
+        if (extraChance > 0.2 && !isDetached && Math.random() < extraChance) {
           const sidePos = spawnPos.clone();
           const angle = Math.random() * Math.PI * 2;
           const lateralR = (0.25 + 0.75 * Math.random()) * dispersion;
@@ -1796,7 +1818,7 @@ export class FireworkSystem {
           ? Math.random() < 0.35
           : (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor));
 
-        if (shouldSpawnSpark && !item.preset?.sparkleAtEnd) {
+        if (shouldSpawnSpark && !item.preset?.sparkleAtEnd && !isDetached) {
           const sparkColor = isBouquetComet
             ? item.color.clone().offsetHSL(
               0,

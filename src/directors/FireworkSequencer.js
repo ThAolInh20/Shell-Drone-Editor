@@ -12,8 +12,8 @@ export class FireworkSequencer {
 
       if (task.timeToLaunch <= 0) {
         const isComet = task.isComet
-          || (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet'))
-          || (typeof task.preset === 'string' && (task.preset === 'comet' || task.preset.startsWith('comet_cluster')));
+          || (task.preset && (task.preset.type === 'comet_cluster' || task.preset.type === 'comet' || task.preset.type?.startsWith('comet')))
+          || (typeof task.preset === 'string' && (task.preset === 'comet' || task.preset.startsWith('comet_') || task.preset.startsWith('comet')));
 
         if (isComet) {
           this.cometSystem.launchRandom(task.preset, task.options);
@@ -395,10 +395,18 @@ export class FireworkSequencer {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = true;
+            overrides.detachedTrail = false;
+          } else if (config.cometTrail === 'detached' || config.cometTrail === 'detached-trail') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = true;
+            overrides.cometTrail = 'detached';
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+            overrides.detachedTrail = false;
           } else if (config.cometTrail === 'ascent-bursts') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
@@ -787,10 +795,18 @@ export class FireworkSequencer {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = true;
+            overrides.detachedTrail = false;
+          } else if (config.cometTrail === 'detached' || config.cometTrail === 'detached-trail') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = true;
+            overrides.cometTrail = 'detached';
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+            overrides.detachedTrail = false;
           }
         }
       }

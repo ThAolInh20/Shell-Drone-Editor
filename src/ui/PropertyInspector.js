@@ -13,15 +13,25 @@ import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
 import { CustomSelect } from './CustomSelect.js';
 import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 
+function formatOptionLabelFallback(rawKey) {
+  if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
+  if (rawKey === 'random') return 'Random';
+  let text = String(rawKey).replace(/[-_]/g, ' ');
+  text = text.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return text.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function getEnglishOptionLabel(fieldName, opt) {
   if (opt === '' || opt === undefined || opt === null) {
     return en?.editor?.inspector?.options?.[fieldName]?.empty || '';
   }
   const enOptions = en?.editor?.inspector?.options?.[fieldName];
-  if (enOptions && enOptions[opt]) {
-    return enOptions[opt];
+  if (enOptions) {
+    if (enOptions[opt]) return enOptions[opt];
+    const snakeKey = String(opt).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+    if (enOptions[snakeKey]) return enOptions[snakeKey];
   }
-  return String(opt);
+  return formatOptionLabelFallback(opt);
 }
 
 export const AVAILABLE_EFFECT_TAGS = [
@@ -139,10 +149,12 @@ export class PropertyInspector {
     }
     if (typeof preset === 'string') {
       return preset === 'comet'
-        || preset.startsWith('comet_cluster');
+        || preset.startsWith('comet_')
+        || preset.startsWith('comet');
     }
     return preset.type === 'comet_cluster'
-      || preset.type === 'comet';
+      || preset.type === 'comet'
+      || preset.type?.startsWith('comet');
   }
 
   hasAngleConfig(event) {
@@ -161,8 +173,8 @@ export class PropertyInspector {
 
   getSchema() {
     const isCometPreset = (event) => {
-      return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet'))
-        || (typeof event.preset === 'string' && (event.preset === 'comet' || event.preset.startsWith('comet_cluster')));
+      return (event.preset && (event.preset.type === 'comet_cluster' || event.preset.type === 'comet' || event.preset.type?.startsWith('comet')))
+        || (typeof event.preset === 'string' && (event.preset === 'comet' || event.preset.startsWith('comet_') || event.preset.startsWith('comet')));
     };
 
     return {
@@ -321,6 +333,7 @@ export class PropertyInspector {
                 'normal',
                 'thin',
                 'thick',
+                'detached',
                 'none',
                 'ascent-bursts'
               ]
@@ -610,13 +623,22 @@ export class PropertyInspector {
         return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
       });
 
-      const optionsList = sortedOptions.map(opt => {
+      const optionsList = sortedOptions.map((opt) => {
         const lookupKey = opt === '' ? 'empty' : opt;
         const translationKey = `editor.inspector.options.${field.name}.${lookupKey}`;
-        const translated = t(translationKey);
+        let translated = t(translationKey);
+        if (translated === translationKey) {
+          const snakeKey = String(lookupKey).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+          const snakeTranslationKey = `editor.inspector.options.${field.name}.${snakeKey}`;
+          const snakeTranslated = t(snakeTranslationKey);
+          if (snakeTranslated !== snakeTranslationKey) {
+            translated = snakeTranslated;
+          }
+        }
+        const fallbackLabel = formatOptionLabelFallback(opt || 'random');
         return {
           value: opt,
-          label: translated === translationKey ? (opt || 'random') : translated
+          label: translated === translationKey ? fallbackLabel : translated
         };
       });
 

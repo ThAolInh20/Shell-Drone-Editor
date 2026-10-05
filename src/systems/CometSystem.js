@@ -99,17 +99,21 @@ export class CometSystem {
         (0.97 + Math.random() * 0.06);
       const velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
 
-      // Spread the cluster more laterally
-      velocity.x += (Math.random() - 0.5) * 5;
-      velocity.z += (Math.random() - 0.5) * 5;
-      velocity.y *= (0.95 + Math.random() * 0.1);
+      // Spread the cluster laterally only when shooting multiple comets
+      if (clusterCount > 1) {
+        velocity.x += (Math.random() - 0.5) * 5;
+        velocity.z += (Math.random() - 0.5) * 5;
+        velocity.y *= (0.95 + Math.random() * 0.1);
+      }
 
-      // Slightly vary color
-      const cometColor = clusterColor.clone().offsetHSL(
-        (Math.random() - 0.5) * 0.05,
-        (Math.random() - 0.5) * 0.1,
-        (Math.random() - 0.5) * 0.2
-      );
+      // Slightly vary color only for multi-clusters
+      const cometColor = clusterCount > 1
+        ? clusterColor.clone().offsetHSL(
+          (Math.random() - 0.5) * 0.05,
+          (Math.random() - 0.5) * 0.1,
+          (Math.random() - 0.5) * 0.2
+        )
+        : clusterColor.clone();
 
       const cometPreset = hasStrobeTag
         ? { ...finalPreset, isStrobeStar: (i < strobeCount) }
@@ -310,9 +314,39 @@ export class CometSystem {
           } else if (!isDimmedOut) {
             // Giai đoạn phóng chuẩn (trước khi đạt ngưỡng phân tách)
             if (isCoreVisible) {
-              const minDistSq = comet.preset?.thickTrail ? 0.36 : (comet.preset?.thinTrail ? 1.0 : 0.64);
+              const isDetached = Boolean(comet.preset?.detachedTrail)
+                || comet.preset?.cometTrail === 'detached'
+                || comet.preset?.cometTrail === 'detached-trail'
+                || comet.preset?.shellType === 'comet_cluster_detached';
+
+              const minDistSq = comet.preset?.thickTrail
+                ? 0.36
+                : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64);
+
               if (comet.shouldSpawnTrail(minDistSq)) {
-                if (comet.preset?.thickTrail) {
+                let spawnPos = comet.mesh.position;
+                if (isDetached) {
+                  const vel = comet.velocity;
+                  const velSpeed = vel ? vel.length() : 0;
+                  const velDir = velSpeed > 0.1
+                    ? vel.clone().normalize()
+                    : new THREE.Vector3(0, 1, 0);
+                  const gapDistance = Math.max(16.0, Math.min(28.0, velSpeed * 0.22));
+                  spawnPos = comet.mesh.position.clone().addScaledVector(velDir, -gapDistance);
+                }
+
+                if (isDetached) {
+                  const particleColor = comet.color.clone().offsetHSL(0, -0.15, -0.12);
+                  this.trailSystem.spawnTrailParticle(
+                    spawnPos,
+                    particleColor,
+                    0.5,
+                    false,
+                    customLife * 0.5,
+                    0.38,
+                    false
+                  );
+                } else if (comet.preset?.thickTrail) {
                   this.trailSystem.spawnTrailParticle(
                     comet.mesh.position,
                     comet.color,
@@ -345,7 +379,7 @@ export class CometSystem {
                 }
               }
 
-              if (Math.random() < 0.08 && !comet.preset?.sparkleAtEnd) {
+              if (Math.random() < 0.08 && !comet.preset?.sparkleAtEnd && !isDetached) {
                 this.trailSystem.spawnEffectSpark(
                   comet.mesh.position,
                   comet.color,
@@ -353,7 +387,7 @@ export class CometSystem {
                 );
               }
 
-              if (this.smokeSystem && Math.random() < 0.25) {
+              if (this.smokeSystem && Math.random() < 0.25 && !isDetached) {
                 _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
                 this.smokeSystem.addSmokePoint(
                   comet.mesh.position,
