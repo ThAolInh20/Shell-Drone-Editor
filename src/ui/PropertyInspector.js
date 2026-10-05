@@ -9,6 +9,9 @@ import {
   getTemplateForPreset,
   resolveFireworkComposition
 } from '../factories/FireworkCompositionHelper.js';
+import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
+import { CustomSelect } from './CustomSelect.js';
+import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 
 function getEnglishOptionLabel(fieldName, opt) {
   if (opt === '' || opt === undefined || opt === null) {
@@ -547,52 +550,8 @@ export class PropertyInspector {
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
 
-    let input;
-    if (field.type === 'select') {
-      input = document.createElement('select');
-      input.className = 'inspector-input';
-      input.dataset.fieldName = field.name;
-
-      const sortedOptions = [...field.options].sort((a, b) => {
-        if (a === '') return -1;
-        if (b === '') return 1;
-        if (a === 'random') return -1;
-        if (b === 'random') return 1;
-        const labelA = getEnglishOptionLabel(field.name, a);
-        const labelB = getEnglishOptionLabel(field.name, b);
-        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
-      });
-
-      sortedOptions.forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt;
-        const lookupKey = opt === '' ? 'empty' : opt;
-        const translationKey = `editor.inspector.options.${field.name}.${lookupKey}`;
-        const translated = t(translationKey);
-        option.textContent = translated === translationKey ? (opt || 'random') : translated;
-        input.appendChild(option);
-      });
-      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
-    } else {
-      input = document.createElement('input');
-      input.className = 'inspector-input';
-      input.dataset.fieldName = field.name;
-      input.type = field.type;
-      if (field.step) input.step = field.step;
-      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
-    }
-
-    input.addEventListener('focus', () => {
-      this.isEditing = true;
-    });
-
-    input.addEventListener('blur', () => {
-      this.isEditing = false;
-      this.onUpdate(); // Final sync on blur
-    });
-
-    input.addEventListener('input', (e) => {
-      let val = e.target.value;
+    const handleValueChange = (rawVal) => {
+      let val = rawVal;
       if (field.type === 'number') {
         val = val === '' ? undefined : parseFloat(val);
       }
@@ -634,14 +593,83 @@ export class PropertyInspector {
       }
 
       this.triggerUpdate();
-    });
-
-    // Render loop helper to re-render inspector on type update
-    input.addEventListener('change', () => {
       if (field.type === 'select') {
         this.render();
       }
-    });
+    };
+
+    let input;
+    if (field.type === 'select') {
+      const sortedOptions = [...field.options].sort((a, b) => {
+        if (a === '') return -1;
+        if (b === '') return 1;
+        if (a === 'random') return -1;
+        if (b === 'random') return 1;
+        const labelA = getEnglishOptionLabel(field.name, a);
+        const labelB = getEnglishOptionLabel(field.name, b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      const optionsList = sortedOptions.map(opt => {
+        const lookupKey = opt === '' ? 'empty' : opt;
+        const translationKey = `editor.inspector.options.${field.name}.${lookupKey}`;
+        const translated = t(translationKey);
+        return {
+          value: opt,
+          label: translated === translationKey ? (opt || 'random') : translated
+        };
+      });
+
+      let previewCategory = null;
+      if (field.name === 'shape' || field.name === 'shapeType') {
+        previewCategory = PREVIEW_CATEGORIES.SHAPE;
+      } else if (
+        field.name === 'dynamics' ||
+        field.name === 'dynamicsType' ||
+        field.name === 'ascentSubShellType'
+      ) {
+        previewCategory = PREVIEW_CATEGORIES.DYNAMICS;
+      } else if (field.name === 'preset') {
+        previewCategory = PREVIEW_CATEGORIES.PRESET;
+      }
+
+      const customSelect = new CustomSelect({
+        options: optionsList,
+        value: this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '',
+        category: previewCategory,
+        fieldName: field.name,
+        onChange: (val) => handleValueChange(val)
+      });
+      input = customSelect.element;
+
+      if (previewCategory) {
+        EffectPreviewTooltip.getInstance().bindElement(
+          label,
+          () => customSelect.value,
+          previewCategory
+        );
+      }
+    } else {
+      input = document.createElement('input');
+      input.className = 'inspector-input';
+      input.dataset.fieldName = field.name;
+      input.type = field.type;
+      if (field.step) input.step = field.step;
+      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+
+      input.addEventListener('focus', () => {
+        this.isEditing = true;
+      });
+
+      input.addEventListener('blur', () => {
+        this.isEditing = false;
+        this.onUpdate(); // Final sync on blur
+      });
+
+      input.addEventListener('input', (e) => {
+        handleValueChange(e.target.value);
+      });
+    }
 
     parent.appendChild(label);
     parent.appendChild(input);
@@ -678,6 +706,11 @@ export class PropertyInspector {
     const span = document.createElement('span');
     span.textContent = t(`editor.inspector.fields.${field.labelKey}`);
     container.appendChild(span);
+
+    if (field.name === 'pistil') {
+      EffectPreviewTooltip.getInstance().bindElement(container, 'pistil', PREVIEW_CATEGORIES.OPTICAL_EFFECT);
+    }
+
     parent.appendChild(container);
   }
 
@@ -736,6 +769,8 @@ export class PropertyInspector {
         chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
         chip.appendChild(chipText);
 
+        EffectPreviewTooltip.getInstance().bindElement(chip, eff.key, PREVIEW_CATEGORIES.OPTICAL_EFFECT);
+
         const removeBtn = document.createElement('span');
         removeBtn.textContent = '×';
         removeBtn.style.cursor = 'pointer';
@@ -786,8 +821,14 @@ export class PropertyInspector {
     select.appendChild(defaultOption);
 
     if (availableToAdd.length === 0) {
-      select.disabled = true;
-      select.style.opacity = '0.5';
+      const disabledPlaceholder = document.createElement('div');
+      disabledPlaceholder.className = 'inspector-input';
+      disabledPlaceholder.style.fontSize = '11px';
+      disabledPlaceholder.style.padding = '4px 8px';
+      disabledPlaceholder.style.opacity = '0.5';
+      disabledPlaceholder.textContent =
+        t('editor.inspector.allEffectsAdded') || 'All effects added';
+      addWrapper.appendChild(disabledPlaceholder);
     } else {
       const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
         const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
@@ -795,30 +836,36 @@ export class PropertyInspector {
         return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
       });
 
-      sortedAvailableToAdd.forEach((eff) => {
-        const opt = document.createElement('option');
-        opt.value = eff.key;
-        opt.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
-        select.appendChild(opt);
+      const effectOptions = sortedAvailableToAdd.map((eff) => ({
+        value: eff.key,
+        label: t(`editor.inspector.fields.${eff.labelKey}`) || eff.key
+      }));
+
+      const effectSelect = new CustomSelect({
+        options: effectOptions,
+        placeholder:
+          t('editor.inspector.addEffectPrompt') || '+ Add Effect...',
+        category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+        fieldName: 'addEffect',
+        enableSearch: false,
+        onChange: (selectedKey) => {
+          if (!selectedKey) return;
+          this.triggerUpdate('beforeChange');
+          this.selectedEvent[selectedKey] = true;
+          if (!Array.isArray(this.selectedEvent.effects)) {
+            this.selectedEvent.effects = [];
+          }
+          if (!this.selectedEvent.effects.includes(selectedKey)) {
+            this.selectedEvent.effects.push(selectedKey);
+          }
+          this.triggerUpdate();
+          this.render();
+        }
       });
 
-      select.addEventListener('change', (e) => {
-        const selectedKey = e.target.value;
-        if (!selectedKey) return;
-        this.triggerUpdate('beforeChange');
-        this.selectedEvent[selectedKey] = true;
-        if (!Array.isArray(this.selectedEvent.effects)) {
-          this.selectedEvent.effects = [];
-        }
-        if (!this.selectedEvent.effects.includes(selectedKey)) {
-          this.selectedEvent.effects.push(selectedKey);
-        }
-        this.triggerUpdate();
-        this.render();
-      });
+      addWrapper.appendChild(effectSelect.element);
     }
 
-    addWrapper.appendChild(select);
     container.appendChild(chipsWrapper);
     container.appendChild(addWrapper);
 
@@ -1872,35 +1919,29 @@ export class PropertyInspector {
       shapeLbl.textContent =
         t('editor.inspector.fields.shapeType') ||
         'Shape';
-      const shapeSel = document.createElement('select');
-      shapeSel.className = 'inspector-input';
-      shapeSel.style.fontSize = '11px';
-
       const sortedShapes = [...AVAILABLE_SHAPES].sort((a, b) => {
         const labelA = getEnglishOptionLabel('shapeType', a);
         const labelB = getEnglishOptionLabel('shapeType', b);
         return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
       });
 
-      sortedShapes.forEach(sh => {
-        const opt = document.createElement('option');
-        opt.value = sh;
-        opt.textContent =
-          t(`editor.inspector.options.shapeType.${sh}`) ||
-          sh;
-        opt.selected = (stage.shapeType || 'sphere') === sh;
-        shapeSel.appendChild(opt);
-      });
-      shapeSel.addEventListener(
-        'change',
-        (e) => {
+      const shapeCustom = new CustomSelect({
+        options: sortedShapes.map((sh) => ({
+          value: sh,
+          label: t(`editor.inspector.options.shapeType.${sh}`) || sh
+        })),
+        value: stage.shapeType || 'sphere',
+        category: PREVIEW_CATEGORIES.SHAPE,
+        fieldName: 'shapeType',
+        onChange: (val) => {
           this.triggerUpdate('beforeChange');
-          stage.shapeType = e.target.value;
+          stage.shapeType = val;
           this.triggerUpdate();
         }
-      );
+      });
+
       shapeCol.appendChild(shapeLbl);
-      shapeCol.appendChild(shapeSel);
+      shapeCol.appendChild(shapeCustom.element);
 
       // Dynamics select
       const dynCol = document.createElement('div');
@@ -1910,9 +1951,6 @@ export class PropertyInspector {
       dynLbl.textContent =
         t('editor.inspector.fields.dynamicsType') ||
         'Dynamics';
-      const dynSel = document.createElement('select');
-      dynSel.className = 'inspector-input';
-      dynSel.style.fontSize = '11px';
 
       const sortedDynamics = [...AVAILABLE_DYNAMICS].sort((a, b) => {
         const labelA = getEnglishOptionLabel('dynamicsType', a);
@@ -1920,25 +1958,23 @@ export class PropertyInspector {
         return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
       });
 
-      sortedDynamics.forEach(dyn => {
-        const opt = document.createElement('option');
-        opt.value = dyn;
-        opt.textContent =
-          t(`editor.inspector.options.dynamicsType.${dyn}`) ||
-          dyn;
-        opt.selected = (stage.dynamicsType || 'standard') === dyn;
-        dynSel.appendChild(opt);
-      });
-      dynSel.addEventListener(
-        'change',
-        (e) => {
+      const dynCustom = new CustomSelect({
+        options: sortedDynamics.map((dyn) => ({
+          value: dyn,
+          label: t(`editor.inspector.options.dynamicsType.${dyn}`) || dyn
+        })),
+        value: stage.dynamicsType || 'standard',
+        category: PREVIEW_CATEGORIES.DYNAMICS,
+        fieldName: 'dynamicsType',
+        onChange: (val) => {
           this.triggerUpdate('beforeChange');
-          stage.dynamicsType = e.target.value;
+          stage.dynamicsType = val;
           this.triggerUpdate();
         }
-      );
+      });
+
       dynCol.appendChild(dynLbl);
-      dynCol.appendChild(dynSel);
+      dynCol.appendChild(dynCustom.element);
 
       row1.appendChild(shapeCol);
       row1.appendChild(dynCol);
