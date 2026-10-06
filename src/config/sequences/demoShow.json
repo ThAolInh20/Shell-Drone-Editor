@@ -2,7 +2,7 @@
   {
     "time": 0,
     "type": "sequence",
-    "pattern": "intertwined-helix",
+    "pattern": "continuous",
     "count": 3,
     "duration": 0.1,
     "preset": "bouquet",

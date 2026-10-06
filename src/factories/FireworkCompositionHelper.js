@@ -102,6 +102,12 @@ export const PRESET_TEMPLATES = {
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
+  comet_cluster_cascade: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   comet_single: {
     shape: 'sphere',
     dynamics: 'bouquet-comet',

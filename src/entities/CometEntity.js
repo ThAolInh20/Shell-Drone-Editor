@@ -45,32 +45,91 @@ export class CometEntity {
     this.fadeStartTime = this.timeToApex * fadeStartRatio;
     this.isFading = false;
 
+    // Visual Effect Tags normalization
+    const effects = Array.isArray(preset?.effects) ? preset.effects : [];
+    const effectType = preset?.effectType || '';
+
+    this.hasCrackle = Boolean(preset?.crackle || effects.includes('crackle') || effectType === 'crackle');
+    this.hasCrossette = Boolean(preset?.crossette || effects.includes('crossette') || effectType === 'crossette');
+    this.hasFlow = Boolean(preset?.flow || effects.includes('flow') || effectType === 'flow');
+    this.hasGhost = Boolean(preset?.ghost || effects.includes('ghost') || effectType === 'ghost');
+    this.hasGhostFlare = Boolean(
+      preset?.ghostFlare ||
+      effects.includes('ghost-flare') ||
+      effectType === 'ghost-kamuro'
+    );
+    this.hasNoTrail = Boolean(
+      preset?.noTrail ||
+      effects.includes('no-trail') ||
+      effectType === 'no-trail' ||
+      preset?.shellType === 'comet_cluster_notrail'
+    );
+    this.hasNoBurst = Boolean(preset?.noBurst || effects.includes('no-burst') || effectType === 'no-burst');
+
+    this.isWhiteStrobe = effects.includes('white-strobe') || effectType === 'white-strobe';
+    this.isGlitterStrobe = effects.includes('glitter-strobe') || effectType === 'glitter-strobe';
+    this.hasStrobe = Boolean(
+      preset?.strobe ||
+      effects.includes('strobe') ||
+      this.isWhiteStrobe ||
+      this.isGlitterStrobe
+    );
+
+    if (this.hasFlow) {
+      this.flowPhase = Math.random() * Math.PI * 2;
+      this.flowSpeed = 4.5 + Math.random() * 2.0;
+      this.flowAmp = 3.5 + Math.random() * 2.0;
+    }
+
+    if (this.hasGhost) {
+      this.ghostIgniteTime = this.timeToApex * (0.42 + Math.random() * 0.12);
+    }
+
     // Stochastic Strobe / Glitter State Machine
-    const flashRate = 4.5 + Math.random() * 3.0; // 4.5 - 7.5 Hz
+    const flashRate = this.isGlitterStrobe
+      ? (6.5 + Math.random() * 2.5)
+      : (4.5 + Math.random() * 3.0);
+    const flashColor = this.isWhiteStrobe
+      ? new THREE.Color(0xffffff)
+      : (this.isGlitterStrobe ? new THREE.Color(0xffe599) : new THREE.Color(0xffffff));
+
     this.strobe = {
       state: 'smolder', // 'smolder', 'flash', 'recovery'
       stateTime: 0,
       nextFlashInterval: -Math.log(1 - Math.random() * 0.99) / flashRate,
-      flashDuration: 0.045 + Math.random() * 0.025,
+      flashDuration: this.isGlitterStrobe ? (0.035 + Math.random() * 0.02) : (0.045 + Math.random() * 0.025),
       recoveryDuration: 0.03 + Math.random() * 0.02,
       flashRate,
       activationThreshold: 0.50 + Math.random() * 0.18, // 50% - 68%
       energy: 0,
       intensity: 0,
-      peakScaleBoost: 2.0 + Math.random() * 0.8,
-      peakEmission: 2.5 + Math.random() * 1.5,
+      peakScaleBoost: this.isGlitterStrobe ? 2.6 : (2.0 + Math.random() * 0.8),
+      peakEmission: this.isWhiteStrobe ? 4.2 : (this.isGlitterStrobe ? 3.6 : (2.5 + Math.random() * 1.5)),
       attackRate: 150.0,
       decayRate: 40.0,
-      doubleFlashChance: 0.15,
+      doubleFlashChance: this.isGlitterStrobe ? 0.35 : 0.15,
       isDoubleFlash: false,
-      flashColor: new THREE.Color(0xffffff),
+      flashColor,
       tempColor: new THREE.Color()
     };
 
-    // Chỉ một tỷ lệ nhỏ hạt lấp lánh (khoảng 25% - 35%), các hạt khác sẽ mờ dần khi lên cao
+    if (this.isGhostFlare) {
+      this.ghostFlare = {
+        stage: 'ascent', // 'ascent' -> 'dark' -> 'flare' -> 'decayed'
+        darkStartTime: this.timeToApex * (0.50 + Math.random() * 0.12),
+        flareDuration: 0.30 + Math.random() * 0.08,
+        flareTimer: 0,
+        flarePeakEmission: 16.0 + Math.random() * 4.0,
+        flarePeakScale: 3.4 + Math.random() * 0.6,
+        flareColor: new THREE.Color(0xfffaed),
+        tempColor: new THREE.Color()
+      };
+    }
+
+    // Tỷ lệ hạt lấp lánh
     this.isStrobeStar = preset?.isStrobeStar !== undefined
       ? preset.isStrobeStar
-      : (Math.random() < (preset?.strobeRatio ?? 0.30));
+      : (this.hasStrobe && (this.isGlitterStrobe || Math.random() < (preset?.strobeRatio ?? 0.30)));
     this.dimStartTime = this.timeToApex * (0.45 + Math.random() * 0.15);
 
     if (this.preset?.shellType === 'comet_cluster_cc' && this.preset?.secondColor) {
@@ -83,7 +142,7 @@ export class CometEntity {
       );
     }
 
-    if (this.preset?.shellType === 'comet_cluster_notrail') {
+    if (this.preset?.shellType === 'comet_cluster_notrail' || this.hasNoTrail) {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array([color.r, color.g, color.b]), 3));
@@ -160,7 +219,7 @@ export class CometEntity {
         opacity: isSparkly ? 0.85 : 1.0,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-        toneMapped: !isSparkly && !isSuperBright
+        toneMapped: !isSparkly && !isSuperBright && !this.isGhostFlare
       });
       this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
       if (isSparkly) {
@@ -201,7 +260,22 @@ export class CometEntity {
     this.state = CometEntity.STATE.LAUNCHING;
   }
 
+  get isGhostDarkPhase() {
+    return Boolean(this.isGhostFlare && this.ghostFlare?.stage === 'dark');
+  }
+
+  get isGhostFlaring() {
+    return Boolean(this.isGhostFlare && this.ghostFlare?.stage === 'flare');
+  }
+
+  get isGhostInvisible() {
+    return Boolean(this.hasGhost && this.age < this.ghostIgniteTime);
+  }
+
   shouldSpawnTrail(minDistanceSq = 0.64) {
+    if (this.hasNoTrail || this.isGhostDarkPhase || this.isGhostInvisible) {
+      return false;
+    }
     if (this.lastTrailSpawnPos.distanceToSquared(this.mesh.position) >= minDistanceSq) {
       this.lastTrailSpawnPos.copy(this.mesh.position);
       return true;
@@ -244,6 +318,12 @@ export class CometEntity {
       this.ballisticPosition.addScaledVector(this.velocity, deltaTime);
       this.age += deltaTime;
 
+      if (this.isGhostFlare) {
+        if (this.ghostFlare.stage === 'ascent' && this.age >= this.ghostFlare.darkStartTime) {
+          this.ghostFlare.stage = 'dark';
+        }
+      }
+
       if (this.spiral) {
         const timeToApex = Math.max(0.1, this.initialVy / 30);
         const flightRatio = Math.min(1.0, this.age / timeToApex);
@@ -261,6 +341,15 @@ export class CometEntity {
           this.ballisticPosition.x + offsetX,
           this.ballisticPosition.y,
           this.ballisticPosition.z + offsetZ
+        );
+      } else if (this.hasFlow) {
+        const flowT = this.age * this.flowSpeed + this.flowPhase;
+        const flowOffsetX = Math.sin(flowT) * this.flowAmp;
+        const flowOffsetZ = Math.cos(flowT * 1.3) * (this.flowAmp * 0.8);
+        this.mesh.position.set(
+          this.ballisticPosition.x + flowOffsetX,
+          this.ballisticPosition.y,
+          this.ballisticPosition.z + flowOffsetZ
         );
       } else {
         this.mesh.position.copy(this.ballisticPosition);
@@ -298,6 +387,10 @@ export class CometEntity {
       // Check if it reached the apex (velocity.y <= 0)
       if (this.velocity.y <= 0) {
         this.state = CometEntity.STATE.DECAYING;
+        if (this.isGhostFlare && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
+          this.ghostFlare.stage = 'flare';
+          this.ghostFlare.flareTimer = 0;
+        }
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
       this.prevPosition.copy(this.mesh.position);
@@ -308,36 +401,42 @@ export class CometEntity {
       if (this.velocity.lengthSq() > 0.01) {
         this.updateRotation();
       }
+      if (this.isGhostFlare && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
+        this.ghostFlare.stage = 'flare';
+        this.ghostFlare.flareTimer = 0;
+      }
     }
 
-    // Fading logic
-    if (
-      !this.isFading &&
-      (this.age >= this.fadeStartTime || this.state === CometEntity.STATE.DECAYING)
-    ) {
-      this.isFading = true;
-    }
+    // Fading logic for standard comets (when not ghost flare)
+    if (!this.isGhostFlare) {
+      if (
+        !this.isFading &&
+        (this.age >= this.fadeStartTime || this.state === CometEntity.STATE.DECAYING)
+      ) {
+        this.isFading = true;
+      }
 
-    if (this.isFading) {
-      this.decayTime += deltaTime;
-      const decayRatio = Math.min(1.0, this.decayTime / this.maxDecayTime);
+      if (this.isFading) {
+        this.decayTime += deltaTime;
+        const decayRatio = Math.min(1.0, this.decayTime / this.maxDecayTime);
 
-      if (decayRatio >= 1.0) {
-        this.state = CometEntity.STATE.DEAD;
-      } else {
-        const fadeRatio = Math.pow(decayRatio, 2.2);
-        // Fade out opacity
-        this.coreMesh.material.opacity = 1.0 - fadeRatio;
-        // Shrink core
-        const scale = 1.0 - fadeRatio * 0.8;
-        if (this.preset?.shellType !== 'comet_cluster_notrail') {
-          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
-          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
-          this.coreMesh.scale.set(
-            baseScaleX * scale,
-            baseScaleY * scale,
-            baseScaleX * scale
-          );
+        if (decayRatio >= 1.0) {
+          this.state = CometEntity.STATE.DEAD;
+        } else {
+          const fadeRatio = Math.pow(decayRatio, 2.2);
+          // Fade out opacity
+          this.coreMesh.material.opacity = 1.0 - fadeRatio;
+          // Shrink core
+          const scale = 1.0 - fadeRatio * 0.8;
+          if (this.preset?.shellType !== 'comet_cluster_notrail') {
+            const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+            const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+            this.coreMesh.scale.set(
+              baseScaleX * scale,
+              baseScaleY * scale,
+              baseScaleX * scale
+            );
+          }
         }
       }
     }
@@ -359,12 +458,14 @@ export class CometEntity {
       this.isStrobeStar &&
       this.state === CometEntity.STATE.LAUNCHING &&
       heightRatio >= (this.strobe?.activationThreshold ?? 0.5) &&
-      !this.isFading;
+      !this.isFading &&
+      !this.isGhostFlare;
 
     const isDimmingNonStrobe = hasStrobeTag &&
       !this.isStrobeStar &&
       this.state === CometEntity.STATE.LAUNCHING &&
-      this.age >= this.dimStartTime;
+      this.age >= this.dimStartTime &&
+      !this.isGhostFlare;
 
     // Stochastic Strobe / Glitter State Machine
     if (isStrobeActive) {
@@ -466,23 +567,122 @@ export class CometEntity {
         baseScaleY * scaleFactor,
         baseScaleX * scaleFactor
       );
-    } else {
-      this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING || this.isFading) : true;
-      if (this.coreMesh.material && this.coreMesh.material.color) {
-        this.coreMesh.material.color.copy(this.color);
-      }
-      // Khôi phục scale gốc
-      if (
-        !this.isFading &&
-        this.preset?.shellType !== 'comet_cluster_notrail'
-      ) {
-        const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
-        const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
-        this.coreMesh.scale.set(
-          baseScaleX,
-          baseScaleY,
-          baseScaleX
+    } else if (this.isGhostFlare) {
+      // Ghost 3-Stage Flare State Machine
+      if (this.ghostFlare.stage === 'ascent') {
+        this.coreMesh.visible = true;
+        if (this.coreMesh.material) {
+          this.coreMesh.material.opacity = 1.0;
+          if (this.coreMesh.material.color) {
+            this.coreMesh.material.color.copy(this.color);
+          }
+        }
+        if (this.preset?.shellType !== 'comet_cluster_notrail') {
+          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+          this.coreMesh.scale.set(
+            baseScaleX,
+            baseScaleY,
+            baseScaleX
+          );
+        }
+      } else if (this.ghostFlare.stage === 'dark') {
+        const darkElapsed = this.age - this.ghostFlare.darkStartTime;
+        const darkTransition = Math.min(1.0, Math.max(0.0, darkElapsed / 0.16));
+        const darkOpacity = THREE.MathUtils.lerp(1.0, 0.06, darkTransition);
+        const darkScale = THREE.MathUtils.lerp(1.0, 0.35, darkTransition);
+
+        this.coreMesh.visible = true;
+        if (this.coreMesh.material) {
+          this.coreMesh.material.opacity = darkOpacity;
+          if (this.coreMesh.material.color) {
+            this.coreMesh.material.color.copy(this.color).multiplyScalar(
+              Math.max(0.15, 1.0 - darkTransition * 0.75)
+            );
+          }
+        }
+        if (this.preset?.shellType !== 'comet_cluster_notrail') {
+          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+          this.coreMesh.scale.set(
+            baseScaleX * darkScale,
+            baseScaleY * darkScale,
+            baseScaleX * darkScale
+          );
+        }
+      } else if (this.ghostFlare.stage === 'flare') {
+        this.ghostFlare.flareTimer += deltaTime;
+        const flareProgress = Math.min(
+          1.0,
+          this.ghostFlare.flareTimer / this.ghostFlare.flareDuration
         );
+        let flareIntensity = 0;
+        if (flareProgress < 0.20) {
+          flareIntensity = Math.sin((flareProgress / 0.20) * (Math.PI * 0.5));
+        } else {
+          flareIntensity = Math.cos(((flareProgress - 0.20) / 0.80) * (Math.PI * 0.5));
+        }
+
+        this.coreMesh.visible = true;
+        if (this.coreMesh.material) {
+          this.coreMesh.material.opacity = Math.min(1.0, 0.2 + flareIntensity * 0.8);
+          if (this.coreMesh.material.color) {
+            this.ghostFlare.tempColor.copy(this.coreColor)
+              .lerp(this.ghostFlare.flareColor, flareIntensity * 0.75)
+              .multiplyScalar(1.0 + flareIntensity * this.ghostFlare.flarePeakEmission);
+            this.coreMesh.material.color.copy(this.ghostFlare.tempColor);
+          }
+        }
+
+        if (this.preset?.shellType !== 'comet_cluster_notrail') {
+          const flareScale = 1.0 + flareIntensity * (this.ghostFlare.flarePeakScale - 1.0);
+          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+          this.coreMesh.scale.set(
+            baseScaleX * flareScale,
+            baseScaleY * flareScale,
+            baseScaleX * flareScale
+          );
+        }
+
+        if (flareProgress >= 1.0) {
+          this.ghostFlare.stage = 'decayed';
+          this.state = CometEntity.STATE.DEAD;
+        }
+      } else {
+        this.state = CometEntity.STATE.DEAD;
+      }
+    } else {
+      if (this.isGhostInvisible) {
+        this.coreMesh.visible = false;
+      } else {
+        let ghostOpacity = 1.0;
+        if (this.hasGhost) {
+          const igniteElapsed = this.age - this.ghostIgniteTime;
+          ghostOpacity = Math.min(1.0, Math.max(0.0, igniteElapsed / 0.12));
+        }
+
+        this.coreMesh.visible = this.preset?.sparkleAtEnd ? (this.state === CometEntity.STATE.DECAYING || this.isFading) : true;
+        if (this.coreMesh.material && this.coreMesh.material.color) {
+          this.coreMesh.material.color.copy(this.color);
+          if (this.hasGhost) {
+            this.coreMesh.material.opacity = ghostOpacity;
+          }
+        }
+        // Khôi phục scale gốc
+        if (
+          !this.isFading &&
+          this.preset?.shellType !== 'comet_cluster_notrail'
+        ) {
+          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : 0.6;
+          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : 1.8;
+          const scaleMod = this.hasGhost ? (0.3 + 0.7 * ghostOpacity) : 1.0;
+          this.coreMesh.scale.set(
+            baseScaleX * scaleMod,
+            baseScaleY * scaleMod,
+            baseScaleX * scaleMod
+          );
+        }
       }
     }
 

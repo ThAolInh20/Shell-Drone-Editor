@@ -541,6 +541,7 @@ export default {
           comet_cluster_cc: "变色彗星集群",
           comet_cluster_thick: "粗拖尾彗星集群",
           comet_cluster_detached: "超亮分段彗星光束集群",
+          comet_cluster_cascade: "级联阶梯彗星集群",
           comet_single: "单发极亮彗星光束",
           comet_single_beam: "单发极亮彗星光束",
           sparkling_comet: "顶点闪耀彗星",

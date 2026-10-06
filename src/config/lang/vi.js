@@ -556,6 +556,7 @@ export default {
           comet_cluster_cc: "Cụm sao chổi đổi màu",
           comet_cluster_thick: "Cụm sao chổi vệt dày",
           comet_cluster_detached: "Cụm sao chổi tia rời siêu sáng",
+          comet_cluster_cascade: "Cụm sao chổi dải tầng",
           comet_single: "Sao chổi đơn siêu sáng",
           comet_single_beam: "Sao chổi đơn siêu sáng",
           sparkling_comet: "Sao chổi nổ đỉnh lấp lánh",

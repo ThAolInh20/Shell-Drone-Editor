@@ -84,6 +84,7 @@ export class ShellPresetFactory {
       { key: 'comet_cluster_cc', label: 'Comet Cluster Color Change' },
       { key: 'comet_cluster_thick', label: 'Comet Cluster Thick Trail' },
       { key: 'comet_cluster_detached', label: 'Comet Cluster Detached Beam' },
+      { key: 'comet_cluster_cascade', label: 'Comet Cluster Cascade' },
       { key: 'comet_single', label: 'Single Comet Beam' },
       { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
@@ -209,6 +210,7 @@ export class ShellPresetFactory {
     registerWithAlias('comet_cluster_cc', 'comet_cluster_cc', (size) => this.cometClusterCC(size));
     registerWithAlias('comet_cluster_thick', 'comet_cluster_thick', (size) => this.cometClusterThick(size));
     registerWithAlias('comet_cluster_detached', 'comet_cluster_detached', (size) => this.cometClusterDetached(size));
+    registerWithAlias('comet_cluster_cascade', 'comet_cluster_cascade', (size) => this.cometClusterCascade(size));
     registerWithAlias('comet_single', 'comet_single', (size) => this.cometSingle(size));
     registerWithAlias('comet_single_beam', 'comet_single_beam', (size) => this.cometSingle(size));
     registerWithAlias('sparkling_comet', 'sparkling_comet', (size) => this.sparklingComet(size));
@@ -953,6 +955,22 @@ export class ShellPresetFactory {
       launchTrail: true,
       detachedTrail: true,
       cometTrail: 'detached'
+    };
+  }
+
+  cometClusterCascade(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_cascade',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 42 + Math.floor(Math.random() * 12),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true,
+      thickTrail: true,
+      isCascade: true,
+      shellSize: size
     };
   }
 

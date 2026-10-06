@@ -542,6 +542,7 @@ export default {
           comet_cluster_cc: "変色彗星群",
           comet_cluster_thick: "太軌跡彗星群",
           comet_cluster_detached: "超高輝度分離ビーム彗星群",
+          comet_cluster_cascade: "カスケード階層彗星群",
           comet_single: "単発超高輝度彗星ビーム",
           comet_single_beam: "単発超高輝度彗星ビーム",
           sparkling_comet: "頂点スパークル彗星",

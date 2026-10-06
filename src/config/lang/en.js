@@ -556,6 +556,7 @@ export default {
           comet_cluster_cc: "Comet Cluster Color Change",
           comet_cluster_thick: "Comet Cluster Thick Trail",
           comet_cluster_detached: "Comet Cluster Detached Beam",
+          comet_cluster_cascade: "Comet Cluster Cascade",
           comet_single: "Single Comet Beam",
           comet_single_beam: "Single Comet Beam",
           sparkling_comet: "Sparkling Comet Apex Spark",
