@@ -26,10 +26,18 @@ export const renderingConfig = {
   },
   sky: {
     cloudCoverage: 0.55,
-    cloudSpeed: 1.0
+    cloudSpeed: 1.0,
+    moonDay: 15,
+    moonPhase: 'full',
+    moonPosition: 0.8,
+    moonAltitude: 500
   },
   performance: {
     fpsThreshold: 70,
     minFrameCount: 40
+  },
+  camera: {
+    mode: 'free',
+    speed: 1.0
   }
 };

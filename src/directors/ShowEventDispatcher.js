@@ -65,10 +65,18 @@ export class ShowEventDispatcher {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = true;
+            overrides.detachedTrail = false;
+          } else if (evt.cometTrail === 'detached' || evt.cometTrail === 'detached-trail') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = true;
+            overrides.cometTrail = 'detached';
           } else if (evt.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+            overrides.detachedTrail = false;
           } else if (evt.cometTrail === 'ascent-bursts') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
@@ -82,8 +90,8 @@ export class ShowEventDispatcher {
         if (evt.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(evt.ascentBurstCount, 10);
       }
 
-      const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 
-                    || (typeof evt.preset === 'string' && (evt.preset.startsWith('comet_cluster') || evt.preset.includes('comet')));
+      const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet' || evt.preset.type?.startsWith('comet'))) 
+                    || (typeof evt.preset === 'string' && (evt.preset === 'comet' || evt.preset.startsWith('comet_') || evt.preset.startsWith('comet')));
 
       if (isComet && context.sequencer && context.sequencer.cometSystem) {
         context.sequencer.cometSystem.launchRandom(evt.preset, { 

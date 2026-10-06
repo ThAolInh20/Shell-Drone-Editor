@@ -36,6 +36,19 @@
   - **Presets as Templates**: New presets must be registered as Composition Templates in `FireworkCompositionHelper.js` and `ShellPresetFactory.js`.
 - **Centralized Taxonomy**: Whenever adding a new Shape, Dynamics, Modifier, or Visual Effect tag, you MUST register it in `./src/factories/FireworkCompositionHelper.js` and provide translations in all language files (`./src/config/lang/{en,vi,zh,ja}.js`).
 
+## Preset & Shell Naming Conventions
+- **Lowercase snake_case Format**: All preset keys, shell types, and composition identifiers MUST be written in lowercase `snake_case`.
+- **Primary Effect / Category Prefix**: The identifier MUST always start with the primary effect or base category, followed by variants and modifiers:
+  `{primary_category}_{variant}_{modifier}`
+  - *Examples*:
+    - `strobe_dying_embers`, `strobe_white`, `strobe_glitter`
+    - `crysanthemum_spiral_v2`, `crysanthemum_smoke`, `crysanthemum_nested`
+    - `comet_cluster_detached`, `comet_single_beam`, `comet_cluster_cc`
+    - `willow_falling_comets`, `willow_arch`
+    - `crossette_ring`, `crossette_matrix`
+- **Aliases for Backward Compatibility**: If camelCase or legacy keys exist in codebase, map them as secondary aliases only, with the primary canonical key adhering to the structured `snake_case` prefix rule.
+
 ## UI & Localization Text Conventions
 - **No Parentheses in Text Strings**: Do NOT use parentheses `(...)` in UI labels, options, preset display names, or translation strings. Keep titles and labels clean, natural, and concise without parenthetical notes (e.g. use "Chrysanthemum Spiral V2" instead of "Chrysanthemum Spiral V2 (Spiral -> Sphere)", "Bouquet Cluster" instead of "Bouquet (Cluster)", "Direct Save" instead of "(Direct Save)").
+
 

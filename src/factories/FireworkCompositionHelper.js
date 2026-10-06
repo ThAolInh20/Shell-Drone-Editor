@@ -16,7 +16,8 @@ export const AVAILABLE_SHAPES = [
   'willow-arch',
   'half-flash',
   'split-flash',
-  'double-helix'
+  'double-helix',
+  'sparkling-branches'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -40,7 +41,9 @@ export const AVAILABLE_DYNAMICS = [
   'swimming-star',
   'ghost-kamuro',
   'double-helix',
-  'crossette'
+  'crossette',
+  'sparkle-trail',
+  'sparkling-branch-comet'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -57,7 +60,9 @@ export const AVAILABLE_EFFECT_TAGS = [
   'ghost-flare',
   'flow',
   'no-trail',
-  'crossette'
+  'no-burst',
+  'crossette',
+  'sparkle-apex'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -86,6 +91,30 @@ export const PRESET_TEMPLATES = {
     effects: []
   },
   comet_cluster_thick: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_cluster_detached: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_cluster_cascade: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_single: {
+    shape: 'sphere',
+    dynamics: 'bouquet-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  comet_single_beam: {
     shape: 'sphere',
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
@@ -123,9 +152,9 @@ export const PRESET_TEMPLATES = {
   },
   crysanthemumCC: {
     shape: 'sphere',
-    dynamics: 'standard',
-    modifiers: { pistil: true, instantBurst: false },
-    effects: []
+    dynamics: 'crysanthemum-cc',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['crysanthemum-cc']
   },
   crysanthemumNested: {
     shape: 'sphere',
@@ -402,6 +431,18 @@ export const PRESET_TEMPLATES = {
     dynamics: 'crossette',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['crossette']
+  },
+  sparkling_comet_branches: {
+    shape: 'sparkling-branches',
+    dynamics: 'sparkling-branch-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['sparkle-apex']
+  },
+  sparklingCometBranches: {
+    shape: 'sparkling-branches',
+    dynamics: 'sparkling-branch-comet',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['sparkle-apex']
   }
 };
 
@@ -409,7 +450,18 @@ export function getTemplateForPreset(presetKey) {
   if (!presetKey) {
     return PRESET_TEMPLATES.random;
   }
-  return PRESET_TEMPLATES[presetKey] || PRESET_TEMPLATES.random;
+  if (PRESET_TEMPLATES[presetKey]) {
+    return PRESET_TEMPLATES[presetKey];
+  }
+  const camelKey = String(presetKey).replace(/_([a-z0-9])/g, (_, g) => g.toUpperCase());
+  if (PRESET_TEMPLATES[camelKey]) {
+    return PRESET_TEMPLATES[camelKey];
+  }
+  const snakeKey = String(presetKey).replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+  if (PRESET_TEMPLATES[snakeKey]) {
+    return PRESET_TEMPLATES[snakeKey];
+  }
+  return PRESET_TEMPLATES.random;
 }
 
 export function resolveFireworkComposition(eventOrPreset) {

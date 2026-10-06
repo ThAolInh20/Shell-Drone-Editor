@@ -35,7 +35,8 @@ export class ShellPresetFactory {
       'split-flash',
       'galaxy',
       'upward-spray',
-      'double-helix'
+      'double-helix',
+      'sparkling-branches'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -70,7 +71,11 @@ export class ShellPresetFactory {
       'oval',
       'no-trail',
       'notrail',
-      'crossette'
+      'no-burst',
+      'crossette',
+      'sparkle-trail',
+      'sparkle-apex',
+      'sparkling-branch-comet'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -78,55 +83,59 @@ export class ShellPresetFactory {
       { key: 'comet_cluster_notrail', label: 'Comet Cluster No Trail' },
       { key: 'comet_cluster_cc', label: 'Comet Cluster Color Change' },
       { key: 'comet_cluster_thick', label: 'Comet Cluster Thick Trail' },
+      { key: 'comet_cluster_detached', label: 'Comet Cluster Detached Beam' },
+      { key: 'comet_cluster_cascade', label: 'Comet Cluster Cascade' },
+      { key: 'comet_single', label: 'Single Comet Beam' },
+      { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
-      { key: 'crysanthemumV2', label: 'Chrysanthemum V2' },
-      { key: 'crysanthemumSmoke', label: 'Chrysanthemum Smoke' },
-      { key: 'crysanthemumSpiral', label: 'Chrysanthemum Spiral' },
-      { key: 'crysanthemumSpiralV2', label: 'Chrysanthemum Spiral V2' },
-      { key: 'crysanthemumCC', label: 'Chrysanthemum Color Change' },
-      { key: 'crysanthemumNested', label: 'Chrysanthemum Nested' },
-      { key: 'multiNested', label: '★ Multi Nested Shell' },
-      { key: 'strobeDyingEmbers', label: 'Strobe Embers' },
+      { key: 'crysanthemum_v2', label: 'Chrysanthemum V2' },
+      { key: 'crysanthemum_smoke', label: 'Chrysanthemum Smoke' },
+      { key: 'crysanthemum_spiral', label: 'Chrysanthemum Spiral' },
+      { key: 'crysanthemum_spiral_v2', label: 'Chrysanthemum Spiral V2' },
+      { key: 'crysanthemum_cc', label: 'Chrysanthemum Color Change' },
+      { key: 'crysanthemum_nested', label: 'Chrysanthemum Nested' },
+      { key: 'multi_nested', label: 'Multi Nested Shell' },
+      { key: 'strobe_dying_embers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking Ember Decay' },
-      { key: 'sparkingV2', label: 'Sparking V2 Instant Ember' },
+      { key: 'sparking_v2', label: 'Sparking V2 Instant Ember' },
       { key: 'crackle', label: 'Crackle' },
       { key: 'strobe', label: 'Strobe' },
-      { key: 'whiteStrobe', label: 'White Strobe' },
-      { key: 'glitterStrobe', label: 'Glitter Strobe' },
-      { key: 'weepingWillowComets', label: 'Weeping Willow Comets' },
-      { key: 'weepingWillowCometsV2', label: 'Weeping Willow Comets V2' },
-      { key: 'weepingWillowCometsV3', label: 'Weeping Willow Comets V3' },
-      { key: 'weepingWillowArch', label: 'Weeping Willow Arch' },
-      { key: 'fallingLeaves', label: 'Falling Leaves' },
+      { key: 'white_strobe', label: 'White Strobe' },
+      { key: 'glitter_strobe', label: 'Glitter Strobe' },
+      { key: 'weeping_willow_comets', label: 'Weeping Willow Comets' },
+      { key: 'weeping_willow_comets_v2', label: 'Weeping Willow Comets V2' },
+      { key: 'weeping_willow_comets_v3', label: 'Weeping Willow Comets V3' },
+      { key: 'weeping_willow_arch', label: 'Weeping Willow Arch' },
+      { key: 'falling_leaves', label: 'Falling Leaves' },
       { key: 'floral', label: 'Floral' },
       { key: 'bouquet', label: 'Bouquet Cluster' },
-      { key: 'bouquetComet', label: 'Bouquet Comets' },
-      { key: 'bouquetCometSphere', label: 'Bouquet' },
-      { key: 'bouquetV2', label: 'Bouquet V2' },
-      { key: 'bouquetV2Multicolor', label: 'Bouquet V2 Multi Color' },
+      { key: 'bouquet_comet', label: 'Bouquet Comets' },
+      { key: 'bouquet_comet_sphere', label: 'Bouquet Sphere' },
+      { key: 'bouquet_v2', label: 'Bouquet V2' },
+      { key: 'bouquet_v2_multicolor', label: 'Bouquet V2 Multi Color' },
       { key: 'rumble', label: 'Rumble' },
       { key: 'flower', label: 'Flower' },
       { key: 'cat', label: 'Cat' },
       { key: 'ring', label: 'Ring' },
-      { key: 'ringV2', label: 'RingV2' },
-      { key: 'ringComet', label: 'Comet Ring' },
+      { key: 'ring_v2', label: 'Ring V2' },
+      { key: 'ring_comet', label: 'Comet Ring' },
       { key: 'oval', label: 'Oval' },
       { key: 'snow', label: 'Snow' },
       { key: 'fish', label: 'Fish' },
-      { key: 'fishV2', label: 'Fish V2 Spherical' },
-      { key: 'fishV3', label: 'Fish V3 Chrysanthemum Swimming' },
+      { key: 'fish_v2', label: 'Fish V2 Spherical' },
+      { key: 'fish_v3', label: 'Fish V3 Chrysanthemum Swimming' },
       { key: 'smiley', label: 'Smiley' },
       { key: 'wave', label: 'Wave' },
       { key: 'heart', label: 'Heart' },
       { key: 'star', label: 'Star' },
       { key: 'ghost', label: 'Ghost' },
-      { key: 'falling-comets', label: 'Falling Comets' },
-      { key: 'halfFlash', label: 'Half Sphere Flash' },
-      { key: 'splitFlash', label: 'Split Sphere Flash' },
+      { key: 'falling_comets', label: 'Falling Comets' },
+      { key: 'half_flash', label: 'Half Sphere Flash' },
+      { key: 'split_flash', label: 'Split Sphere Flash' },
       { key: 'sparkling_comet', label: 'Sparkling Comet Apex Spark' },
       { key: 'galaxy', label: 'Spiral Galaxy' },
-      { key: 'ghostKamuro', label: 'Ghost Kamuro' },
-      { key: 'doubleHelix', label: 'Double Helix' },
+      { key: 'ghost_kamuro', label: 'Ghost Kamuro' },
+      { key: 'double_helix', label: 'Double Helix' },
       { key: 'crossette', label: 'Crossette' }
     ];
 
@@ -143,62 +152,73 @@ export class ShellPresetFactory {
   }
 
   initializePresetsRegistry() {
-    this.presetsRegistry.set('crysanthemum', (size) => this.crysanthemumShell(size));
-    this.presetsRegistry.set('crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
-    this.presetsRegistry.set('crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
-    this.presetsRegistry.set('crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
-    this.presetsRegistry.set('crysanthemumSpiralV2', (size) => this.crysanthemumSpiralV2Shell(size));
-    this.presetsRegistry.set('crysanthemumCC', (size) => this.crysanthemumCCShell(size));
-    this.presetsRegistry.set('crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
-    this.presetsRegistry.set('multiNested', (size) => this.multiNestedShell(size));
-    this.presetsRegistry.set('sparking', (size) => this.sparkingShell(size));
-    this.presetsRegistry.set('sparkingV2', (size) => this.sparkingV2Shell(size));
-    this.presetsRegistry.set('crackle', (size) => this.crackleShell(size));
-    this.presetsRegistry.set('strobe', (size) => this.strobeShell(size));
-    this.presetsRegistry.set('strobeDyingEmbers', (size) => this.strobeDyingEmbersShell(size));
-    this.presetsRegistry.set('whiteStrobe', (size) => this.whiteStrobeShell(size));
-    this.presetsRegistry.set('glitterStrobe', (size) => this.glitterStrobeShell(size));
-    this.presetsRegistry.set('weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
-    this.presetsRegistry.set('weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
-    this.presetsRegistry.set('weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
-    this.presetsRegistry.set('weepingWillowArch', (size) => this.weepingWillowArchShell(size));
-    this.presetsRegistry.set('fallingLeaves', (size) => this.fallingLeavesShell(size));
-    this.presetsRegistry.set('floral', (size) => this.floralShell(size));
-    this.presetsRegistry.set('bouquet', (size) => this.bouquetShell(size));
-    this.presetsRegistry.set('bouquetComet', (size) => this.bouquetCometShell(size));
-    this.presetsRegistry.set('bouquetCometSphere', (size) => this.bouquetCometSphereShell(size));
-    this.presetsRegistry.set('bouquetV2', (size) => this.bouquetV2Shell(size));
-    this.presetsRegistry.set('bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
-    this.presetsRegistry.set('rumble', (size) => this.rumbleShell(size));
-    this.presetsRegistry.set('flower', (size) => this.flowerShell(size));
-    this.presetsRegistry.set('cat', (size) => this.catShell(size));
-    this.presetsRegistry.set('ring', (size) => this.ringShell(size));
-    this.presetsRegistry.set('ringV2', (size) => this.ringShellV2(size));
-    this.presetsRegistry.set('ringComet', (size) => this.cometRingShell(size));
-    this.presetsRegistry.set('oval', (size) => this.ovalShell(size));
-    this.presetsRegistry.set('snow', (size) => this.snowShell(size));
-    this.presetsRegistry.set('fish', (size) => this.fishShell(size));
-    this.presetsRegistry.set('fishV2', (size) => this.fishV2Shell(size));
-    this.presetsRegistry.set('fishV3', (size) => this.fishV3Shell(size));
-    this.presetsRegistry.set('smiley', (size) => this.smileyShell(size));
-    this.presetsRegistry.set('wave', (size) => this.waveShell(size));
-    this.presetsRegistry.set('heart', (size) => this.hearthShell(size));
-    this.presetsRegistry.set('star', (size) => this.starShell(size));
-    this.presetsRegistry.set('ghost', (size) => this.ghostShell(size));
-    this.presetsRegistry.set('falling-comets', (size) => this.fallingCometsShell(size));
-    this.presetsRegistry.set('halfFlash', (size) => this.halfFlashShell(size));
-    this.presetsRegistry.set('splitFlash', (size) => this.splitFlashShell(size));
-    this.presetsRegistry.set('comet_cluster', (size) => this.cometCluster(size));
-    this.presetsRegistry.set('comet_cluster_notrail', (size) => this.cometClusterNoTrail(size));
-    this.presetsRegistry.set('comet_cluster_cc', (size) => this.cometClusterCC(size));
-    this.presetsRegistry.set('comet_cluster_thick', (size) => this.cometClusterThick(size));
-    this.presetsRegistry.set('sparkling_comet', (size) => this.sparklingComet(size));
-    this.presetsRegistry.set('galaxy', (size) => this.galaxyShell(size));
-    this.presetsRegistry.set('ghostKamuro', (size) => this.ghostKamuroShell(size));
-    this.presetsRegistry.set('ghost_kamuro', (size) => this.ghostKamuroShell(size));
-    this.presetsRegistry.set('doubleHelix', (size) => this.doubleHelixShell(size));
-    this.presetsRegistry.set('double_helix', (size) => this.doubleHelixShell(size));
-    this.presetsRegistry.set('crossette', (size) => this.crossetteShell(size));
+    // Canonical snake_case keys & legacy camelCase aliases
+    const registerWithAlias = (snakeKey, camelKey, fn) => {
+      this.presetsRegistry.set(snakeKey, fn);
+      if (camelKey && camelKey !== snakeKey) {
+        this.presetsRegistry.set(camelKey, fn);
+      }
+    };
+
+    registerWithAlias('crysanthemum', 'crysanthemum', (size) => this.crysanthemumShell(size));
+    registerWithAlias('crysanthemum_v2', 'crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
+    registerWithAlias('crysanthemum_smoke', 'crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
+    registerWithAlias('crysanthemum_spiral', 'crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
+    registerWithAlias('crysanthemum_spiral_v2', 'crysanthemumSpiralV2', (size) => this.crysanthemumSpiralV2Shell(size));
+    registerWithAlias('crysanthemum_cc', 'crysanthemumCC', (size) => this.crysanthemumCCShell(size));
+    registerWithAlias('crysanthemum_nested', 'crysanthemumNested', (size) => this.crysanthemumNestedShell(size));
+    registerWithAlias('multi_nested', 'multiNested', (size) => this.multiNestedShell(size));
+    registerWithAlias('sparking', 'sparking', (size) => this.sparkingShell(size));
+    registerWithAlias('sparking_v2', 'sparkingV2', (size) => this.sparkingV2Shell(size));
+    registerWithAlias('crackle', 'crackle', (size) => this.crackleShell(size));
+    registerWithAlias('strobe', 'strobe', (size) => this.strobeShell(size));
+    registerWithAlias('strobe_dying_embers', 'strobeDyingEmbers', (size) => this.strobeDyingEmbersShell(size));
+    registerWithAlias('white_strobe', 'whiteStrobe', (size) => this.whiteStrobeShell(size));
+    registerWithAlias('glitter_strobe', 'glitterStrobe', (size) => this.glitterStrobeShell(size));
+    registerWithAlias('weeping_willow_comets', 'weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
+    registerWithAlias('weeping_willow_comets_v2', 'weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
+    registerWithAlias('weeping_willow_comets_v3', 'weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
+    registerWithAlias('weeping_willow_arch', 'weepingWillowArch', (size) => this.weepingWillowArchShell(size));
+    registerWithAlias('falling_leaves', 'fallingLeaves', (size) => this.fallingLeavesShell(size));
+    registerWithAlias('floral', 'floral', (size) => this.floralShell(size));
+    registerWithAlias('bouquet', 'bouquet', (size) => this.bouquetShell(size));
+    registerWithAlias('bouquet_comet', 'bouquetComet', (size) => this.bouquetCometShell(size));
+    registerWithAlias('bouquet_comet_sphere', 'bouquetCometSphere', (size) => this.bouquetCometSphereShell(size));
+    registerWithAlias('bouquet_v2', 'bouquetV2', (size) => this.bouquetV2Shell(size));
+    registerWithAlias('bouquet_v2_multicolor', 'bouquetV2Multicolor', (size) => this.bouquetV2MulticolorShell(size));
+    registerWithAlias('rumble', 'rumble', (size) => this.rumbleShell(size));
+    registerWithAlias('flower', 'flower', (size) => this.flowerShell(size));
+    registerWithAlias('cat', 'cat', (size) => this.catShell(size));
+    registerWithAlias('ring', 'ring', (size) => this.ringShell(size));
+    registerWithAlias('ring_v2', 'ringV2', (size) => this.ringShellV2(size));
+    registerWithAlias('ring_comet', 'ringComet', (size) => this.cometRingShell(size));
+    registerWithAlias('oval', 'oval', (size) => this.ovalShell(size));
+    registerWithAlias('snow', 'snow', (size) => this.snowShell(size));
+    registerWithAlias('fish', 'fish', (size) => this.fishShell(size));
+    registerWithAlias('fish_v2', 'fishV2', (size) => this.fishV2Shell(size));
+    registerWithAlias('fish_v3', 'fishV3', (size) => this.fishV3Shell(size));
+    registerWithAlias('smiley', 'smiley', (size) => this.smileyShell(size));
+    registerWithAlias('wave', 'wave', (size) => this.waveShell(size));
+    registerWithAlias('heart', 'heart', (size) => this.hearthShell(size));
+    registerWithAlias('star', 'star', (size) => this.starShell(size));
+    registerWithAlias('ghost', 'ghost', (size) => this.ghostShell(size));
+    registerWithAlias('falling_comets', 'falling-comets', (size) => this.fallingCometsShell(size));
+    registerWithAlias('half_flash', 'halfFlash', (size) => this.halfFlashShell(size));
+    registerWithAlias('split_flash', 'splitFlash', (size) => this.splitFlashShell(size));
+    registerWithAlias('comet_cluster', 'comet_cluster', (size) => this.cometCluster(size));
+    registerWithAlias('comet_cluster_notrail', 'comet_cluster_notrail', (size) => this.cometClusterNoTrail(size));
+    registerWithAlias('comet_cluster_cc', 'comet_cluster_cc', (size) => this.cometClusterCC(size));
+    registerWithAlias('comet_cluster_thick', 'comet_cluster_thick', (size) => this.cometClusterThick(size));
+    registerWithAlias('comet_cluster_detached', 'comet_cluster_detached', (size) => this.cometClusterDetached(size));
+    registerWithAlias('comet_cluster_cascade', 'comet_cluster_cascade', (size) => this.cometClusterCascade(size));
+    registerWithAlias('comet_single', 'comet_single', (size) => this.cometSingle(size));
+    registerWithAlias('comet_single_beam', 'comet_single_beam', (size) => this.cometSingle(size));
+    registerWithAlias('sparkling_comet', 'sparkling_comet', (size) => this.sparklingComet(size));
+    registerWithAlias('sparkling_comet_branches', 'sparklingCometBranches', (size) => this.sparklingCometBranchesShell(size));
+    registerWithAlias('galaxy', 'galaxy', (size) => this.galaxyShell(size));
+    registerWithAlias('ghost_kamuro', 'ghostKamuro', (size) => this.ghostKamuroShell(size));
+    registerWithAlias('double_helix', 'doubleHelix', (size) => this.doubleHelixShell(size));
+    registerWithAlias('crossette', 'crossette', (size) => this.crossetteShell(size));
   }
 
   randomPreset() {
@@ -481,6 +501,9 @@ export class ShellPresetFactory {
       shellType: 'crysanthemumCC',
       shapeType: 'sphere',
       effectType: 'crysanthemum-cc',
+      effects: ['crysanthemum-cc'],
+      particleCountMultiplier: 1.35,
+      starLife: 2800 + size * 400,
       flower: false,
       smiley: false,
       hearth: false,
@@ -852,27 +875,15 @@ export class ShellPresetFactory {
     const base = this.basePreset(size);
     const color = base.color;
 
-    // Choose a second color based on transition color map
-    const colorMap = {
-      'white': 0xff4500,     // White -> Orange Red
-      0xffd700: 0x00bfff,    // Gold -> Sky Blue
-      0xff4500: 0x7fffd4,    // Orange Red -> Aquamarine
-      0x00bfff: 0xff69b4,    // Sky Blue -> Hot Pink
-      0xff69b4: 0x7fffd4,    // Hot Pink -> Aquamarine
-      0x7fffd4: 0x8a2be2,    // Aquamarine -> Blue Violet
-      0x8a2be2: 0xffd700     // Blue Violet -> Gold
-    };
-    const secondColor = colorMap[color] || 0xffffff;
-
     return {
       ...base,
       color,
-      secondColor,
       shellType: 'ghost',
       shapeType: 'sphere',
       effectType: 'ghost',
-      particleCountMultiplier: 1.5, // Nhiều hạt để thấy rõ làn sóng đổi màu quét qua
-      starLife: 1500 + size * 200,
+      effects: ['ghost'],
+      particleCountMultiplier: 1.35,
+      starLife: 2800 + size * 400,
       ghost: true
     };
   }
@@ -932,6 +943,54 @@ export class ShellPresetFactory {
     };
   }
 
+  cometClusterDetached(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_detached',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 8 + Math.floor(Math.random() * 4),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true,
+      detachedTrail: true,
+      cometTrail: 'detached'
+    };
+  }
+
+  cometClusterCascade(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_cluster_cascade',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 42 + Math.floor(Math.random() * 12),
+      particleCountMultiplier: 1.5,
+      crackle: false,
+      launchTrail: true,
+      thickTrail: true,
+      isCascade: true,
+      shellSize: size
+    };
+  }
+
+  cometSingle(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_single',
+      shapeType: 'sphere',
+      effectType: 'standard',
+      clusterCount: 1,
+      isSingleComet: true,
+      superBrightHead: true,
+      particleCountMultiplier: 1.0,
+      crackle: false,
+      launchTrail: true,
+      color: this.randomColor({ limitWhite: true }),
+      shellSize: size
+    };
+  }
+
   sparklingComet(size = 1) {
     return {
       type: 'comet_cluster',
@@ -945,6 +1004,25 @@ export class ShellPresetFactory {
       sparkleAtEnd: true,
       maxDecayTime: 1.8,
       strobe: true
+    };
+  }
+
+  sparklingCometBranchesShell(size = 1) {
+    return {
+      type: 'sparkling_comet_branches',
+      shellType: 'sparkling_comet_branches',
+      shapeType: 'sparkling-branches',
+      dynamicsType: 'sparkling-branch-comet',
+      effectType: 'sparkle-trail',
+      effects: ['sparkle-apex'],
+      branchCount: 5,
+      cometsPerBranch: 5,
+      sparkleAtEnd: true,
+      thinTrail: true,
+      launchTrail: true,
+      instantBurst: false,
+      color: this.randomColor({ limitWhite: true }),
+      shellSize: size
     };
   }
 

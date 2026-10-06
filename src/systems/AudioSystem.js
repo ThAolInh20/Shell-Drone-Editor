@@ -258,6 +258,14 @@ export class AudioSystem {
   }
 
   handleBurst(detail) {
+    if (
+      detail.noBurstSound ||
+      detail.noBurst ||
+      (Array.isArray(detail.effects) && detail.effects.includes('no-burst'))
+    ) {
+      return;
+    }
+
     const { position, intensity } = detail;
     const { delay, scale } = this.calculatePositionalAudioParams(position, intensity * 2);
 
