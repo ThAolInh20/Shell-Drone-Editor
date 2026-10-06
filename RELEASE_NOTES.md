@@ -1,19 +1,19 @@
-# Release Notes - v2.4.2
+# Release Notes - v2.4.3
 
 ## Features
-- Added Multi Nested Shell preset with customizable multi-layer burst stages and nesting patterns.
-- Added Sub Shell Launch Trail option to detonate smaller shells along the ascent path.
-- Added new firework presets including Willow Arch, Ghost Kamuro, and Double Helix.
-- Added new firing patterns including Intertwined Helix, Wave Surge, and Cascade Slope.
-- Added dynamic terrain and water reflection lighting when fireworks explode.
-- Added subtle camera shake and burst impact feedback upon firework detonations.
-
-## Bug Fixes
-- Fixed an issue where switching away from Multi Shell retained nested shell properties.
-- Fixed frame rate drop when spawning multiple comet projectiles.
-- Fixed strobe visual effect behavior on comet clusters.
-- Fixed projectile behavior upon impact with the water surface.
+- Added live video hover previews for sequence firing patterns and firework effects in the property inspector.
+- Added customizable launch angle dial and toggle checkbox for fan, sweep, and comet sequence patterns.
+- Added natural arch dome trajectory curve with dynamic peak height for all fan and sweep firing patterns.
+- Added Cascade comet preset featuring bottom-to-top chromatic color gradients and smooth conical dispersion.
+- Added Ghost Flare effect with pre-death flash illumination across multi-stage comet clusters.
+- Added single comet beam preset and standardized preset naming conventions.
+- Added Spark Comet Multi firework shell preset.
+- Added continuous launch barge pier layout with directional lift sparks and boundary drift reversal.
+- Added interactive SkyDome environment and advanced smoke visual options.
+- Added preset camera position shortcuts and movement controls.
+- Added No Burst optical effect option for silent tracer projectiles.
 
 ## Updates
-- Cleaned up preset names and options across the inspector interface.
-- Alphabetized dropdown selectors for faster property and preset navigation.
+- Enhanced inspector settings layout with streamlined controls and visual effect chips.
+- Refined moon lighting and nighttime environmental ambiance settings.
+- Improved angle dial responsiveness and degree-to-deflection conversion for all firing patterns.
