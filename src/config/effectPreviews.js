@@ -2,7 +2,8 @@ export const PREVIEW_CATEGORIES = {
   SHAPE: 'shape',
   DYNAMICS: 'dynamics',
   OPTICAL_EFFECT: 'effect',
-  PRESET: 'preset'
+  PRESET: 'preset',
+  PATTERN: 'pattern'
 };
 
 export const EFFECT_PREVIEW_METADATA = {
@@ -341,6 +342,190 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/sparkling-comet-branches.mp4',
     tags: ['Multi Branch', 'Apex Sparkle'],
     summary: 'Shell explodes into four to five sub-comet branches with sparkling flashes at the apex.'
+  },
+
+  // Sequence Firing Patterns
+  'random': {
+    name: 'Random Scattering',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/random.mp4',
+    tags: ['Scattered Firing', 'Random Positions'],
+    summary: 'Randomized firework shells launching across diverse launch positions and sector arcs.'
+  },
+  'sweep': {
+    name: 'Linear Sweep',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/sweep.mp4',
+    tags: ['Left to Right', 'Directional Wave'],
+    summary: 'Sequential linear sweep firing smoothly from one side of the barge to the opposite side.'
+  },
+  'sweep-arc': {
+    name: 'Curved Arc Sweep',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/sweep-arc.mp4',
+    tags: ['Curved Arc', 'Barge Geometry'],
+    summary: 'Sweeping sequential firing following the curved circular arc geometry of the launch zone.'
+  },
+  'sweep-arc-out': {
+    name: 'Outward Arc Sweep',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/sweep-arc-out.mp4',
+    tags: ['Outward Burst', 'Expanding Arc'],
+    summary: 'Outward expanding curved arc firing from inner center positions to perimeter extremes.'
+  },
+  'cascade-slope': {
+    name: 'Cascade Slope',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/cascade-slope.mp4',
+    tags: ['Stepped Altitude', 'Diagonal Slope'],
+    summary: 'Stepped altitude sequence creating a continuous ascending or descending diagonal slope of bursts.'
+  },
+  'chasing-scissors': {
+    name: 'Chasing Scissors',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/chasing-scissors.mp4',
+    tags: ['Dual Sweep', 'Intersecting Beams'],
+    summary: 'Dual opposing sweeps crossing each other at high velocity resembling opening and closing scissors.'
+  },
+  'waterfall-curtain': {
+    name: 'Waterfall Curtain',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/waterfall-curtain.mp4',
+    tags: ['Curtain Wall', 'Dense Barrage'],
+    summary: 'Dense high-density wall of simultaneous and rapid-fire shells creating a glowing curtain.'
+  },
+  'sinusoidal-wave': {
+    name: 'Sinusoidal Wave',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/sinusoidal-wave.mp4',
+    tags: ['Harmonic Wave', 'Undulating Height'],
+    summary: 'Harmonic wave firing pattern undulating smoothly between varying burst altitudes.'
+  },
+  'petal-bloom': {
+    name: 'Petal Bloom',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/petal-bloom.mp4',
+    tags: ['Radial Expansion', 'Flower Bloom'],
+    summary: 'Rhythmic radial sequence opening outward from center like blooming flower petals.'
+  },
+  'teeter-totter': {
+    name: 'Teeter Totter',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/teeter-totter.mp4',
+    tags: ['Alternating Flanks', 'Pendulum Rhythm'],
+    summary: 'Alternating left-right pendulum firing rocking back and forth between opposing flanks.'
+  },
+  'vortex-tunnel': {
+    name: 'Vortex Tunnel',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/vortex-tunnel.mp4',
+    tags: ['Rotating Vortex', 'Cylindrical Depth'],
+    summary: 'Rotating vortex trajectory firing creating a three-dimensional spiral tunnel effect.'
+  },
+  'stepping-stones': {
+    name: 'Stepping Stones',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/stepping-stones.mp4',
+    tags: ['Rhythmic Beats', 'Sector March'],
+    summary: 'Discrete rhythmic step bursts marching cleanly across launch sectors in synchronized intervals.'
+  },
+  'intertwined-helix': {
+    name: 'Intertwined Helix',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/intertwined-helix.mp4',
+    tags: ['DNA Helix', 'Dual Spiral'],
+    summary: 'Dual interlocking spiral comet streams ascending in a synchronized helical twist.'
+  },
+  'fan': {
+    name: 'Symmetrical Fan',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/fan.mp4',
+    tags: ['Angled Volley', 'Wide Horizon'],
+    summary: 'Wide-angle symmetrical fan volley spanning the entire sky from angled launch tubes.'
+  },
+  'fan-sweep': {
+    name: 'Fan Sweep',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/fan-sweep.mp4',
+    tags: ['Angled Sweep', 'Panoramic Spray'],
+    summary: 'Directional panoramic fan sweep spraying angled beams progressively across the horizon.'
+  },
+  'fan-sweep-continuous': {
+    name: 'Continuous Fan Sweep',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/fan-sweep-continuous.mp4',
+    tags: ['Rapid Fan', 'Continuous Beam'],
+    summary: 'High-speed continuous barrage of angled fan beams sweeping repeatedly without pause.'
+  },
+  'fan-burst': {
+    name: 'Fan Burst',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/fan-burst.mp4',
+    tags: ['Simultaneous Volley', 'Instant Fan'],
+    summary: 'Simultaneous instant fan volley detonating synchronized bursts across wide sector angles.'
+  },
+  'crossfire': {
+    name: 'Crossfire',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/crossfire.mp4',
+    tags: ['Interlocking Angles', 'X-Cross Pattern'],
+    summary: 'Angled opposing comets fired from opposite sides crossing paths mid-air in an X formation.'
+  },
+  'crossfire-burst': {
+    name: 'Crossfire Burst',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/crossfire-burst.mp4',
+    tags: ['Crossing Volleys', 'Apex Detonation'],
+    summary: 'Opposing crossfire beams that simultaneously detonate aerial shell bursts at their intersection apex.'
+  },
+  'v-shape': {
+    name: 'V-Shape Formation',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/v-shape.mp4',
+    tags: ['Symmetrical V', 'Outward Angles'],
+    summary: 'Symmetrical V-formation firing outward from center with mirrored launch angles.'
+  },
+  'spiral-helix': {
+    name: 'Spiral Helix',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/spiral-helix.mp4',
+    tags: ['Single Column', 'Spiral Stream'],
+    summary: 'Spinning spiral column sequence ascending into the sky with continuous rotational trajectory.'
+  },
+  'ripple': {
+    name: 'Concentric Ripple',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/ripple.mp4',
+    tags: ['Expanding Rings', 'Water Ripple'],
+    summary: 'Concentric circular sequence expanding outwards from the center barge like water ripples.'
+  },
+  'converge': {
+    name: 'Converge',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/converge.mp4',
+    tags: ['Inward Focus', 'Center Focal Point'],
+    summary: 'Beams fired inward from perimeter boundaries meeting at a single central focal point.'
+  },
+  'diverge': {
+    name: 'Diverge',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/diverge.mp4',
+    tags: ['Outward Spread', 'Radial Fanout'],
+    summary: 'Beams fired outward from the center bursting toward outer perimeter boundaries.'
+  },
+  'zigzag': {
+    name: 'Zigzag',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/zigzag.mp4',
+    tags: ['Alternating Angles', 'Dynamic Zigzag'],
+    summary: 'Dynamic zigzag sequence alternating launch angles and firing directions in rapid succession.'
+  },
+  'continuous': {
+    name: 'Continuous Barrage',
+    category: PREVIEW_CATEGORIES.PATTERN,
+    videoUrl: 'previews/patterns/continuous.mp4',
+    tags: ['Rapid Fire', 'Non-Stop Barrage'],
+    summary: 'Continuous sustained barrage of shells firing in relentless rapid succession.'
   }
 };
 

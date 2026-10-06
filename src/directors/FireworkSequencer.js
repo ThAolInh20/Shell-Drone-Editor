@@ -53,8 +53,8 @@ export class FireworkSequencer {
       const baseRatioY = config.ratioY !== undefined ? config.ratioY : 0.8;
       const heightScale = baseRatioY / 0.7;
 
-      // CHỈ khi useAngle === true thì mới bắn theo góc chỉ định, nếu không check thì luôn bắn ngẫu nhiên
-      const hasCustomAngle = useAngle === true && angle !== undefined;
+      // CHỈ khi useAngle === true (hoặc angle được truyền trong cấu hình) thì mới bắn theo góc chỉ định
+      const hasCustomAngle = angle !== undefined && (useAngle === true || useAngle === undefined);
       const resolvedAngle = hasCustomAngle
         ? (Math.abs(angle) > Math.PI ? (angle * Math.PI / 180) : angle)
         : undefined;
@@ -100,11 +100,46 @@ export class FireworkSequencer {
           ratioZ = (Math.sin(progress * Math.PI * 4) + 1) / 2; // Sine wave depth
           ratioY = 0.4 + Math.random() * 0.4;
           break;
-        case 'fan': // Arching from left to right, middle is highest
+        case 'fan': { // Arching from left to right, middle is highest
           ratioX = progress;
-          ratioY = 0.4 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.4);
-          angleOffset = (0.28 - 0.56 * progress) + (Math.random() - 0.5) * 0.12;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
+          if (resolvedAngle !== undefined) {
+            angleOffset = resolvedAngle - (2 * resolvedAngle) * progress;
+          } else {
+            angleOffset = (0.28 - 0.56 * progress) + (Math.random() - 0.5) * 0.12;
+          }
           break;
+        }
+        case 'fan-sweep':
+        case 'fan-sweep-right':
+        case 'fan-sweep-left': {
+          const defaultX1 = (pattern === 'fan-sweep-left') ? 1.0 : 0.0;
+          const defaultX2 = (pattern === 'fan-sweep-left') ? 0.0 : 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const isMovingRight = endX >= startX;
+          const startAngle = resolvedAngle !== undefined ? resolvedAngle : 0.45;
+          ratioX = startX + progress * (endX - startX);
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
+          angleOffset = isMovingRight
+            ? startAngle - (2 * startAngle) * progress
+            : -startAngle + (2 * startAngle) * progress;
+          break;
+        }
+        case 'fan-sweep-continuous': {
+          const startAngle = resolvedAngle !== undefined ? resolvedAngle : 0.45;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.abs(Math.sin(progress * Math.PI * (config.sweepCount || 2)))));
+          angleOffset = Math.cos(progress * Math.PI * (config.sweepCount || 2)) * startAngle;
+          break;
+        }
+        case 'fan-burst': {
+          const startAngle = resolvedAngle !== undefined ? resolvedAngle : 0.45;
+          ratioX = progress;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
+          angleOffset = startAngle - (2 * startAngle) * progress;
+          delay = 0;
+          break;
+        }
         case 'crossfire': {
           const isEven = i % 2 === 0;
           ratioX = isEven ? (progress * 0.9 + 0.05) : (0.95 - progress * 0.9);
@@ -151,7 +186,7 @@ export class FireworkSequencer {
           const startX = x1 !== undefined ? x1 : defaultX1;
           const endX = x2 !== undefined ? x2 : defaultX2;
           ratioX = startX + progress * (endX - startX);
-          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
           if (resolvedAngle !== undefined) {
             angleOffset = resolvedAngle;
           } else {
@@ -167,7 +202,7 @@ export class FireworkSequencer {
           const startX = x1 !== undefined ? x1 : defaultX1;
           const endX = x2 !== undefined ? x2 : defaultX2;
           ratioX = startX + progress * (endX - startX);
-          ratioY = 0.35 + Math.sin(progress * Math.PI) * Math.max(0, baseRatioY - 0.35);
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
           if (resolvedAngle !== undefined) {
             angleOffset = resolvedAngle;
           } else {
@@ -319,7 +354,7 @@ export class FireworkSequencer {
             t = ratioY;
           } else if (
             pattern.startsWith('sweep-arc') ||
-            pattern === 'fan' ||
+            pattern.startsWith('fan') ||
             pattern === 'ripple'
           ) {
             t = Math.sin(progress * Math.PI);
@@ -438,10 +473,29 @@ export class FireworkSequencer {
   }
 
   playCometSequence(pattern, config) {
-    const { count = 10, duration = 2.0, preset = { type: 'comet' }, sweepCount = 2, sectorId, color, x1, x2, y1, y2, angle, effectOverrides } = config;
+    const {
+      count = 10,
+      duration = 2.0,
+      preset = { type: 'comet' },
+      sweepCount = 2,
+      sectorId,
+      color,
+      x1,
+      x2,
+      y1,
+      y2,
+      angle,
+      useAngle,
+      effectOverrides
+    } = config;
 
     // Spread of the fan/sweep (from -45 deg to +45 deg)
     const maxAngleOffset = Math.PI / 4;
+    const hasCustomAngle = useAngle === true && angle !== undefined;
+    const resolvedAngle = hasCustomAngle
+      ? (Math.abs(angle) > Math.PI ? (angle * Math.PI / 180) : angle)
+      : undefined;
+    const effectiveFanAngle = resolvedAngle !== undefined ? resolvedAngle : maxAngleOffset;
 
     for (let i = 0; i < count; i++) {
       let progress = count > 1 ? i / (count - 1) : 0;
@@ -459,6 +513,12 @@ export class FireworkSequencer {
           // Thêm độ lệch ngẫu nhiên nhỏ để trông tự nhiên hơn (khoảng +/- 5 độ)
           angleOffset = (Math.random() - 0.5) * 0.47;
           break;
+        case 'fan': {
+          ratioX = progress;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
+          angleOffset = effectiveFanAngle - (2 * effectiveFanAngle) * progress;
+          break;
+        }
         case 'fan-sweep':
         case 'fan-sweep-right':
         case 'fan-sweep-left': {
@@ -467,18 +527,21 @@ export class FireworkSequencer {
           const startX = x1 !== undefined ? x1 : defaultX1;
           const endX = x2 !== undefined ? x2 : defaultX2;
           const isMovingRight = endX >= startX;
+          ratioX = startX + progress * (endX - startX);
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
           angleOffset = isMovingRight
-            ? maxAngleOffset - (2 * maxAngleOffset) * progress
-            : -maxAngleOffset + (2 * maxAngleOffset) * progress;
+            ? effectiveFanAngle - (2 * effectiveFanAngle) * progress
+            : -effectiveFanAngle + (2 * effectiveFanAngle) * progress;
           break;
         }
         case 'fan-sweep-continuous':
-          // Sweeps back and forth `sweepCount` times
-          angleOffset = Math.cos(progress * Math.PI * sweepCount) * maxAngleOffset;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.abs(Math.sin(progress * Math.PI * sweepCount))));
+          angleOffset = Math.cos(progress * Math.PI * sweepCount) * effectiveFanAngle;
           break;
         case 'fan-burst':
-          // All at once, spread like a fan
-          angleOffset = maxAngleOffset - (2 * maxAngleOffset) * progress;
+          ratioX = progress;
+          ratioY = Math.max(0.08, baseRatioY * (0.18 + 0.82 * Math.sin(progress * Math.PI)));
+          angleOffset = effectiveFanAngle - (2 * effectiveFanAngle) * progress;
           delay = 0; // All fired at same time
           break;
         case 'crossfire': {
@@ -717,7 +780,7 @@ export class FireworkSequencer {
             t = ratioY;
           } else if (
             pattern.startsWith('sweep-arc') ||
-            pattern === 'fan' ||
+            pattern.startsWith('fan') ||
             pattern === 'ripple'
           ) {
             t = Math.sin(progress * Math.PI);
@@ -733,11 +796,6 @@ export class FireworkSequencer {
           pattern === 'sweep-random-tilt' ||
           pattern === 'sweep-random-tilt-left' ||
           pattern === 'sweep-random-tilt-right' ||
-          pattern === 'fan-sweep' ||
-          pattern === 'fan-sweep-left' ||
-          pattern === 'fan-sweep-right' ||
-          pattern === 'fan-sweep-continuous' ||
-          pattern === 'fan-burst' ||
           pattern === 'intertwined-helix' ||
           pattern === 'converge' ||
           pattern === 'diverge' ||

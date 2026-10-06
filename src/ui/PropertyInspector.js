@@ -166,7 +166,12 @@ export class PropertyInspector {
     }
     if (event.type === 'sequence') {
       const pattern = event.pattern;
-      return typeof pattern === 'string' && (pattern.startsWith('sweep') || pattern.startsWith('fan-sweep'));
+      return typeof pattern === 'string' && (
+        pattern.startsWith('sweep') ||
+        pattern.startsWith('fan') ||
+        pattern.startsWith('cascade-slope') ||
+        pattern.startsWith('crossfire')
+      );
     }
     return false;
   }
@@ -296,18 +301,16 @@ export class PropertyInspector {
             : 'angleConfig',
           visibleIf: (event) => this.hasAngleConfig(event),
           fields: [
-            ...(this.selectedEvent && !this.isCometEvent(this.selectedEvent) ? [
-              {
-                name: 'useAngle',
-                labelKey: 'useAngle',
-                type: 'checkbox'
-              }
-            ] : []),
+            {
+              name: 'useAngle',
+              labelKey: 'useAngle',
+              type: 'checkbox'
+            },
             {
               name: 'angle',
               labelKey: 'angle',
               type: 'angle',
-              visibleIf: (event) => this.isCometEvent(event) || !!event.useAngle
+              visibleIf: (event) => !!event?.useAngle
             }
           ]
         },
@@ -653,6 +656,8 @@ export class PropertyInspector {
         previewCategory = PREVIEW_CATEGORIES.DYNAMICS;
       } else if (field.name === 'preset') {
         previewCategory = PREVIEW_CATEGORIES.PRESET;
+      } else if (field.name === 'pattern') {
+        previewCategory = PREVIEW_CATEGORIES.PATTERN;
       }
 
       const customSelect = new CustomSelect({
