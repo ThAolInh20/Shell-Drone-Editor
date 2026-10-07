@@ -2,24 +2,28 @@
 
 [English](README.md) | [Tiếng Việt](README-vn.md) | [日本語](README-ja.md) | [简体中文](README-zh.md)
 
-**Shell Drone Animation** là phần mềm mô phỏng và biên tập 3D chuyên nghiệp, kết hợp nghệ thuật pháo hoa tầm cao với nghệ thuật trình diễn ánh sáng drone trên cùng một dòng thời gian đồng bộ âm nhạc. Được xây dựng trên nền tảng **Three.js**, **Vite** và **Electron**, ứng dụng mang lại trải nghiệm trực quan hóa sống động, mượt mà và chuẩn xác phục vụ từ khâu lên ý tưởng đến trình diễn thực tế.
+**Drone shell editor** là phần mềm mô phỏng 3D cho pháo hoa và drone. Phần mềm hộ trợ biên kịch kịch bản pháo hoa, thiết kế đội hình drone, biên đạo đầy đủ cho 1 show trình diễn drone kết hợp với pháo hoa
+
+---
+
+<video src="public/preview/preview-ds.mp4" controls width="100%"></video>
+
+## Giá trị nổi bật của giải pháp
+
+- **Môi trường 3d chân thực:** Đảm bảo trải nghiệm chân thực 99%. 
+- **Thư viện pháo hoa đa dạng:** Hơn trăm mẫu pháo hoa và hiệu ứng tích hợp sẵn, có thể kết hợp để tạo thành loại pháo hoa mới lên tới 500 mẫu.
+- **Toàn bộ dữ liệu lưu dưới dạng JSON:** Đồng bộ, dễ dàng chia sẻ.
+- **Đảm bảo chạy ổn định:** cho 100-200 pháo hoa cùng 1 lúc.
+- **Giao diện chuyên nghiệp hiện đại:** Chuẩn hóa workflow cho Editor.
 
 ---
 
 ## Đối tượng sử dụng mục tiêu
 
-- **Đơn vị tổ chức sự kiện và doanh nghiệp biểu diễn:** Dựng kịch bản mô phỏng 3D trực quan để thiết kế và trải nghiệm thực tế.
-- **Nhà sáng tạo nội dung, VJ, Motion Graphics Designer và 3D Visualizer:** Tạo ra các thước phim visual trình diễn ánh sáng sống động lồng ghép vào sân khấu, MV âm nhạc và sản phẩm đồ họa 3D.
-- **Chuyên gia pháo hoa và người đam mê mô phỏng:** Thiết kế, tùy biến hiệu ứng vật lý hạt pháo hoa và lập trình chuyển động đội hình drone theo nhịp điệu âm thanh.
-
----
-
-## Giá trị nổi bật của giải pháp
-
-- **Tích hợp hai trong một:** Kết hợp đồng thời hiệu ứng pháo hoa vật lý 3D và đội hình drone biểu diễn trên cùng một hệ trục không gian và timeline đồng bộ.
-- **Thư viện hiệu ứng pháo hoa chân thực:** Tích hợp sẵn đa dạng chủng loại pháo hoa với độ hoàn thiện cao về màu sắc, đường rơi của hạt tàn, độ tỏa khói và âm thanh kích nổ.
-- **Lưu trữ và chia sẻ kịch bản linh hoạt:** Dữ liệu kịch bản và đội hình được cấu trúc chuẩn hóa dưới dạng JSON nhẹ, dễ dàng nhập, xuất và chuyển giao giữa các hệ thống.
-- **Hiệu năng cao trên Desktop:** Hỗ trợ phím tắt lưu trực tiếp vào tệp nguồn mà không cần thông qua hộp thoại tải về của trình duyệt, cùng khả năng chuyển đổi tức thì giữa các không gian làm việc.
+- **Đơn vị tổ chức sự kiện và doanh nghiệp biểu diễn:** Dựng kịch bản mô phỏng 3D trực quan và trải nghiệm thực tế cho các kịch bản `pháo hoa` và `drone`.
+- **Người đam mê nghệ thuật trình diễn pháo hoa và drone** Tạo ra các mẫu kịch bản pháo hoa và drone chuyên nghiệp và nghiệp dư.
+- **Nhà thiết kế pháo hoa** Thiết kế, tùy biến hiệu ứng vật lý hạt pháo hoa.
+- **Nhà thiết kế đội hình drone** Thiết kế, tùy biến đội hình drone và xây dựng animation cho drone.
 
 ---
 
@@ -29,21 +33,24 @@
 - Khung cảnh biểu diễn 3D tự do với hệ thống camera quỹ đạo linh hoạt, hỗ trợ thay đổi góc nhìn khán đài, góc nhìn từ trên cao hoặc góc nhìn kỹ thuật.
 - Mô phỏng môi trường ban đêm, bầu trời sao, hiệu ứng ánh sáng động và mặt đất phản chiếu.
 
+![show-preview](/public/preview/show-preview.png)
+
 ### 2. Trình biên tập Kịch bản Timeline
 - Đồng bộ hóa toàn bộ sự kiện bắn pháo hoa và mốc chuyển trạng thái của drone theo tệp âm thanh biểu diễn.
 - Cho phép kéo thả, căn chỉnh thời điểm kích nổ, điều chỉnh cao độ, hướng bắn và góc nổ theo từng mili-giây.
+
+![Timeline](/public/preview/timeline.png)
 
 ### 3. Thiết kế Đội hình Drone 3D
 - Công cụ tạo hình đội hình drone tĩnh trong không gian ba chiều.
 - Hỗ trợ nhập vector từ ảnh 2D, mô hình lưới 3D và các thuật toán phân bổ điểm tự động.
 
+![drone-formation](/public/preview/drone-formation.png)
 ### 4. Biên tập Chuyển động Hoạt họa Drone
 - Quản lý chuyển động drone theo từng nhóm và từng phân đoạn thời gian.
 - Tính toán quỹ đạo bay mượt mà, kiểm soát tốc độ di chuyển và ngăn ngừa va chạm giữa các điểm drone.
 
-### 5. Quản lý và Xuất nhập Dữ liệu Kịch bản
-- Đóng gói toàn bộ cấu hình show diễn vào tệp JSON tiêu chuẩn.
-- Tương thích cao, hỗ trợ tái sử dụng preset và xây dựng thư viện mẫu dùng chung.
+![drone-animation](/public/preview/drone-animation.png)
 
 ---
 

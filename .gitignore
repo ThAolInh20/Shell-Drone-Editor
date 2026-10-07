@@ -26,6 +26,5 @@ dist-electron/
 _bmad
 .github
 
-public/
 dist-electron.zip
 .vite
