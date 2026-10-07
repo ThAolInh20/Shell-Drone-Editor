@@ -101,8 +101,8 @@ Tệp cài đặt sau khi đóng gói sẽ nằm trong thư mục `dist-electron
 
 ---
 
-## Tài liệu Hướng dẫn và Bản quyền
+## Tài liệu
 
 - **Tài liệu Hướng dẫn Chi tiết:** Tham khảo tại **[Drone Shell Wiki](https://drone-shell-wiki.netlify.app/)**.
-- **Nhật ký Thay đổi:** Theo dõi cập nhật mới nhất tại [RELEASE_NOTES.md](RELEASE_NOTES.md).
 - **Giấy phép:** Phần mềm được phân phối theo giấy phép mã nguồn mở **[MIT License](LICENSE)**.
+- **Tài nguyên:** Có thể tìm các Json có sẵn tại [Google Drive](https://drive.google.com/drive/folders/1wa1nCjr2QiZ0Ln_I53Pf4XTsKmFOakKE?usp=sharing).

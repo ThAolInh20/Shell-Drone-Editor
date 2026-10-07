@@ -111,8 +111,8 @@ The packaged installer will be saved in the `dist-electron` directory.
 
 ---
 
-## Documentation and License
+## Documentation
 
 - **Detailed Documentation:** Refer to the **[Drone Shell Wiki](https://drone-shell-wiki.netlify.app/)**.
-- **Release Notes:** Track recent updates in [RELEASE_NOTES.md](RELEASE_NOTES.md).
 - **License:** Distributed under the open-source **[MIT License](LICENSE)**.
+- **Resources:** Pre-made JSON scenarios are available on [Google Drive](https://drive.google.com/drive/folders/1wa1nCjr2QiZ0Ln_I53Pf4XTsKmFOakKE?usp=sharing).

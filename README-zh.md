@@ -111,8 +111,8 @@ npm run electron:build
 
 ---
 
-## 文档与开源许可
+## 文档
 
 - **详细文档：** 请参阅 **[Drone Shell Wiki](https://drone-shell-wiki.netlify.app/)**。
-- **更新日志：** 最新版本记录请查看 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
 - **开源许可：** 本软件基于 **[MIT License](LICENSE)** 开源协议分发。
+- **资源：** 现成的 JSON 文件可在 [Google Drive](https://drive.google.com/drive/folders/1wa1nCjr2QiZ0Ln_I53Pf4XTsKmFOakKE?usp=sharing) 获取。

@@ -111,8 +111,8 @@ npm run electron:build
 
 ---
 
-## ドキュメントとライセンス
+## ドキュメント
 
 - **詳細ドキュメント:** **[Drone Shell Wiki](https://drone-shell-wiki.netlify.app/)** をご参照ください。
-- **リリースノート:** 最新の更新履歴は [RELEASE_NOTES.md](RELEASE_NOTES.md) をご覧ください。
 - **ライセンス:** 本ソフトウェアはオープンソースの **[MIT License](LICENSE)** に基づいて配布されています。
+- **リソース:** 作成済みのJSONデータは [Google Drive](https://drive.google.com/drive/folders/1wa1nCjr2QiZ0Ln_I53Pf4XTsKmFOakKE?usp=sharing) から入手できます。
