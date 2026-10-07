@@ -568,7 +568,7 @@ export default {
           crysanthemum_spiral_v2: "Chrysanthemum Spiral V2",
           crysanthemum_cc: "Chrysanthemum Color Change",
           crysanthemum_nested: "Chrysanthemum Nested",
-          multi_nested: "Multi Nested Shell",
+          multi_nested: "★ Multi Nested Shell",
           strobe: "Strobe",
           strobe_dying_embers: "Strobe Embers",
           white_strobe: "White Strobe",

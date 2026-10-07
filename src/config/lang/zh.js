@@ -553,7 +553,7 @@ export default {
           crysanthemum_spiral_v2: "螺旋菊花 V2",
           crysanthemum_cc: "变色菊花",
           crysanthemum_nested: "多层嵌套菊花",
-          multi_nested: "多层嵌套烟花",
+          multi_nested: "★ 多层嵌套烟花",
           strobe: "闪烁",
           strobe_dying_embers: "渐熄余烬闪烁",
           white_strobe: "白光闪烁",

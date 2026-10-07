@@ -291,6 +291,7 @@ export class PropertyInspector {
           groupKey: 'nestedStages',
           visibleIf: (event) => (
             event?.preset === 'multiNested'
+            || event?.preset === 'multi_nested'
             || Boolean(event?.multiNested)
           ),
           customRender: true
@@ -585,7 +586,7 @@ export class PropertyInspector {
       }
 
       if (field.name === 'preset') {
-        if (val !== 'multiNested') {
+        if (val !== 'multiNested' && val !== 'multi_nested') {
           delete this.selectedEvent.multiNested;
           delete this.selectedEvent.stages;
           delete this.selectedEvent.nestingMode;
@@ -621,6 +622,10 @@ export class PropertyInspector {
         if (b === '') return 1;
         if (a === 'random') return -1;
         if (b === 'random') return 1;
+        if (field.name === 'preset') {
+          if (a === 'multi_nested' || a === 'multiNested') return -1;
+          if (b === 'multi_nested' || b === 'multiNested') return 1;
+        }
         const labelA = getEnglishOptionLabel(field.name, a);
         const labelB = getEnglishOptionLabel(field.name, b);
         return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
@@ -1587,7 +1592,7 @@ export class PropertyInspector {
         const selectedTpl = TEMPLATE_PRESETS.find(t => t.key === e.target.value);
         if (selectedTpl && selectedTpl.stages) {
           this.triggerUpdate('beforeChange');
-          event.preset = 'multiNested';
+          event.preset = 'multi_nested';
           event.multiNested = true;
           event.nestingMode = selectedTpl.mode;
           event.stages = JSON.parse(JSON.stringify(selectedTpl.stages));

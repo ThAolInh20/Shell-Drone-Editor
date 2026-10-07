@@ -554,7 +554,7 @@ export default {
           crysanthemum_spiral_v2: "スパイラル菊花 V2",
           crysanthemum_cc: "変色菊花",
           crysanthemum_nested: "多重ネスト菊花",
-          multi_nested: "多重ネスト花火",
+          multi_nested: "★ 多重ネスト花火",
           strobe: "ストロボ",
           strobe_dying_embers: "残火ストロボ",
           white_strobe: "ホワイトストロボ",

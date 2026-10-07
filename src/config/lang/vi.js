@@ -568,7 +568,7 @@ export default {
           crysanthemum_spiral_v2: "Hoa cúc xoắn ốc V2",
           crysanthemum_cc: "Hoa cúc đổi màu",
           crysanthemum_nested: "Hoa cúc lồng nhau",
-          multi_nested: "Pháo hoa đa tầng lồng nhau",
+          multi_nested: "★ Pháo hoa đa tầng lồng nhau",
           strobe: "Nhấp nháy",
           strobe_dying_embers: "Tàn lửa nhấp nháy",
           white_strobe: "Nhấp nháy trắng",

@@ -79,6 +79,7 @@ export class ShellPresetFactory {
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
+      { key: 'multi_nested', label: '★ Multi Nested Shell' },
       { key: 'comet_cluster', label: 'Comet Cluster' },
       { key: 'comet_cluster_notrail', label: 'Comet Cluster No Trail' },
       { key: 'comet_cluster_cc', label: 'Comet Cluster Color Change' },
@@ -94,7 +95,6 @@ export class ShellPresetFactory {
       { key: 'crysanthemum_spiral_v2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemum_cc', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemum_nested', label: 'Chrysanthemum Nested' },
-      { key: 'multi_nested', label: 'Multi Nested Shell' },
       { key: 'strobe_dying_embers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking Ember Decay' },
       { key: 'sparking_v2', label: 'Sparking V2 Instant Ember' },

@@ -15,5 +15,61 @@
     "instantBurst": false,
     "effects": [],
     "no-trail": true
+  },
+  {
+    "time": 2.7,
+    "type": "sequence",
+    "pattern": "sweep-left",
+    "count": 5,
+    "duration": 0.1,
+    "preset": "multi_nested",
+    "sectorId": "center",
+    "shapeType": "sphere",
+    "dynamicsType": "standard",
+    "pistil": false,
+    "instantBurst": false,
+    "effects": [],
+    "cometTrail": "normal",
+    "multiNested": true,
+    "stages": [
+      {
+        "shapeType": "sphere",
+        "dynamicsType": "standard",
+        "color": "#ff4400",
+        "delay": 0,
+        "scale": 1,
+        "effects": [
+          "strobe"
+        ]
+      },
+      {
+        "shapeType": "ring",
+        "dynamicsType": "flow",
+        "color": "#00e5ff",
+        "delay": 0.45,
+        "scale": 0.82,
+        "effects": []
+      },
+      {
+        "shapeType": "sphere",
+        "dynamicsType": "crossette",
+        "color": "#ffd700",
+        "delay": 0.9,
+        "scale": 0.65,
+        "effects": [
+          "crossette"
+        ]
+      },
+      {
+        "shapeType": "sphere",
+        "dynamicsType": "willow",
+        "color": "#ffffff",
+        "delay": 1.35,
+        "scale": 0.5,
+        "effects": [
+          "glitter-strobe"
+        ]
+      }
+    ]
   }
 ]

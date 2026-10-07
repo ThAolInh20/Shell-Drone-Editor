@@ -156,16 +156,40 @@ export const PRESET_TEMPLATES = {
     modifiers: { pistil: false, instantBurst: false },
     effects: ['crysanthemum-cc']
   },
+  crysanthemum_nested: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: {
+      pistil: false,
+      instantBurst: false
+    },
+    effects: []
+  },
   crysanthemumNested: {
     shape: 'sphere',
     dynamics: 'standard',
-    modifiers: { pistil: false, instantBurst: false },
+    modifiers: {
+      pistil: false,
+      instantBurst: false
+    },
+    effects: []
+  },
+  multi_nested: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: {
+      pistil: false,
+      instantBurst: false
+    },
     effects: []
   },
   multiNested: {
     shape: 'sphere',
     dynamics: 'standard',
-    modifiers: { pistil: false, instantBurst: false },
+    modifiers: {
+      pistil: false,
+      instantBurst: false
+    },
     effects: []
   },
   strobeDyingEmbers: {
