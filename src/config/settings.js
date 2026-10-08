@@ -206,10 +206,44 @@ export const SETTINGS_DEFINITION = [
     ) {
       if (
         context &&
-        context.sceneManager &&
-        context.sceneManager.waterSurface
+        context.sceneManager
       ) {
-        context.sceneManager.waterSurface.setMirrorReflection(value);
+        if (typeof context.sceneManager.setMirrorReflection === 'function') {
+          context.sceneManager.setMirrorReflection(value);
+        } else if (context.sceneManager.waterSurface) {
+          context.sceneManager.waterSurface.setMirrorReflection(value);
+        }
+      }
+    }
+  },
+  {
+    key: 'lake_reflection_resolution',
+    label: 'Lake Reflection Resolution',
+    type: 'select',
+    category: 'entities',
+    subgroup: 'water',
+    options: [
+      'low',
+      'medium',
+      'high'
+    ],
+    default: 'medium',
+    apply(
+      value,
+      context
+    ) {
+      const scaleMap = {
+        low: 0.25,
+        medium: 0.5,
+        high: 0.75
+      };
+      const scale = scaleMap[value] || 0.5;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setReflectionResolutionScale === 'function'
+      ) {
+        context.sceneManager.setReflectionResolutionScale(scale);
       }
     }
   },

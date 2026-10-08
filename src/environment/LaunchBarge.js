@@ -22,7 +22,6 @@ export class LaunchBarge {
     this._createMuzzleFlashPool();
     this._createLiftSparksSystem();
     this._setupEventListeners();
-    this.setLayer(LAYER_REFLECTION);
   }
 
   _createSharedMaterials() {

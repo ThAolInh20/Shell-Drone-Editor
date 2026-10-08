@@ -12,7 +12,6 @@ export class DistantMountains {
     this.maxHeight = options.maxHeight || 160;
 
     this._createMountainRange();
-    this.setLayer(LAYER_REFLECTION);
   }
 
   _createMountainRange() {

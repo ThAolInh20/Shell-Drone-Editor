@@ -113,12 +113,27 @@ export class SceneManager {
   }
 
   renderReflection(renderer, mainCamera) {
-    if (this.planarReflector) {
+    if (
+      this.planarReflector &&
+      (!this.waterSurface || this.waterSurface.isMirrorEnabled())
+    ) {
       this.planarReflector.update(
         renderer,
         this.instance,
         mainCamera
       );
+    }
+  }
+
+  setMirrorReflection(enabled) {
+    if (this.waterSurface) {
+      this.waterSurface.setMirrorReflection(enabled);
+    }
+  }
+
+  setReflectionResolutionScale(scale) {
+    if (this.planarReflector) {
+      this.planarReflector.setResolutionScale(scale);
     }
   }
 

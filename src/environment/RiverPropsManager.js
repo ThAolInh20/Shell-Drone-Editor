@@ -25,7 +25,6 @@ export class RiverPropsManager {
     this._initLanterns();
     this._initBoats();
 
-    this.setLayer(LAYER_REFLECTION);
     this.applyVisibility();
   }
 
