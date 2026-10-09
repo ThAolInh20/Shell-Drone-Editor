@@ -407,6 +407,7 @@ export default {
         shellSize: "烟花大小",
         pistil: "花芯 Pistil",
         instantBurst: "即时爆炸",
+        burstSmoke: "爆炸烟雾",
         strobe: "闪烁",
         whiteStrobe: "白频闪",
         glitterStrobe: "闪光频闪",

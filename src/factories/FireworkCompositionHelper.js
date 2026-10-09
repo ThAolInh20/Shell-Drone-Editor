@@ -52,6 +52,7 @@ export const AVAILABLE_MODIFIERS = [
 ];
 
 export const AVAILABLE_EFFECT_TAGS = [
+  'burst-smoke',
   'strobe',
   'white-strobe',
   'glitter-strobe',

@@ -161,7 +161,8 @@ export class SkyLightReactionSystem {
       if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
         this.sceneManager.distantMountains.setBurstFlash(
           strongest.color,
-          flashIntensity * 0.25
+          flashIntensity * 0.25,
+          strongest.position
         );
       }
       if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {

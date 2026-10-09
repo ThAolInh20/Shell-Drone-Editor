@@ -36,6 +36,10 @@ function getEnglishOptionLabel(fieldName, opt) {
 
 export const AVAILABLE_EFFECT_TAGS = [
   {
+    key: 'burst-smoke',
+    labelKey: 'burstSmoke'
+  },
+  {
     key: 'crackle',
     labelKey: 'crackle'
   },

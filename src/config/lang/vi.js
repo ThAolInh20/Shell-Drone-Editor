@@ -421,6 +421,7 @@ export default {
         shellSize: "Kích thước shell",
         pistil: "Nhị pháo Pistil",
         instantBurst: "Nổ tức thì",
+        burstSmoke: "Khói vụ nổ Burst Smoke",
         strobe: "Chớp tắt",
         whiteStrobe: "Chớp trắng",
         glitterStrobe: "Lấp lánh mịn",

@@ -399,6 +399,7 @@ export default {
         shellSize: "花火サイズ",
         pistil: "芯付 Pistil",
         instantBurst: "即時爆発",
+        burstSmoke: "バーストスモーク",
         strobe: "ストロボ Strobe",
         whiteStrobe: "ホワイトストロボ",
         glitterStrobe: "グリッターストロボ",

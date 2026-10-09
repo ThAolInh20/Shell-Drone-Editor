@@ -255,7 +255,15 @@ export class FireworkSystem {
       angleOffset
     );
 
-    const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
+    const isCustomColor = Boolean(color)
+      || Boolean(effectOverrides?.color)
+      || Boolean(shellPreset.hasCustomColor)
+      || Boolean(shellPreset.customColor);
+    shellPreset.hasCustomColor = isCustomColor;
+
+    const finalColorHex = color
+      ? color
+      : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
 
     const hasNoBurst = (Array.isArray(shellPreset.effects) && shellPreset.effects.includes('no-burst'))
@@ -275,6 +283,7 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType ?? 'standard',
           colorHex: finalColor.getHex(),
+          hasCustomColor: isCustomColor,
           position: {
             x: position.x,
             y: position.y,
@@ -380,6 +389,7 @@ export class FireworkSystem {
         shapeType: shell.shapeType,
         effectType: shellPreset.effectType ?? 'standard',
         colorHex: finalColor.getHex(),
+        hasCustomColor: isCustomColor,
         position: {
           x: position.x,
           y: position.y,
@@ -1613,6 +1623,13 @@ export class FireworkSystem {
         isDyingEmber: isDyingEmber,
         isNestedTrigger: isNestedTrigger,
         effects: effectsList,
+        hasBurstSmoke: Boolean(
+          (Array.isArray(effectsList) && effectsList.includes('burst-smoke'))
+          || (Array.isArray(preset?.effects) && preset.effects.includes('burst-smoke'))
+          || Boolean(preset?.['burst-smoke'])
+          || Boolean(preset?.burstSmoke)
+        ),
+        burstSmokeLimit: 0.28 + Math.random() * 0.10,
         isCrossette: isCrossetteShell
           && !isDyingEmber
           && crossetteSplitMap.has(i),
@@ -1864,7 +1881,7 @@ export class FireworkSystem {
         }
       }
 
-      if (!item.preset?.thinTrail && this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
+      if (item.preset?.flightSmoke && this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
         const ascVel = item.velocity
           ? item.velocity.clone().multiplyScalar(-0.15)
           : new THREE.Vector3(
@@ -1926,6 +1943,9 @@ export class FireworkSystem {
 
       const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
         || Boolean(item.preset?.['no-burst']);
+      const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+        || Boolean(item.preset?.['burst-smoke'])
+        || Boolean(item.preset?.burstSmoke);
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -1935,6 +1955,8 @@ export class FireworkSystem {
           shapeType: item.shapeType ?? item.shape,
           effectType: item.preset?.effectType ?? item.shape,
           effects: item.preset?.effects,
+          hasBurstSmoke,
+          hasCustomColor: Boolean(item.preset?.hasCustomColor),
           noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
           colorHex: item.color.getHex(),
           position: {
@@ -2007,6 +2029,9 @@ export class FireworkSystem {
     const isGhostShell = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('ghost'))
       || item.preset?.effectType === 'ghost'
       || Boolean(item.preset?.ghost);
+    const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+      || Boolean(item.preset?.['burst-smoke'])
+      || Boolean(item.preset?.burstSmoke);
 
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
@@ -2014,6 +2039,8 @@ export class FireworkSystem {
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
       effects: item.preset?.effects,
+      hasBurstSmoke,
+      hasCustomColor: Boolean(item.preset?.hasCustomColor),
       noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
       colorHex: item.color.getHex(),
       position: {
@@ -2021,6 +2048,7 @@ export class FireworkSystem {
         y: burstPosition.y,
         z: burstPosition.z
       },
+      burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
       intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1
     });
@@ -2171,6 +2199,8 @@ export class FireworkSystem {
             isDyingEmber: false,
             isNestedTrigger: false,
             effects: branchEffects,
+            hasBurstSmoke: Boolean(p.hasBurstSmoke),
+            burstSmokeLimit: p.burstSmokeLimit ?? 0.33,
             isCrossette: false,
             crossetteSplitDone: true,
             isChromaticWave: false,
@@ -2367,29 +2397,43 @@ export class FireworkSystem {
         }
       }
 
-      if (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
-        const spawnChance = lifeRatio < 0.12
-          ? 1.0
-          : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
+      const isStarBurstSmoke = p.hasBurstSmoke && lifeRatio <= (p.burstSmokeLimit ?? 0.33);
+      const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
+        && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 
-        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 2 : (spawnSmoke ? 3 : 5);
+      if (shouldEmitSmoke) {
+        let spawnChance = 0.5;
+        if (isStarBurstSmoke) {
+          spawnChance = lifeRatio < 0.15 ? 0.95 : 0.65;
+        } else if (lifeRatio < 0.12) {
+          spawnChance = 1.0;
+        } else if (lifeRatio < 0.52) {
+          spawnChance = 0.85;
+        } else {
+          spawnChance = 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48);
+        }
+
+        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 3 : 5;
         if (p.particleIndex % moduloCheck === 0 && Math.random() < spawnChance) {
-          const particleColor = p.baseColor.clone();
-          const smokeVel = p.velocity.clone().multiplyScalar(0.12);
-          const densityMult = spawnSmoke ? 1.4 : 1.0;
+          const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
+          const particleColor = p.preset?.hasCustomColor
+            ? p.baseColor.clone()
+            : defaultWhiteSmoke;
+          const smokeVel = p.velocity.clone().multiplyScalar(0.14);
+          const densityMult = isStarBurstSmoke ? 1.1 : (spawnSmoke ? 1.4 : 1.0);
           const smokeCfg = FIREWORK_CONFIG.SMOKE;
           const starSmokeBaseLife = smokeLife || (
             (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
           );
           const smokeOptions = {
             life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
-            scale: (3.2 + Math.random() * 2.2) * densityMult,
-            growth: 3.2,
+            scale: (2.8 + Math.random() * 1.8) * densityMult,
+            growth: 2.8,
             drag: 2.5,
             buoyancy: smokeCfg.trailBuoyancy,
             opacity: (
               smokeOpacity || 0.15
-            ) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
+            ) * parentFade * (lifeRatio < 0.15 ? 1.25 : 1.0) * densityMult,
             color: particleColor
           };
 

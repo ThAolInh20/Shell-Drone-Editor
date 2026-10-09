@@ -421,6 +421,7 @@ export default {
         shellSize: "Shell Size",
         pistil: "Pistil",
         instantBurst: "Instant Burst",
+        burstSmoke: "Burst Smoke",
         strobe: "Strobe",
         whiteStrobe: "White Strobe",
         glitterStrobe: "Glitter Strobe",

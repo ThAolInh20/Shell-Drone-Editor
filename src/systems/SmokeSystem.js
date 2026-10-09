@@ -158,19 +158,53 @@ export class SmokeSystem {
           vec2 centered = gl_PointCoord - vec2(0.5);
           float s = sin(angle);
           float c = cos(angle);
-          vec2 rotatedCoord = vec2(
+          vec2 rotated = vec2(
             centered.x * c - centered.y * s,
             centered.x * s + centered.y * c
-          ) + vec2(0.5);
-          vec4 mapTexel = texture2D( map, rotatedCoord );
+          );
+
+          // Organic harmonic contour warping (bien dang vien thanh cac thuy meo mo go ghe)
+          float pAngle = atan(rotated.y, rotated.x);
+          float pDist = length(rotated);
+          float warp = sin(pAngle * 3.0 + vSeed * 11.3) * 0.11
+                     + cos(pAngle * 5.0 - vSeed * 7.7) * 0.07;
+          vec2 warpedCoord = rotated * (1.0 + warp) + vec2(0.5);
+          vec4 mapTexel = texture2D( map, warpedCoord );
+          float edgeCutoff = smoothstep(0.50, 0.44, pDist * (1.0 + warp * 0.65));
+          mapTexel.a *= edgeCutoff;
           diffuseColor *= mapTexel;
         #endif
 
         if (uFlashIntensity > 0.001) {
-          float distToFlash = length(vWorldPos - uFlashPos);
+          vec3 toLight = uFlashPos - vWorldPos;
+          float distToFlash = length(toLight);
           float flashAtten = clamp(1.0 - distToFlash / uFlashRadius, 0.0, 1.0);
-          vec3 bounceLight = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * 2.2);
-          diffuseColor.rgb += bounceLight * diffuseColor.a;
+          flashAtten = flashAtten * flashAtten;
+
+          // Pseudo-spherical normal across billboard point sprite
+          vec2 centeredP = gl_PointCoord - vec2(0.5);
+          float r2 = clamp(dot(centeredP, centeredP) * 4.0, 0.0, 1.0);
+          float nz = sqrt(max(0.0, 1.0 - r2));
+
+          // Directional illumination from burst position towards puff surface
+          vec2 dirToLight2D = normalize(toLight.xz + vec2(0.0001));
+          float NdotL = clamp(
+            dot(centeredP * 2.0, dirToLight2D) * 0.45 + nz * 0.55 + 0.2,
+            0.2,
+            1.25
+          );
+
+          // Translucent rim scattering on puff boundaries
+          float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
+          float totalIllum = (NdotL + edgeScattering) * flashAtten * uFlashIntensity * 2.35;
+
+          // Soft tint absorption: preserves smokey contrast without washing out to white chalk
+          vec3 litColor = mix(
+            diffuseColor.rgb,
+            uFlashColor * 1.25,
+            clamp(totalIllum * 0.72, 0.0, 0.92)
+          );
+          diffuseColor.rgb = litColor + (uFlashColor * (totalIllum * 0.35 * diffuseColor.a));
         }
         `
       ).replace(
@@ -302,43 +336,112 @@ export class SmokeSystem {
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
+    const half = size * 0.5;
 
-    const gradient = ctx.createRadialGradient(
-      size * 0.5,
-      size * 0.5,
-      size * 0.04,
-      size * 0.5,
-      size * 0.5,
-      size * 0.5
-    );
-    gradient.addColorStop(
-      0,
-      'rgba(195, 204, 218, 0.95)'
-    );
-    gradient.addColorStop(
-      0.2,
-      'rgba(160, 170, 188, 0.72)'
-    );
-    gradient.addColorStop(
-      0.45,
-      'rgba(115, 126, 146, 0.42)'
-    );
-    gradient.addColorStop(
-      0.72,
-      'rgba(75, 84, 102, 0.14)'
-    );
-    gradient.addColorStop(
-      1,
-      'rgba(50, 58, 74, 0.0)'
-    );
+    // Organic cauliflower cloud puff with asymmetric lobes and uneven radii
+    // Khong dung gradient tron dong tam phu toan bo canvas de tao vien loi lom meo mo
+    const puffBlobs = [
+      // Core mass
+      {
+        x: half - 2,
+        y: half + 1,
+        r: 25,
+        alpha: 0.72
+      },
+      {
+        x: half + 3,
+        y: half - 3,
+        r: 21,
+        alpha: 0.62
+      },
+      // Irregular perimeter bulges (cac thuy may loi lom khong doi xung)
+      {
+        x: half + 17,
+        y: half - 11,
+        r: 21,
+        alpha: 0.54
+      },
+      {
+        x: half - 18,
+        y: half - 7,
+        r: 22,
+        alpha: 0.50
+      },
+      {
+        x: half - 11,
+        y: half + 18,
+        r: 20,
+        alpha: 0.48
+      },
+      {
+        x: half + 19,
+        y: half + 13,
+        r: 18,
+        alpha: 0.45
+      },
+      {
+        x: half + 2,
+        y: half - 21,
+        r: 18,
+        alpha: 0.46
+      },
+      {
+        x: half - 21,
+        y: half + 6,
+        r: 17,
+        alpha: 0.44
+      },
+      {
+        x: half + 21,
+        y: half - 2,
+        r: 16,
+        alpha: 0.40
+      },
+      {
+        x: half + 6,
+        y: half + 23,
+        r: 16,
+        alpha: 0.42
+      }
+    ];
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(
-      0,
-      0,
-      size,
-      size
-    );
+    puffBlobs.forEach((blob) => {
+      const g = ctx.createRadialGradient(
+        blob.x,
+        blob.y,
+        blob.r * 0.1,
+        blob.x,
+        blob.y,
+        blob.r
+      );
+      g.addColorStop(
+        0,
+        `rgba(255, 255, 255, ${blob.alpha})`
+      );
+      g.addColorStop(
+        0.45,
+        `rgba(255, 255, 255, ${blob.alpha * 0.65})`
+      );
+      g.addColorStop(
+        0.8,
+        `rgba(255, 255, 255, ${blob.alpha * 0.2})`
+      );
+      g.addColorStop(
+        1,
+        'rgba(255, 255, 255, 0.0)'
+      );
+
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(
+        blob.x,
+        blob.y,
+        blob.r,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    });
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
@@ -369,12 +472,7 @@ export class SmokeSystem {
     const rawLife = options.life ?? defaultLife;
     const effectiveLife = rawLife * this.lifespanMultiplier;
 
-    // Expand growth gently with square root when lifespan is increased
-    const growthMod = Math.max(
-      0.4,
-      1.0 / Math.sqrt(Math.max(1.0, this.lifespanMultiplier))
-    );
-    const growth = (options.growth ?? cfg.trailGrowth) * growthMod;
+    const growth = options.growth ?? cfg.trailGrowth;
 
     this.puffs.push({
       position: origin.clone(),
@@ -385,7 +483,7 @@ export class SmokeSystem {
       drag: options.drag ?? cfg.trailDrag,
       buoyancy: options.buoyancy ?? cfg.trailBuoyancy,
       seed: options.seed ?? Math.random(),
-      color: options.color ? options.color.clone() : new THREE.Color(0x8892a3),
+      color: options.color ? options.color.clone() : new THREE.Color(0xf2f5f9),
       baseScale: (options.scale ?? cfg.trailBaseScale) * this.density,
       baseOpacity: (options.opacity ?? cfg.trailOpacity) * this.density
     });
@@ -404,6 +502,11 @@ export class SmokeSystem {
     const count = this.unlimited
       ? 14
       : (this.quality === 'high' ? 8 : (this.quality === 'low' ? 3 : 5));
+
+    const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
+    const launchSmokeColor = detail.hasCustomColor && detail.colorHex !== undefined
+      ? new THREE.Color(detail.colorHex)
+      : defaultWhiteSmoke;
 
     for (let i = 0; i < count; i++) {
       const drift = new THREE.Vector3(
@@ -426,15 +529,23 @@ export class SmokeSystem {
           drag: cfg.trailDrag,
           buoyancy: cfg.trailBuoyancy,
           opacity: cfg.trailOpacity + Math.random() * 0.1,
-          color: new THREE.Color(0x6a7384)
+          color: launchSmokeColor
         }
       );
     }
   }
 
-  // Burst Cloud Emitter: Mo phong the tich dam khoi phao hoa qua cau
+  // Burst Cloud Emitter: Mo phong the tich dam khoi phao hoa hinh dang tron meo mo go ghe (asymmetric cauliflower cloud)
   onBurst(detail = {}) {
     if (this.quality === 'off') return;
+
+    const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
+      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
+      || Boolean(detail.burstSmoke);
+
+    if (!hasBurstSmoke) {
+      return;
+    }
 
     const cfg = FIREWORK_CONFIG.SMOKE;
     const burstPos = new THREE.Vector3(
@@ -443,53 +554,130 @@ export class SmokeSystem {
       detail.position?.z ?? 0
     );
 
-    const burstColor = new THREE.Color(detail.colorHex ?? 0xffffff);
-    const smokeColor = new THREE.Color(0x626b7c).lerp(
-      burstColor,
-      0.18
-    );
+    // Khoi mac dinh mau trang; chi khi co custom mau thi moi nhan mau theo phao
+    const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
+    const smokeColor = detail.hasCustomColor && detail.colorHex !== undefined
+      ? new THREE.Color(detail.colorHex)
+      : defaultWhiteSmoke;
+
     const intensity = THREE.MathUtils.clamp(
       detail.intensity ?? 0.5,
       0.1,
       1.0
     );
 
-    // Xac dinh so cum con (micro-clusters) va so hat moi cum
-    const clusterCount = this.unlimited
-      ? 7
-      : (this.quality === 'high' ? 5 : (this.quality === 'low' ? 2 : 3));
-    const puffsPerCluster = Math.round(
-      (this.unlimited ? 10 : (this.quality === 'high' ? 6 : (this.quality === 'low' ? 2 : 4))) * (0.8 + 0.4 * intensity)
-    );
-    const burstSpreadRadius = 4.0 + intensity * 6.0;
+    // 1. Bien dang the tich 3D khong doi xung (anisotropic stretch tensor)
+    // Thiet lap ti le det truc doc Y de khoi bung rong be ngang tu nhien hon
+    const stretchX = 0.85 + Math.random() * 0.55;
+    const stretchY = 0.58 + Math.random() * 0.42;
+    const stretchZ = 0.85 + Math.random() * 0.55;
 
-    for (let c = 0; c < clusterCount; c++) {
-      // Tam cua tung cum con nam lech trong khong gian the tich hinh cau
-      const clusterAzimuth = Math.random() * Math.PI * 2;
-      const clusterElevation = (Math.random() - 0.5) * Math.PI;
-      const clusterDist = (0.2 + 0.8 * Math.random()) * burstSpreadRadius;
+    // Huong bung phinh bat doi xung cuc dai (dominant blowout vector)
+    const blowoutAzimuth = Math.random() * Math.PI * 2;
+    const blowoutElev = (Math.random() - 0.5) * Math.PI * 0.65;
+    const blowoutDir = new THREE.Vector3(
+      Math.cos(blowoutElev) * Math.cos(blowoutAzimuth),
+      Math.sin(blowoutElev),
+      Math.cos(blowoutElev) * Math.sin(blowoutAzimuth)
+    ).normalize();
 
-      const clusterOffset = new THREE.Vector3(
-        Math.cos(clusterElevation) * Math.cos(clusterAzimuth) * clusterDist,
-        Math.sin(clusterElevation) * clusterDist * 0.7,
-        Math.cos(clusterElevation) * Math.sin(clusterAzimuth) * clusterDist
+    const harmonicPhase = Math.random() * Math.PI * 2;
+    // Ban kinh phao hoa toa ra toan phan (mac dinh 38 - 60m)
+    const fireworkSpread = detail.burstRadius
+      ? detail.burstRadius
+      : (38.0 + intensity * 22.0);
+    // Ban kinh cum khoi co ban nam trong khoang ~1/4 den 1/3 ban kinh phao
+    const burstSpreadRadius = fireworkSpread * (0.18 + 0.08 * intensity);
+
+    // Phase 1: Core Mass (Nhan dac trung tam) - Tao do dac noi tai ma khong lam phong to toan bo hinh
+    const coreCount = this.unlimited
+      ? 6
+      : (this.quality === 'high' ? 4 : (this.quality === 'low' ? 2 : 3));
+
+    for (let i = 0; i < coreCount; i++) {
+      const coreOffset = new THREE.Vector3(
+        (Math.random() - 0.5) * 6.5 * stretchX,
+        (Math.random() - 0.5) * 4.5 * stretchY,
+        (Math.random() - 0.5) * 6.5 * stretchZ
+      );
+      const coreVelocity = coreOffset.clone().normalize().multiplyScalar(
+        0.8 + Math.random() * 1.5
+      );
+      const burstLife = cfg.burstLifeMin + Math.random() * (cfg.burstLifeMax - cfg.burstLifeMin);
+      const burstDrag = cfg.burstDragMin + Math.random() * (cfg.burstDragMax - cfg.burstDragMin);
+      const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin);
+
+      this.spawnPuff(
+        burstPos.clone().add(coreOffset),
+        coreVelocity,
+        {
+          life: burstLife,
+          scale: (cfg.burstBaseScale * 0.95) + Math.random() * 2.5,
+          growth: (cfg.burstGrowth * 0.55) + Math.random() * 0.8,
+          drag: burstDrag,
+          buoyancy: burstBuoyancy,
+          seed: (i * 0.23) % 1.0,
+          opacity: cfg.burstOpacity * 1.15 + Math.random() * 0.08,
+          color: smokeColor
+        }
+      );
+    }
+
+    // Phase 2: Asymmetric Primary & Secondary Lobes (Cac thuy chinh loi lom meo mo)
+    const lobeCount = this.unlimited
+      ? 8
+      : (this.quality === 'high' ? 6 : (this.quality === 'low' ? 3 : 4));
+    const puffsPerLobe = this.unlimited ? 4 : (this.quality === 'high' ? 3 : 2);
+
+    for (let l = 0; l < lobeCount; l++) {
+      const lobeAzimuth = (l / lobeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const lobeElevation = (Math.random() - 0.5) * Math.PI * 0.75;
+
+      const lobeDir = new THREE.Vector3(
+        Math.cos(lobeElevation) * Math.cos(lobeAzimuth),
+        Math.sin(lobeElevation),
+        Math.cos(lobeElevation) * Math.sin(lobeAzimuth)
+      ).normalize();
+
+      // Song dieu hoa khong gian tao goc loi/lom tu nhien quanh duong bien
+      const harmonic = Math.sin(lobeAzimuth * 2.0 + harmonicPhase) * 0.25
+                     + Math.cos(lobeAzimuth * 3.0 - harmonicPhase * 0.5) * 0.16
+                     + Math.sin(lobeElevation * 2.5) * 0.14;
+
+      const blowoutAlign = Math.max(0.0, lobeDir.dot(blowoutDir));
+      const blowoutBoost = Math.pow(blowoutAlign, 1.6) * 0.40;
+      const indent = Math.max(0.0, -lobeDir.dot(blowoutDir)) * 0.22;
+
+      const lobeDistortion = Math.max(0.55, 0.82 + harmonic + blowoutBoost - indent);
+      const lobeDist = burstSpreadRadius * lobeDistortion;
+
+      const lobeOffset = new THREE.Vector3(
+        lobeDir.x * lobeDist * stretchX,
+        lobeDir.y * lobeDist * stretchY,
+        lobeDir.z * lobeDist * stretchZ
       );
 
-      const clusterCenter = burstPos.clone().add(clusterOffset);
-      const clusterSeed = Math.random();
+      const isDominantLobe = blowoutAlign > 0.6;
+      const lobeScaleMult = isDominantLobe
+        ? (1.35 + Math.random() * 0.40)
+        : (0.75 + Math.random() * 0.35);
 
-      for (let i = 0; i < puffsPerCluster; i++) {
-        const puffOffset = new THREE.Vector3(
-          (Math.random() - 0.5) * 3.2,
-          (Math.random() - 0.5) * 2.6,
-          (Math.random() - 0.5) * 3.2
+      const lobeCenter = burstPos.clone().add(lobeOffset);
+      const lobeSeed = Math.random();
+
+      for (let p = 0; p < puffsPerLobe; p++) {
+        const puffJitter = new THREE.Vector3(
+          (Math.random() - 0.5) * 6.5 * stretchX,
+          (Math.random() - 0.5) * 4.5 * stretchY,
+          (Math.random() - 0.5) * 6.5 * stretchZ
         );
 
-        // Van toc bung ra tu tam cum voi luc can cao
-        const puffVelocity = clusterOffset.clone().normalize().multiplyScalar(2.0 + Math.random() * 3.5).add(
+        const puffVel = lobeOffset.clone().normalize().multiplyScalar(
+          1.6 + Math.random() * 3.2
+        ).add(
           new THREE.Vector3(
             (Math.random() - 0.5) * 1.5,
-            0.6 + Math.random() * 1.8,
+            0.5 + Math.random() * 1.5,
             (Math.random() - 0.5) * 1.5
           )
         );
@@ -499,16 +687,120 @@ export class SmokeSystem {
         const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin);
 
         this.spawnPuff(
-          clusterCenter.clone().add(puffOffset),
-          puffVelocity,
+          lobeCenter.clone().add(puffJitter),
+          puffVel,
           {
             life: burstLife,
-            scale: cfg.burstBaseScale + Math.random() * 6.5,
-            growth: cfg.burstGrowth + Math.random() * 3.0,
+            scale: (cfg.burstBaseScale * lobeScaleMult) + Math.random() * 3.2,
+            growth: (cfg.burstGrowth * 0.6) + Math.random() * 0.8,
             drag: burstDrag,
             buoyancy: burstBuoyancy,
-            seed: (clusterSeed + i * 0.17) % 1.0,
-            opacity: cfg.burstOpacity + Math.random() * 0.14,
+            seed: (lobeSeed + p * 0.19) % 1.0,
+            opacity: cfg.burstOpacity + Math.random() * 0.08,
+            color: smokeColor
+          }
+        );
+      }
+    }
+
+    // Phase 3: Perimeter Breakout Tufts (Cac vet mun khoi ria meo mo go ghe)
+    // Pha vo duong cong tron hoan hao, tao cam giac canh khoi hoa lo tu nhien
+    const tuftCount = this.unlimited
+      ? 10
+      : (this.quality === 'high' ? 7 : (this.quality === 'low' ? 2 : 4));
+
+    for (let t = 0; t < tuftCount; t++) {
+      const tuftAzimuth = Math.random() * Math.PI * 2;
+      const tuftElev = (Math.random() - 0.5) * Math.PI * 0.8;
+      const tuftDir = new THREE.Vector3(
+        Math.cos(tuftElev) * Math.cos(tuftAzimuth),
+        Math.sin(tuftElev),
+        Math.cos(tuftElev) * Math.sin(tuftAzimuth)
+      ).normalize();
+
+      const tuftDist = burstSpreadRadius * (0.85 + Math.random() * 0.65);
+      const tuftOffset = new THREE.Vector3(
+        tuftDir.x * tuftDist * stretchX,
+        tuftDir.y * tuftDist * stretchY,
+        tuftDir.z * tuftDist * stretchZ
+      );
+
+      const burstLife = cfg.burstLifeMin * 0.8 + Math.random() * 4.0;
+      const burstDrag = cfg.burstDragMin + Math.random() * 0.8;
+      const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.3;
+
+      this.spawnPuff(
+        burstPos.clone().add(tuftOffset),
+        tuftDir.clone().multiplyScalar(2.5 + Math.random() * 3.5),
+        {
+          life: burstLife,
+          scale: (cfg.burstBaseScale * 0.45) + Math.random() * 2.0,
+          growth: (cfg.burstGrowth * 0.5) + Math.random() * 0.7,
+          drag: burstDrag,
+          buoyancy: burstBuoyancy,
+          seed: Math.random(),
+          opacity: cfg.burstOpacity * 0.78 + Math.random() * 0.06,
+          color: smokeColor
+        }
+      );
+    }
+
+    // Phase 4: Radial Burst Streaks (Cac vet khoi toa theo tia ban cua hat, keo dai xap xi 1/3 phao)
+    // Mo phong tia khoi sinh ra theo duong bay cua hat trong khoang 1/3 ban kinh/dien tich toa
+    const streakCount = this.unlimited
+      ? 14
+      : (this.quality === 'high' ? 9 : (this.quality === 'low' ? 3 : 6));
+
+    for (let s = 0; s < streakCount; s++) {
+      const sAzimuth = Math.random() * Math.PI * 2;
+      const sElev = (Math.random() - 0.5) * Math.PI * 0.85;
+      const streakDir = new THREE.Vector3(
+        Math.cos(sElev) * Math.cos(sAzimuth),
+        Math.sin(sElev),
+        Math.cos(sElev) * Math.sin(sAzimuth)
+      ).normalize();
+
+      // Do dai tia xap xi ngau nhien trong khoang 1/3 ban kinh/dien tich toa cua phao (0.24 den 0.38)
+      const maxStreakDist = fireworkSpread * (0.24 + Math.random() * 0.14);
+      const pointsOnStreak = this.quality === 'low' ? 2 : 3;
+
+      for (let p = 1; p <= pointsOnStreak; p++) {
+        const frac = p / pointsOnStreak;
+        const d = maxStreakDist * (frac * 0.75 + 0.25 * Math.random());
+        const streakPos = burstPos.clone().add(
+          new THREE.Vector3(
+            streakDir.x * d * stretchX,
+            streakDir.y * d * stretchY,
+            streakDir.z * d * stretchZ
+          )
+        );
+
+        // Van toc huong doc theo tia ban cua hat
+        const streakVel = streakDir.clone().multiplyScalar(
+          (2.2 + Math.random() * 2.8) * (1.1 - frac * 0.4)
+        ).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 1.2,
+            0.4 + Math.random() * 1.0,
+            (Math.random() - 0.5) * 1.2
+          )
+        );
+
+        const burstLife = cfg.burstLifeMin * 0.85 + Math.random() * 3.5;
+        const burstDrag = cfg.burstDragMin + Math.random() * 0.6;
+        const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.25;
+
+        this.spawnPuff(
+          streakPos,
+          streakVel,
+          {
+            life: burstLife,
+            scale: (cfg.burstBaseScale * (0.55 + 0.35 * (1.0 - frac * 0.5))) + Math.random() * 1.8,
+            growth: (cfg.burstGrowth * 0.52) + Math.random() * 0.6,
+            drag: burstDrag,
+            buoyancy: burstBuoyancy,
+            seed: (s * 0.17 + p * 0.29) % 1.0,
+            opacity: (cfg.burstOpacity * (0.85 - frac * 0.25)) + Math.random() * 0.05,
             color: smokeColor
           }
         );
@@ -528,25 +820,44 @@ export class SmokeSystem {
     this.smokeUniforms.uTime.value = elapsed;
     const alive = [];
 
-    // Cap nhat dong luc hoc hat (Kinematics with exponential drag, buoyancy & curl noise)
+    // Cap nhat dong luc hoc hat (Kinematics with exponential drag, buoyancy, wind shear & turbulent dispersion)
     for (let i = 0; i < this.puffs.length; i++) {
       const puff = this.puffs[i];
       puff.age += deltaTime;
 
       if (puff.age < puff.life) {
+        const t = puff.age / puff.life;
+
         // Luc can khong khi suy giam ham mu
         const dragFactor = Math.exp(-puff.drag * deltaTime);
         puff.velocity.multiplyScalar(dragFactor);
 
-        // Noi suy dan ve van toc gio toan cuc
-        puff.velocity.lerp(
-          this.currentWind,
-          deltaTime * 0.85
+        // Do lech toc do gio theo do cao va seed (+/- 25%) giup cac hat khong troi thanh mot khoi cung
+        const windShear = 0.78 + 0.44 * puff.seed;
+        const localWindX = this.currentWind.x * windShear;
+        const localWindZ = this.currentWind.z * windShear;
+        const localWindY = this.currentWind.y;
+
+        puff.velocity.x = THREE.MathUtils.lerp(
+          puff.velocity.x,
+          localWindX,
+          deltaTime * 0.72
+        );
+        puff.velocity.z = THREE.MathUtils.lerp(
+          puff.velocity.z,
+          localWindZ,
+          deltaTime * 0.72
+        );
+        puff.velocity.y = THREE.MathUtils.lerp(
+          puff.velocity.y,
+          localWindY,
+          deltaTime * 0.5
         );
 
-        // Luc day noi va nhieu xoay dua tren seed
-        const noiseX = Math.sin(elapsed * 2.2 + puff.seed * 12.3) * 0.42;
-        const noiseZ = Math.cos(elapsed * 1.8 + puff.seed * 12.3) * 0.42;
+        // Tan xa khi quyen vi mo: day cac hat tach roi xa nhau theo thoi gian
+        const dispersionStrength = 0.45 + 2.2 * t;
+        const noiseX = Math.sin(elapsed * 1.6 + puff.seed * 19.3) * dispersionStrength;
+        const noiseZ = Math.cos(elapsed * 1.4 + puff.seed * 23.7) * dispersionStrength;
         puff.velocity.x += noiseX * deltaTime;
         puff.velocity.z += noiseZ * deltaTime;
         puff.velocity.y += puff.buoyancy * deltaTime;
@@ -576,11 +887,16 @@ export class SmokeSystem {
       this.colorsArray[i * 3 + 2] = puff.color.b;
 
       const t = puff.age / puff.life;
-      const growthScale = 1 + puff.growth * t;
+
+      // Do no the tich phi tuyen: phinh to cuc bo luc dau, sau do lan rong tao thanh dai suong khi quyen bao la
+      const growthCurve = Math.pow(t, 0.55);
+      const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
       this.sizesArray[i] = puff.baseScale * growthScale;
 
+      // Suy giam mat do quang hoc theo do no: hat phinh to se loang dan thanh lop suong mo tu nhien
       const fade = 1 - t;
-      this.opacitiesArray[i] = fade * fade * puff.baseOpacity;
+      const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
+      this.opacitiesArray[i] = fade * fade * puff.baseOpacity * expansionThinned;
       this.seedsArray[i] = puff.seed;
     }
 

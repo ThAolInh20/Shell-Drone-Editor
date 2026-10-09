@@ -517,7 +517,7 @@ export class CometSystem {
                 );
               }
 
-              if (this.smokeSystem && Math.random() < 0.25 && !isDetached) {
+              if (this.smokeSystem && comet.preset?.launchSmoke && Math.random() < 0.25 && !isDetached) {
                 _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
                 this.smokeSystem.addSmokePoint(
                   comet.mesh.position,

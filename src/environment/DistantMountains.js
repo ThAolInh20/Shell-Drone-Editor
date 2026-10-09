@@ -84,12 +84,15 @@ export class DistantMountains {
 
       const vertexShader = `
         varying float vHeightNorm;
+        varying vec3 vWorldPos;
         uniform float uBaseY;
         uniform float uMaxY;
 
         void main() {
           vHeightNorm = clamp((position.y - uBaseY) / (uMaxY - uBaseY), 0.0, 1.0);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPos = worldPos.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
         }
       `;
 
@@ -98,12 +101,24 @@ export class DistantMountains {
         uniform vec3 uColorTop;
         uniform vec3 uFlashColor;
         uniform float uFlashIntensity;
+        uniform vec3 uFlashPos;
         varying float vHeightNorm;
+        varying vec3 vWorldPos;
 
         void main() {
           vec3 baseGrad = mix(uColorBase, uColorTop, vHeightNorm);
-          // Subtle rim light concentrated strictly on mountain ridge crests
-          vec3 rimIllum = uFlashColor * (pow(vHeightNorm, 2.2) * 0.14) * uFlashIntensity;
+          
+          float azimuthFactor = 1.0;
+          if (uFlashIntensity > 0.001) {
+            vec2 toFlash = normalize(uFlashPos.xz + vec2(0.0001));
+            vec2 toMountain = normalize(vWorldPos.xz + vec2(0.0001));
+            // Mountains positioned towards the burst azimuth receive more rim light
+            float alignment = dot(toMountain, toFlash);
+            azimuthFactor = clamp(0.55 + 0.45 * alignment, 0.25, 1.0);
+          }
+
+          // Subtle rim light concentrated strictly on mountain ridge crests with directional bias
+          vec3 rimIllum = uFlashColor * (pow(vHeightNorm, 2.2) * 0.18 * azimuthFactor) * uFlashIntensity;
           vec3 finalColor = baseGrad + rimIllum;
           gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -130,6 +145,9 @@ export class DistantMountains {
           },
           uFlashIntensity: {
             value: 0.0
+          },
+          uFlashPos: {
+            value: new THREE.Vector3(0, 120, 0)
           }
         },
         side: THREE.DoubleSide,
@@ -142,11 +160,14 @@ export class DistantMountains {
     });
   }
 
-  setBurstFlash(color, intensity) {
+  setBurstFlash(color, intensity, position = null) {
     this.group.traverse((obj) => {
       if (obj.isMesh && obj.material && obj.material.uniforms) {
         if (color && obj.material.uniforms.uFlashColor) {
           obj.material.uniforms.uFlashColor.value.copy(color);
+        }
+        if (position && obj.material.uniforms.uFlashPos) {
+          obj.material.uniforms.uFlashPos.value.copy(position);
         }
         if (obj.material.uniforms.uFlashIntensity) {
           obj.material.uniforms.uFlashIntensity.value = intensity;

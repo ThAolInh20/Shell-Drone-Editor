@@ -33,14 +33,15 @@ describe('SmokeSystem', () => {
     expect(mockScene.children).toContain(smokeSystem.smokePoints);
   });
 
-  it('should spawn sub-cluster volumetric smoke clouds onBurst', () => {
+  it('should spawn sub-cluster volumetric smoke clouds onBurst when burst-smoke is present', () => {
     smokeSystem.setQuality('medium');
     const initialCount = smokeSystem.puffs.length;
 
     smokeSystem.onBurst({
       position: { x: 0, y: 150, z: 0 },
       colorHex: 0xff4500,
-      intensity: 0.8
+      intensity: 0.8,
+      effects: ['burst-smoke']
     });
 
     expect(smokeSystem.puffs.length).toBeGreaterThan(initialCount);
@@ -50,6 +51,19 @@ describe('SmokeSystem', () => {
     expect(firstPuff.buoyancy).toBeGreaterThan(0);
     expect(firstPuff.life).toBeGreaterThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMin);
     expect(firstPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMax);
+  });
+
+  it('should NOT spawn burst smoke onBurst if burst-smoke effect is not present', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff4500,
+      intensity: 0.8
+    });
+
+    expect(smokeSystem.puffs.length).toBe(0);
   });
 
   it('should spawn trail smoke onLaunch', () => {
@@ -111,7 +125,8 @@ describe('SmokeSystem', () => {
   it('should clear all puffs cleanly', () => {
     smokeSystem.setQuality('medium');
     smokeSystem.onBurst({
-      position: { x: 0, y: 100, z: 0 }
+      position: { x: 0, y: 100, z: 0 },
+      hasBurstSmoke: true
     });
     expect(smokeSystem.puffs.length).toBeGreaterThan(0);
 
@@ -147,5 +162,83 @@ describe('SmokeSystem', () => {
 
     expect(smokeSystem.puffs.length).toBe(1);
     expect(smokeSystem.puffs[0].life).toBeCloseTo(12.0);
+  });
+
+  it('should properly update burst flash uniforms via setBurstFlash', () => {
+    const flashPos = new THREE.Vector3(50, 180, -30);
+    const flashColor = new THREE.Color(0xffaa22);
+    const intensity = 0.85;
+
+    smokeSystem.setBurstFlash(flashPos, flashColor, intensity);
+
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.x).toBe(50);
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.y).toBe(180);
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.z).toBe(-30);
+    expect(smokeSystem.smokeUniforms.uFlashColor.value.getHex()).toBe(0xffaa22);
+    expect(smokeSystem.smokeUniforms.uFlashIntensity.value).toBe(0.85);
+  });
+
+  it('should reset burst flash intensity when intensity is zero', () => {
+    smokeSystem.setBurstFlash(null, null, 0);
+    expect(smokeSystem.smokeUniforms.uFlashIntensity.value).toBe(0);
+  });
+
+  it('should default smoke to white color when hasCustomColor is not set', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff0000,
+      effects: ['burst-smoke']
+    });
+
+    expect(smokeSystem.puffs.length).toBeGreaterThan(0);
+    expect(smokeSystem.puffs[0].color.getHex()).toBe(0xf2f5f9);
+  });
+
+  it('should use custom firework color for smoke when hasCustomColor is true', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff0088,
+      effects: ['burst-smoke'],
+      hasCustomColor: true
+    });
+
+    expect(smokeSystem.puffs.length).toBeGreaterThan(0);
+    expect(smokeSystem.puffs[0].color.getHex()).toBe(0xff0088);
+  });
+
+  it('should generate radial streaks along particle burst paths extending approximately 1/3 of firework spread', () => {
+    smokeSystem.setQuality('high');
+    smokeSystem.clear();
+
+    const burstPos = new THREE.Vector3(0, 150, 0);
+    const burstRadius = 60.0;
+
+    smokeSystem.onBurst({
+      position: { x: burstPos.x, y: burstPos.y, z: burstPos.z },
+      burstRadius: burstRadius,
+      intensity: 0.8,
+      effects: ['burst-smoke']
+    });
+
+    expect(smokeSystem.puffs.length).toBeGreaterThan(15);
+
+    // Calculate maximum puff distance from burst center
+    let maxDist = 0;
+    for (const puff of smokeSystem.puffs) {
+      const dist = puff.position.distanceTo(burstPos);
+      if (dist > maxDist) {
+        maxDist = dist;
+      }
+    }
+
+    // Maximum distance reached by radial streaks should roughly be within ~1/3 to 1/2 of firework spread
+    expect(maxDist).toBeGreaterThan(burstRadius * 0.20);
+    expect(maxDist).toBeLessThanOrEqual(burstRadius * 0.65);
   });
 });
