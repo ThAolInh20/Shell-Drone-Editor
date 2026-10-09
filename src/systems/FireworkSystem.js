@@ -176,10 +176,30 @@ export class FireworkSystem {
 
     this.scheduledBursts = [];
 
-    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
-    globalEventBus.on('graphics:quality', (quality) => {
-      this.setGraphicsQuality(quality);
-    });
+    this.burstPositionsAttr = this.globalBurstGeometry.getAttribute('position');
+    this.burstColorsAttr = this.globalBurstGeometry.getAttribute('color');
+    this.burstSizesAttr = this.globalBurstGeometry.getAttribute('aSize');
+    this.burstOpacitiesAttr = this.globalBurstGeometry.getAttribute('aOpacity');
+    this.activeShellIdsSet = new Set();
+
+    this.eventSubscriptions = [];
+    this.setGraphicsQuality(
+      localStorage.getItem('graphics_quality') || 'medium'
+    );
+    this.eventSubscriptions.push(
+      globalEventBus.on(
+        'graphics:quality',
+        (quality) => {
+          this.setGraphicsQuality(quality);
+        }
+      ),
+      globalEventBus.on(
+        'firework:clear',
+        () => {
+          this.clear();
+        }
+      )
+    );
   }
 
   setGraphicsQuality(quality) {
@@ -2031,13 +2051,14 @@ export class FireworkSystem {
     const nestedBurstsToSpawn = [];
 
     // Strobe frequency adjustment based on active burst count
-    const uniqueShells = new Set(
-      this.burstParticles.map(
-        (p) => p.shellId
-      )
-    );
-    const activeBurstCount = uniqueShells.size;
-    const strobeFreqMultiplier = activeBurstCount > 8 ? 1.25 : 1.0;
+    this.activeShellIdsSet.clear();
+    for (let idx = 0; idx < this.burstParticles.length; idx++) {
+      this.activeShellIdsSet.add(this.burstParticles[idx].shellId);
+      if (this.activeShellIdsSet.size > 8) {
+        break;
+      }
+    }
+    const strobeFreqMultiplier = this.activeShellIdsSet.size > 8 ? 1.25 : 1.0;
 
     for (let idx = 0; idx < this.burstParticles.length; idx++) {
       const p = this.burstParticles[idx];
@@ -2766,26 +2787,39 @@ export class FireworkSystem {
       this.burstOpacitiesArray[i] = p.renderOpacity;
     }
 
-    // Hide remaining spots
-    for (let i = count; i < this.allocatedMaxBurstParticles; i++) {
-      this.burstPositionsArray[i * 3] = 0;
-      this.burstPositionsArray[i * 3 + 1] = -99999;
-      this.burstPositionsArray[i * 3 + 2] = 0;
+    if (count > 0) {
+      this.burstPositionsAttr.needsUpdate = true;
+      this.burstColorsAttr.needsUpdate = true;
+      this.burstSizesAttr.needsUpdate = true;
+      this.burstOpacitiesAttr.needsUpdate = true;
 
-      this.burstColorsArray[i * 3] = 0;
-      this.burstColorsArray[i * 3 + 1] = 0;
-      this.burstColorsArray[i * 3 + 2] = 0;
+      if (this.burstPositionsAttr.updateRange) {
+        this.burstPositionsAttr.updateRange.offset = 0;
+        this.burstPositionsAttr.updateRange.count = count * 3;
+      }
+      if (this.burstColorsAttr.updateRange) {
+        this.burstColorsAttr.updateRange.offset = 0;
+        this.burstColorsAttr.updateRange.count = count * 3;
+      }
+      if (this.burstSizesAttr.updateRange) {
+        this.burstSizesAttr.updateRange.offset = 0;
+        this.burstSizesAttr.updateRange.count = count;
+      }
+      if (this.burstOpacitiesAttr.updateRange) {
+        this.burstOpacitiesAttr.updateRange.offset = 0;
+        this.burstOpacitiesAttr.updateRange.count = count;
+      }
 
-      this.burstSizesArray[i] = 0;
-      this.burstOpacitiesArray[i] = 0;
+      this.globalBurstGeometry.setDrawRange(
+        0,
+        count
+      );
+    } else {
+      this.globalBurstGeometry.setDrawRange(
+        0,
+        0
+      );
     }
-
-    // Mark geometry attributes for update
-    this.globalBurstGeometry.getAttribute('position').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('color').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('aSize').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('aOpacity').needsUpdate = true;
-    this.globalBurstGeometry.setDrawRange(0, count);
   }
 
   clear() {
@@ -2794,6 +2828,16 @@ export class FireworkSystem {
     this.burstParticles = [];
     this.scheduledBursts = [];
     this.updateBurstParticles(0);
+  }
+
+  destroy() {
+    this.clear();
+    for (const unsubscribe of this.eventSubscriptions) {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    }
+    this.eventSubscriptions.length = 0;
   }
 
   burstAll() {

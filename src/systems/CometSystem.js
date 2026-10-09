@@ -26,26 +26,75 @@ const CASCADE_PALETTES = [
   [0xf43f5e, 0x8b5cf6, 0x06b6d4, 0xffffff]
 ];
 
+const _tempPaletteColorA = new THREE.Color();
+const _tempPaletteColorB = new THREE.Color();
+const GLITTER_STROBE_COLOR = new THREE.Color(0xffe082);
+const WHITE_COLOR = new THREE.Color(0xffffff);
+const LAUNCH_SMOKE_COLOR = new THREE.Color(0x778090);
+const WATER_STEAM_COLOR = new THREE.Color(0xdde5ee);
+
 function interpolatePaletteColor(palette, t) {
   const clampedT = Math.max(0, Math.min(1, t));
   const segmentCount = palette.length - 1;
   const scaled = clampedT * segmentCount;
   const idx = Math.min(Math.floor(scaled), segmentCount - 1);
   const frac = scaled - idx;
-  const c1 = new THREE.Color(palette[idx]);
-  const c2 = new THREE.Color(palette[idx + 1]);
-  return c1.lerp(c2, frac);
+  _tempPaletteColorA.setHex(palette[idx]);
+  _tempPaletteColorB.setHex(palette[idx + 1]);
+  return _tempPaletteColorA.clone().lerp(_tempPaletteColorB, frac);
 }
 
 const _tempSmokeVel = new THREE.Vector3();
 
 export class CometSystem {
-  constructor(scene, trailSystem) {
+  constructor(
+    scene,
+    trailSystem,
+    smokeSystem = null
+  ) {
     this.scene = scene;
     this.trailSystem = trailSystem;
+    this.smokeSystem = smokeSystem;
     this.activeComets = [];
     this.launchZone = LAUNCH_ZONE_CONFIG;
     this.shellPresetFactory = new ShellPresetFactory();
+    this.eventSubscriptions = [];
+
+    this.graphicsQualityMultiplier = 1.0;
+    this.setGraphicsQuality(
+      localStorage.getItem('graphics_quality') || 'medium'
+    );
+    this.eventSubscriptions.push(
+      globalEventBus.on(
+        'graphics:quality',
+        (quality) => this.setGraphicsQuality(quality)
+      ),
+      globalEventBus.on(
+        'firework:clear',
+        () => this.clear()
+      )
+    );
+  }
+
+  setGraphicsQuality(quality) {
+    this.graphicsQuality = quality;
+    if (quality === 'low') {
+      this.graphicsQualityMultiplier = 0.6;
+    } else if (quality === 'medium') {
+      this.graphicsQualityMultiplier = 1.0;
+    } else if (quality === 'high') {
+      this.graphicsQualityMultiplier = 1.25;
+    }
+  }
+
+  destroy() {
+    this.clear();
+    for (const unsubscribe of this.eventSubscriptions) {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    }
+    this.eventSubscriptions.length = 0;
   }
 
   emitFireworkEvent(type, detail) {
@@ -83,7 +132,13 @@ export class CometSystem {
       finalPreset?.spiral ||
       null;
 
-    const clusterCount = finalPreset?.clusterCount ?? 1;
+    const rawClusterCount = finalPreset?.clusterCount ?? 1;
+    const clusterCount = rawClusterCount > 1
+      ? Math.max(
+        2,
+        Math.round(rawClusterCount * this.graphicsQualityMultiplier)
+      )
+      : 1;
     const basePosition = this.resolveLaunchPosition(ratioX, ratioZ, sectorId);
 
     // Use a unified color for the cluster, or mixed. We'll use a unified color for elegance.
@@ -149,9 +204,12 @@ export class CometSystem {
         // Đổi màu Gradient từ dưới lên trên (Bottom-to-Top Chromatic Gradient)
         if (finalPreset?.secondColor && color) {
           // Trường hợp 1: Có 2 màu chỉ định -> lerp từ color (đáy) tới secondColor (đỉnh)
-          const startColor = new THREE.Color(color);
-          const endColor = new THREE.Color(finalPreset.secondColor);
-          cometColor = startColor.lerp(endColor, progress);
+          _tempPaletteColorA.set(color);
+          _tempPaletteColorB.set(finalPreset.secondColor);
+          cometColor = _tempPaletteColorA.clone().lerp(
+            _tempPaletteColorB,
+            progress
+          );
         } else if (color) {
           // Trường hợp 2: Có 1 màu chỉ định -> shift Hue quang phổ và tăng độ sáng từ đáy lên đỉnh
           cometColor = clusterColor.clone().offsetHSL(
@@ -317,11 +375,16 @@ export class CometSystem {
   }
 
   clear() {
-    for (const comet of this.activeComets) {
-      this.scene.remove(comet.mesh);
-      comet.dispose();
+    for (let i = 0; i < this.activeComets.length; i++) {
+      const comet = this.activeComets[i];
+      if (comet) {
+        if (comet.mesh) {
+          this.scene.remove(comet.mesh);
+        }
+        comet.dispose?.();
+      }
     }
-    this.activeComets = [];
+    this.activeComets.length = 0;
   }
 
   spawnCrossetteCross(position, color, velocity) {
@@ -368,9 +431,10 @@ export class CometSystem {
   }
 
   update(deltaTime) {
-    const finished = [];
+    let activeCount = 0;
 
-    for (const comet of this.activeComets) {
+    for (let i = 0; i < this.activeComets.length; i++) {
+      const comet = this.activeComets[i];
       let isDead = comet.update(deltaTime);
 
       const H_max = comet.initialVy ? (comet.initialVy * comet.initialVy) / 60 : 0;
@@ -433,7 +497,7 @@ export class CometSystem {
             if (Math.random() < 0.25 && !comet.preset?.sparkleAtEnd) {
               this.trailSystem.spawnEffectSpark(
                 comet.mesh.position,
-                comet.isGlitterStrobe ? new THREE.Color(0xffe082) : comet.color,
+                comet.isGlitterStrobe ? GLITTER_STROBE_COLOR : comet.color,
                 true,
                 null,
                 Math.random() * 1000,
@@ -568,7 +632,7 @@ export class CometSystem {
             scale: 2.5 + Math.random() * 2.0,
             growth: 2.5,
             opacity: 0.12 + Math.random() * 0.08,
-            color: new THREE.Color(0x778090)
+            color: LAUNCH_SMOKE_COLOR
           });
         }
       }
@@ -582,8 +646,8 @@ export class CometSystem {
           comet.hasEmittedGhostFlare = true;
           for (let s = 0; s < 4; s++) {
             this.trailSystem.spawnEffectSpark(
-              comet.mesh.position.clone(),
-              new THREE.Color(0xffffff),
+              comet.mesh.position,
+              WHITE_COLOR,
               true,
               null,
               Math.random() * 1000,
@@ -636,7 +700,7 @@ export class CometSystem {
               scale: 2.8 + Math.random() * 1.5,
               growth: 2.5,
               opacity: 0.16,
-              color: new THREE.Color(0xdde5ee)
+              color: WATER_STEAM_COLOR
             }
           );
         }
@@ -646,10 +710,14 @@ export class CometSystem {
       if (isDead) {
         this.scene.remove(comet.mesh);
         comet.dispose();
-        finished.push(comet);
+      } else {
+        if (i !== activeCount) {
+          this.activeComets[activeCount] = comet;
+        }
+        activeCount++;
       }
     }
 
-    this.activeComets = this.activeComets.filter(item => !finished.includes(item));
+    this.activeComets.length = activeCount;
   }
 }
