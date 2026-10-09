@@ -182,10 +182,24 @@ export class FireworkSystem {
     this.burstOpacitiesAttr = this.globalBurstGeometry.getAttribute('aOpacity');
     this.activeShellIdsSet = new Set();
 
-    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
-    globalEventBus.on('graphics:quality', (quality) => {
-      this.setGraphicsQuality(quality);
-    });
+    this.eventSubscriptions = [];
+    this.setGraphicsQuality(
+      localStorage.getItem('graphics_quality') || 'medium'
+    );
+    this.eventSubscriptions.push(
+      globalEventBus.on(
+        'graphics:quality',
+        (quality) => {
+          this.setGraphicsQuality(quality);
+        }
+      ),
+      globalEventBus.on(
+        'firework:clear',
+        () => {
+          this.clear();
+        }
+      )
+    );
   }
 
   setGraphicsQuality(quality) {
@@ -2814,6 +2828,16 @@ export class FireworkSystem {
     this.burstParticles = [];
     this.scheduledBursts = [];
     this.updateBurstParticles(0);
+  }
+
+  destroy() {
+    this.clear();
+    for (const unsubscribe of this.eventSubscriptions) {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    }
+    this.eventSubscriptions.length = 0;
   }
 
   burstAll() {
