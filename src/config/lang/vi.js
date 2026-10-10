@@ -353,6 +353,7 @@ export default {
     sky_moon_altitude_low: "Gần đường chân trời",
     sky_moon_altitude_mid: "Độ cao trung bình",
     sky_moon_altitude_high: "Đỉnh vòm trời cao",
+    sky_moon_size: "Kích thước mặt trăng",
     sky_cloud_coverage: "Mật độ mây đêm",
     sky_cloud_speed: "Tốc độ trôi của mây",
     volume_master: "Âm lượng tổng",

@@ -342,6 +342,7 @@ export default {
     sky_moon_altitude_low: "地平線付近",
     sky_moon_altitude_mid: "中高度",
     sky_moon_altitude_high: "天頂高空",
+    sky_moon_size: "月の大きさ",
     sky_cloud_coverage: "夜空の雲量",
     sky_cloud_speed: "雲の移動速度",
     volume_master: "マスター音量",

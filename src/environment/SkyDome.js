@@ -17,12 +17,14 @@ export class SkyDome {
     this.moonPhase = options.moonPhase ?? renderingConfig.sky?.moonPhase ?? 'full';
     this.moonPosition = options.moonPosition ?? renderingConfig.sky?.moonPosition ?? 'right';
     this.moonAltitude = options.moonAltitude ?? renderingConfig.sky?.moonAltitude ?? 'mid';
+    this.moonSize = options.moonSize ?? renderingConfig.sky?.moonSize ?? 85;
 
     this.time = 0;
 
     this._createDome();
     this._createStarfield();
     this._createMoon();
+    this.setMoonSize(this.moonSize);
     if (options.moonDay !== undefined) {
       this.setMoonDay(this.moonDay);
     } else {
@@ -282,17 +284,27 @@ export class SkyDome {
     // Positioned in upper right background sky
     this.moonGroup.position.set(520, 500, -750);
 
-    const quadSize = 300;
+    const quadSize = 85;
     const moonGeo = new THREE.PlaneGeometry(
       quadSize,
       quadSize
     );
 
+    this.moonTextureCache = new Map();
+    this.textureLoader = new THREE.TextureLoader();
+
+    const initialDay = 15;
+    const initialTexture = this._loadMoonTexture(initialDay);
+
     const moonVertexShader = `
+      uniform float uMoonScale;
       varying vec2 vUv;
       void main() {
         vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        // Spherical billboard facing camera to eliminate perspective distortion
+        vec4 mvPosition = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+        mvPosition.xy += position.xy * uMoonScale;
+        gl_Position = projectionMatrix * mvPosition;
       }
     `;
 
@@ -300,6 +312,7 @@ export class SkyDome {
       uniform float uMoonAngle;
       uniform float uMoonPhaseValue;
       uniform vec3 uMoonColor;
+      uniform sampler2D uMoonMap;
       varying vec2 vUv;
 
       void main() {
@@ -310,38 +323,39 @@ export class SkyDome {
           discard;
         }
 
-        float moonRadius = 0.22;
-        float moonAlpha = 0.0;
-        vec3 moonLitColor = vec3(0.0);
+        vec4 texSample = texture2D(uMoonMap, vUv);
 
-        if (dist <= moonRadius) {
-          vec2 p = (vUv - center) / moonRadius;
-          float z = sqrt(max(0.0, 1.0 - p.x * p.x - p.y * p.y));
-          vec3 normal = vec3(p.x, p.y, z);
+        // Lunar disc occupies radius 0.3633 (93/256 px) in the texture
+        float discRadius = 0.3633;
 
-          // Phase illumination directional vector based on 30-day lunar orbit angle
-          vec3 sunLightDir = normalize(vec3(-sin(uMoonAngle), 0.0, -cos(uMoonAngle)));
-          float NdotL = dot(normal, sunLightDir);
-          float lit = smoothstep(-0.02, 0.03, NdotL);
+        // Smooth disc edge antialiasing
+        float discMask = smoothstep(discRadius + 0.004, discRadius - 0.004, dist);
 
-          // Soft antialiased disc boundary mask
-          float discMask = smoothstep(moonRadius, moonRadius - 0.015, dist);
-          moonAlpha = lit * discMask;
+        // Calculate surface perceived luminance
+        float luma = dot(texSample.rgb, vec3(0.299, 0.587, 0.114));
 
-          // Subtle lunar maria and crater details
-          float n1 = sin(p.x * 14.0 + 1.2) * cos(p.y * 12.0 + 0.8) * 0.04;
-          float n2 = sin(p.x * 28.0) * sin(p.y * 26.0) * 0.02;
-          float detail = 0.96 + n1 + n2;
+        // Smooth transition between illuminated crest and shadow
+        float litFactor = smoothstep(0.04, 0.24, luma);
 
-          // Gentle limb darkening towards edges
-          float limb = 1.0 - pow(dist / moonRadius, 3.5) * 0.12;
-          moonLitColor = uMoonColor * (detail * 0.78) * limb;
-        }
+        // Keep illuminated side vivid and contrasty while crushing dark side murkiness
+        vec3 surfaceColor = pow(texSample.rgb, vec3(1.22)) * uMoonColor;
+        vec3 moonLitColor = mix(surfaceColor * 0.02, surfaceColor, litFactor);
 
-        // Soft atmospheric halo glow fading outward
-        float haloFactor = clamp((0.5 - dist) / 0.5, 0.0, 1.0);
-        float glow = pow(haloFactor, 3.2) * 0.20 * uMoonPhaseValue;
-        vec3 glowColor = vec3(0.84, 0.91, 1.0);
+        // Faint earthshine (1.5%) on shadow side so night sky / stars remain natural
+        float shadowAlpha = mix(0.015, 1.0, litFactor);
+        float moonAlpha = texSample.a * discMask * shadowAlpha;
+
+        // Atmospheric halo only radiates from the brightly illuminated limb
+        vec2 dir = (dist > 0.001) ? normalize(vUv - center) : vec2(0.0, 1.0);
+        vec2 edgeUv = center + dir * (discRadius - 0.025);
+        vec4 edgeSample = texture2D(uMoonMap, edgeUv);
+        float edgeLuma = dot(edgeSample.rgb, vec3(0.299, 0.587, 0.114));
+        float glowWeight = smoothstep(0.06, 0.28, edgeLuma);
+
+        float haloDist = max(0.0, dist - discRadius);
+        float haloFactor = clamp(1.0 - (haloDist / (0.5 - discRadius)), 0.0, 1.0);
+        float glow = pow(haloFactor, 3.2) * 0.24 * uMoonPhaseValue * glowWeight;
+        vec3 glowColor = vec3(0.85, 0.92, 1.0);
 
         vec3 finalColor = mix(glowColor, moonLitColor, moonAlpha);
         float finalAlpha = max(glow, moonAlpha);
@@ -359,6 +373,12 @@ export class SkyDome {
       },
       uMoonColor: {
         value: new THREE.Color(0xeef4ff)
+      },
+      uMoonMap: {
+        value: initialTexture
+      },
+      uMoonScale: {
+        value: (this.moonSize || 85) / 85.0
       }
     };
 
@@ -449,10 +469,59 @@ export class SkyDome {
     this._updateMoonTransform();
   }
 
+  setMoonSize(size) {
+    this.moonSize = size !== undefined
+      ? Math.max(20, Math.min(300, Number(size) || 85))
+      : 85;
+    const scale = this.moonSize / 85.0;
+
+    if (this.moonUniforms && this.moonUniforms.uMoonScale) {
+      this.moonUniforms.uMoonScale.value = scale;
+    }
+
+    if (this.moonMesh) {
+      this.moonMesh.scale.set(
+        scale,
+        scale,
+        1
+      );
+    }
+  }
+
   getMoonWorldPosition() {
     return this.moonGroup
       ? this.moonGroup.position.clone()
       : new THREE.Vector3(520, 500, -750);
+  }
+
+  _loadMoonTexture(day) {
+    const d = Math.max(1, Math.min(30, parseInt(day, 10) || 15));
+    if (this.moonTextureCache && this.moonTextureCache.has(d)) {
+      return this.moonTextureCache.get(d);
+    }
+
+    if (typeof document === 'undefined' || !this.textureLoader) {
+      const fallbackTex = new THREE.Texture();
+      if (this.moonTextureCache) {
+        this.moonTextureCache.set(d, fallbackTex);
+      }
+      return fallbackTex;
+    }
+
+    const dayStr = String(d).padStart(2, '0');
+    const url = `assets/moon/day-${dayStr}.png`;
+
+    const texture = this.textureLoader.load(
+      url,
+      (tex) => {
+        tex.needsUpdate = true;
+      }
+    );
+
+    if (this.moonTextureCache) {
+      this.moonTextureCache.set(d, texture);
+    }
+    return texture;
   }
 
   setMoonDay(day) {
@@ -464,9 +533,14 @@ export class SkyDome {
     // Smooth cosine illumination: Day 1: 0.0 -> Day 15: 1.0 -> Day 30: 0.0
     const phaseValue = (1.0 - Math.cos(phi)) * 0.5;
 
+    const texture = this._loadMoonTexture(d);
+
     if (this.moonUniforms) {
       this.moonUniforms.uMoonAngle.value = phi;
       this.moonUniforms.uMoonPhaseValue.value = phaseValue;
+      if (texture && this.moonUniforms.uMoonMap) {
+        this.moonUniforms.uMoonMap.value = texture;
+      }
     }
 
     if (this.moonMesh) {
@@ -562,6 +636,15 @@ export class SkyDome {
   }
 
   dispose() {
+    if (this.moonTextureCache) {
+      this.moonTextureCache.forEach((tex) => {
+        if (tex && typeof tex.dispose === 'function') {
+          tex.dispose();
+        }
+      });
+      this.moonTextureCache.clear();
+    }
+
     this.group.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();

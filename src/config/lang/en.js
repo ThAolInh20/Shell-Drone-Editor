@@ -353,6 +353,7 @@ export default {
     sky_moon_altitude_low: "Low Horizon",
     sky_moon_altitude_mid: "Mid Sky",
     sky_moon_altitude_high: "High Sky",
+    sky_moon_size: "Moon Size",
     sky_cloud_coverage: "Night Cloud Coverage",
     sky_cloud_speed: "Cloud Movement Speed",
     volume_master: "Master Volume",

@@ -30,7 +30,8 @@ export const renderingConfig = {
     moonDay: 15,
     moonPhase: 'full',
     moonPosition: 0.8,
-    moonAltitude: 500
+    moonAltitude: 500,
+    moonSize: 85
   },
   performance: {
     fpsThreshold: 70,

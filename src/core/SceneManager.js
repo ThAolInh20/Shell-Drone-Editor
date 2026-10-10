@@ -209,6 +209,12 @@ export class SceneManager {
     }
   }
 
+  setMoonSize(size) {
+    if (this.skyDome) {
+      this.skyDome.setMoonSize(size);
+    }
+  }
+
   destroy() {
     if (this.skyDome) {
       this.skyDome.dispose();

@@ -69,6 +69,8 @@ describe('SkyDome', () => {
     expect(skyDome.moonMesh).toBeDefined();
     expect(skyDome.moonLight).toBeDefined();
     expect(skyDome.moonUniforms.uMoonPhaseValue.value).toBeCloseTo(1.0);
+    expect(skyDome.moonUniforms.uMoonMap).toBeDefined();
+    expect(skyDome.moonTextureCache).toBeDefined();
 
     // Test full moon day 15
     skyDome.setMoonDay(15);
@@ -111,5 +113,17 @@ describe('SkyDome', () => {
     expect(skyDome.moonAltitude).toBe(600);
     expect(skyDome.moonGroup.position.x).toBeCloseTo(-0.5 * 650.0);
     expect(skyDome.moonGroup.position.y).toBe(600);
+  });
+
+  it('should update moon size correctly', () => {
+    skyDome.setMoonSize(100);
+    expect(skyDome.moonSize).toBe(100);
+    expect(skyDome.moonMesh.scale.x).toBeCloseTo(100 / 85);
+    expect(skyDome.moonUniforms.uMoonScale.value).toBeCloseTo(100 / 85);
+
+    skyDome.setMoonSize(50);
+    expect(skyDome.moonSize).toBe(50);
+    expect(skyDome.moonMesh.scale.x).toBeCloseTo(50 / 85);
+    expect(skyDome.moonUniforms.uMoonScale.value).toBeCloseTo(50 / 85);
   });
 });

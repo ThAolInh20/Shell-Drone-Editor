@@ -342,6 +342,7 @@ export default {
     sky_moon_altitude_low: "低空地平线",
     sky_moon_altitude_mid: "中等高度",
     sky_moon_altitude_high: "高空天顶",
+    sky_moon_size: "月亮大小",
     sky_cloud_coverage: "夜空云层密度",
     sky_cloud_speed: "云层移动速度",
     volume_master: "主音量",

@@ -395,6 +395,30 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'sky_moon_size',
+    label: 'Moon Size',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 30,
+    max: 250,
+    step: 5,
+    default: 85,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonSize = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonSize === 'function'
+      ) {
+        context.sceneManager.setMoonSize(value);
+      }
+    }
+  },
+  {
     key: 'sky_cloud_coverage',
     label: 'Night Cloud Coverage',
     type: 'slider',

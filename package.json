@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "media:mute-previews": "node scripts/mute-preview-videos.js",
+    "assets:slice-moons": "node scripts/slice-moons.js",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder"
   },
