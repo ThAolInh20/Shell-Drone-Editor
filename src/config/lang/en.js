@@ -355,6 +355,8 @@ export default {
     sky_moon_altitude_high: "High Sky",
     sky_moon_size: "Moon Size",
     sky_cloud_coverage: "Night Cloud Coverage",
+    sky_cloud_density: "Cloud Thickness",
+    sky_cloud_scale: "Cloud Cluster Count",
     sky_cloud_speed: "Cloud Movement Speed",
     volume_master: "Master Volume",
     volume_lift: "Lift Volume",

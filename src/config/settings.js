@@ -443,6 +443,54 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'sky_cloud_density',
+    label: 'Cloud Thickness',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.2,
+    max: 2.5,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudDensity = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudDensity === 'function'
+      ) {
+        context.sceneManager.setCloudDensity(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_scale',
+    label: 'Cloud Cluster Count',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.4,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudScale = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudScale === 'function'
+      ) {
+        context.sceneManager.setCloudScale(value);
+      }
+    }
+  },
+  {
     key: 'sky_cloud_speed',
     label: 'Cloud Movement Speed',
     type: 'slider',

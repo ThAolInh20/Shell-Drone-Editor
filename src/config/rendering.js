@@ -27,6 +27,8 @@ export const renderingConfig = {
   sky: {
     cloudCoverage: 0.55,
     cloudSpeed: 1.0,
+    cloudDensity: 1.0,
+    cloudScale: 1.0,
     moonDay: 15,
     moonPhase: 'full',
     moonPosition: 0.8,

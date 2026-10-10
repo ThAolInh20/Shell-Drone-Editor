@@ -344,6 +344,8 @@ export default {
     sky_moon_altitude_high: "天頂高空",
     sky_moon_size: "月の大きさ",
     sky_cloud_coverage: "夜空の雲量",
+    sky_cloud_density: "雲の厚み",
+    sky_cloud_scale: "雲の塊の数",
     sky_cloud_speed: "雲の移動速度",
     volume_master: "マスター音量",
     volume_lift: "打ち上げ音量",

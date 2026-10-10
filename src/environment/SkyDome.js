@@ -13,6 +13,8 @@ export class SkyDome {
     this.starCount = options.starCount || 2200;
     this.cloudCoverage = options.cloudCoverage ?? renderingConfig.sky?.cloudCoverage ?? 0.55;
     this.cloudSpeed = options.cloudSpeed ?? renderingConfig.sky?.cloudSpeed ?? 1.0;
+    this.cloudDensity = options.cloudDensity ?? renderingConfig.sky?.cloudDensity ?? 1.0;
+    this.cloudScale = options.cloudScale ?? renderingConfig.sky?.cloudScale ?? 1.0;
     this.moonDay = options.moonDay ?? renderingConfig.sky?.moonDay ?? 15;
     this.moonPhase = options.moonPhase ?? renderingConfig.sky?.moonPhase ?? 'full';
     this.moonPosition = options.moonPosition ?? renderingConfig.sky?.moonPosition ?? 'right';
@@ -54,6 +56,8 @@ export class SkyDome {
       uniform float uTime;
       uniform float uCloudCoverage;
       uniform float uCloudSpeed;
+      uniform float uCloudDensity;
+      uniform float uCloudScale;
       uniform vec3 uFlashPos;
       uniform vec3 uFlashColor;
       uniform float uFlashIntensity;
@@ -64,6 +68,10 @@ export class SkyDome {
         p = fract(p * vec2(123.34, 456.21));
         p += dot(p, p + 45.32);
         return fract(p.x * p.y);
+      }
+
+      vec2 hash2(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
       }
 
       float noise(vec2 p) {
@@ -89,6 +97,21 @@ export class SkyDome {
         return v;
       }
 
+      float worley(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        float minDist = 1.0;
+        for (int y = -1; y <= 1; y++) {
+          for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            vec2 pt = hash2(i + neighbor);
+            vec2 diff = neighbor + pt - f;
+            minDist = min(minDist, length(diff));
+          }
+        }
+        return minDist;
+      }
+
       void main() {
         float h = normalize(vWorldPosition + vec3(0.0, uOffset, 0.0)).y;
         float factor = max(pow(max(h, 0.0), uExponent), 0.0);
@@ -96,26 +119,41 @@ export class SkyDome {
 
         vec3 dir = normalize(vWorldPosition);
         if (dir.y > 0.01 && uCloudCoverage > 0.001) {
-          vec2 cloudUV = (dir.xz / (dir.y + 0.16)) * 1.8;
           float t = uTime * uCloudSpeed * 0.045;
           vec2 wind1 = vec2(t * 1.0, t * 0.28);
-          vec2 wind2 = vec2(-t * 0.45, t * 0.65);
+          vec2 wind2 = vec2(-t * 0.42, t * 0.65);
 
-          float n1 = fbm(cloudUV * 0.9 + wind1);
-          float n2 = fbm(cloudUV * 1.8 + wind2 + vec2(n1 * 0.5));
-          float cloudDensity = smoothstep(0.40, 0.75, n2) * smoothstep(0.01, 0.22, dir.y) * uCloudCoverage;
+          // Layer 1: Cumulus / billowy clusters with Worley carving + Domain Warping
+          vec2 uvLow = (dir.xz / (dir.y + 0.16)) * (1.8 * uCloudScale);
+          vec2 curlOffset = vec2(
+            noise(uvLow * 0.8 + wind1 * 0.5),
+            noise(uvLow * 0.8 + wind1 * 0.5 + vec2(4.3, 1.7))
+          ) * 0.45;
+
+          float wNoise = 1.0 - worley(uvLow * 1.2 + wind1 + curlOffset);
+          float fNoise = fbm(uvLow * 0.95 + wind1 + curlOffset);
+          float cumulusShape = mix(fNoise, wNoise * fNoise * 1.4, 0.45);
+          float cumulusDensity = smoothstep(0.48 - uCloudCoverage * 0.25, 0.78, cumulusShape) * uCloudDensity;
+
+          // Layer 2: Cirrus / wispy high-altitude streaks
+          vec2 uvHigh = (dir.xz / (dir.y + 0.08)) * (2.8 * uCloudScale);
+          float cirrusNoise = fbm(vec2(uvHigh.x * 2.2, uvHigh.y * 0.55) + wind2);
+          float cirrusDensity = smoothstep(0.52 - uCloudCoverage * 0.20, 0.85, cirrusNoise) * (0.35 * uCloudDensity);
+
+          float horizonFade = smoothstep(0.01, 0.22, dir.y);
+          float totalDensity = clamp((cumulusDensity + cirrusDensity) * horizonFade * uCloudCoverage, 0.0, 1.0);
 
           vec3 cloudIllumination = vec3(0.0);
           if (uFlashIntensity > 0.001) {
             float distToFlash = length(vWorldPosition - uFlashPos);
             float flashAtten = clamp(1.0 - distToFlash / 1800.0, 0.0, 1.0);
-            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * 2.8);
+            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * (2.8 * uCloudDensity));
           }
 
           vec3 baseCloudColor = mix(uBottomColor * 1.35, vec3(0.08, 0.11, 0.20), 0.65);
           vec3 finalCloudColor = baseCloudColor + cloudIllumination;
 
-          skyColor = mix(skyColor, finalCloudColor, cloudDensity * 0.78);
+          skyColor = mix(skyColor, finalCloudColor, totalDensity * 0.82);
         }
 
         gl_FragColor = vec4(skyColor, 1.0);
@@ -143,6 +181,12 @@ export class SkyDome {
       },
       uCloudSpeed: {
         value: this.cloudSpeed
+      },
+      uCloudDensity: {
+        value: this.cloudDensity
+      },
+      uCloudScale: {
+        value: this.cloudScale
       },
       uFlashPos: {
         value: new THREE.Vector3(0, 120, 0)
@@ -613,6 +657,20 @@ export class SkyDome {
     this.cloudSpeed = Math.max(0.0, Math.min(5.0, Number(speed) || 0.0));
     if (this.domeUniforms?.uCloudSpeed) {
       this.domeUniforms.uCloudSpeed.value = this.cloudSpeed;
+    }
+  }
+
+  setCloudDensity(density) {
+    this.cloudDensity = Math.max(0.1, Math.min(3.0, Number(density) || 1.0));
+    if (this.domeUniforms?.uCloudDensity) {
+      this.domeUniforms.uCloudDensity.value = this.cloudDensity;
+    }
+  }
+
+  setCloudScale(scale) {
+    this.cloudScale = Math.max(0.2, Math.min(4.0, Number(scale) || 1.0));
+    if (this.domeUniforms?.uCloudScale) {
+      this.domeUniforms.uCloudScale.value = this.cloudScale;
     }
   }
 

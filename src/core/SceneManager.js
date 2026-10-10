@@ -215,6 +215,18 @@ export class SceneManager {
     }
   }
 
+  setCloudDensity(density) {
+    if (this.skyDome) {
+      this.skyDome.setCloudDensity(density);
+    }
+  }
+
+  setCloudScale(scale) {
+    if (this.skyDome) {
+      this.skyDome.setCloudScale(scale);
+    }
+  }
+
   destroy() {
     if (this.skyDome) {
       this.skyDome.dispose();
