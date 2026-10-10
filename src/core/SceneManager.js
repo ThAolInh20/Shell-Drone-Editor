@@ -101,6 +101,9 @@ export class SceneManager {
     if (this.skyDome) {
       this.skyDome.update(deltaTime);
     }
+    if (this.distantMountains) {
+      this.distantMountains.update(deltaTime);
+    }
     if (this.launchBarge) {
       this.launchBarge.update(deltaTime);
     }
@@ -160,6 +163,12 @@ export class SceneManager {
         this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
       }
     }
+    if (this.distantMountains && this.skyDome) {
+      this.distantMountains.setMoonDirection(
+        this.skyDome.getMoonWorldPosition(),
+        phaseValue
+      );
+    }
   }
 
   setMoonPhase(phase) {
@@ -194,8 +203,17 @@ export class SceneManager {
   setMoonPosition(pos) {
     if (this.skyDome) {
       this.skyDome.setMoonPosition(pos);
+      const moonWorldPos = this.skyDome.getMoonWorldPosition();
       if (this.waterSurface) {
-        this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
+        this.waterSurface.setMoonDirection(moonWorldPos);
+      }
+      if (this.distantMountains) {
+        const phi = (((this.moonDay || 15) - 1) / 29.0) * (Math.PI * 2.0);
+        const phaseVal = (1.0 - Math.cos(phi)) * 0.5;
+        this.distantMountains.setMoonDirection(
+          moonWorldPos,
+          phaseVal
+        );
       }
     }
   }
@@ -203,8 +221,17 @@ export class SceneManager {
   setMoonAltitude(alt) {
     if (this.skyDome) {
       this.skyDome.setMoonAltitude(alt);
+      const moonWorldPos = this.skyDome.getMoonWorldPosition();
       if (this.waterSurface) {
-        this.waterSurface.setMoonDirection(this.skyDome.getMoonWorldPosition());
+        this.waterSurface.setMoonDirection(moonWorldPos);
+      }
+      if (this.distantMountains) {
+        const phi = (((this.moonDay || 15) - 1) / 29.0) * (Math.PI * 2.0);
+        const phaseVal = (1.0 - Math.cos(phi)) * 0.5;
+        this.distantMountains.setMoonDirection(
+          moonWorldPos,
+          phaseVal
+        );
       }
     }
   }
