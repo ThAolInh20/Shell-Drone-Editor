@@ -241,4 +241,37 @@ describe('SmokeSystem', () => {
     expect(maxDist).toBeGreaterThan(burstRadius * 0.20);
     expect(maxDist).toBeLessThanOrEqual(burstRadius * 0.65);
   });
+
+  it('should accept flight smoke parameters via addSmokePoint for collinear streaks', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    const origin = new THREE.Vector3(0, 10, 0);
+    const vel = new THREE.Vector3(0, -2, 0);
+    const options = {
+      life: 4.5,
+      scale: 4.8,
+      growth: 3.2,
+      drag: 1.8,
+      buoyancy: 0.38,
+      opacity: 0.28,
+      color: new THREE.Color(0xf2f5f8)
+    };
+
+    smokeSystem.addSmokePoint(
+      origin,
+      vel,
+      options
+    );
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    const puff = smokeSystem.puffs[0];
+    expect(puff.position.x).toBe(0);
+    expect(puff.position.y).toBe(10);
+    expect(puff.drag).toBe(1.8);
+    expect(puff.buoyancy).toBe(0.38);
+    expect(puff.baseScale).toBe(4.8);
+    expect(puff.growth).toBe(3.2);
+    expect(puff.baseOpacity).toBe(0.28);
+  });
 });

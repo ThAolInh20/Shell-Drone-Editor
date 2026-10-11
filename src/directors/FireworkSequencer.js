@@ -437,6 +437,14 @@ export class FireworkSequencer {
             overrides.thinTrail = false;
             overrides.detachedTrail = true;
             overrides.cometTrail = 'detached';
+          } else if (config.cometTrail === 'smoke' || config.cometTrail === 'smoke_trail') {
+            overrides.launchTrail = false;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = false;
+            overrides.flightSmoke = true;
+            overrides.instantBurst = false;
+            overrides.cometTrail = 'smoke';
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
@@ -860,6 +868,14 @@ export class FireworkSequencer {
             overrides.thinTrail = false;
             overrides.detachedTrail = true;
             overrides.cometTrail = 'detached';
+          } else if (config.cometTrail === 'smoke' || config.cometTrail === 'smoke_trail') {
+            overrides.launchTrail = false;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = false;
+            overrides.flightSmoke = true;
+            overrides.instantBurst = false;
+            overrides.cometTrail = 'smoke';
           } else if (config.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;

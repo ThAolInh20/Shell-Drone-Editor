@@ -342,6 +342,7 @@ export class PropertyInspector {
                 'thin',
                 'thick',
                 'detached',
+                'smoke',
                 'none',
                 'ascent-bursts'
               ]

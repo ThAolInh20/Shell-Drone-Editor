@@ -3,13 +3,15 @@ import { globalEventBus } from '../core/EventBus.js';
 import { renderingConfig } from '../config/rendering.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
-const QUALITY_CAPACITIES = {
-  off: 0,
-  low: 600,
-  medium: 1800,
-  high: 4000,
-  unlimited: 20000
-};
+const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
+  ?? FIREWORK_CONFIG.SMOKE?.qualityCapacities
+  ?? {
+    off: 0,
+    low: 600,
+    medium: 1800,
+    high: 10000,
+    unlimited: 20000
+  };
 
 const BUFFER_CAPACITY = QUALITY_CAPACITIES.unlimited;
 
@@ -641,8 +643,8 @@ export class SmokeSystem {
 
       // Song dieu hoa khong gian tao goc loi/lom tu nhien quanh duong bien
       const harmonic = Math.sin(lobeAzimuth * 2.0 + harmonicPhase) * 0.25
-                     + Math.cos(lobeAzimuth * 3.0 - harmonicPhase * 0.5) * 0.16
-                     + Math.sin(lobeElevation * 2.5) * 0.14;
+        + Math.cos(lobeAzimuth * 3.0 - harmonicPhase * 0.5) * 0.16
+        + Math.sin(lobeElevation * 2.5) * 0.14;
 
       const blowoutAlign = Math.max(0.0, lobeDir.dot(blowoutDir));
       const blowoutBoost = Math.pow(blowoutAlign, 1.6) * 0.40;

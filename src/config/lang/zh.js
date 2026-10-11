@@ -618,6 +618,7 @@ export default {
           normal: "普通",
           thick: "轻微",
           detached: "高亮间断拖尾",
+          smoke: "烟雾轨迹",
           "ascent-bursts": "升空子弹引爆 Ascent Bursts"
         },
         ascentSubShellType: {

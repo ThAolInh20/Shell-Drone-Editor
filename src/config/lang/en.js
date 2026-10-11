@@ -633,6 +633,7 @@ export default {
           normal: "Normal",
           thick: "Light",
           detached: "Detached Beam",
+          smoke: "Smoke Trail",
           "ascent-bursts": "Ascending Sub Bursts"
         },
         ascentSubShellType: {

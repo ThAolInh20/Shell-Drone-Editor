@@ -633,6 +633,7 @@ export default {
           normal: "Bình thường",
           thick: "Nhẹ",
           detached: "Tia rời siêu sáng",
+          smoke: "Vệt khói",
           "ascent-bursts": "Thăng thiên nổ pháo con"
         },
         ascentSubShellType: {

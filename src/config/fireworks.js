@@ -197,6 +197,14 @@ export const FIREWORK_CONFIG = {
 
   // Cấu hình tập trung cho hệ thống khói (Smoke Simulation)
   SMOKE: {
+    // Sức chứa hạt khói tối đa theo các mức chất lượng đồ họa
+    qualityCapacities: {
+      off: 0,
+      low: 600,
+      medium: 1800,
+      high: 10000,
+      unlimited: 20000
+    },
     // Thời gian sống cơ bản của khói vệt phóng rocket (giây: 4.0 - 5.0s)
     trailLifeMin: 4.0,
     trailLifeMax: 10.0,
@@ -218,6 +226,15 @@ export const FIREWORK_CONFIG = {
     burstGrowth: 5.2,
     // Độ mờ quang học cơ bản (base opacity)
     trailOpacity: 0.22,
-    burstOpacity: 0.26
+    burstOpacity: 0.26,
+    // Cấu hình vệt khói phóng rocket dạng tia phân đoạn liên tục (flight smoke streak trail)
+    flightSmokeLifeMin: 3.5,
+    flightSmokeLifeMax: 6.5,
+    flightSmokeStepDist: 1.2,
+    flightSmokeScale: 4.8,
+    flightSmokeGrowth: 3.2,
+    flightSmokeDrag: 1.8,
+    flightSmokeBuoyancy: 0.38,
+    flightSmokeOpacity: 0.28
   }
 };

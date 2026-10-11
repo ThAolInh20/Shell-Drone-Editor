@@ -619,6 +619,7 @@ export default {
           normal: "通常",
           thick: "ライト",
           detached: "高輝度ギャップトレイル",
+          smoke: "スモーク軌跡",
           "ascent-bursts": "上昇中子弾炸裂 Ascent Bursts"
         },
         ascentSubShellType: {
