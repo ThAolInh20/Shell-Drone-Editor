@@ -191,6 +191,9 @@ export class SmokeSystem {
           diffuseColor *= mapTexel;
         #endif
 
+        // Troi dem: khoi khong tu phat sang, co mau tram toi mac dinh
+        vec3 nightAmbient = diffuseColor.rgb * 0.16;
+
         if (uFlashIntensity > 0.001) {
           vec3 toLight = uFlashPos - vWorldPos;
           float distToFlash = length(toLight);
@@ -212,15 +215,36 @@ export class SmokeSystem {
 
           // Translucent rim scattering on puff boundaries
           float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
-          float totalIllum = (NdotL + edgeScattering) * flashAtten * uFlashIntensity * 2.35;
+          float totalIllum = (NdotL + edgeScattering) * flashAtten * uFlashIntensity * 2.5;
 
-          // Soft tint absorption: preserves smokey contrast without washing out to white chalk
-          vec3 litColor = mix(
-            diffuseColor.rgb,
-            uFlashColor * 1.25,
-            clamp(totalIllum * 0.72, 0.0, 0.92)
+          // Phan tich do bao hoa mau (color saturation) cua anh sang phao hoa
+          float maxChan = max(uFlashColor.r, max(uFlashColor.g, uFlashColor.b));
+          float minChan = min(uFlashColor.r, min(uFlashColor.g, uFlashColor.b));
+          float colorSat = (maxChan > 0.001) ? ((maxChan - minChan) / maxChan) : 0.0;
+
+          // 1. Anh sang trang hoac vang nhe: kich thich hien ro khoi trang sang tu nhien
+          vec3 illuminatedWhite = diffuseColor.rgb * 1.45;
+
+          // 2. Anh sang mau cuong do manh: nhuom mau sac dam da cua phao hoa len khoi
+          float dyeRatio = clamp(0.35 + colorSat * 0.60, 0.35, 0.95);
+          vec3 dyedColor = mix(
+            illuminatedWhite,
+            uFlashColor * 1.85,
+            dyeRatio
           );
-          diffuseColor.rgb = litColor + (uFlashColor * (totalIllum * 0.35 * diffuseColor.a));
+
+          // Chuyen doi tu bong toi dem sang the tich khoi duoc chieu sang
+          float illumFactor = clamp(totalIllum, 0.0, 1.0);
+          diffuseColor.rgb = mix(
+            nightAmbient,
+            dyedColor,
+            illumFactor
+          );
+
+          // Hieu ung phan xa the tich loi khi o rat gan tam no phao
+          diffuseColor.rgb += dyedColor * (max(0.0, totalIllum - 1.0) * 0.35);
+        } else {
+          diffuseColor.rgb = nightAmbient;
         }
         `
       ).replace(

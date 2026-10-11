@@ -395,4 +395,19 @@ describe('SmokeSystem', () => {
     expect(smokeSystem.baseWind.x).toBeCloseTo(-6.04, 1);
     expect(smokeSystem.baseWind.z).toBeCloseTo(0.0, 1);
   });
+
+  it('should maintain night ambient lighting uniforms and responsive flash updates', () => {
+    expect(smokeSystem.smokeUniforms.uFlashIntensity.value).toBe(0.0);
+    expect(smokeSystem.smokeUniforms.uFlashRadius.value).toBe(650.0);
+
+    const burstPos = new THREE.Vector3(120, 250, -40);
+    const vibrantMagenta = new THREE.Color(0xff00aa);
+    smokeSystem.setBurstFlash(burstPos, vibrantMagenta, 0.95);
+
+    expect(smokeSystem.smokeUniforms.uFlashIntensity.value).toBe(0.95);
+    expect(smokeSystem.smokeUniforms.uFlashColor.value.getHex()).toBe(0xff00aa);
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.x).toBe(120);
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.y).toBe(250);
+    expect(smokeSystem.smokeUniforms.uFlashPos.value.z).toBe(-40);
+  });
 });
