@@ -230,11 +230,21 @@ export const FIREWORK_CONFIG = {
     // Cấu hình vệt khói phóng rocket dạng tia phân đoạn liên tục (flight smoke streak trail)
     flightSmokeLifeMin: 3.5,
     flightSmokeLifeMax: 6.5,
-    flightSmokeStepDist: 1.2,
-    flightSmokeScale: 4.8,
-    flightSmokeGrowth: 3.2,
+    flightSmokeStepDist: 2.5,
+    flightSmokeScale: 8.2,
+    flightSmokeGrowth: 3.8,
     flightSmokeDrag: 1.8,
     flightSmokeBuoyancy: 0.38,
-    flightSmokeOpacity: 0.28
+    flightSmokeOpacity: 0.21,
+    // Cấu hình sương mù nền chuyển sinh liên tục (Ambient Haze Consolidation: 30% sinh, 70% sương nền)
+    hazeConsolidation: true,
+    hazeChance: 0.22,
+    hazeHandoverRatio: 0.30,
+    hazeLifeRatio: 0.70,
+    hazeLifeMin: 10.0,
+    hazeLifeMax: 18.0,
+    hazeDrag: 0.65,
+    hazeBuoyancy: 0.16,
+    hazeGrowth: 1.45
   }
 };

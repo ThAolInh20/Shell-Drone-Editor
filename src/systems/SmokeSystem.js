@@ -475,19 +475,27 @@ export class SmokeSystem {
     const effectiveLife = rawLife * this.lifespanMultiplier;
 
     const growth = options.growth ?? cfg.trailGrowth;
+    const isHaze = Boolean(options.isHaze);
+    const hazeChance = cfg.hazeChance ?? 0.22;
+    const isHazePromoter = !isHaze && (options.isHazePromoter !== undefined
+      ? Boolean(options.isHazePromoter)
+      : Math.random() < hazeChance);
 
     this.puffs.push({
       position: origin.clone(),
       velocity: velocity.clone(),
       age: 0,
       life: effectiveLife,
+      initialLife: effectiveLife,
       growth: growth,
       drag: options.drag ?? cfg.trailDrag,
       buoyancy: options.buoyancy ?? cfg.trailBuoyancy,
       seed: options.seed ?? Math.random(),
       color: options.color ? options.color.clone() : new THREE.Color(0xf2f5f9),
       baseScale: (options.scale ?? cfg.trailBaseScale) * this.density,
-      baseOpacity: (options.opacity ?? cfg.trailOpacity) * this.density
+      baseOpacity: (options.opacity ?? cfg.trailOpacity) * this.density,
+      isHaze: isHaze,
+      isHazePromoter: isHazePromoter
     });
   }
 
@@ -821,54 +829,131 @@ export class SmokeSystem {
     const elapsed = performance.now() / 1000;
     this.smokeUniforms.uTime.value = elapsed;
     const alive = [];
+    const cfg = FIREWORK_CONFIG.SMOKE;
+    const isHazeEnabled = renderingConfig.smoke?.hazeConsolidation
+      ?? cfg.hazeConsolidation
+      ?? true;
+    const handoverRatio = cfg.hazeHandoverRatio ?? 0.30;
+    const hazeRatio = cfg.hazeLifeRatio ?? 0.70;
+    const nonPromoterCutoffRatio = handoverRatio * 1.25;
 
     // Cap nhat dong luc hoc hat (Kinematics with exponential drag, buoyancy, wind shear & turbulent dispersion)
     for (let i = 0; i < this.puffs.length; i++) {
       const puff = this.puffs[i];
       puff.age += deltaTime;
 
-      if (puff.age < puff.life) {
+      if (puff.isHaze) {
+        // Hat da chuyen sinh: ton tai trong 70% tong thoi gian
+        if (puff.age < puff.life) {
+          const tHaze = puff.age / puff.life;
+          const dragFactor = Math.exp(-puff.drag * deltaTime);
+          puff.velocity.multiplyScalar(dragFactor);
+
+          const windShear = 0.78 + 0.44 * puff.seed;
+          const localWindX = this.currentWind.x * windShear;
+          const localWindZ = this.currentWind.z * windShear;
+          const localWindY = this.currentWind.y;
+
+          puff.velocity.x = THREE.MathUtils.lerp(
+            puff.velocity.x,
+            localWindX,
+            deltaTime * 0.72
+          );
+          puff.velocity.z = THREE.MathUtils.lerp(
+            puff.velocity.z,
+            localWindZ,
+            deltaTime * 0.72
+          );
+          puff.velocity.y = THREE.MathUtils.lerp(
+            puff.velocity.y,
+            localWindY,
+            deltaTime * 0.5
+          );
+
+          const dispersionStrength = 0.45 + 2.2 * tHaze;
+          const noiseX = Math.sin(elapsed * 1.6 + puff.seed * 19.3) * dispersionStrength;
+          const noiseZ = Math.cos(elapsed * 1.4 + puff.seed * 23.7) * dispersionStrength;
+          puff.velocity.x += noiseX * deltaTime;
+          puff.velocity.z += noiseZ * deltaTime;
+          puff.velocity.y += puff.buoyancy * deltaTime;
+
+          puff.position.addScaledVector(
+            puff.velocity,
+            deltaTime
+          );
+          alive.push(puff);
+        }
+      } else {
+        // Giai doan sinh ban dau (30% tong thoi gian)
         const t = puff.age / puff.life;
 
-        // Luc can khong khi suy giam ham mu
-        const dragFactor = Math.exp(-puff.drag * deltaTime);
-        puff.velocity.multiplyScalar(dragFactor);
+        // Kiem tra ban giao som sang Ambient Haze o moc 30%
+        if (isHazeEnabled && puff.isHazePromoter && t >= handoverRatio) {
+          const growthCurve = Math.pow(t, 0.55);
+          const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
+          const currentSize = puff.baseScale * growthScale;
 
-        // Do lech toc do gio theo do cao va seed (+/- 25%) giup cac hat khong troi thanh mot khoi cung
-        const windShear = 0.78 + 0.44 * puff.seed;
-        const localWindX = this.currentWind.x * windShear;
-        const localWindZ = this.currentWind.z * windShear;
-        const localWindY = this.currentWind.y;
+          const fade = Math.max(0.0, 1.0 - t);
+          const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
+          const currentOpacity = fade * fade * puff.baseOpacity * expansionThinned;
 
-        puff.velocity.x = THREE.MathUtils.lerp(
-          puff.velocity.x,
-          localWindX,
-          deltaTime * 0.72
-        );
-        puff.velocity.z = THREE.MathUtils.lerp(
-          puff.velocity.z,
-          localWindZ,
-          deltaTime * 0.72
-        );
-        puff.velocity.y = THREE.MathUtils.lerp(
-          puff.velocity.y,
-          localWindY,
-          deltaTime * 0.5
-        );
+          puff.isHaze = true;
+          puff.isHazePromoter = false;
+          puff.age = 0;
+          // Thoi gian song chuyen sinh = 70% tong thoi gian
+          puff.life = (puff.initialLife || puff.life) * hazeRatio;
+          puff.baseScale = currentSize;
+          puff.baseOpacity = currentOpacity;
+          puff.drag = cfg.hazeDrag ?? 0.65;
+          puff.buoyancy = cfg.hazeBuoyancy ?? 0.16;
+          puff.growth = cfg.hazeGrowth ?? 1.45;
+          puff.velocity.multiplyScalar(0.45);
 
-        // Tan xa khi quyen vi mo: day cac hat tach roi xa nhau theo thoi gian
-        const dispersionStrength = 0.45 + 2.2 * t;
-        const noiseX = Math.sin(elapsed * 1.6 + puff.seed * 19.3) * dispersionStrength;
-        const noiseZ = Math.cos(elapsed * 1.4 + puff.seed * 23.7) * dispersionStrength;
-        puff.velocity.x += noiseX * deltaTime;
-        puff.velocity.z += noiseZ * deltaTime;
-        puff.velocity.y += puff.buoyancy * deltaTime;
+          alive.push(puff);
+        } else {
+          // Hat thuong chua hoac khong chuyen sinh
+          // Giai phong hat som: hat khong chuyen sinh chet o moc nonPromoterCutoffRatio (~37.5%)
+          const maxSpawnT = puff.isHazePromoter ? handoverRatio : nonPromoterCutoffRatio;
 
-        puff.position.addScaledVector(
-          puff.velocity,
-          deltaTime
-        );
-        alive.push(puff);
+          if (t < maxSpawnT) {
+            const dragFactor = Math.exp(-puff.drag * deltaTime);
+            puff.velocity.multiplyScalar(dragFactor);
+
+            const windShear = 0.78 + 0.44 * puff.seed;
+            const localWindX = this.currentWind.x * windShear;
+            const localWindZ = this.currentWind.z * windShear;
+            const localWindY = this.currentWind.y;
+
+            puff.velocity.x = THREE.MathUtils.lerp(
+              puff.velocity.x,
+              localWindX,
+              deltaTime * 0.72
+            );
+            puff.velocity.z = THREE.MathUtils.lerp(
+              puff.velocity.z,
+              localWindZ,
+              deltaTime * 0.72
+            );
+            puff.velocity.y = THREE.MathUtils.lerp(
+              puff.velocity.y,
+              localWindY,
+              deltaTime * 0.5
+            );
+
+            const dispersionStrength = 0.45 + 2.2 * t;
+            const noiseX = Math.sin(elapsed * 1.6 + puff.seed * 19.3) * dispersionStrength;
+            const noiseZ = Math.cos(elapsed * 1.4 + puff.seed * 23.7) * dispersionStrength;
+            puff.velocity.x += noiseX * deltaTime;
+            puff.velocity.z += noiseZ * deltaTime;
+            puff.velocity.y += puff.buoyancy * deltaTime;
+
+            puff.position.addScaledVector(
+              puff.velocity,
+              deltaTime
+            );
+            alive.push(puff);
+          }
+        }
       }
     }
 
@@ -890,15 +975,28 @@ export class SmokeSystem {
 
       const t = puff.age / puff.life;
 
-      // Do no the tich phi tuyen: phinh to cuc bo luc dau, sau do lan rong tao thanh dai suong khi quyen bao la
-      const growthCurve = Math.pow(t, 0.55);
-      const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
-      this.sizesArray[i] = puff.baseScale * growthScale;
+      if (puff.isHaze) {
+        // Pha suong mu nen: Chiếm 70% tổng thời gian, tiep tuc no rong nhe nhang va suy giam don dieu
+        const growthHaze = 1.0 + puff.growth * Math.pow(t, 0.60) * 0.45;
+        this.sizesArray[i] = puff.baseScale * growthHaze;
 
-      // Suy giam mat do quang hoc theo do no: hat phinh to se loang dan thanh lop suong mo tu nhien
-      const fade = 1 - t;
-      const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
-      this.opacitiesArray[i] = fade * fade * puff.baseOpacity * expansionThinned;
+        const fadeHaze = Math.max(0.0, 1.0 - t);
+        const expansionThinnedHaze = 1.0 / Math.sqrt(Math.max(1.0, growthHaze * 0.35));
+        this.opacitiesArray[i] = puff.baseOpacity * fadeHaze * fadeHaze * expansionThinnedHaze;
+      } else {
+        // Pha sinh ban dau (30% tong thoi gian)
+        const growthCurve = Math.pow(t, 0.55);
+        const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
+        this.sizesArray[i] = puff.baseScale * growthScale;
+
+        // Voi hat khong chuyen sinh, mo deu dan va tan bien o moc nonPromoterCutoffRatio
+        const fade = puff.isHazePromoter
+          ? Math.max(0.0, 1.0 - t)
+          : Math.max(0.0, 1.0 - (t / nonPromoterCutoffRatio));
+        const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
+        this.opacitiesArray[i] = fade * fade * puff.baseOpacity * expansionThinned;
+      }
+
       this.seedsArray[i] = puff.seed;
     }
 

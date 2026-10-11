@@ -274,4 +274,62 @@ describe('SmokeSystem', () => {
     expect(puff.growth).toBe(3.2);
     expect(puff.baseOpacity).toBe(0.28);
   });
+
+  it('should promote dying smoke puff with isHazePromoter to ambient haze puff', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    const origin = new THREE.Vector3(0, 50, 0);
+    const vel = new THREE.Vector3(0, 0, 0);
+
+    smokeSystem.spawnPuff(
+      origin,
+      vel,
+      {
+        life: 1.0,
+        scale: 5.0,
+        opacity: 0.3,
+        isHazePromoter: true
+      }
+    );
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    expect(smokeSystem.puffs[0].isHaze).toBe(false);
+    expect(smokeSystem.puffs[0].isHazePromoter).toBe(true);
+
+    // Advance time past the handover ratio (0.35s > 0.30 * 1.0s)
+    smokeSystem.update(0.35);
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    const morphedPuff = smokeSystem.puffs[0];
+    expect(morphedPuff.isHaze).toBe(true);
+    expect(morphedPuff.isHazePromoter).toBe(false);
+    expect(morphedPuff.age).toBe(0);
+    expect(morphedPuff.life).toBeCloseTo(0.70, 2);
+    expect(morphedPuff.baseScale).toBeGreaterThan(5.0);
+    expect(morphedPuff.baseOpacity).toBeLessThan(0.30);
+
+    // Advance past haze life (0.70s) to ensure it terminates cleanly without infinite loop
+    smokeSystem.update(0.75);
+    expect(smokeSystem.puffs.length).toBe(0);
+  });
+
+  it('should cleanly remove dying puff if isHazePromoter is false', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.spawnPuff(
+      new THREE.Vector3(0, 50, 0),
+      new THREE.Vector3(0, 0, 0),
+      {
+        life: 1.0,
+        isHazePromoter: false
+      }
+    );
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    // Advance past non-promoter early cutoff (0.40s > 0.30 * 1.25 = 0.375s)
+    smokeSystem.update(0.40);
+    expect(smokeSystem.puffs.length).toBe(0);
+  });
 });

@@ -22,7 +22,8 @@ export const renderingConfig = {
     density: 1.0,
     windSpeed: 1.0,
     unlimited: false,
-    lifespanMultiplier: 1.0
+    lifespanMultiplier: 1.0,
+    hazeConsolidation: true
   },
   sky: {
     cloudCoverage: 0.55,
