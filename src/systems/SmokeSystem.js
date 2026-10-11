@@ -6,14 +6,30 @@ import { FIREWORK_CONFIG } from '../config/fireworks.js';
 const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
   ?? FIREWORK_CONFIG.SMOKE?.qualityCapacities
   ?? {
-    off: 0,
-    low: 600,
-    medium: 1800,
-    high: 10000,
-    unlimited: 20000
+    off: {
+      launch: 0,
+      aerial: 0
+    },
+    low: {
+      launch: 150,
+      aerial: 450
+    },
+    medium: {
+      launch: 450,
+      aerial: 1350
+    },
+    high: {
+      launch: 5000,
+      aerial: 10000
+    },
+    unlimited: {
+      launch: 10000,
+      aerial: 15000
+    }
   };
 
-const BUFFER_CAPACITY = QUALITY_CAPACITIES.unlimited;
+const BUFFER_CAPACITY = (QUALITY_CAPACITIES.unlimited?.launch ?? 10000)
+  + (QUALITY_CAPACITIES.unlimited?.aerial ?? 15000);
 
 export class SmokeSystem {
   constructor(sceneManager) {
@@ -21,24 +37,22 @@ export class SmokeSystem {
     this.quality = renderingConfig.smoke?.quality ?? 'medium';
     this.density = renderingConfig.smoke?.density ?? 1.0;
     this.windSpeed = renderingConfig.smoke?.windSpeed ?? 1.0;
+    this.windDirection = renderingConfig.smoke?.windDirection ?? 25;
     this.unlimited = Boolean(renderingConfig.smoke?.unlimited);
     this.lifespanMultiplier = renderingConfig.smoke?.lifespanMultiplier ?? 1.0;
-    this.maxPuffs = this.unlimited
-      ? QUALITY_CAPACITIES.unlimited
-      : (QUALITY_CAPACITIES[this.quality] ?? 1800);
+    this.activePuffCount = 0;
+    this.activeLaunchCount = 0;
+    this.activeAerialCount = 0;
+    this.updateCapacities();
 
     this.smokeTexture = this.createSmokeTexture();
     this.puffs = [];
     this.eventSubscriptions = [];
-    this.activePuffCount = 0;
 
-    // Huong gio mac dinh (thoi ngang X va day Z)
-    this.baseWind = new THREE.Vector3(
-      5.5,
-      0.8,
-      2.5
-    );
-    this.currentWind = this.baseWind.clone().multiplyScalar(this.windSpeed);
+    // Huong gio mac dinh (tinh theo windDirection va windSpeed)
+    this.baseWind = new THREE.Vector3();
+    this.currentWind = new THREE.Vector3();
+    this.updateWindVectors();
 
     // Pre-allocated Float32Array ring buffers to eliminate GC pauses
     this.positionsArray = new Float32Array(BUFFER_CAPACITY * 3);
@@ -266,13 +280,29 @@ export class SmokeSystem {
     );
   }
 
+  updateCapacities() {
+    const raw = this.unlimited
+      ? QUALITY_CAPACITIES.unlimited
+      : (QUALITY_CAPACITIES[this.quality] ?? QUALITY_CAPACITIES.medium);
+
+    const launchCap = typeof raw === 'number'
+      ? Math.round(raw * 0.25)
+      : (raw?.launch ?? 450);
+
+    const aerialCap = typeof raw === 'number'
+      ? Math.round(raw * 0.75)
+      : (raw?.aerial ?? 1350);
+
+    this.maxPuffs = {
+      launch: launchCap,
+      aerial: aerialCap,
+      total: launchCap + aerialCap
+    };
+  }
+
   setQuality(qualityStr) {
     this.quality = qualityStr;
-    if (this.unlimited) {
-      this.maxPuffs = QUALITY_CAPACITIES.unlimited;
-    } else {
-      this.maxPuffs = QUALITY_CAPACITIES[qualityStr] ?? 1800;
-    }
+    this.updateCapacities();
     if (this.quality === 'off') {
       this.clear();
       this.smokePoints.visible = false;
@@ -283,11 +313,7 @@ export class SmokeSystem {
 
   setUnlimited(enabled) {
     this.unlimited = Boolean(enabled);
-    if (this.unlimited) {
-      this.maxPuffs = QUALITY_CAPACITIES.unlimited;
-    } else {
-      this.maxPuffs = QUALITY_CAPACITIES[this.quality] ?? 1800;
-    }
+    this.updateCapacities();
   }
 
   setLifespanMultiplier(multiplier) {
@@ -302,6 +328,22 @@ export class SmokeSystem {
       0.1,
       densityVal
     );
+  }
+
+  updateWindVectors() {
+    const rad = ((this.windDirection % 360) * Math.PI) / 180;
+    const horizontalMagnitude = 6.04;
+    this.baseWind.set(
+      Math.cos(rad) * horizontalMagnitude,
+      0.8,
+      Math.sin(rad) * horizontalMagnitude
+    );
+    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
+  }
+
+  setWindDirection(degrees) {
+    this.windDirection = Number(degrees) || 0;
+    this.updateWindVectors();
   }
 
   setWindSpeed(speedVal) {
@@ -452,19 +494,35 @@ export class SmokeSystem {
 
   // Fast direct particle injection method (bypasses EventBus for high performance)
   addSmokePoint(origin, velocity, options = {}) {
-    if (this.quality === 'off' || this.maxPuffs === 0) return;
+    if (this.quality === 'off') return;
     this.spawnPuff(
       origin,
       velocity,
-      options
+      {
+        category: 'aerial',
+        ...options
+      }
     );
   }
 
   spawnPuff(origin, velocity, options = {}) {
+    if (this.quality === 'off') {
+      return;
+    }
+
+    const category = options.category === 'launch'
+      ? 'launch'
+      : 'aerial';
+
+    const maxForCategory = this.maxPuffs[category] ?? 0;
+    const currentCount = category === 'launch'
+      ? this.activeLaunchCount
+      : this.activeAerialCount;
+
     if (
-      this.quality === 'off' ||
-      this.maxPuffs === 0 ||
-      this.puffs.length >= this.maxPuffs
+      maxForCategory === 0 ||
+      currentCount >= maxForCategory ||
+      this.puffs.length >= BUFFER_CAPACITY
     ) {
       return;
     }
@@ -477,11 +535,19 @@ export class SmokeSystem {
     const growth = options.growth ?? cfg.trailGrowth;
     const isHaze = Boolean(options.isHaze);
     const hazeChance = cfg.hazeChance ?? 0.22;
-    const isHazePromoter = !isHaze && (options.isHazePromoter !== undefined
-      ? Boolean(options.isHazePromoter)
-      : Math.random() < hazeChance);
+    const isNucleus = Boolean(
+      options.isNucleus !== undefined
+        ? options.isNucleus
+        : (options.isHazePromoter !== undefined
+          ? options.isHazePromoter
+          : Math.random() < hazeChance)
+    );
+    const isHazePromoter = !isHaze && isNucleus;
+    const nucleusBoost = options.nucleusBoost
+      ?? (cfg.coalescenceExpansionBoost ?? 3.5);
 
     this.puffs.push({
+      category: category,
       position: origin.clone(),
       velocity: velocity.clone(),
       age: 0,
@@ -495,8 +561,17 @@ export class SmokeSystem {
       baseScale: (options.scale ?? cfg.trailBaseScale) * this.density,
       baseOpacity: (options.opacity ?? cfg.trailOpacity) * this.density,
       isHaze: isHaze,
-      isHazePromoter: isHazePromoter
+      isHazePromoter: isHazePromoter,
+      isNucleus: isNucleus,
+      nucleusBoost: nucleusBoost
     });
+
+    if (category === 'launch') {
+      this.activeLaunchCount++;
+    } else {
+      this.activeAerialCount++;
+    }
+    this.activePuffCount = this.puffs.length;
   }
 
   // Trail Emitter: Sinh vet khoi manh cho rocket phong len
@@ -519,6 +594,7 @@ export class SmokeSystem {
       : defaultWhiteSmoke;
 
     for (let i = 0; i < count; i++) {
+      const isNucleus = (i === 0);
       const drift = new THREE.Vector3(
         (Math.random() - 0.5) * 1.2,
         1.5 + Math.random() * 1.0,
@@ -533,6 +609,9 @@ export class SmokeSystem {
         launchPos.clone().add(offset),
         drift,
         {
+          category: 'launch',
+          isNucleus: isNucleus,
+          nucleusBoost: 3.2,
           life: cfg.trailLifeMin + Math.random() * (cfg.trailLifeMax - cfg.trailLifeMin),
           scale: cfg.trailBaseScale + Math.random() * 3.0,
           growth: cfg.trailGrowth,
@@ -605,6 +684,7 @@ export class SmokeSystem {
       : (this.quality === 'high' ? 4 : (this.quality === 'low' ? 2 : 3));
 
     for (let i = 0; i < coreCount; i++) {
+      const isNucleus = (i === 0);
       const coreOffset = new THREE.Vector3(
         (Math.random() - 0.5) * 6.5 * stretchX,
         (Math.random() - 0.5) * 4.5 * stretchY,
@@ -621,6 +701,9 @@ export class SmokeSystem {
         burstPos.clone().add(coreOffset),
         coreVelocity,
         {
+          category: 'aerial',
+          isNucleus: isNucleus,
+          nucleusBoost: 3.8,
           life: burstLife,
           scale: (cfg.burstBaseScale * 0.95) + Math.random() * 2.5,
           growth: (cfg.burstGrowth * 0.55) + Math.random() * 0.8,
@@ -676,6 +759,7 @@ export class SmokeSystem {
       const lobeSeed = Math.random();
 
       for (let p = 0; p < puffsPerLobe; p++) {
+        const isNucleus = (p === 0);
         const puffJitter = new THREE.Vector3(
           (Math.random() - 0.5) * 6.5 * stretchX,
           (Math.random() - 0.5) * 4.5 * stretchY,
@@ -700,6 +784,9 @@ export class SmokeSystem {
           lobeCenter.clone().add(puffJitter),
           puffVel,
           {
+            category: 'aerial',
+            isNucleus: isNucleus,
+            nucleusBoost: 3.5,
             life: burstLife,
             scale: (cfg.burstBaseScale * lobeScaleMult) + Math.random() * 3.2,
             growth: (cfg.burstGrowth * 0.6) + Math.random() * 0.8,
@@ -891,16 +978,18 @@ export class SmokeSystem {
         if (isHazeEnabled && puff.isHazePromoter && t >= handoverRatio) {
           const growthCurve = Math.pow(t, 0.55);
           const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
-          const currentSize = puff.baseScale * growthScale;
+          const coalescenceMult = puff.isNucleus
+            ? (1.0 + (puff.nucleusBoost - 1.0) * THREE.MathUtils.smoothstep(t, 0.05, handoverRatio))
+            : 1.0;
+          const currentSize = puff.baseScale * growthScale * coalescenceMult;
 
           const fade = Math.max(0.0, 1.0 - t);
-          const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
+          const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * coalescenceMult * 0.28));
           const currentOpacity = fade * fade * puff.baseOpacity * expansionThinned;
 
           puff.isHaze = true;
           puff.isHazePromoter = false;
           puff.age = 0;
-          // Thoi gian song chuyen sinh = 70% tong thoi gian
           puff.life = (puff.initialLife || puff.life) * hazeRatio;
           puff.baseScale = currentSize;
           puff.baseOpacity = currentOpacity;
@@ -918,6 +1007,11 @@ export class SmokeSystem {
           if (t < maxSpawnT) {
             const dragFactor = Math.exp(-puff.drag * deltaTime);
             puff.velocity.multiplyScalar(dragFactor);
+
+            if (!puff.isNucleus && t > 0.06) {
+              // Hat ve tinh ham toc nhe de chim tron vao vung hat nhan dang no to
+              puff.velocity.multiplyScalar(Math.exp(-0.85 * deltaTime));
+            }
 
             const windShear = 0.78 + 0.44 * puff.seed;
             const localWindX = this.currentWind.x * windShear;
@@ -957,6 +1051,17 @@ export class SmokeSystem {
       }
     }
 
+    let nextLaunchCount = 0;
+    let nextAerialCount = 0;
+    for (let i = 0; i < alive.length; i++) {
+      if (alive[i].category === 'launch') {
+        nextLaunchCount++;
+      } else {
+        nextAerialCount++;
+      }
+    }
+    this.activeLaunchCount = nextLaunchCount;
+    this.activeAerialCount = nextAerialCount;
     this.puffs = alive;
     this.activePuffCount = this.puffs.length;
 
@@ -976,25 +1081,37 @@ export class SmokeSystem {
       const t = puff.age / puff.life;
 
       if (puff.isHaze) {
-        // Pha suong mu nen: Chiếm 70% tổng thời gian, tiep tuc no rong nhe nhang va suy giam don dieu
-        const growthHaze = 1.0 + puff.growth * Math.pow(t, 0.60) * 0.45;
+        // Pha suong mu nen: Da sap nhap thanh khoi vi mo, tiep tuc no rong nhe nhang va suy giam don dieu
+        const growthHaze = 1.0 + (puff.growth * 0.35) * Math.pow(t, 0.60);
         this.sizesArray[i] = puff.baseScale * growthHaze;
 
+        // Suy giam do mo muon muot ma, khong dung expansionThinned hai lan gay sut do mo dot ngot
         const fadeHaze = Math.max(0.0, 1.0 - t);
-        const expansionThinnedHaze = 1.0 / Math.sqrt(Math.max(1.0, growthHaze * 0.35));
-        this.opacitiesArray[i] = puff.baseOpacity * fadeHaze * fadeHaze * expansionThinnedHaze;
+        this.opacitiesArray[i] = puff.baseOpacity * Math.pow(fadeHaze, 1.35);
       } else {
-        // Pha sinh ban dau (30% tong thoi gian)
+        // Pha sinh va sap nhap (Coalescence Window)
         const growthCurve = Math.pow(t, 0.55);
         const growthScale = 1.0 + puff.growth * growthCurve * 0.45;
-        this.sizesArray[i] = puff.baseScale * growthScale;
 
-        // Voi hat khong chuyen sinh, mo deu dan va tan bien o moc nonPromoterCutoffRatio
-        const fade = puff.isHazePromoter
-          ? Math.max(0.0, 1.0 - t)
-          : Math.max(0.0, 1.0 - (t / nonPromoterCutoffRatio));
-        const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
-        this.opacitiesArray[i] = fade * fade * puff.baseOpacity * expansionThinned;
+        if (puff.isNucleus) {
+          // Hat nhan: No phong to dan theo smoothstep de hap thu the tich cac hat ve tinh xung quanh
+          const mergeProgress = THREE.MathUtils.smoothstep(t, 0.05, handoverRatio);
+          const coalescenceScale = 1.0 + (puff.nucleusBoost - 1.0) * mergeProgress;
+          this.sizesArray[i] = puff.baseScale * growthScale * coalescenceScale;
+
+          const fade = Math.max(0.0, 1.0 - t);
+          const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * coalescenceScale * 0.28));
+          this.opacitiesArray[i] = fade * fade * puff.baseOpacity * expansionThinned;
+        } else {
+          // Hat ve tinh: Giu kich thuoc goc, tan bien deu de nhuong the tich cho hat nhan
+          this.sizesArray[i] = puff.baseScale * growthScale;
+
+          // Chuan hoa dung cu phap: THREE.MathUtils.smoothstep(x, min, max)
+          // fadeProgress giam deu tu 1.0 xuong 0.0 giup hat tieu bien hoan toan truoc khi bi cull
+          const fadeProgress = 1.0 - THREE.MathUtils.smoothstep(t, 0.06, nonPromoterCutoffRatio);
+          const expansionThinned = 1.0 / Math.sqrt(Math.max(1.0, growthScale * 0.25));
+          this.opacitiesArray[i] = fadeProgress * fadeProgress * puff.baseOpacity * expansionThinned;
+        }
       }
 
       this.seedsArray[i] = puff.seed;
@@ -1021,6 +1138,8 @@ export class SmokeSystem {
   clear() {
     this.puffs = [];
     this.activePuffCount = 0;
+    this.activeLaunchCount = 0;
+    this.activeAerialCount = 0;
     if (this.smokeGeometry) {
       this.smokeGeometry.setDrawRange(
         0,

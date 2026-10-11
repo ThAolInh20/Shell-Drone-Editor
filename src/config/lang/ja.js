@@ -325,6 +325,7 @@ export default {
     smoke_quality_high: "高",
     smoke_density: "煙の密度",
     smoke_wind_speed: "煙の風速",
+    smoke_wind_direction: "煙の風向",
     smoke_unlimited: "シネマティック無制限煙モード",
     smoke_lifespan: "煙の持続時間",
     sky_moon_day: "月齢サイクル日数",

@@ -199,11 +199,26 @@ export const FIREWORK_CONFIG = {
   SMOKE: {
     // Sức chứa hạt khói tối đa theo các mức chất lượng đồ họa
     qualityCapacities: {
-      off: 0,
-      low: 600,
-      medium: 1800,
-      high: 10000,
-      unlimited: 20000
+      off: {
+        launch: 0,
+        aerial: 0
+      },
+      low: {
+        launch: 150,
+        aerial: 450
+      },
+      medium: {
+        launch: 450,
+        aerial: 1350
+      },
+      high: {
+        launch: 5000,
+        aerial: 10000
+      },
+      unlimited: {
+        launch: 10000,
+        aerial: 15000
+      }
     },
     // Thời gian sống cơ bản của khói vệt phóng rocket (giây: 4.0 - 5.0s)
     trailLifeMin: 4.0,
@@ -245,6 +260,10 @@ export const FIREWORK_CONFIG = {
     hazeLifeMax: 18.0,
     hazeDrag: 0.65,
     hazeBuoyancy: 0.16,
-    hazeGrowth: 1.45
+    hazeGrowth: 1.45,
+    // Cấu hình hòa trộn sáp nhập hạt khói (Progressive Particle Coalescence)
+    coalescenceEnabled: true,
+    coalescenceNucleusRatio: 0.25,
+    coalescenceExpansionBoost: 3.5
   }
 };

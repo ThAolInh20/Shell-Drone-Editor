@@ -325,6 +325,7 @@ export default {
     smoke_quality_high: "高",
     smoke_density: "烟雾密度",
     smoke_wind_speed: "烟雾风速",
+    smoke_wind_direction: "烟雾风向",
     smoke_unlimited: "解锁电影级无限制烟雾",
     smoke_lifespan: "烟雾停留时间",
     sky_moon_day: "农历月相天数",

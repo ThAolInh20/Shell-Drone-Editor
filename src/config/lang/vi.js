@@ -336,6 +336,7 @@ export default {
     smoke_quality_high: "Cao",
     smoke_density: "Mật độ khói",
     smoke_wind_speed: "Tốc độ gió khói",
+    smoke_wind_direction: "Hướng gió khói",
     smoke_unlimited: "Mở khóa khói điện ảnh không giới hạn",
     smoke_lifespan: "Thời gian tồn tại của khói",
     sky_moon_day: "Chu kỳ ngày trăng âm lịch",

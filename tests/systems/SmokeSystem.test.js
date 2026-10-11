@@ -138,15 +138,19 @@ describe('SmokeSystem', () => {
 
   it('should support unlimited smoke mode with expanded capacity', () => {
     smokeSystem.setQuality('low');
-    expect(smokeSystem.maxPuffs).toBe(600);
+    expect(smokeSystem.maxPuffs.launch).toBe(150);
+    expect(smokeSystem.maxPuffs.aerial).toBe(450);
+    expect(smokeSystem.maxPuffs.total).toBe(600);
 
     smokeSystem.setUnlimited(true);
     expect(smokeSystem.unlimited).toBe(true);
-    expect(smokeSystem.maxPuffs).toBe(20000);
+    expect(smokeSystem.maxPuffs.launch).toBe(10000);
+    expect(smokeSystem.maxPuffs.aerial).toBe(15000);
+    expect(smokeSystem.maxPuffs.total).toBe(25000);
 
     smokeSystem.setUnlimited(false);
     expect(smokeSystem.unlimited).toBe(false);
-    expect(smokeSystem.maxPuffs).toBe(600);
+    expect(smokeSystem.maxPuffs.total).toBe(600);
   });
 
   it('should apply lifespan multiplier to spawned puffs', () => {
@@ -331,5 +335,64 @@ describe('SmokeSystem', () => {
     // Advance past non-promoter early cutoff (0.40s > 0.30 * 1.25 = 0.375s)
     smokeSystem.update(0.40);
     expect(smokeSystem.puffs.length).toBe(0);
+  });
+
+  it('should support progressive coalescence where nucleus expands and satellite dissolves', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.spawnPuff(
+      new THREE.Vector3(0, 50, 0),
+      new THREE.Vector3(0, 0, 0),
+      {
+        life: 1.0,
+        scale: 10.0,
+        isNucleus: true,
+        nucleusBoost: 3.5
+      }
+    );
+    smokeSystem.spawnPuff(
+      new THREE.Vector3(5, 50, 0),
+      new THREE.Vector3(0, 0, 0),
+      {
+        life: 1.0,
+        scale: 10.0,
+        isNucleus: false
+      }
+    );
+
+    expect(smokeSystem.puffs.length).toBe(2);
+
+    // Advance time into coalescence merging phase (t = 0.20)
+    smokeSystem.update(0.20);
+    expect(smokeSystem.puffs.length).toBe(2);
+    expect(smokeSystem.sizesArray[0]).toBeGreaterThan(15.0);
+
+    // Advance time past early cutoff for satellite (cumulative t = 0.40)
+    smokeSystem.update(0.20);
+    expect(smokeSystem.puffs.length).toBe(1);
+    expect(smokeSystem.puffs[0].isNucleus).toBe(true);
+  });
+
+  it('should update wind direction vectors correctly', () => {
+    smokeSystem.setWindSpeed(1.0);
+
+    // Test 0 degrees (blowing along +X axis)
+    smokeSystem.setWindDirection(0);
+    expect(smokeSystem.windDirection).toBe(0);
+    expect(smokeSystem.baseWind.x).toBeCloseTo(6.04, 1);
+    expect(smokeSystem.baseWind.z).toBeCloseTo(0.0, 1);
+    expect(smokeSystem.baseWind.y).toBeCloseTo(0.8, 1);
+
+    // Test 90 degrees (blowing along +Z axis)
+    smokeSystem.setWindDirection(90);
+    expect(smokeSystem.windDirection).toBe(90);
+    expect(smokeSystem.baseWind.x).toBeCloseTo(0.0, 1);
+    expect(smokeSystem.baseWind.z).toBeCloseTo(6.04, 1);
+
+    // Test 180 degrees (blowing along -X axis)
+    smokeSystem.setWindDirection(180);
+    expect(smokeSystem.baseWind.x).toBeCloseTo(-6.04, 1);
+    expect(smokeSystem.baseWind.z).toBeCloseTo(0.0, 1);
   });
 });

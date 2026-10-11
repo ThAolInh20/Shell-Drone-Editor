@@ -587,6 +587,29 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_wind_direction',
+    label: 'Smoke Wind Direction',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'smoke',
+    min: 0,
+    max: 360,
+    step: 5,
+    default: 25,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.windDirection = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setWindDirection(value);
+      }
+    }
+  },
+  {
     key: 'smoke_unlimited',
     label: 'Cinematic Smoke Unlimited',
     type: 'checkbox',

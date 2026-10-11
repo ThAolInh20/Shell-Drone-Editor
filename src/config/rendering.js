@@ -21,6 +21,7 @@ export const renderingConfig = {
     quality: 'medium',
     density: 1.0,
     windSpeed: 1.0,
+    windDirection: 25,
     unlimited: false,
     lifespanMultiplier: 1.0,
     hazeConsolidation: true

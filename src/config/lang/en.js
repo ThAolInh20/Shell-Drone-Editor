@@ -336,6 +336,7 @@ export default {
     smoke_quality_high: "High",
     smoke_density: "Smoke Density",
     smoke_wind_speed: "Smoke Wind Speed",
+    smoke_wind_direction: "Smoke Wind Direction",
     smoke_unlimited: "Cinematic Smoke Unlimited",
     smoke_lifespan: "Smoke Lifespan",
     sky_moon_day: "Lunar Cycle Day",
