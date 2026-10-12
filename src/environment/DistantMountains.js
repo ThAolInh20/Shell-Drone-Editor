@@ -187,8 +187,8 @@ export class DistantMountains {
     this._createMaterial();
     this._createMainMountainMesh();
     this._createLimestoneIslands();
-
     this.setLayer(LAYER_REFLECTION);
+
   }
 
   _createMaterial() {

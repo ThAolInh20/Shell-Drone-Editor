@@ -44,5 +44,10 @@ export const renderingConfig = {
   camera: {
     mode: 'free',
     speed: 1.0
+  },
+  water: {
+    mirrorEnabled: true,
+    reflectionResolution: 'medium',
+    resolutionScale: 0.5
   }
 };

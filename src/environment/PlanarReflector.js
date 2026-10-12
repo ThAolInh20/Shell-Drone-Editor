@@ -52,6 +52,8 @@ export class PlanarReflector {
   }
 
   setSize(width, height) {
+    this.lastWidth = width;
+    this.lastHeight = height;
     const targetW = Math.max(
       1,
       Math.floor(width * this.resolutionScale)
@@ -63,6 +65,22 @@ export class PlanarReflector {
     this.renderTarget.setSize(
       targetW,
       targetH
+    );
+  }
+
+  setResolutionScale(scale) {
+    this.resolutionScale = Math.max(
+      0.1,
+      Math.min(
+        1.0,
+        Number(scale) || 0.5
+      )
+    );
+    const width = this.lastWidth || (typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const height = this.lastHeight || (typeof window !== 'undefined' ? window.innerHeight : 720);
+    this.setSize(
+      width,
+      height
     );
   }
 

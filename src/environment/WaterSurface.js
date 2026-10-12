@@ -71,6 +71,9 @@ export class WaterSurface {
   }
 
   _generateWaveNormalTexture() {
+    if (typeof document === 'undefined') {
+      return new THREE.Texture();
+    }
     const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -353,7 +356,12 @@ export class WaterSurface {
   }
 
   setMirrorReflection(enabled) {
-    this.uniforms.uMirrorEnabled.value = enabled ? 1.0 : 0.0;
+    this.mirrorEnabled = Boolean(enabled);
+    this.uniforms.uMirrorEnabled.value = this.mirrorEnabled ? 1.0 : 0.0;
+  }
+
+  isMirrorEnabled() {
+    return this.mirrorEnabled !== false;
   }
 
   setWaveDistortion(strength) {

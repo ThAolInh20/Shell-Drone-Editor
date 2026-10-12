@@ -390,6 +390,13 @@ export class EffectPreviewTooltip {
       if (typeof this.videoEl.pause === 'function') {
         this.videoEl.pause();
       }
+      if (typeof this.videoEl.removeAttribute === 'function') {
+        this.videoEl.removeAttribute('src');
+      }
+      this.videoEl.src = '';
+      if (typeof this.videoEl.load === 'function') {
+        this.videoEl.load();
+      }
     }
 
     setTimeout(() => {
