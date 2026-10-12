@@ -36,7 +36,8 @@ export class InputSystem {
       postProcessing: this.postProcessing,
       audioSystem: this.audioSystem,
       sceneManager: this.sceneManager,
-      smokeSystem: this.smokeSystem
+      smokeSystem: this.smokeSystem,
+      fireworkSystem: this.fireworkSystem
     };
 
     this.paused = false;
@@ -509,7 +510,10 @@ export class InputSystem {
         if (item.type === 'slider' && item.inputElement) {
           item.inputElement.value = item.default;
           if (item.valueDisplayElement) {
-            item.valueDisplayElement.textContent = item.default.toFixed(2);
+            const isInt = item.step >= 1;
+            item.valueDisplayElement.textContent = isInt
+              ? Math.round(item.default).toString()
+              : item.default.toFixed(2);
           }
         } else if (item.type === 'checkbox' && item.inputElement) {
           item.inputElement.checked = item.default;
@@ -588,9 +592,12 @@ export class InputSystem {
       labelSpan.className = 'settings-label';
       labelSpan.textContent = t(`editor.${item.key}`) || item.label;
 
+      const isInteger = item.step >= 1;
       const valSpan = document.createElement('span');
       valSpan.className = 'settings-value';
-      valSpan.textContent = currentVal.toFixed(2);
+      valSpan.textContent = isInteger
+        ? Math.round(currentVal).toString()
+        : currentVal.toFixed(2);
 
       header.appendChild(labelSpan);
       header.appendChild(valSpan);
@@ -606,7 +613,9 @@ export class InputSystem {
 
       slider.addEventListener('input', () => {
         const val = parseFloat(slider.value);
-        valSpan.textContent = val.toFixed(2);
+        valSpan.textContent = isInteger
+          ? Math.round(val).toString()
+          : val.toFixed(2);
         item.apply(val, this.settingsContext);
       });
 
@@ -781,7 +790,10 @@ export class InputSystem {
       if (item.type === 'slider' && item.inputElement) {
         item.inputElement.value = currentVal;
         if (item.valueDisplayElement) {
-          item.valueDisplayElement.textContent = currentVal.toFixed(2);
+          const isInt = item.step >= 1;
+          item.valueDisplayElement.textContent = isInt
+            ? Math.round(currentVal).toString()
+            : currentVal.toFixed(2);
         }
       } else if (item.type === 'checkbox' && item.inputElement) {
         item.inputElement.checked = currentVal;

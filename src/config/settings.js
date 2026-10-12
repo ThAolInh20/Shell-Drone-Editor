@@ -1,5 +1,6 @@
 import { renderingConfig } from './rendering.js';
 import { AUDIO_CONFIG } from './audio.js';
+import { LAUNCH_ZONE_CONFIG } from './launchZone.js';
 
 export const SETTINGS_DEFINITION = [
   {
@@ -653,6 +654,30 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'firework_max_burst_y',
+    label: 'Max Burst Altitude',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'fireworks',
+    min: 100,
+    max: 500,
+    step: 5,
+    default: 300,
+    apply(
+      value,
+      context
+    ) {
+      LAUNCH_ZONE_CONFIG.maxBurstY = value;
+      if (
+        context &&
+        context.fireworkSystem &&
+        context.fireworkSystem.launchZone
+      ) {
+        context.fireworkSystem.launchZone.maxBurstY = value;
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',
@@ -802,9 +827,9 @@ export function loadAndApplySettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    const savedStr = localStorage.getItem(
-      `settings_${setting.key}`
-    );
+    const savedStr = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(`settings_${setting.key}`)
+      : null;
     let val = setting.default;
     if (
       savedStr !== null
@@ -841,10 +866,12 @@ export function applySetting(
   if (
     setting
   ) {
-    localStorage.setItem(
-      `settings_${key}`,
-      value.toString()
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        `settings_${key}`,
+        value.toString()
+      );
+    }
     setting.apply(
       value,
       context
@@ -858,9 +885,11 @@ export function resetSettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    localStorage.removeItem(
-      `settings_${setting.key}`
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(
+        `settings_${setting.key}`
+      );
+    }
     setting.apply(
       setting.default,
       context
