@@ -1,36 +1,19 @@
-# Release Notes - v2.4.3
+# Release Notes - v2.4.4
 
 ## Features
-- Added live video hover previews for sequence firing patterns and firework effects in the property inspector.
-- Added customizable launch angle dial and toggle checkbox for fan, sweep, and comet sequence patterns.
-- Added natural arch dome trajectory curve with dynamic peak height for all fan and sweep firing patterns.
-- Added Cascade comet preset featuring bottom-to-top chromatic color gradients and smooth conical dispersion.
-- Added Ghost Flare effect with pre-death flash illumination across multi-stage comet clusters.
-- Added single comet beam preset and standardized preset naming conventions.
-- Added Spark Comet Multi firework shell preset.
-- Added continuous launch barge pier layout with directional lift sparks and boundary drift reversal.
-- Added interactive SkyDome environment and advanced smoke visual options.
-- Added preset camera position shortcuts and movement controls.
-- Added No Burst optical effect option for silent tracer projectiles.
-
-## Updates
-- Enhanced inspector settings layout with streamlined controls and visual effect chips.
-- Refined moon lighting and nighttime environmental ambiance settings.
-- Improved angle dial responsiveness and degree-to-deflection conversion for all firing patterns.
-- Added Lake Reflection Resolution setting with localization in English, Vietnamese, Chinese, and Japanese.
-- Added graphics quality scaling for CometSystem to adjust cluster projectile density on lower-end devices.
-- Synchronized lifecycle methods and event subscriptions across FireworkSystem and CometSystem.
+- Added realistic 30-day lunar cycle phases and dynamic moon appearance controls.
+- Added procedural 3D karst mountains and islands with night illumination and firework flash reflections.
+- Added dual-layer nighttime clouds with adjustable cluster density and thickness controls.
+- Upgraded volumetric smoke simulation with irregular burst shapes, radial launch trails, and customizable wind direction.
+- Added dynamic lighting and ambient night illumination for smoke particles reacting to firework explosions.
+- Added maximum burst altitude setting for firework shells.
 
 ## Bug Fixes
-- Fixed Multi Shell multi-stage burst configuration and composition helper preset handling.
-- Fixed active comet persistence on timeline seek and clear by implementing synchronous cleanup in CometSystem.
+- Fixed multi-stage burst handling for Multi-Shell firework presets.
 
-## Performance Optimizations
-- Optimized planar reflection passes by excluding static environment layers to eliminate redundant render operations.
-- Added lake reflection resolution scaling controls and complete pass bypass when mirror reflection is disabled.
-- Optimized particle buffer uploads in FireworkSystem using targeted buffer update ranges.
-- Removed unnecessary particle zeroing loops in FireworkSystem to reduce per-frame CPU processing time.
-- Cached timer reads in TrailSystem to avoid repeated system calls during particle updates.
-- Reused scratch color instances and static color constants in CometSystem to prevent per-particle memory allocations.
-- Replaced array reallocation with in-place particle compaction for active comets to eliminate garbage collection pauses.
-- Released video elements and hardware decoder resources immediately when effect preview tooltips hide.
+## Updates
+- Optimized smoke simulation performance with intelligent particle consolidation and budget controls.
+- Improved rendering performance for lake reflections and environmental lighting passes.
+- Enhanced particle rendering efficiency and memory management during intense firework shows.
+- Added comet projectile density scaling based on graphics quality settings.
+- Improved slider value display formatting across editor settings.
