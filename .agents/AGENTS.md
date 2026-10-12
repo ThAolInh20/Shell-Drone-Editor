@@ -51,4 +51,7 @@
 ## UI & Localization Text Conventions
 - **No Parentheses in Text Strings**: Do NOT use parentheses `(...)` in UI labels, options, preset display names, or translation strings. Keep titles and labels clean, natural, and concise without parenthetical notes (e.g. use "Chrysanthemum Spiral V2" instead of "Chrysanthemum Spiral V2 (Spiral -> Sphere)", "Bouquet Cluster" instead of "Bouquet (Cluster)", "Direct Save" instead of "(Direct Save)").
 
+## Git Operations & Source Control Rules
+- **No Automatic Git Operations**: Absolutely NEVER execute `git add`, `git commit`, `git push`, or create git tags automatically. Only execute git staging and commit operations when the user EXPLICITLY commands it in their message (such as explicitly requesting `/ds-commit` or "hãy commit"). Never commit autonomously after completing edits, running tests, or after receiving casual confirmations like "ok" or "tiếp tục".
+
 

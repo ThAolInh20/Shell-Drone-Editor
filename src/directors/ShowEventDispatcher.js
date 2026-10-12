@@ -72,6 +72,14 @@ export class ShowEventDispatcher {
             overrides.thinTrail = false;
             overrides.detachedTrail = true;
             overrides.cometTrail = 'detached';
+          } else if (evt.cometTrail === 'smoke' || evt.cometTrail === 'smoke_trail') {
+            overrides.launchTrail = false;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = false;
+            overrides.flightSmoke = true;
+            overrides.instantBurst = false;
+            overrides.cometTrail = 'smoke';
           } else if (evt.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;

@@ -275,7 +275,15 @@ export class FireworkSystem {
       angleOffset
     );
 
-    const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
+    const isCustomColor = Boolean(color)
+      || Boolean(effectOverrides?.color)
+      || Boolean(shellPreset.hasCustomColor)
+      || Boolean(shellPreset.customColor);
+    shellPreset.hasCustomColor = isCustomColor;
+
+    const finalColorHex = color
+      ? color
+      : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
 
     const hasNoBurst = (Array.isArray(shellPreset.effects) && shellPreset.effects.includes('no-burst'))
@@ -295,6 +303,7 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType ?? 'standard',
           colorHex: finalColor.getHex(),
+          hasCustomColor: isCustomColor,
           position: {
             x: position.x,
             y: position.y,
@@ -400,6 +409,7 @@ export class FireworkSystem {
         shapeType: shell.shapeType,
         effectType: shellPreset.effectType ?? 'standard',
         colorHex: finalColor.getHex(),
+        hasCustomColor: isCustomColor,
         position: {
           x: position.x,
           y: position.y,
@@ -1633,6 +1643,13 @@ export class FireworkSystem {
         isDyingEmber: isDyingEmber,
         isNestedTrigger: isNestedTrigger,
         effects: effectsList,
+        hasBurstSmoke: Boolean(
+          (Array.isArray(effectsList) && effectsList.includes('burst-smoke'))
+          || (Array.isArray(preset?.effects) && preset.effects.includes('burst-smoke'))
+          || Boolean(preset?.['burst-smoke'])
+          || Boolean(preset?.burstSmoke)
+        ),
+        burstSmokeLimit: 0.28 + Math.random() * 0.10,
         isCrossette: isCrossetteShell
           && !isDyingEmber
           && crossetteSplitMap.has(i),
@@ -1687,14 +1704,16 @@ export class FireworkSystem {
       }
     }
 
-    const launchTrail = item.preset?.launchTrail !== false;
+    const isSmokeLaunch = item.preset?.cometTrail === 'smoke'
+      || (Boolean(item.preset?.flightSmoke) && item.preset?.launchTrail === false);
+    const launchTrail = item.preset?.launchTrail !== false && !isSmokeLaunch;
     const activeTrailChance = item.preset?.trailChance !== undefined
       ? item.preset.trailChance
       : 1.0;
 
     const trailIntensity = item.getTrailIntensity ? item.getTrailIntensity() : 1.0;
 
-    // Nếu gần burst tắt hẳn về 0 (trailIntensity <= 0.01) thì không sinh thêm vệt comet
+    // Neu gan burst tat han ve 0 (trailIntensity <= 0.01) thi khong sinh them vet comet
     if (launchTrail && trailIntensity > 0.01 && Math.random() < activeTrailChance) {
       let customLife = null;
       if (item.preset?.noBurst && item.preset?.starLife) {
@@ -1794,7 +1813,7 @@ export class FireworkSystem {
           const velDir = velSpeed > 0.1
             ? vel.clone().normalize()
             : new THREE.Vector3(0, 1, 0);
-          // Khoảng cách phân tách rõ rệt theo vận tốc bay thực tế (16 - 28 mét)
+          // Khoang cach phan tach ro ret theo van toc bay thuc te (16 - 28 met)
           const gapDistance = Math.max(16.0, Math.min(28.0, velSpeed * 0.22));
           spawnPos.addScaledVector(velDir, -gapDistance);
         }
@@ -1814,7 +1833,7 @@ export class FireworkSystem {
           false
         );
 
-        // Ở giai đoạn giữa hoặc với bouquet comet, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
+        // O giai doan giua hoac voi bouquet comet, tao them nhieu hat phu xoe ngang tao do day khoi bau duc
         if (extraChance > 0.2 && !isDetached && Math.random() < extraChance) {
           const sidePos = spawnPos.clone();
           const angle = Math.random() * Math.PI * 2;
@@ -1833,7 +1852,7 @@ export class FireworkSystem {
           );
         }
 
-        // Sinh thêm hạt tia lửa sáng chói dọc theo đường bay của bouquet comet (hoặc giai đoạn giữa của shell mẹ)
+        // Sinh them hat tia lua sang choi doc theo duong bay cua bouquet comet (hoac giai doan giua cua shell me)
         const shouldSpawnSpark = isBouquetComet
           ? Math.random() < 0.35
           : (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor));
@@ -1883,35 +1902,137 @@ export class FireworkSystem {
           }
         }
       }
+    }
 
-      if (!item.preset?.thinTrail && this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
-        const ascVel = item.velocity
-          ? item.velocity.clone().multiplyScalar(-0.15)
-          : new THREE.Vector3(
-              0,
-              -1.2,
-              0
-            );
-        const smokeCfg = FIREWORK_CONFIG.SMOKE;
-        const trailLife = (
-          smokeCfg.trailLifeMin +
-          Math.random() * (smokeCfg.trailLifeMax - smokeCfg.trailLifeMin)
+    // Vet khoi phong rocket dang tia phan doan lien tuc (Collinear streak smoke trail)
+    if (isSmokeLaunch && trailIntensity > 0.01) {
+      const prevPos = item.prevPosition || item.mesh.position;
+      const currPos = item.mesh.position;
+      const moveVec = new THREE.Vector3().subVectors(currPos, prevPos);
+      const moveDist = moveVec.length();
+
+      const moveDir = moveDist > 0.001
+        ? moveVec.clone().normalize()
+        : (item.velocity && item.velocity.lengthSq() > 0.01
+            ? item.velocity.clone().normalize()
+            : new THREE.Vector3(0, 1, 0));
+
+      const smokeCfg = FIREWORK_CONFIG.SMOKE;
+      const stepDist = smokeCfg?.flightSmokeStepDist || 1.2;
+      const subPoints = Math.max(
+        1,
+        Math.min(8, Math.ceil(moveDist / stepDist))
+      );
+
+      const defaultSmokeColor = new THREE.Color(0xf2f5f8);
+      const smokeColor = item.color
+        ? defaultSmokeColor.clone().lerp(item.color, 0.22)
+        : defaultSmokeColor;
+
+      for (let p = 1; p <= subPoints; p++) {
+        const frac = p / subPoints;
+        const samplePos = new THREE.Vector3().lerpVectors(
+          prevPos,
+          currPos,
+          frac
+        );
+
+        // Hieu ung loe non (conical taper): Diem sat dau phao (frac cao) co do phan tan hep hon
+        const taperJitter = (0.2 + 0.35 * (1.0 - frac)) * ((smokeCfg?.flightSmokeScale || 4.8) * 0.12);
+        samplePos.x += (Math.random() - 0.5) * taperJitter;
+        samplePos.y += (Math.random() - 0.5) * taperJitter;
+        samplePos.z += (Math.random() - 0.5) * taperJitter;
+
+        // Van toc luong phut nguoc chieu bay (retro-thrust exhaust velocity)
+        const exhaustVel = moveDir.clone().multiplyScalar(
+          (-1.6 - Math.random() * 1.2) * (0.8 + 0.4 * (1.0 - frac))
+        ).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 0.8,
+            0.3 + Math.random() * 0.8,
+            (Math.random() - 0.5) * 0.8
+          )
+        );
+
+        const smokeLife = (
+          (smokeCfg?.flightSmokeLifeMin || 3.5) +
+          Math.random() * ((smokeCfg?.flightSmokeLifeMax || 6.5) - (smokeCfg?.flightSmokeLifeMin || 3.5))
         ) * trailIntensity;
 
+        const smokeScale = (smokeCfg?.flightSmokeScale || 4.8) *
+          (0.72 + 0.38 * (1.0 - frac)) *
+          (0.7 + 0.3 * trailIntensity) +
+          Math.random() * 1.2;
+
+        const smokeOptions = {
+          life: smokeLife,
+          scale: smokeScale,
+          growth: smokeCfg?.flightSmokeGrowth || 3.2,
+          drag: smokeCfg?.flightSmokeDrag || 1.8,
+          buoyancy: smokeCfg?.flightSmokeBuoyancy || 0.38,
+          opacity: (smokeCfg?.flightSmokeOpacity || 0.28) *
+            (1.15 - 0.25 * (1.0 - frac)) *
+            trailIntensity,
+          color: smokeColor
+        };
+
+        if (this.smokeSystem) {
+          this.smokeSystem.addSmokePoint(
+            samplePos,
+            exhaustVel,
+            smokeOptions
+          );
+        } else {
+          globalEventBus.emit(
+            'smoke:spawn',
+            {
+              position: samplePos,
+              velocity: exhaustVel,
+              options: smokeOptions
+            }
+          );
+        }
+      }
+    } else if (item.preset?.flightSmoke && trailIntensity > 0.01 && Math.random() < (0.35 * trailIntensity)) {
+      const ascVel = item.velocity
+        ? item.velocity.clone().multiplyScalar(-0.15)
+        : new THREE.Vector3(
+            0,
+            -1.2,
+            0
+          );
+      const smokeCfg = FIREWORK_CONFIG.SMOKE;
+      const trailLife = (
+        smokeCfg.trailLifeMin +
+        Math.random() * (smokeCfg.trailLifeMax - smokeCfg.trailLifeMin)
+      ) * trailIntensity;
+
+      const smokeOptions = {
+        life: trailLife,
+        scale: (
+          smokeCfg.trailBaseScale * 0.8 +
+          Math.random() * 2.5
+        ) * (0.6 + 0.4 * trailIntensity),
+        growth: smokeCfg.trailGrowth,
+        drag: smokeCfg.trailDrag,
+        buoyancy: smokeCfg.trailBuoyancy,
+        opacity: smokeCfg.trailOpacity * trailIntensity,
+        color: item.color ? item.color.clone() : new THREE.Color(0xf2f5f8)
+      };
+
+      if (this.smokeSystem) {
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
           ascVel,
+          smokeOptions
+        );
+      } else {
+        globalEventBus.emit(
+          'smoke:spawn',
           {
-            life: trailLife,
-            scale: (
-              smokeCfg.trailBaseScale * 0.8 +
-              Math.random() * 2.5
-            ) * (0.6 + 0.4 * trailIntensity),
-            growth: smokeCfg.trailGrowth,
-            drag: smokeCfg.trailDrag,
-            buoyancy: smokeCfg.trailBuoyancy,
-            opacity: smokeCfg.trailOpacity * trailIntensity,
-            color: item.color.clone()
+            position: item.mesh.position.clone(),
+            velocity: ascVel,
+            options: smokeOptions
           }
         );
       }
@@ -1946,6 +2067,9 @@ export class FireworkSystem {
 
       const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
         || Boolean(item.preset?.['no-burst']);
+      const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+        || Boolean(item.preset?.['burst-smoke'])
+        || Boolean(item.preset?.burstSmoke);
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -1955,6 +2079,8 @@ export class FireworkSystem {
           shapeType: item.shapeType ?? item.shape,
           effectType: item.preset?.effectType ?? item.shape,
           effects: item.preset?.effects,
+          hasBurstSmoke,
+          hasCustomColor: Boolean(item.preset?.hasCustomColor),
           noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
           colorHex: item.color.getHex(),
           position: {
@@ -2027,6 +2153,9 @@ export class FireworkSystem {
     const isGhostShell = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('ghost'))
       || item.preset?.effectType === 'ghost'
       || Boolean(item.preset?.ghost);
+    const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+      || Boolean(item.preset?.['burst-smoke'])
+      || Boolean(item.preset?.burstSmoke);
 
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
@@ -2034,6 +2163,8 @@ export class FireworkSystem {
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
       effects: item.preset?.effects,
+      hasBurstSmoke,
+      hasCustomColor: Boolean(item.preset?.hasCustomColor),
       noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
       colorHex: item.color.getHex(),
       position: {
@@ -2041,6 +2172,7 @@ export class FireworkSystem {
         y: burstPosition.y,
         z: burstPosition.z
       },
+      burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
       intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1
     });
@@ -2192,6 +2324,8 @@ export class FireworkSystem {
             isDyingEmber: false,
             isNestedTrigger: false,
             effects: branchEffects,
+            hasBurstSmoke: Boolean(p.hasBurstSmoke),
+            burstSmokeLimit: p.burstSmokeLimit ?? 0.33,
             isCrossette: false,
             crossetteSplitDone: true,
             isChromaticWave: false,
@@ -2388,29 +2522,43 @@ export class FireworkSystem {
         }
       }
 
-      if (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
-        const spawnChance = lifeRatio < 0.12
-          ? 1.0
-          : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
+      const isStarBurstSmoke = p.hasBurstSmoke && lifeRatio <= (p.burstSmokeLimit ?? 0.33);
+      const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
+        && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 
-        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 2 : (spawnSmoke ? 3 : 5);
+      if (shouldEmitSmoke) {
+        let spawnChance = 0.5;
+        if (isStarBurstSmoke) {
+          spawnChance = lifeRatio < 0.15 ? 0.95 : 0.65;
+        } else if (lifeRatio < 0.12) {
+          spawnChance = 1.0;
+        } else if (lifeRatio < 0.52) {
+          spawnChance = 0.85;
+        } else {
+          spawnChance = 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48);
+        }
+
+        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 3 : 5;
         if (p.particleIndex % moduloCheck === 0 && Math.random() < spawnChance) {
-          const particleColor = p.baseColor.clone();
-          const smokeVel = p.velocity.clone().multiplyScalar(0.12);
-          const densityMult = spawnSmoke ? 1.4 : 1.0;
+          const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
+          const particleColor = p.preset?.hasCustomColor
+            ? p.baseColor.clone()
+            : defaultWhiteSmoke;
+          const smokeVel = p.velocity.clone().multiplyScalar(0.14);
+          const densityMult = isStarBurstSmoke ? 1.1 : (spawnSmoke ? 1.4 : 1.0);
           const smokeCfg = FIREWORK_CONFIG.SMOKE;
           const starSmokeBaseLife = smokeLife || (
             (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
           );
           const smokeOptions = {
             life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
-            scale: (3.2 + Math.random() * 2.2) * densityMult,
-            growth: 3.2,
+            scale: (2.8 + Math.random() * 1.8) * densityMult,
+            growth: 2.8,
             drag: 2.5,
             buoyancy: smokeCfg.trailBuoyancy,
             opacity: (
               smokeOpacity || 0.15
-            ) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
+            ) * parentFade * (lifeRatio < 0.15 ? 1.25 : 1.0) * densityMult,
             color: particleColor
           };
 

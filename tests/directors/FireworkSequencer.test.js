@@ -129,6 +129,21 @@ describe('FireworkSequencer', () => {
     expect(overrides.effects).toEqual(['ghost-flare']);
   });
 
+  it('should attach smoke launch overrides when cometTrail is smoke', () => {
+    sequencer.playCometSequence('sweep', {
+      count: 2,
+      duration: 1.0,
+      cometTrail: 'smoke'
+    });
+
+    expect(sequencer.activeTasks.length).toBe(2);
+    const overrides = sequencer.activeTasks[0].options.effectOverrides;
+    expect(overrides.launchTrail).toBe(false);
+    expect(overrides.flightSmoke).toBe(true);
+    expect(overrides.instantBurst).toBe(false);
+    expect(overrides.cometTrail).toBe('smoke');
+  });
+
   it('should generate cascade slope trajectory and forward tilt angle', () => {
     sequencer.playPattern('cascade-slope', {
       count: 6,

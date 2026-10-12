@@ -4,6 +4,7 @@ import { CometEntity } from '../entities/CometEntity.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -453,7 +454,12 @@ export class CometSystem {
 
       const isGhostDark = Boolean(comet.isGhostDarkPhase);
       const isGhostHidden = Boolean(comet.isGhostInvisible);
-      const isTrailDisabled = Boolean(comet.hasNoTrail) || comet.preset?.launchTrail === false;
+      const isSmokeLaunch = comet.preset?.cometTrail === 'smoke'
+        || (Boolean(comet.preset?.flightSmoke) && comet.preset?.launchTrail === false)
+        || (Boolean(comet.preset?.launchSmoke) && comet.preset?.launchTrail === false);
+      const isTrailDisabled = Boolean(comet.hasNoTrail)
+        || comet.preset?.launchTrail === false
+        || isSmokeLaunch;
 
       // Crossette apex cross splitting
       if (
@@ -471,7 +477,91 @@ export class CometSystem {
 
       // Thicker trails for comets during launch (before reaching strobe threshold or if not dimmed/ghost-dark/ghost-hidden)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
-        if (!isTrailDisabled && !isGhostDark && !isGhostHidden) {
+        if (isSmokeLaunch && !isGhostDark && !isGhostHidden) {
+          const prevPos = comet.prevPosition || comet.mesh.position;
+          const currPos = comet.mesh.position;
+          const moveVec = new THREE.Vector3().subVectors(currPos, prevPos);
+          const moveDist = moveVec.length();
+
+          const moveDir = moveDist > 0.001
+            ? moveVec.clone().normalize()
+            : (comet.velocity && comet.velocity.lengthSq() > 0.01
+                ? comet.velocity.clone().normalize()
+                : new THREE.Vector3(0, 1, 0));
+
+          const smokeCfg = FIREWORK_CONFIG.SMOKE;
+          const stepDist = smokeCfg?.flightSmokeStepDist || 1.2;
+          const subPoints = Math.max(
+            1,
+            Math.min(8, Math.ceil(moveDist / stepDist))
+          );
+
+          const defaultSmokeColor = new THREE.Color(0xf2f5f8);
+          const smokeColor = comet.color
+            ? defaultSmokeColor.clone().lerp(comet.color, 0.22)
+            : defaultSmokeColor;
+
+          for (let p = 1; p <= subPoints; p++) {
+            const frac = p / subPoints;
+            const samplePos = new THREE.Vector3().lerpVectors(
+              prevPos,
+              currPos,
+              frac
+            );
+
+            const taperJitter = (0.2 + 0.35 * (1.0 - frac)) * ((smokeCfg?.flightSmokeScale || 4.8) * 0.12);
+            samplePos.x += (Math.random() - 0.5) * taperJitter;
+            samplePos.y += (Math.random() - 0.5) * taperJitter;
+            samplePos.z += (Math.random() - 0.5) * taperJitter;
+
+            const exhaustVel = moveDir.clone().multiplyScalar(
+              (-1.6 - Math.random() * 1.2) * (0.8 + 0.4 * (1.0 - frac))
+            ).add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 0.8,
+                0.3 + Math.random() * 0.8,
+                (Math.random() - 0.5) * 0.8
+              )
+            );
+
+            const smokeLife = (
+              (smokeCfg?.flightSmokeLifeMin || 3.5) +
+              Math.random() * ((smokeCfg?.flightSmokeLifeMax || 6.5) - (smokeCfg?.flightSmokeLifeMin || 3.5))
+            );
+
+            const smokeScale = (smokeCfg?.flightSmokeScale || 4.8) *
+              (0.72 + 0.38 * (1.0 - frac)) +
+              Math.random() * 1.2;
+
+            const smokeOptions = {
+              life: smokeLife,
+              scale: smokeScale,
+              growth: smokeCfg?.flightSmokeGrowth || 3.2,
+              drag: smokeCfg?.flightSmokeDrag || 1.8,
+              buoyancy: smokeCfg?.flightSmokeBuoyancy || 0.38,
+              opacity: (smokeCfg?.flightSmokeOpacity || 0.28) *
+                (1.15 - 0.25 * (1.0 - frac)),
+              color: smokeColor
+            };
+
+            if (this.smokeSystem) {
+              this.smokeSystem.addSmokePoint(
+                samplePos,
+                exhaustVel,
+                smokeOptions
+              );
+            } else {
+              globalEventBus.emit(
+                'smoke:spawn',
+                {
+                  position: samplePos,
+                  velocity: exhaustVel,
+                  options: smokeOptions
+                }
+              );
+            }
+          }
+        } else if (!isTrailDisabled && !isGhostDark && !isGhostHidden) {
           const isCoreVisible = comet.coreMesh ? (comet.coreMesh.visible || comet.preset?.sparkleAtEnd) : true;
           const currentOpacity = comet.coreMesh?.material?.opacity ?? 1.0;
           const customLife = comet.velocity.y > 0 ? (comet.velocity.y / 30) * 0.85 : 0.05;
@@ -581,19 +671,31 @@ export class CometSystem {
                 );
               }
 
-              if (this.smokeSystem && Math.random() < 0.25 && !isDetached) {
+              if (comet.preset?.launchSmoke && Math.random() < 0.25 && !isDetached) {
                 _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
-                this.smokeSystem.addSmokePoint(
-                  comet.mesh.position,
-                  _tempSmokeVel,
-                  {
-                    life: 1.5 + Math.random() * 0.7,
-                    scale: 4.8 + Math.random() * 2.2,
-                    growth: 3.2,
-                    opacity: 0.22,
-                    color: comet.color
-                  }
-                );
+                const smokeOptions = {
+                  life: 1.5 + Math.random() * 0.7,
+                  scale: 4.8 + Math.random() * 2.2,
+                  growth: 3.2,
+                  opacity: 0.22,
+                  color: comet.color
+                };
+                if (this.smokeSystem) {
+                  this.smokeSystem.addSmokePoint(
+                    comet.mesh.position,
+                    _tempSmokeVel,
+                    smokeOptions
+                  );
+                } else {
+                  globalEventBus.emit(
+                    'smoke:spawn',
+                    {
+                      position: comet.mesh.position.clone(),
+                      velocity: _tempSmokeVel.clone(),
+                      options: smokeOptions
+                    }
+                  );
+                }
               }
             }
           } else if (currentOpacity > 0.08) {

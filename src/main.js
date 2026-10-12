@@ -67,7 +67,8 @@ loadAndApplySettings({
   postProcessing,
   audioSystem,
   smokeSystem,
-  sceneManager
+  sceneManager,
+  fireworkSystem
 });
 
 // Initialize Systems

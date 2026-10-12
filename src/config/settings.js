@@ -1,5 +1,6 @@
 import { renderingConfig } from './rendering.js';
 import { AUDIO_CONFIG } from './audio.js';
+import { LAUNCH_ZONE_CONFIG } from './launchZone.js';
 
 export const SETTINGS_DEFINITION = [
   {
@@ -429,6 +430,30 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'sky_moon_size',
+    label: 'Moon Size',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 30,
+    max: 250,
+    step: 5,
+    default: 85,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonSize = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonSize === 'function'
+      ) {
+        context.sceneManager.setMoonSize(value);
+      }
+    }
+  },
+  {
     key: 'sky_cloud_coverage',
     label: 'Night Cloud Coverage',
     type: 'slider',
@@ -449,6 +474,54 @@ export const SETTINGS_DEFINITION = [
         context.sceneManager.skyDome
       ) {
         context.sceneManager.skyDome.setCloudCoverage(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_density',
+    label: 'Cloud Thickness',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.2,
+    max: 2.5,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudDensity = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudDensity === 'function'
+      ) {
+        context.sceneManager.setCloudDensity(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_scale',
+    label: 'Cloud Cluster Count',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.4,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudScale = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudScale === 'function'
+      ) {
+        context.sceneManager.setCloudScale(value);
       }
     }
   },
@@ -549,6 +622,29 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_wind_direction',
+    label: 'Smoke Wind Direction',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'smoke',
+    min: 0,
+    max: 360,
+    step: 5,
+    default: 25,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.windDirection = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setWindDirection(value);
+      }
+    }
+  },
+  {
     key: 'smoke_unlimited',
     label: 'Cinematic Smoke Unlimited',
     type: 'checkbox',
@@ -588,6 +684,30 @@ export const SETTINGS_DEFINITION = [
         context.smokeSystem
       ) {
         context.smokeSystem.setLifespanMultiplier(value);
+      }
+    }
+  },
+  {
+    key: 'firework_max_burst_y',
+    label: 'Max Burst Altitude',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'fireworks',
+    min: 100,
+    max: 500,
+    step: 5,
+    default: 300,
+    apply(
+      value,
+      context
+    ) {
+      LAUNCH_ZONE_CONFIG.maxBurstY = value;
+      if (
+        context &&
+        context.fireworkSystem &&
+        context.fireworkSystem.launchZone
+      ) {
+        context.fireworkSystem.launchZone.maxBurstY = value;
       }
     }
   },
@@ -741,9 +861,9 @@ export function loadAndApplySettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    const savedStr = localStorage.getItem(
-      `settings_${setting.key}`
-    );
+    const savedStr = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(`settings_${setting.key}`)
+      : null;
     let val = setting.default;
     if (
       savedStr !== null
@@ -780,10 +900,12 @@ export function applySetting(
   if (
     setting
   ) {
-    localStorage.setItem(
-      `settings_${key}`,
-      value.toString()
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        `settings_${key}`,
+        value.toString()
+      );
+    }
     setting.apply(
       value,
       context
@@ -797,9 +919,11 @@ export function resetSettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    localStorage.removeItem(
-      `settings_${setting.key}`
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(
+        `settings_${setting.key}`
+      );
+    }
     setting.apply(
       setting.default,
       context

@@ -21,16 +21,21 @@ export const renderingConfig = {
     quality: 'medium',
     density: 1.0,
     windSpeed: 1.0,
+    windDirection: 25,
     unlimited: false,
-    lifespanMultiplier: 1.0
+    lifespanMultiplier: 1.0,
+    hazeConsolidation: true
   },
   sky: {
     cloudCoverage: 0.55,
     cloudSpeed: 1.0,
+    cloudDensity: 1.0,
+    cloudScale: 1.0,
     moonDay: 15,
     moonPhase: 'full',
     moonPosition: 0.8,
-    moonAltitude: 500
+    moonAltitude: 500,
+    moonSize: 85
   },
   performance: {
     fpsThreshold: 70,
