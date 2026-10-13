@@ -214,32 +214,48 @@ export class WaterSurface {
         mat2 rot2 = mat2(0.707, 0.707, -0.707, 0.707);
         mat2 rot3 = mat2(0.5, 0.866, -0.866, 0.5);
 
-        // Layer 1: Macro base waves
-        vec2 uv1 = (rot1 * (vUv * (uWaveScale * 0.42))) + vec2(t * 0.7, t * 0.35);
+        // Continuous World-Space coordinates to eliminate mesh UV tiling
+        float scaleMult = uWaveScale / 45.0;
+        vec2 worldXZ = vWorldPosition.xz * scaleMult;
+
+        // Low-frequency organic domain warp across the river surface
+        vec2 domainWarp = vec2(
+          sin(worldXZ.y * 0.0016 + t * 0.25),
+          cos(worldXZ.x * 0.0014 - t * 0.22)
+        ) * 0.06;
+
+        // Layer 1: Macro broad swells (period ~330m)
+        vec2 uv1 = (rot1 * (worldXZ * 0.0030)) + vec2(t * 0.55, t * 0.28) + domainWarp;
         vec3 n1 = texture2D(uNormalMap, uv1).rgb * 2.0 - 1.0;
 
-        // Layer 2: Medium ripples with domain warping from Layer 1
-        vec2 uv2 = (rot2 * (vUv * uWaveScale)) + vec2(-t * 0.85, t * 0.6) + n1.xy * 0.04;
+        // Layer 2: Medium river ripples (period ~125m, non-harmonic frequency)
+        vec2 uv2 = (rot2 * (worldXZ * 0.0081)) + vec2(-t * 0.75, t * 0.50) + n1.xy * 0.045;
         vec3 n2 = texture2D(uNormalMap, uv2).rgb * 2.0 - 1.0;
 
-        // Layer 3: Micro fine ripples
-        vec2 uv3 = (rot3 * (vUv * (uWaveScale * 1.85))) + vec2(t * 1.15, -t * 0.95) + n2.xy * 0.03;
+        // Layer 3: Micro surface ripples (period ~46m, prime frequency)
+        vec2 uv3 = (rot3 * (worldXZ * 0.0217)) + vec2(t * 1.05, -t * 0.85) + n2.xy * 0.035;
         vec3 n3 = texture2D(uNormalMap, uv3).rgb * 2.0 - 1.0;
 
-        // Macro Spatial Noise Modulation across Lake Surface (calm patches vs choppy breeze patches)
-        vec2 worldCoord = vWorldPosition.xz * 0.0018;
-        float macroWave = sin(worldCoord.x * 2.1 + cos(worldCoord.y * 1.7 + t * 0.3)) *
-                          cos(worldCoord.y * 2.4 - sin(worldCoord.x * 1.5 - t * 0.2));
-        float spatialModulation = clamp(0.45 + 0.55 * (macroWave * 0.5 + 0.5), 0.25, 1.35);
+        // Macro Spatial Noise Modulation (smooth breeze patches vs glassy water)
+        vec2 worldCoord = worldXZ * 0.0011;
+        float macroNoise = sin(worldCoord.x * 2.1 + cos(worldCoord.y * 1.7 + t * 0.28)) *
+                           cos(worldCoord.y * 2.3 - sin(worldCoord.x * 1.5 - t * 0.20));
+        float spatialModulation = clamp(0.40 + 0.60 * (macroNoise * 0.5 + 0.5), 0.25, 1.25);
 
         // Blend 3 normal layers with weighted contributions
         vec3 combinedNorm = normalize(vec3(
-          n1.xy * 0.45 + n2.xy * 0.35 + n3.xy * 0.20,
+          n1.xy * 0.46 + n2.xy * 0.36 + n3.xy * 0.18,
           n1.z * n2.z * n3.z
         ));
-        
+
         // Convert tangent space normal to world normal (Y is up)
-        vec3 normal = normalize(vec3(combinedNorm.x, combinedNorm.z, combinedNorm.y));
+        vec3 rawNormal = normalize(vec3(combinedNorm.x, combinedNorm.z, combinedNorm.y));
+
+        // Distance attenuation and horizon anti-aliasing
+        // Blend normal toward flat surface (0, 1, 0) at far distance to prevent sparkling shimmer
+        float distToCam = length(cameraPosition - vWorldPosition);
+        float horizonFade = smoothstep(1800.0, 380.0, distToCam);
+        vec3 normal = normalize(mix(vec3(0.0, 1.0, 0.0), rawNormal, horizonFade));
 
         // View direction
         vec3 viewDir = normalize(cameraPosition - vWorldPosition);
@@ -247,45 +263,59 @@ export class WaterSurface {
         // Projective coordinates for planar reflection sampling
         vec2 baseCoord = vProjectedCoord.xy / vProjectedCoord.w;
 
-        // Distance attenuation to prevent excessive shimmering at the far horizon
-        float distToCam = length(cameraPosition - vWorldPosition);
-        float distFactor = clamp(400.0 / distToCam, 0.15, 1.0);
+        // Distance factor for distortion
+        float distFactor = clamp(400.0 / distToCam, 0.12, 1.0);
 
-        // Distort UV by wave normal modulated spatially
-        vec2 distortion = normal.xz * uDistortionStrength * spatialModulation * distFactor;
-        vec2 reflectUV = clamp(baseCoord + distortion, vec2(0.001), vec2(0.999));
+        // Anisotropic vertical smear: Waves stretch reflections mostly along vertical column (Y in screen space)
+        // rather than harsh sideways wobble, creating natural light trails on river water
+        vec2 distortion = vec2(normal.x * 0.35, normal.z * 1.15) *
+                          (uDistortionStrength * 0.70) *
+                          spatialModulation *
+                          distFactor;
 
-        // Sample reflected image
-        vec4 reflectionColor = texture2D(uReflectionTexture, reflectUV);
+        // Multi-tap anisotropic reflection sampling to simulate water surface roughness / blur
+        // Eliminates harsh pixel jitter and softens reflected firework particles
+        vec2 reflUVCenter = clamp(baseCoord + distortion, vec2(0.001), vec2(0.999));
+        vec2 reflUVUp = clamp(baseCoord + distortion * vec2(0.85, 1.45), vec2(0.001), vec2(0.999));
+        vec2 reflUVDown = clamp(baseCoord + distortion * vec2(0.85, 0.55), vec2(0.001), vec2(0.999));
+
+        vec4 reflSampleCenter = texture2D(uReflectionTexture, reflUVCenter);
+        vec4 reflSampleUp = texture2D(uReflectionTexture, reflUVUp);
+        vec4 reflSampleDown = texture2D(uReflectionTexture, reflUVDown);
+        vec3 reflectionColor = (reflSampleCenter.rgb * 0.52) + (reflSampleUp.rgb + reflSampleDown.rgb) * 0.24;
 
         // Schlick Fresnel
         float NdotV = max(dot(viewDir, normal), 0.0);
-        float R0 = 0.05;
+        float R0 = 0.04;
         float fresnel = R0 + (1.0 - R0) * pow(1.0 - NdotV, 5.0);
 
-        // Base water body color
-        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.35);
+        // Deep river body water color
+        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.30);
 
-        // Specular Mirror Reflection Component
+        // Specular Mirror Reflection Component:
+        // Capped reflection ceiling (max ~0.62) and dark water transmission tint
+        // Prevents water from competing with sky brightness and provides nocturnal river depth
         vec3 finalColor = baseWater;
         if (uMirrorEnabled > 0.5) {
-          finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.45, 0.1, 1.0));
+          float reflWeight = clamp(fresnel * 0.82, 0.04, 0.62);
+          vec3 tintedRefl = reflectionColor * vec3(0.82, 0.88, 0.94);
+          finalColor = mix(baseWater, baseWater * 0.35 + tintedRefl * 0.85, reflWeight);
         }
 
-        // Moonlight Specular Highlight & Shimmer Column
+        // Moonlight Specular Highlight and Shimmer Column
         if (uMoonIntensity > 0.001) {
           vec3 halfVec = normalize(uMoonDirection + viewDir);
           float NdotH = max(dot(normal, halfVec), 0.0);
-          float moonSpec = pow(NdotH, 64.0) * 0.55 * uMoonIntensity;
+          float moonSpec = pow(NdotH, 64.0) * 0.45 * uMoonIntensity;
 
           vec3 reflectDir = reflect(-viewDir, normal);
           float RdotL = max(dot(reflectDir, uMoonDirection), 0.0);
-          float moonStreak = pow(RdotL, 18.0) * 0.65 * uMoonIntensity;
+          float moonStreak = pow(RdotL, 20.0) * 0.55 * uMoonIntensity;
 
           finalColor += uMoonColor * (moonSpec + moonStreak);
         }
 
-        // Dynamic Burst Flash & Anisotropic Specular Highlight on Water
+        // Dynamic Burst Flash and Anisotropic Specular Highlight on Water
         if (uFlashIntensity > 0.001) {
           vec3 lightVec = uFlashPos - vWorldPosition;
           float lightDist = length(lightVec);
@@ -302,12 +332,12 @@ export class WaterSurface {
           // Anisotropic vertical stretch reflection column
           vec3 reflectDir = reflect(-viewDir, normal);
           float RdotL = max(dot(reflectDir, lightDir), 0.0);
-          float streak = pow(RdotL, 16.0) * 1.5;
+          float streak = pow(RdotL, 16.0) * 1.1;
 
           // Diffuse water scatter and specular flash
           float NdotL = max(dot(normal, lightDir), 0.0);
-          vec3 flashDiffuse = uFlashColor * (NdotL * 0.4 + 0.1) * atten * uFlashIntensity;
-          vec3 flashSpecular = uFlashColor * (specHighlight + streak) * atten * uFlashIntensity * 2.2;
+          vec3 flashDiffuse = uFlashColor * (NdotL * 0.35 + 0.08) * atten * uFlashIntensity;
+          vec3 flashSpecular = uFlashColor * (specHighlight * 0.7 + streak) * atten * uFlashIntensity * 1.5;
 
           finalColor += flashDiffuse + flashSpecular;
         }
