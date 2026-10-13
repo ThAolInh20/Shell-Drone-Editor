@@ -34,18 +34,112 @@ export const FIREWORK_CONFIG = {
 
   // Thông số mặc định cho pha phát nổ tiêu chuẩn
   BURST: {
-    // Vận tốc bung hạt cơ bản khi pháo nổ
-    baseSpeed: 65,
+    // Vận tốc bung hạt cơ bản khi pháo nổ (mở rộng trang nhã, không quá nhanh)
+    baseSpeed: 74,
     // Thời gian sống cơ bản của hạt nổ pháo hoa (giây)
     baseLife: 2.3,
     // Ngưỡng tỉ lệ vòng đời bắt đầu thực hiện hiệu ứng mờ dần (dissolve)
     dissolveStart: 0.62,
+    // Hệ số lực cản không khí cơ bản giúp hạt hãm phanh êm dịu tự nhiên
+    baseDrag: 0.46,
+    // Độ phân tán lực cản ngẫu nhiên giữa các hạt
+    dragJitter: 0.20,
+    // Độ lệch vận tốc nổ ban đầu để phá vỡ khối cầu đồng nhất
+    speedJitter: 0.10,
+    // Độ phân tán thời gian sống của hạt
+    lifeJitter: 0.15,
     // Số hạt nổ mặc định cho một quả pháo tiêu chuẩn
     baseParticles: 110,
     // Số hạt nổ tối thiểu cho phép
     minParticles: 60,
     // Số hạt nổ tối đa cho phép để bảo vệ FPS
     maxParticles: 220
+  },
+
+  // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
+  // Giúp từng nhóm pháo hoa có vận tốc, lực cản và đường cong chuyển động riêng biệt
+  DYNAMICS_PROFILES: {
+    // Pháo nổ tiêu chuẩn (Chrysanthemum, Peony, Brocade, Sphere, Pistil)
+    standard: {
+      baseSpeed: 74,
+      baseDrag: 0.46,
+      dragJitter: 0.20,
+      speedJitter: 0.10,
+      lifeJitter: 0.15,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.32,
+      gravityRampFull: 0.55,
+      minGravity: 0.05,
+      thermalCooling: true
+    },
+    // Hình dạng hình học đường viền (Ring, Heart, Star, Smiley, Cat, Fish)
+    geometric: {
+      baseSpeed: 54,
+      baseDrag: 0.40,
+      dragJitter: 0.05,
+      speedJitter: 0.04,
+      lifeJitter: 0.10,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.35,
+      gravityRampFull: 0.60,
+      minGravity: 0.08,
+      thermalCooling: true
+    },
+    // Liễu rủ vàng kim và tàn rơi dài (Willow, Kamuro, Weeping Willow, Falling Comets)
+    willow: {
+      baseSpeed: 58,
+      baseDrag: 0.20,
+      dragJitter: 0.12,
+      speedJitter: 0.10,
+      lifeJitter: 0.25,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.20,
+      gravityRampFull: 0.45,
+      minGravity: 0.10,
+      thermalCooling: false
+    },
+    // Hạt trôi nổi, bồng bềnh hữu cơ (Flow, Snow, Wave, Falling Leaves, Swimming Star)
+    floating: {
+      baseSpeed: 36,
+      baseDrag: 0.70,
+      dragJitter: 0.16,
+      speedJitter: 0.12,
+      lifeJitter: 0.20,
+      hasApexBrake: false,
+      delayedGravity: false,
+      thermalCooling: false
+    },
+    // Pháo nổ tách chữ thập (Crossette)
+    crossette: {
+      baseSpeed: 62,
+      baseDrag: 0.38,
+      dragJitter: 0.10,
+      speedJitter: 0.08,
+      lifeJitter: 0.10,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.32,
+      gravityRampFull: 0.55,
+      minGravity: 0.06,
+      thermalCooling: true
+    },
+    // Chùm tia sao băng (Bouquet Comet, Comet Ring, Half-Flash, Split-Flash)
+    comet: {
+      baseSpeed: 70,
+      baseDrag: 0.30,
+      dragJitter: 0.14,
+      speedJitter: 0.10,
+      lifeJitter: 0.15,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.28,
+      gravityRampFull: 0.52,
+      minGravity: 0.06,
+      thermalCooling: true
+    }
   },
 
   // Hệ số nhân số lượng hạt dựa trên hình dạng vụ nổ (Shape)

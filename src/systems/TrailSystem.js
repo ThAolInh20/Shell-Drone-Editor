@@ -299,6 +299,21 @@ export class TrailSystem {
           let g = particle.color.g;
           let b = particle.color.b;
 
+          // Vòng đời nhiệt sắc cho hạt vệt (Thermal Lifecycle)
+          if (!particle.strobe && !particle.shimmer) {
+            if (lifeRatio < 0.15) {
+              const flashT = 1.0 - (lifeRatio / 0.15);
+              r = THREE.MathUtils.lerp(r, Math.max(r, 1.3), flashT * 0.6);
+              g = THREE.MathUtils.lerp(g, Math.max(g, 1.2), flashT * 0.55);
+              b = THREE.MathUtils.lerp(b, Math.max(b, 1.1), flashT * 0.45);
+            } else if (lifeRatio > 0.65) {
+              const coolT = (lifeRatio - 0.65) / 0.35;
+              r = THREE.MathUtils.lerp(r, 0.95, coolT * 0.5);
+              g = THREE.MathUtils.lerp(g, 0.38, coolT * 0.6);
+              b = THREE.MathUtils.lerp(b, 0.05, coolT * 0.8);
+            }
+          }
+
           // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
           if (particle.strobe) {
             const timeMs = nowMs + (particle.phase ?? 0);
