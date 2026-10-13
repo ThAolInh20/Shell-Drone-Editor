@@ -29,6 +29,9 @@ export class SkyLightReactionSystem {
   }
 
   onBurst(detail = {}) {
+    if (detail.intensity !== undefined && detail.intensity <= 0.001) {
+      return;
+    }
     const color = new THREE.Color(detail.colorHex ?? 0xffffff);
     const rawIntensity = THREE.MathUtils.clamp(detail.intensity ?? 0.6, 0.1, 1);
     const intensity = Math.pow(rawIntensity, 1.35);
@@ -64,6 +67,7 @@ export class SkyLightReactionSystem {
     let totalWeight = 0;
     let skyEnergy = 0;
     let strongest = null;
+    let secondStrongest = null;
 
     for (const reaction of this.reactions) {
       reaction.age += deltaTime;
@@ -81,7 +85,14 @@ export class SkyLightReactionSystem {
       colorAccumulator.add(reaction.color.clone().multiplyScalar(weight));
 
       if (!strongest || weight > strongest.weight) {
+        secondStrongest = strongest;
         strongest = {
+          weight,
+          position: reaction.position,
+          color: reaction.color
+        };
+      } else if (!secondStrongest || weight > secondStrongest.weight) {
+        secondStrongest = {
           weight,
           position: reaction.position,
           color: reaction.color
@@ -155,10 +166,41 @@ export class SkyLightReactionSystem {
           flashIntensity
         );
       }
-      if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
-        this.sceneManager.distantMountains.setBurstFlash(
+      if (this.sceneManager.distantMountains) {
+        if (typeof this.sceneManager.distantMountains.updateFlashes === 'function') {
+          const flashes = [
+            {
+              position: strongest.position,
+              color: strongest.color,
+              intensity: flashIntensity * 0.45
+            }
+          ];
+          if (secondStrongest) {
+            const secondFlash = THREE.MathUtils.clamp(
+              secondStrongest.weight * 1.5,
+              0,
+              1.0
+            );
+            flashes.push({
+              position: secondStrongest.position,
+              color: secondStrongest.color,
+              intensity: secondFlash * 0.35
+            });
+          }
+          this.sceneManager.distantMountains.updateFlashes(flashes);
+        } else if (typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
+          this.sceneManager.distantMountains.setBurstFlash(
+            strongest.color,
+            flashIntensity * 0.25,
+            strongest.position
+          );
+        }
+      }
+      if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+        this.sceneManager.skyDome.setBurstFlash(
+          strongest.position,
           strongest.color,
-          flashIntensity * 0.25
+          flashIntensity
         );
       }
     } else {
@@ -169,8 +211,15 @@ export class SkyLightReactionSystem {
       if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
         this.sceneManager.waterSurface.setBurstFlash(null, null, 0);
       }
-      if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
-        this.sceneManager.distantMountains.setBurstFlash(null, 0);
+      if (this.sceneManager.distantMountains) {
+        if (typeof this.sceneManager.distantMountains.updateFlashes === 'function') {
+          this.sceneManager.distantMountains.updateFlashes([]);
+        } else if (typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
+          this.sceneManager.distantMountains.setBurstFlash(null, 0);
+        }
+      }
+      if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+        this.sceneManager.skyDome.setBurstFlash(null, null, 0);
       }
     }
   }
@@ -205,6 +254,9 @@ export class SkyLightReactionSystem {
     }
     if (this.sceneManager.distantMountains && typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
       this.sceneManager.distantMountains.setBurstFlash(null, 0);
+    }
+    if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
+      this.sceneManager.skyDome.setBurstFlash(null, null, 0);
     }
   }
 }

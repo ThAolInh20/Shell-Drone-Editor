@@ -47,6 +47,15 @@ export class WaterSurface {
       uMirrorEnabled: {
         value: 1.0
       },
+      uMoonDirection: {
+        value: new THREE.Vector3(520, 500, -750).normalize()
+      },
+      uMoonColor: {
+        value: new THREE.Color(0xd5e2ff)
+      },
+      uMoonIntensity: {
+        value: 0.60
+      },
       uFlashPos: {
         value: new THREE.Vector3(0, 150, 0)
       },
@@ -62,6 +71,9 @@ export class WaterSurface {
   }
 
   _generateWaveNormalTexture() {
+    if (typeof document === 'undefined') {
+      return new THREE.Texture();
+    }
     const size = 512;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -179,6 +191,9 @@ export class WaterSurface {
       uniform vec2 uResolution;
       uniform vec3 uWaterColor;
       uniform vec3 uFresnelColor;
+      uniform vec3 uMoonDirection;
+      uniform vec3 uMoonColor;
+      uniform float uMoonIntensity;
       uniform float uDistortionStrength;
       uniform float uWaveScale;
       uniform float uWaveSpeed;
@@ -257,6 +272,19 @@ export class WaterSurface {
           finalColor = mix(baseWater, reflectionColor.rgb, clamp(fresnel * 1.45, 0.1, 1.0));
         }
 
+        // Moonlight Specular Highlight & Shimmer Column
+        if (uMoonIntensity > 0.001) {
+          vec3 halfVec = normalize(uMoonDirection + viewDir);
+          float NdotH = max(dot(normal, halfVec), 0.0);
+          float moonSpec = pow(NdotH, 64.0) * 0.55 * uMoonIntensity;
+
+          vec3 reflectDir = reflect(-viewDir, normal);
+          float RdotL = max(dot(reflectDir, uMoonDirection), 0.0);
+          float moonStreak = pow(RdotL, 18.0) * 0.65 * uMoonIntensity;
+
+          finalColor += uMoonColor * (moonSpec + moonStreak);
+        }
+
         // Dynamic Burst Flash & Anisotropic Specular Highlight on Water
         if (uFlashIntensity > 0.001) {
           vec3 lightVec = uFlashPos - vWorldPosition;
@@ -305,6 +333,18 @@ export class WaterSurface {
     this.mesh.layers.set(LAYER_DEFAULT);
   }
 
+  setMoonIntensity(intensity) {
+    if (this.uniforms?.uMoonIntensity) {
+      this.uniforms.uMoonIntensity.value = Math.max(0.0, Number(intensity) || 0.0);
+    }
+  }
+
+  setMoonDirection(dirVector) {
+    if (this.uniforms?.uMoonDirection && dirVector) {
+      this.uniforms.uMoonDirection.value.copy(dirVector).normalize();
+    }
+  }
+
   setBurstFlash(position, color, intensity) {
     if (position) {
       this.uniforms.uFlashPos.value.copy(position);
@@ -316,7 +356,12 @@ export class WaterSurface {
   }
 
   setMirrorReflection(enabled) {
-    this.uniforms.uMirrorEnabled.value = enabled ? 1.0 : 0.0;
+    this.mirrorEnabled = Boolean(enabled);
+    this.uniforms.uMirrorEnabled.value = this.mirrorEnabled ? 1.0 : 0.0;
+  }
+
+  isMirrorEnabled() {
+    return this.mirrorEnabled !== false;
   }
 
   setWaveDistortion(strength) {

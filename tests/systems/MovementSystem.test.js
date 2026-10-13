@@ -67,4 +67,33 @@ describe('MovementSystem', () => {
 
     expect(mockCamera.position.y).toBeLessThan(10);
   });
+
+  it('should route WASD input to cameraManager when mode is not free', () => {
+    const mockCameraManager = {
+      mode: 'boat',
+      handleWasdInput: vi.fn()
+    };
+    const cinematicMovement = new MovementSystem(
+      mockInputSystem,
+      mockCamera,
+      mockCameraManager
+    );
+
+    mockInputSystem.keys.right = true;
+    cinematicMovement.update(0.1);
+
+    expect(mockCameraManager.handleWasdInput).toHaveBeenCalledWith(
+      1,
+      0,
+      false,
+      0.1
+    );
+    expect(mockInputSystem.controls.moveForward).not.toHaveBeenCalled();
+  });
+
+  it('should update speed multiplier and scale movement speed', () => {
+    movementSystem.setSpeedMultiplier(2.0);
+    expect(movementSystem.speedMultiplier).toBe(2.0);
+    expect(movementSystem.speed).toBe(1000.0);
+  });
 });

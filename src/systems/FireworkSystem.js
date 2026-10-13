@@ -106,7 +106,7 @@ export class FireworkSystem {
     this.globalBurstMaterial = new THREE.PointsMaterial({
       vertexColors: true,
       transparent: true,
-      depthTest: false,
+      depthTest: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending
     });
@@ -174,10 +174,32 @@ export class FireworkSystem {
     this.globalBurstPoints.layers.enable(LAYER_REFLECTION);
     this.scene.add(this.globalBurstPoints);
 
-    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
-    globalEventBus.on('graphics:quality', (quality) => {
-      this.setGraphicsQuality(quality);
-    });
+    this.scheduledBursts = [];
+
+    this.burstPositionsAttr = this.globalBurstGeometry.getAttribute('position');
+    this.burstColorsAttr = this.globalBurstGeometry.getAttribute('color');
+    this.burstSizesAttr = this.globalBurstGeometry.getAttribute('aSize');
+    this.burstOpacitiesAttr = this.globalBurstGeometry.getAttribute('aOpacity');
+    this.activeShellIdsSet = new Set();
+
+    this.eventSubscriptions = [];
+    this.setGraphicsQuality(
+      localStorage.getItem('graphics_quality') || 'medium'
+    );
+    this.eventSubscriptions.push(
+      globalEventBus.on(
+        'graphics:quality',
+        (quality) => {
+          this.setGraphicsQuality(quality);
+        }
+      ),
+      globalEventBus.on(
+        'firework:clear',
+        () => {
+          this.clear();
+        }
+      )
+    );
   }
 
   setGraphicsQuality(quality) {
@@ -253,10 +275,54 @@ export class FireworkSystem {
       angleOffset
     );
 
-    const finalColorHex = color ? color : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
+    const isCustomColor = Boolean(color)
+      || Boolean(effectOverrides?.color)
+      || Boolean(shellPreset.hasCustomColor)
+      || Boolean(shellPreset.customColor);
+    shellPreset.hasCustomColor = isCustomColor;
+
+    const finalColorHex = color
+      ? color
+      : (shellPreset.color ? shellPreset.color : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)]);
     const finalColor = new THREE.Color(finalColorHex);
 
-    if (shellPreset.instantBurst) {
+    const hasNoBurst = (Array.isArray(shellPreset.effects) && shellPreset.effects.includes('no-burst'))
+      || Boolean(shellPreset['no-burst']);
+    const isInstant = Boolean(shellPreset.instantBurst) || hasNoBurst;
+
+    const launchDir = velocity && velocity.lengthSq() > 0.001
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    if (isInstant) {
+      this.emitFireworkEvent(
+        'firework:launch',
+        {
+          shellId,
+          shellType: shellPreset.shellType ?? shellPreset.shapeType,
+          shapeType: shellPreset.shapeType,
+          effectType: shellPreset.effectType ?? 'standard',
+          colorHex: finalColor.getHex(),
+          hasCustomColor: isCustomColor,
+          position: {
+            x: position.x,
+            y: position.y,
+            z: position.z
+          },
+          velocity: {
+            x: velocity.x,
+            y: velocity.y,
+            z: velocity.z
+          },
+          direction: {
+            x: launchDir.x,
+            y: launchDir.y,
+            z: launchDir.z
+          },
+          intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
+        }
+      );
+
       const burstPos = new THREE.Vector3(
         position.x,
         targetHeight,
@@ -303,6 +369,8 @@ export class FireworkSystem {
           shellType: shellPreset.shellType ?? shellPreset.shapeType,
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
+          effects: shellPreset.effects,
+          noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
           position: {
             x: burstPos.x,
@@ -333,19 +401,33 @@ export class FireworkSystem {
 
     this.emitDiagnostics();
 
-    this.emitFireworkEvent('firework:launch', {
-      shellId,
-      shellType: shell.shellType,
-      shapeType: shell.shapeType,
-      effectType: shellPreset.effectType ?? 'standard',
-      colorHex: finalColor.getHex(),
-      position: {
-        x: position.x,
-        y: position.y,
-        z: position.z
-      },
-      intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
-    });
+    this.emitFireworkEvent(
+      'firework:launch',
+      {
+        shellId,
+        shellType: shell.shellType,
+        shapeType: shell.shapeType,
+        effectType: shellPreset.effectType ?? 'standard',
+        colorHex: finalColor.getHex(),
+        hasCustomColor: isCustomColor,
+        position: {
+          x: position.x,
+          y: position.y,
+          z: position.z
+        },
+        velocity: {
+          x: velocity.x,
+          y: velocity.y,
+          z: velocity.z
+        },
+        direction: {
+          x: launchDir.x,
+          y: launchDir.y,
+          z: launchDir.z
+        },
+        intensity: 0.2 + ((shellPreset.shellSize ?? 1) / 6) * 0.45
+      }
+    );
   }
 
   getLaunchZone() {
@@ -477,6 +559,10 @@ export class FireworkSystem {
     if (
       type === 'weepingwillowarch'
       || preset.shapeType === 'willow-arch'
+      || type === 'sparklingcometbranches'
+      || type === 'sparkling_comet_branches'
+      || preset.shapeType === 'sparkling-branches'
+      || preset.dynamicsType === 'sparkling-branch-comet'
     ) {
       return true;
     }
@@ -606,6 +692,86 @@ export class FireworkSystem {
 
         this.activeFireworks.push(subShell);
         this.diagnostics.launched += 1;
+      }
+      return;
+    }
+
+    if (
+      shellType === 'sparklingcometbranches'
+      || shellType === 'sparkling_comet_branches'
+      || preset?.shapeType === 'sparkling-branches'
+    ) {
+      const numBranches = preset?.branchCount ?? (5 + Math.floor(Math.random() * 2));
+      const cometsPerBranch = preset?.cometsPerBranch ?? (4 + Math.floor(Math.random() * 2));
+      const baseRotationAngle = Math.random() * Math.PI * 2;
+
+      for (let b = 0; b < numBranches; b++) {
+        const branchAzimuth = baseRotationAngle + (b / numBranches) * Math.PI * 2 + (Math.random() - 0.5) * 0.22;
+        // Phân bổ đa tầng góc bắn 3D: từ ngang (-0.1 rad), xiên trung (0.28 rad) đến vút cao (0.65 rad)
+        const tier = b % 3;
+        const basePitch = tier === 0 ? 0.62 : (tier === 1 ? 0.28 : -0.08);
+        const branchPitch = basePitch + (Math.random() - 0.5) * 0.12;
+
+        const branchDir = new THREE.Vector3(
+          Math.cos(branchAzimuth) * Math.cos(branchPitch),
+          Math.sin(branchPitch),
+          Math.sin(branchAzimuth) * Math.cos(branchPitch)
+        ).normalize();
+
+        const u = Math.abs(branchDir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        const right = new THREE.Vector3().crossVectors(branchDir, u).normalize();
+        const up = new THREE.Vector3().crossVectors(right, branchDir).normalize();
+
+        for (let c = 0; c < cometsPerBranch; c++) {
+          const subColor = color.clone().offsetHSL(
+            (Math.random() - 0.5) * 0.04,
+            (Math.random() - 0.5) * 0.08,
+            (Math.random() - 0.5) * 0.12
+          );
+
+          // Xòe nón rộng hơn cho các tia trong từng hướng
+          const coneAngle = 0.04 + Math.random() * 0.12;
+          const coneAzimuth = Math.random() * Math.PI * 2;
+          // Tốc độ bung tỏa nhanh, dứt khoát và uy lực
+          const speed = 78 + Math.random() * 34;
+
+          const cometDir = branchDir.clone()
+            .addScaledVector(right, Math.cos(coneAzimuth) * Math.sin(coneAngle))
+            .addScaledVector(up, Math.sin(coneAzimuth) * Math.sin(coneAngle))
+            .normalize();
+
+          const velocity = cometDir.multiplyScalar(speed);
+          if (parentVelocity) {
+            velocity.addScaledVector(parentVelocity, 0.18);
+          }
+
+          const targetHeight = burstPosition.y + 950;
+          const subPreset = this.shellPresetFactory.basePreset(0.55);
+          subPreset.shellType = 'sparklingCometBranchChild';
+          subPreset.isBouquetComet = true;
+          subPreset.sparkleAtEnd = true;
+          subPreset.thinTrail = true;
+          subPreset.launchTrail = true;
+          subPreset.noBurst = true;
+          subPreset.strobe = false;
+          subPreset.gravityScale = 0.52;
+          subPreset.starLife = 1800 + Math.random() * 500;
+          subPreset.trailLifeMultiplier = 0.85;
+          subPreset.trailChance = 1.0;
+          subPreset.color = subColor.getHex();
+
+          const subShell = this.createShell(
+            burstPosition.clone(),
+            velocity,
+            targetHeight,
+            subColor,
+            subPreset,
+            shellId + '-branch-' + b + '-comet-' + c
+          );
+
+          this.activeFireworks.push(subShell);
+          this.diagnostics.launched += 1;
+        }
       }
       return;
     }
@@ -820,8 +986,190 @@ export class FireworkSystem {
     }
   }
 
+  getDefaultNestedStages(baseColor = null) {
+    const primaryHex = (baseColor && baseColor.getHexString)
+      ? '#' + baseColor.getHexString()
+      : '#ff4400';
+
+    return [
+      {
+        shapeType: 'sphere',
+        dynamicsType: 'standard',
+        color: primaryHex,
+        delay: 0.0,
+        scale: 1.0,
+        effects: ['strobe']
+      },
+      {
+        shapeType: 'ring',
+        dynamicsType: 'flow',
+        color: '#00e5ff',
+        delay: 0.45,
+        scale: 0.82,
+        effects: []
+      },
+      {
+        shapeType: 'sphere',
+        dynamicsType: 'crossette',
+        color: '#ffd700',
+        delay: 0.90,
+        scale: 0.65,
+        effects: ['crossette']
+      },
+      {
+        shapeType: 'sphere',
+        dynamicsType: 'willow',
+        color: '#ffffff',
+        delay: 1.35,
+        scale: 0.50,
+        effects: ['glitter-strobe']
+      }
+    ];
+  }
+
+  triggerMultiNestedBurst(position, baseColor, preset, shellId) {
+    const rawStages = Array.isArray(preset?.stages) && preset.stages.length > 0
+      ? preset.stages
+      : this.getDefaultNestedStages(baseColor);
+
+    const stages = rawStages.slice(0, 5); // Tối đa 5 tầng
+    const isSatellite = preset?.nestingMode === 'satellite';
+    const baseSize = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1));
+
+    for (let i = 0; i < stages.length; i++) {
+      const stage = stages[i];
+      const delay = Math.max(0, stage.delay ?? (i * 0.45));
+      const stageScale = Math.max(0.2, Math.min(2.0, stage.scale ?? (1.0 - i * 0.14)));
+      const stageColor = stage.color
+        ? (typeof stage.color === 'string' ? new THREE.Color(stage.color) : stage.color.clone())
+        : baseColor.clone();
+
+      let stagePos = position.clone();
+      if (isSatellite && i > 0) {
+        const angle = ((i - 1) / (stages.length - 1)) * Math.PI * 2 + (Math.random() * 0.2);
+        const radius = (16 + Math.random() * 8) * baseSize;
+        const elev = (Math.random() - 0.5) * 10 * baseSize;
+        stagePos.x += Math.cos(angle) * radius;
+        stagePos.y += elev;
+        stagePos.z += Math.sin(angle) * radius;
+      }
+
+      const stageEffects = Array.isArray(stage.effects) ? stage.effects : [];
+      const stagePreset = {
+        ...preset,
+        multiNested: false,
+        stages: null,
+        shapeType: stage.shapeType || 'sphere',
+        dynamicsType: stage.dynamicsType || 'standard',
+        effects: stageEffects,
+        shellSize: baseSize * stageScale,
+        strobe: stageEffects.includes('strobe') || Boolean(stage.strobe),
+        crackle: stageEffects.includes('crackle') || Boolean(stage.crackle),
+        noTrail: stageEffects.includes('no-trail') || Boolean(stage.noTrail),
+        crossette: stageEffects.includes('crossette') || Boolean(stage.crossette)
+      };
+
+      if (delay <= 0.001) {
+        this.createBurst(
+          stagePos,
+          stageColor,
+          stagePreset.shapeType,
+          stagePreset,
+          shellId + '-stage-' + i
+        );
+      } else {
+        this.scheduledBursts.push({
+          timeRemaining: delay,
+          position: stagePos,
+          color: stageColor,
+          shape: stagePreset.shapeType,
+          preset: stagePreset,
+          shellId: shellId + '-stage-' + i
+        });
+      }
+    }
+  }
+
+  triggerAscentSubBurst(shellEntity, burstIndex) {
+    const burstPos = shellEntity.mesh.position.clone();
+    const angle = Math.random() * Math.PI * 2;
+    const offsetDist = 1.0 + Math.random() * 1.2;
+    burstPos.x += Math.cos(angle) * offsetDist;
+    burstPos.z += Math.sin(angle) * offsetDist;
+
+    const subType = shellEntity.preset?.ascentSubShellType || 'random';
+    let subPreset = null;
+    if (subType !== 'random' && this.shellPresetFactory.presetsRegistry.has(subType)) {
+      const gen = this.shellPresetFactory.presetsRegistry.get(subType);
+      subPreset = gen ? gen(0.18) : this.shellPresetFactory.createPresetByKey(subType);
+    } else if (subType === 'crossette') {
+      subPreset = this.shellPresetFactory.crossetteShell(0.18);
+    } else if (subType === 'strobe') {
+      subPreset = this.shellPresetFactory.strobeShell(0.18);
+    } else if (subType === 'crackle') {
+      subPreset = this.shellPresetFactory.crackleShell(0.18);
+    } else if (subType === 'willow') {
+      subPreset = this.shellPresetFactory.weepingWillowCometsShell(0.18);
+    } else if (subType === 'ring') {
+      subPreset = this.shellPresetFactory.ringShell(0.18);
+    } else if (subType === 'star') {
+      subPreset = this.shellPresetFactory.starShell(0.18);
+    } else if (subType === 'flow') {
+      subPreset = this.shellPresetFactory.fishShell(0.18);
+    } else if (subType === 'sparking') {
+      subPreset = this.shellPresetFactory.sparkingShell(0.18);
+    } else {
+      subPreset = this.shellPresetFactory.crysanthemumShell(0.18);
+    }
+
+    if (!subPreset) {
+      subPreset = this.shellPresetFactory.crysanthemumShell(0.18);
+    }
+
+    const parentSize = Math.max(0.6, shellEntity.preset?.shellSize ?? 1);
+    subPreset.shellSize = 0.175 * parentSize;
+    subPreset.isAscentChild = true;
+    subPreset.multiNested = false;
+    subPreset.stages = null;
+    subPreset.ascentBursts = false;
+    subPreset.spreadSize = (subPreset.spreadSize || 300) * 0.45;
+    subPreset.starLife = Math.min(650, (subPreset.starLife || 800) * 0.6);
+
+    const subColorHex = this.shellPresetFactory.randomColor();
+    const subColor = new THREE.Color(subColorHex);
+
+    this.createBurst(
+      burstPos,
+      subColor,
+      subPreset.shapeType || 'sphere',
+      subPreset,
+      shellEntity.shellId + '-ascent-' + burstIndex
+    );
+
+    this.emitFireworkEvent(
+      'firework:burst',
+      {
+        shellId: shellEntity.shellId + '-ascent-' + burstIndex,
+        shellType: subPreset.shellType || 'ascent-sub-shell',
+        shapeType: subPreset.shapeType || 'sphere',
+        effectType: subPreset.effectType || 'standard',
+        colorHex: subColor.getHex(),
+        position: {
+          x: burstPos.x,
+          y: burstPos.y,
+          z: burstPos.z
+        },
+        intensity: 0.15,
+        duration: 0.5
+      }
+    );
+  }
 
   resolveBurstParticleCount(shape, effectType, preset) {
+    if (preset?.isAscentChild) {
+      return Math.round((14 + Math.floor(Math.random() * 6)) * this.graphicsQualityMultiplier);
+    }
+
     if (preset?.shellType === 'ringComet') {
       return 10 + Math.floor(Math.random() * 6); // 10-15 particles for sparse comet ring
     }
@@ -858,12 +1206,19 @@ export class FireworkSystem {
       }
     }
 
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const isCrossetteActive = Boolean(preset?.crossette)
+      || effectsList.includes('crossette')
+      || effectType === 'crossette';
+    const crossetteScale = (isCrossetteActive && effectType !== 'crossette') ? 0.6 : 1.0;
+
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
-    const minParticles = Math.round(MIN_BURST_PARTICLES * this.graphicsQualityMultiplier);
+    const baseMin = isCrossetteActive ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES;
+    const minParticles = Math.round(baseMin * this.graphicsQualityMultiplier);
     const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
 
     return Math.max(minParticles, Math.min(maxParticles, Math.round(rawCount)));
   }
@@ -944,8 +1299,16 @@ export class FireworkSystem {
       shapeType: resolvedShape
     };
 
+    const isGhostEffect = normalizedEffect === 'ghost'
+      || (Array.isArray(preset?.effects) && preset.effects.includes('ghost'))
+      || Boolean(preset?.ghost)
+      || preset?.shellType === 'ghost';
+    const isCCEffect = normalizedEffect === 'crysanthemum-cc'
+      || (Array.isArray(preset?.effects) && preset.effects.includes('crysanthemum-cc'))
+      || preset?.shellType === 'crysanthemumCC';
+
     let color2Blend = null;
-    if (normalizedEffect === 'ghost' || normalizedEffect === 'crysanthemum-cc') {
+    if (isGhostEffect || isCCEffect) {
       let secondColor;
       if (preset && preset.secondColor && preset.secondColor !== preset.color) {
         secondColor = new THREE.Color(preset.secondColor);
@@ -987,7 +1350,7 @@ export class FireworkSystem {
     }
 
     const isJupiterComposite = resolvedShape === 'ring' && preset?.shapeRenderMode === 'jupiter';
-    const hasPistil = Boolean(preset?.pistil);
+    const hasPistil = Boolean(preset?.pistil) && !isGhostEffect && !isCCEffect;
     const isCompositeCore = isJupiterComposite || hasPistil;
 
     let coreRatio = 0;
@@ -1039,6 +1402,58 @@ export class FireworkSystem {
       }
     }
     const nestedBurstDelay = BURST_LIFE * 0.82;
+
+    const isCrossetteShell = Boolean(preset?.crossette)
+      || effectsList.includes('crossette')
+      || normalizedEffect === 'crossette';
+
+    const crossetteSplitMap = new Map();
+    if (isCrossetteShell && burstParticleCount > 0) {
+      const outerIndices = [];
+      for (let k = 0; k < burstParticleCount; k++) {
+        const isCore = isCompositeCore && k < coreCount;
+        if (!isCore) {
+          outerIndices.push(k);
+        }
+      }
+      const pool = outerIndices.length >= 12
+        ? outerIndices
+        : Array.from({ length: burstParticleCount }, (_, idx) => idx);
+      const targetCrossetteCount = Math.min(
+        pool.length,
+        12 + Math.floor(Math.random() * 4) // 12 -> 15 hạt
+      );
+
+      // Fisher-Yates partial shuffle to pick targetCrossetteCount distinct particles
+      for (let k = 0; k < targetCrossetteCount; k++) {
+        const randIdx = k + Math.floor(Math.random() * (pool.length - k));
+        const temp = pool[k];
+        pool[k] = pool[randIdx];
+        pool[randIdx] = temp;
+      }
+
+      const chosenIndices = pool.slice(0, targetCrossetteCount);
+      // Xáo trộn thứ tự để phân bổ so le ngẫu nhiên
+      for (let k = 0; k < chosenIndices.length; k++) {
+        const r = k + Math.floor(Math.random() * (chosenIndices.length - k));
+        const temp = chosenIndices[k];
+        chosenIndices[k] = chosenIndices[r];
+        chosenIndices[r] = temp;
+      }
+
+      // Phân bổ thời gian tách sole từng hạt một từ 0.35 đến 0.65
+      for (let k = 0; k < chosenIndices.length; k++) {
+        const pIdx = chosenIndices[k];
+        const tProgress = chosenIndices.length > 1
+          ? (k / (chosenIndices.length - 1))
+          : 0.5;
+        const staggeredRatio = 0.35 + tProgress * 0.30 + (Math.random() - 0.5) * 0.04;
+        crossetteSplitMap.set(
+          pIdx,
+          THREE.MathUtils.clamp(staggeredRatio, 0.32, 0.68)
+        );
+      }
+    }
 
     const newParticles = [];
 
@@ -1206,8 +1621,12 @@ export class FireworkSystem {
           : null,
         age: 0,
         maxLife: particleMaxLife,
-        effectType: normalizedEffect,
-        crackle: crackleEnabled || normalizedEffect === 'crackle',
+        effectType: isGhostEffect
+          ? 'ghost'
+          : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
+        crackle: !preset?.isNestedChild
+          && !isDyingEmber
+          && (crackleEnabled || normalizedEffect === 'crackle'),
         crackleTriggered: false,
         phase: effectState.phase
           ? effectState.phase[i]
@@ -1223,7 +1642,19 @@ export class FireworkSystem {
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
         isDyingEmber: isDyingEmber,
         isNestedTrigger: isNestedTrigger,
-        effects: effectsList
+        effects: effectsList,
+        hasBurstSmoke: Boolean(
+          (Array.isArray(effectsList) && effectsList.includes('burst-smoke'))
+          || (Array.isArray(preset?.effects) && preset.effects.includes('burst-smoke'))
+          || Boolean(preset?.['burst-smoke'])
+          || Boolean(preset?.burstSmoke)
+        ),
+        burstSmokeLimit: 0.28 + Math.random() * 0.10,
+        isCrossette: isCrossetteShell
+          && !isDyingEmber
+          && crossetteSplitMap.has(i),
+        crossetteSplitTime: particleMaxLife * (crossetteSplitMap.get(i) ?? 0.5),
+        crossetteSplitDone: false
       });
     }
 
@@ -1248,14 +1679,41 @@ export class FireworkSystem {
   handleShellUpdate(item, deltaTime, finished) {
     const shouldBurst = item.update(deltaTime);
 
-    const launchTrail = item.preset?.launchTrail !== false;
+    // Xử lý nổ pháo con trên đường bay lên (Ascent Sub-Bursts Trail)
+    if (
+      item.preset?.cometTrail === 'ascent-bursts'
+      || Boolean(item.preset?.ascentBursts)
+    ) {
+      if (!item._ascentBurstMilestones) {
+        const count = Math.max(2, Math.min(6, item.preset?.ascentBurstCount || 4));
+        item._ascentBurstMilestones = [];
+        const step = (0.80 - 0.22) / Math.max(1, count - 1);
+        for (let b = 0; b < count; b++) {
+          item._ascentBurstMilestones.push(0.22 + b * step);
+        }
+        item._nextAscentBurstIndex = 0;
+      }
+
+      if (item._nextAscentBurstIndex < item._ascentBurstMilestones.length) {
+        const currentProgress = item.getProgress ? item.getProgress() : 0;
+        const targetProgress = item._ascentBurstMilestones[item._nextAscentBurstIndex];
+        if (currentProgress >= targetProgress) {
+          this.triggerAscentSubBurst(item, item._nextAscentBurstIndex);
+          item._nextAscentBurstIndex++;
+        }
+      }
+    }
+
+    const isSmokeLaunch = item.preset?.cometTrail === 'smoke'
+      || (Boolean(item.preset?.flightSmoke) && item.preset?.launchTrail === false);
+    const launchTrail = item.preset?.launchTrail !== false && !isSmokeLaunch;
     const activeTrailChance = item.preset?.trailChance !== undefined
       ? item.preset.trailChance
       : 1.0;
 
     const trailIntensity = item.getTrailIntensity ? item.getTrailIntensity() : 1.0;
 
-    // Nếu gần burst tắt hẳn về 0 (trailIntensity <= 0.01) thì không sinh thêm vệt comet
+    // Neu gan burst tat han ve 0 (trailIntensity <= 0.01) thi khong sinh them vet comet
     if (launchTrail && trailIntensity > 0.01 && Math.random() < activeTrailChance) {
       let customLife = null;
       if (item.preset?.noBurst && item.preset?.starLife) {
@@ -1265,27 +1723,39 @@ export class FireworkSystem {
         customLife = Math.min(baseTrailLife, remainingLife);
       }
       const isFloralChild = item.shellType === 'floral-child';
-      const isBouquetComet = item.preset?.isBouquetComet || (isFloralChild && item.preset?.thickTrail);
-      const isThin = Boolean(item.preset?.thinTrail);
-      const isThick = item.preset?.thickTrail || isBouquetComet;
+      const isDetached = Boolean(item.preset?.detachedTrail)
+        || item.preset?.cometTrail === 'detached'
+        || item.preset?.cometTrail === 'detached-trail'
+        || item.shellType === 'comet_cluster_detached';
+      const isThin = (Boolean(item.preset?.thinTrail) || isDetached) && !isFloralChild;
+      const isBouquetComet = (item.preset?.isBouquetComet || (isFloralChild && item.preset?.thickTrail)) && !isThin;
+      const isThick = (item.preset?.thickTrail || isBouquetComet) && !isThin;
       const ascentCfg = FIREWORK_CONFIG.ASCENT;
 
       let baseLifeMul;
-      if (isBouquetComet) {
-        baseLifeMul = 0.95;
+      if (isDetached) {
+        baseLifeMul = 0.20;
       } else if (isThin) {
-        baseLifeMul = 0.35;
+        baseLifeMul = 0.22;
+      } else if (isBouquetComet) {
+        baseLifeMul = 0.95;
       } else if (isThick) {
         baseLifeMul = 0.7;
       } else {
         baseLifeMul = ascentCfg?.trailLifeMultiplier ?? 0.55;
       }
 
-      const lifeMultiplier = baseLifeMul * (0.6 + 0.4 * trailIntensity);
-      const opacity = Math.min(
-        1.0,
-        (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : (isThin ? 1.25 : 1.0))
-      );
+      const lifeMultiplier = isDetached
+        ? 0.20
+        : (isThin ? 0.22 : baseLifeMul * (0.6 + 0.4 * trailIntensity));
+      const opacity = isDetached
+        ? 0.38 * trailIntensity
+        : (isThin
+          ? 0.65 * trailIntensity
+          : Math.min(
+            1.0,
+            (ascentCfg?.trailOpacity ?? 1.0) * trailIntensity * (isBouquetComet ? 1.4 : 1.0)
+          ));
 
       const progress = item.getProgress ? item.getProgress() : 0.5;
       const ovalFactor = Math.sin(Math.PI * progress);
@@ -1294,10 +1764,10 @@ export class FireworkSystem {
       const midDispBoost = ascentCfg?.midDispersionBoost ?? 2.2;
       
       let dispersion;
-      if (isBouquetComet) {
+      if (isThin || isDetached) {
+        dispersion = 0.0;
+      } else if (isBouquetComet) {
         dispersion = 0.35 + Math.random() * 0.2;
-      } else if (isThin) {
-        dispersion = 0.005;
       } else {
         dispersion = baseDispersion * (
           0.5 + midDispBoost * Math.pow(ovalFactor, 0.9)
@@ -1305,10 +1775,10 @@ export class FireworkSystem {
       }
 
       let subSteps;
-      if (isBouquetComet) {
+      if (isThin || isDetached) {
         subSteps = 2;
-      } else if (isThin) {
-        subSteps = 3;
+      } else if (isBouquetComet) {
+        subSteps = 2;
       } else {
         const baseSubSteps = ascentCfg?.subSteps ?? 2;
         const midBonus = ascentCfg?.midSubStepsBonus ?? 2;
@@ -1319,14 +1789,15 @@ export class FireworkSystem {
 
       const prevPos = item.prevPosition || item.mesh.position;
       const currPos = item.mesh.position;
-      const extraChance = isBouquetComet
-        ? 0.85
-        : (isThin ? 0.0 : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85));
+      const extraChance = (isThin || isDetached)
+        ? 0.0
+        : (isBouquetComet ? 0.85 : (ascentCfg?.midExtraParticleChance ?? 0.75) * Math.pow(ovalFactor, 0.85));
 
-      // Nâng độ sáng màu sắc cho vệt bouquet comet
       const particleColor = isBouquetComet
         ? item.color.clone().offsetHSL(0, 0, 0.15)
-        : item.color;
+        : (isDetached
+          ? item.color.clone().offsetHSL(0, -0.15, -0.12)
+          : (isThin ? item.color.clone().offsetHSL(0, 0.05, 0.05) : item.color));
 
       for (let s = 1; s <= subSteps; s++) {
         const t = s / subSteps;
@@ -1335,6 +1806,18 @@ export class FireworkSystem {
           currPos,
           t
         );
+
+        if (isDetached) {
+          const vel = item.velocity;
+          const velSpeed = vel ? vel.length() : 0;
+          const velDir = velSpeed > 0.1
+            ? vel.clone().normalize()
+            : new THREE.Vector3(0, 1, 0);
+          // Khoang cach phan tach ro ret theo van toc bay thuc te (16 - 28 met)
+          const gapDistance = Math.max(16.0, Math.min(28.0, velSpeed * 0.22));
+          spawnPos.addScaledVector(velDir, -gapDistance);
+        }
+
         if (dispersion > 0.02) {
           spawnPos.x += (Math.random() - 0.5) * dispersion;
           spawnPos.z += (Math.random() - 0.5) * dispersion;
@@ -1350,8 +1833,8 @@ export class FireworkSystem {
           false
         );
 
-        // Ở giai đoạn giữa hoặc với bouquet comet, tạo thêm nhiều hạt phụ xòe ngang tạo độ dày khối bầu dục
-        if (extraChance > 0.2 && Math.random() < extraChance) {
+        // O giai doan giua hoac voi bouquet comet, tao them nhieu hat phu xoe ngang tao do day khoi bau duc
+        if (extraChance > 0.2 && !isDetached && Math.random() < extraChance) {
           const sidePos = spawnPos.clone();
           const angle = Math.random() * Math.PI * 2;
           const lateralR = (0.25 + 0.75 * Math.random()) * dispersion;
@@ -1369,12 +1852,12 @@ export class FireworkSystem {
           );
         }
 
-        // Sinh thêm hạt tia lửa sáng chói dọc theo đường bay của bouquet comet (hoặc giai đoạn giữa của shell mẹ)
+        // Sinh them hat tia lua sang choi doc theo duong bay cua bouquet comet (hoac giai doan giua cua shell me)
         const shouldSpawnSpark = isBouquetComet
           ? Math.random() < 0.35
           : (trailIntensity >= 0.85 && Math.random() < (0.2 + 0.15 * ovalFactor));
 
-        if (shouldSpawnSpark) {
+        if (shouldSpawnSpark && !item.preset?.sparkleAtEnd && !isDetached) {
           const sparkColor = isBouquetComet
             ? item.color.clone().offsetHSL(
               0,
@@ -1395,36 +1878,161 @@ export class FireworkSystem {
             0.6 + Math.random() * 0.5
           );
         }
-      }
 
-      if (this.smokeSystem && Math.random() < (0.35 * trailIntensity)) {
-        const ascVel = item.velocity
-          ? item.velocity.clone().multiplyScalar(-0.15)
-          : new THREE.Vector3(
-              0,
-              -1.2,
-              0
+        if (item.preset?.sparkleAtEnd && progress > 0.65) {
+          const apexT = (progress - 0.65) / 0.35;
+          const sparkleChance = 0.38 + Math.pow(apexT, 1.4) * 0.62;
+          if (Math.random() < sparkleChance) {
+            const sparkColor = new THREE.Color(0xffffff);
+
+            const sparkVel = new THREE.Vector3(
+              (Math.random() - 0.5) * 4.5,
+              -1.5 - Math.random() * 4.0,
+              (Math.random() - 0.5) * 4.5
             );
-        const smokeCfg = FIREWORK_CONFIG.SMOKE;
-        const trailLife = (
-          smokeCfg.trailLifeMin +
-          Math.random() * (smokeCfg.trailLifeMax - smokeCfg.trailLifeMin)
+
+            this.trailSystem.spawnEffectSpark(
+              currPos,
+              sparkColor,
+              true,
+              sparkVel,
+              Math.random() * 1000,
+              0.3 + Math.random() * 0.25
+            );
+          }
+        }
+      }
+    }
+
+    // Vet khoi phong rocket dang tia phan doan lien tuc (Collinear streak smoke trail)
+    if (isSmokeLaunch && trailIntensity > 0.01) {
+      const prevPos = item.prevPosition || item.mesh.position;
+      const currPos = item.mesh.position;
+      const moveVec = new THREE.Vector3().subVectors(currPos, prevPos);
+      const moveDist = moveVec.length();
+
+      const moveDir = moveDist > 0.001
+        ? moveVec.clone().normalize()
+        : (item.velocity && item.velocity.lengthSq() > 0.01
+            ? item.velocity.clone().normalize()
+            : new THREE.Vector3(0, 1, 0));
+
+      const smokeCfg = FIREWORK_CONFIG.SMOKE;
+      const stepDist = smokeCfg?.flightSmokeStepDist || 1.2;
+      const subPoints = Math.max(
+        1,
+        Math.min(8, Math.ceil(moveDist / stepDist))
+      );
+
+      const defaultSmokeColor = new THREE.Color(0xf2f5f8);
+      const smokeColor = item.color
+        ? defaultSmokeColor.clone().lerp(item.color, 0.22)
+        : defaultSmokeColor;
+
+      for (let p = 1; p <= subPoints; p++) {
+        const frac = p / subPoints;
+        const samplePos = new THREE.Vector3().lerpVectors(
+          prevPos,
+          currPos,
+          frac
+        );
+
+        // Hieu ung loe non (conical taper): Diem sat dau phao (frac cao) co do phan tan hep hon
+        const taperJitter = (0.2 + 0.35 * (1.0 - frac)) * ((smokeCfg?.flightSmokeScale || 4.8) * 0.12);
+        samplePos.x += (Math.random() - 0.5) * taperJitter;
+        samplePos.y += (Math.random() - 0.5) * taperJitter;
+        samplePos.z += (Math.random() - 0.5) * taperJitter;
+
+        // Van toc luong phut nguoc chieu bay (retro-thrust exhaust velocity)
+        const exhaustVel = moveDir.clone().multiplyScalar(
+          (-1.6 - Math.random() * 1.2) * (0.8 + 0.4 * (1.0 - frac))
+        ).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 0.8,
+            0.3 + Math.random() * 0.8,
+            (Math.random() - 0.5) * 0.8
+          )
+        );
+
+        const smokeLife = (
+          (smokeCfg?.flightSmokeLifeMin || 3.5) +
+          Math.random() * ((smokeCfg?.flightSmokeLifeMax || 6.5) - (smokeCfg?.flightSmokeLifeMin || 3.5))
         ) * trailIntensity;
 
+        const smokeScale = (smokeCfg?.flightSmokeScale || 4.8) *
+          (0.72 + 0.38 * (1.0 - frac)) *
+          (0.7 + 0.3 * trailIntensity) +
+          Math.random() * 1.2;
+
+        const smokeOptions = {
+          life: smokeLife,
+          scale: smokeScale,
+          growth: smokeCfg?.flightSmokeGrowth || 3.2,
+          drag: smokeCfg?.flightSmokeDrag || 1.8,
+          buoyancy: smokeCfg?.flightSmokeBuoyancy || 0.38,
+          opacity: (smokeCfg?.flightSmokeOpacity || 0.28) *
+            (1.15 - 0.25 * (1.0 - frac)) *
+            trailIntensity,
+          color: smokeColor
+        };
+
+        if (this.smokeSystem) {
+          this.smokeSystem.addSmokePoint(
+            samplePos,
+            exhaustVel,
+            smokeOptions
+          );
+        } else {
+          globalEventBus.emit(
+            'smoke:spawn',
+            {
+              position: samplePos,
+              velocity: exhaustVel,
+              options: smokeOptions
+            }
+          );
+        }
+      }
+    } else if (item.preset?.flightSmoke && trailIntensity > 0.01 && Math.random() < (0.35 * trailIntensity)) {
+      const ascVel = item.velocity
+        ? item.velocity.clone().multiplyScalar(-0.15)
+        : new THREE.Vector3(
+            0,
+            -1.2,
+            0
+          );
+      const smokeCfg = FIREWORK_CONFIG.SMOKE;
+      const trailLife = (
+        smokeCfg.trailLifeMin +
+        Math.random() * (smokeCfg.trailLifeMax - smokeCfg.trailLifeMin)
+      ) * trailIntensity;
+
+      const smokeOptions = {
+        life: trailLife,
+        scale: (
+          smokeCfg.trailBaseScale * 0.8 +
+          Math.random() * 2.5
+        ) * (0.6 + 0.4 * trailIntensity),
+        growth: smokeCfg.trailGrowth,
+        drag: smokeCfg.trailDrag,
+        buoyancy: smokeCfg.trailBuoyancy,
+        opacity: smokeCfg.trailOpacity * trailIntensity,
+        color: item.color ? item.color.clone() : new THREE.Color(0xf2f5f8)
+      };
+
+      if (this.smokeSystem) {
         this.smokeSystem.addSmokePoint(
           item.mesh.position,
           ascVel,
+          smokeOptions
+        );
+      } else {
+        globalEventBus.emit(
+          'smoke:spawn',
           {
-            life: trailLife,
-            scale: (
-              smokeCfg.trailBaseScale * 0.8 +
-              Math.random() * 2.5
-            ) * (0.6 + 0.4 * trailIntensity),
-            growth: smokeCfg.trailGrowth,
-            drag: smokeCfg.trailDrag,
-            buoyancy: smokeCfg.trailBuoyancy,
-            opacity: smokeCfg.trailOpacity * trailIntensity,
-            color: item.color.clone()
+            position: item.mesh.position.clone(),
+            velocity: ascVel,
+            options: smokeOptions
           }
         );
       }
@@ -1457,6 +2065,12 @@ export class FireworkSystem {
       const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
       const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
 
+      const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
+        || Boolean(item.preset?.['no-burst']);
+      const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+        || Boolean(item.preset?.['burst-smoke'])
+        || Boolean(item.preset?.burstSmoke);
+
       this.emitFireworkEvent(
         'firework:burst',
         {
@@ -1464,6 +2078,10 @@ export class FireworkSystem {
           shellType: item.shellType ?? item.shape,
           shapeType: item.shapeType ?? item.shape,
           effectType: item.preset?.effectType ?? item.shape,
+          effects: item.preset?.effects,
+          hasBurstSmoke,
+          hasCustomColor: Boolean(item.preset?.hasCustomColor),
+          noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
           colorHex: item.color.getHex(),
           position: {
             x: burstPosition.x,
@@ -1478,18 +2096,51 @@ export class FireworkSystem {
     }
 
     if (item.preset?.noBurst) {
+      if (item.preset?.sparkleAtEnd) {
+        const sparkCount = 8 + Math.floor(Math.random() * 5);
+        for (let s = 0; s < sparkCount; s++) {
+          const sparkColor = new THREE.Color(0xffffff);
+          const sparkVel = new THREE.Vector3(
+            (Math.random() - 0.5) * 6.5,
+            -1.0 - Math.random() * 4.5,
+            (Math.random() - 0.5) * 6.5
+          );
+          this.trailSystem.spawnEffectSpark(
+            burstPosition,
+            sparkColor,
+            true,
+            sparkVel,
+            Math.random() * 1000,
+            0.45 + Math.random() * 0.35
+          );
+        }
+      }
       item.markBursted?.();
       finished.push(item);
       return;
     }
 
-    this.createBurst(
-      burstPosition,
-      item.color,
-      item.shapeType ?? item.shape,
-      item.preset,
-      item.shellId
-    );
+    if (
+      item.preset?.multiNested
+      || item.preset?.preset === 'multi_nested'
+      || item.preset?.preset === 'multiNested'
+      || (Array.isArray(item.preset?.stages) && item.preset.stages.length > 0)
+    ) {
+      this.triggerMultiNestedBurst(
+        burstPosition,
+        item.color,
+        item.preset,
+        item.shellId
+      );
+    } else {
+      this.createBurst(
+        burstPosition,
+        item.color,
+        item.shapeType ?? item.shape,
+        item.preset,
+        item.shellId
+      );
+    }
     const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
     const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
     item.markBursted?.();
@@ -1497,21 +2148,33 @@ export class FireworkSystem {
     this.diagnostics.bursted += 1;
     this.emitDiagnostics();
 
+    const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
+      || Boolean(item.preset?.['no-burst']);
+    const isGhostShell = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('ghost'))
+      || item.preset?.effectType === 'ghost'
+      || Boolean(item.preset?.ghost);
+    const hasBurstSmoke = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+      || Boolean(item.preset?.['burst-smoke'])
+      || Boolean(item.preset?.burstSmoke);
+
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
       shellType: item.shellType ?? item.shape,
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
+      effects: item.preset?.effects,
+      hasBurstSmoke,
+      hasCustomColor: Boolean(item.preset?.hasCustomColor),
+      noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
       colorHex: item.color.getHex(),
       position: {
         x: burstPosition.x,
         y: burstPosition.y,
         z: burstPosition.z
       },
-      intensity: normalizedEnergy,
-
+      burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
+      intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1
-
     });
   }
 
@@ -1520,13 +2183,14 @@ export class FireworkSystem {
     const nestedBurstsToSpawn = [];
 
     // Strobe frequency adjustment based on active burst count
-    const uniqueShells = new Set(
-      this.burstParticles.map(
-        (p) => p.shellId
-      )
-    );
-    const activeBurstCount = uniqueShells.size;
-    const strobeFreqMultiplier = activeBurstCount > 8 ? 1.25 : 1.0;
+    this.activeShellIdsSet.clear();
+    for (let idx = 0; idx < this.burstParticles.length; idx++) {
+      this.activeShellIdsSet.add(this.burstParticles[idx].shellId);
+      if (this.activeShellIdsSet.size > 8) {
+        break;
+      }
+    }
+    const strobeFreqMultiplier = this.activeShellIdsSet.size > 8 ? 1.25 : 1.0;
 
     for (let idx = 0; idx < this.burstParticles.length; idx++) {
       const p = this.burstParticles[idx];
@@ -1564,7 +2228,12 @@ export class FireworkSystem {
       );
 
       // Micro crackle trigger
-      if (p.crackle && p.age >= p.maxLife * 0.65 && !p.crackleTriggered) {
+      if (
+        p.crackle
+        && !p.isDyingEmber
+        && p.age >= p.maxLife * 0.65
+        && !p.crackleTriggered
+      ) {
         p.crackleTriggered = true;
         if (Math.random() < 0.65) {
           const originPos = p.position.clone();
@@ -1585,6 +2254,87 @@ export class FireworkSystem {
           );
         }
         // Hide the original particle by setting its baseColor to 0
+        p.baseColor.setRGB(0, 0, 0);
+      }
+
+      // Crossette split cross trigger
+      if (
+        p.isCrossette
+        && !p.crossetteSplitDone
+        && p.age >= p.crossetteSplitTime
+        && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
+      ) {
+        p.crossetteSplitDone = true;
+        const v = p.velocity.clone();
+        const speed = v.length();
+        const dir = speed > 0.001 ? v.clone().normalize() : new THREE.Vector3(0, 1, 0);
+        const upVec = Math.abs(dir.y) > 0.85 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+        const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+        const crossUpVec = new THREE.Vector3().crossVectors(dir, rightVec).normalize();
+
+        const branchDirs = [
+          rightVec,
+          rightVec.clone().negate(),
+          crossUpVec,
+          crossUpVec.clone().negate()
+        ];
+
+        const splitOrigin = p.position.clone();
+        const branchColor = p.baseColor.clone();
+        const remainingLife = Math.max(0.65, p.maxLife - p.age);
+
+        const hasNoTrail = Boolean(p.preset?.noTrail)
+          || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
+          || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
+          || p.effectType === 'no-trail';
+
+        const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
+        const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
+
+        for (let b = 0; b < 4; b++) {
+          const branchVel = dir.clone().multiplyScalar(speed * 0.28).addScaledVector(
+            branchDirs[b],
+            9.0 + Math.random() * 2.5
+          );
+          activeParticles.push({
+            position: splitOrigin.clone(),
+            velocity: branchVel,
+            color: branchColor.clone(),
+            baseColor: branchColor.clone(),
+            color2: null,
+            age: 0,
+            maxLife: remainingLife,
+            effectType: branchEffectType,
+            crackle: false,
+            crackleTriggered: false,
+            phase: p.phase + b * 0.5,
+            preset: {
+              ...p.preset,
+              crossette: false,
+              noTrail: hasNoTrail
+            },
+            heightProfile: p.heightProfile,
+            effectState: p.effectState,
+            ghostDot: 0,
+            spiralIndex: 0,
+            isSpiralArm: false,
+            particleIndex: p.particleIndex * 4 + b,
+            totalParticleCount: p.totalParticleCount,
+            shellId: p.shellId,
+            isDyingEmber: false,
+            isNestedTrigger: false,
+            effects: branchEffects,
+            hasBurstSmoke: Boolean(p.hasBurstSmoke),
+            burstSmokeLimit: p.burstSmokeLimit ?? 0.33,
+            isCrossette: false,
+            crossetteSplitDone: true,
+            isChromaticWave: false,
+            radialDistanceRatio: 0,
+            renderSize: p.renderSize,
+            renderOpacity: 1.0
+          });
+        }
+
         p.baseColor.setRGB(0, 0, 0);
       }
 
@@ -1715,11 +2465,29 @@ export class FireworkSystem {
 
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
+      const hasGhost = p.effectType === 'ghost'
+        || (Array.isArray(p.effects) && p.effects.includes('ghost'))
+        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
+        || Boolean(p.preset?.ghost)
+        || p.preset?.shellType === 'ghost';
+      const hasCC = p.effectType === 'crysanthemum-cc'
+        || (Array.isArray(p.effects) && p.effects.includes('crysanthemum-cc'))
+        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('crysanthemum-cc'))
+        || p.preset?.shellType === 'crysanthemumCC';
+      const isGhostInvisible = hasGhost && lifeRatio < 0.40;
       const hasGhostFlare = p.effects?.includes('ghost-flare')
         || p.preset?.effects?.includes('ghost-flare')
         || p.effectType === 'ghost-kamuro';
       const isGhostFlareNoTrail = hasGhostFlare && lifeRatio <= 0.60;
-      const allowTrail = spawnTrail && (!isChrysanthemumSpiral || isSpiralIgnited) && !isGhostFlareNoTrail;
+      const hasNoTrailActive = Boolean(p.preset?.noTrail)
+        || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
+        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
+        || p.effectType === 'no-trail';
+      const allowTrail = spawnTrail
+        && (!isChrysanthemumSpiral || isSpiralIgnited)
+        && !isGhostFlareNoTrail
+        && !isGhostInvisible
+        && !hasNoTrailActive;
 
       if (allowTrail && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const isHalfFlashTentacle = p.effectState?.shapeType === 'half-flash'
@@ -1754,29 +2522,43 @@ export class FireworkSystem {
         }
       }
 
-      if (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
-        const spawnChance = lifeRatio < 0.12
-          ? 1.0
-          : (lifeRatio < 0.52 ? 0.85 : 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48));
+      const isStarBurstSmoke = p.hasBurstSmoke && lifeRatio <= (p.burstSmokeLimit ?? 0.33);
+      const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
+        && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 
-        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 2 : (spawnSmoke ? 3 : 5);
+      if (shouldEmitSmoke) {
+        let spawnChance = 0.5;
+        if (isStarBurstSmoke) {
+          spawnChance = lifeRatio < 0.15 ? 0.95 : 0.65;
+        } else if (lifeRatio < 0.12) {
+          spawnChance = 1.0;
+        } else if (lifeRatio < 0.52) {
+          spawnChance = 0.85;
+        } else {
+          spawnChance = 0.85 * (1.0 - (lifeRatio - 0.52) / 0.48);
+        }
+
+        const moduloCheck = (this.smokeSystem && this.smokeSystem.quality === 'high') ? 3 : 5;
         if (p.particleIndex % moduloCheck === 0 && Math.random() < spawnChance) {
-          const particleColor = p.baseColor.clone();
-          const smokeVel = p.velocity.clone().multiplyScalar(0.12);
-          const densityMult = spawnSmoke ? 1.4 : 1.0;
+          const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
+          const particleColor = p.preset?.hasCustomColor
+            ? p.baseColor.clone()
+            : defaultWhiteSmoke;
+          const smokeVel = p.velocity.clone().multiplyScalar(0.14);
+          const densityMult = isStarBurstSmoke ? 1.1 : (spawnSmoke ? 1.4 : 1.0);
           const smokeCfg = FIREWORK_CONFIG.SMOKE;
           const starSmokeBaseLife = smokeLife || (
             (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
           );
           const smokeOptions = {
             life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
-            scale: (3.2 + Math.random() * 2.2) * densityMult,
-            growth: 3.2,
+            scale: (2.8 + Math.random() * 1.8) * densityMult,
+            growth: 2.8,
             drag: 2.5,
             buoyancy: smokeCfg.trailBuoyancy,
             opacity: (
               smokeOpacity || 0.15
-            ) * parentFade * (lifeRatio < 0.15 ? 1.3 : 1.0) * densityMult,
+            ) * parentFade * (lifeRatio < 0.15 ? 1.25 : 1.0) * densityMult,
             color: particleColor
           };
 
@@ -1800,7 +2582,7 @@ export class FireworkSystem {
       }
 
       // Sparking sparks
-      if (p.effectType === 'sparking' && lifeRatio > 0.4 && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
+      if ((p.effectType === 'sparking' || p.effectType === 'sparkling-branch-comet' || p.effectType === 'sparkle-trail' || p.effectType === 'sparkle-apex') && lifeRatio > 0.4 && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
         const randomOffset = ((p.particleIndex * 7) % 11) * 0.01;
         const transitionStart = 0.46 + randomOffset;
         if (p.particleIndex % 2 === 0 && lifeRatio > transitionStart) {
@@ -1984,38 +2766,52 @@ export class FireworkSystem {
           g = p.baseColor.g * blink;
           b = p.baseColor.b * blink;
         }
-      } else if (p.effectType === 'ghost') {
-        const sweep = (lifeRatio / 0.8) * 3.0 - 1.5;
-        let intensity = 0;
-        if (p.ghostDot < sweep) {
+      } else if (hasGhost) {
+        let intensity = 0.0;
+        if (lifeRatio < 0.40) {
+          // Giai đoạn 1: Khi vừa nổ và bay ra vị trí đích -> Hoàn toàn tối, không màu sắc
+          intensity = 0.0;
+        } else if (lifeRatio < 0.48) {
+          // Giai đoạn 2: Hiện màu rực rỡ khi tới vị trí đích (flash reveal)
+          const t = (lifeRatio - 0.40) / 0.08;
+          intensity = THREE.MathUtils.lerp(0.0, 1.35, Math.sin(t * Math.PI * 0.5));
+        } else if (lifeRatio < 0.85) {
+          // Tồn tại rực rỡ lơ lửng lâu hơn ở vị trí đích
           intensity = 1.0;
-        } else if (p.ghostDot < sweep + 0.4) {
-          intensity = 1.0 - ((p.ghostDot - sweep) / 0.4);
+        } else {
+          // Giai đoạn 3: Mờ dần và biến mất
+          const t = (lifeRatio - 0.85) / 0.15;
+          intensity = Math.max(0.0, 1.0 - t);
         }
         r = p.baseColor.r * intensity;
         g = p.baseColor.g * intensity;
         b = p.baseColor.b * intensity;
-      } else if (p.effectType === 'crysanthemum-cc' && p.color2) {
-        let activeColor = p.baseColor;
-        let fade = 1.0;
-
-        if (lifeRatio < 0.4) {
-          activeColor = p.baseColor;
-          fade = 1.0;
-        } else if (lifeRatio < 0.5) {
-          activeColor = p.baseColor;
-          fade = (0.5 - lifeRatio) / 0.1;
-        } else if (lifeRatio < 0.6) {
-          activeColor = p.color2;
-          fade = (lifeRatio - 0.5) / 0.1;
+      } else if (hasCC && p.color2) {
+        if (lifeRatio < 0.40) {
+          // Lần 1: Bay bung tỏa với Màu thứ 1
+          r = p.baseColor.r;
+          g = p.baseColor.g;
+          b = p.baseColor.b;
+        } else if (lifeRatio < 0.48) {
+          // Điểm tới đích: Phanh hãm và biến đổi màu sắc (Color Change flash reveal)
+          const t = (lifeRatio - 0.40) / 0.08;
+          const flashMultiplier = 1.0 + Math.sin(t * Math.PI) * 0.35;
+          r = THREE.MathUtils.lerp(p.baseColor.r, p.color2.r, t) * flashMultiplier;
+          g = THREE.MathUtils.lerp(p.baseColor.g, p.color2.g, t) * flashMultiplier;
+          b = THREE.MathUtils.lerp(p.baseColor.b, p.color2.b, t) * flashMultiplier;
+        } else if (lifeRatio < 0.85) {
+          // Lần 2: Lơ lửng tồn tại rực rỡ với Màu thứ 2
+          r = p.color2.r;
+          g = p.color2.g;
+          b = p.color2.b;
         } else {
-          activeColor = p.color2;
-          fade = 1.0;
+          // Giai đoạn kết thúc: Mờ dần Màu thứ 2
+          const t = (lifeRatio - 0.85) / 0.15;
+          const fade = Math.max(0.0, 1.0 - t);
+          r = p.color2.r * fade;
+          g = p.color2.g * fade;
+          b = p.color2.b * fade;
         }
-
-        r = activeColor.r * fade;
-        g = activeColor.g * fade;
-        b = activeColor.b * fade;
       } else if (p.effectType === 'crysanthemum-spiral' || p.effectType === 'crysanthemum-spiral-v2') {
         if (!isSpiralIgnited) {
           // Giai đoạn tiền kích hoạt: tia lửa ẩn tối rất mờ (0.02) lướt êm trong không trung
@@ -2061,7 +2857,16 @@ export class FireworkSystem {
 
       // Calculate size
       const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
-      p.renderSize = baseSize;
+      let renderSize = baseSize;
+      if (hasGhost) {
+        if (lifeRatio < 0.40) {
+          renderSize = 0;
+        } else if (lifeRatio < 0.48) {
+          const t = (lifeRatio - 0.40) / 0.08;
+          renderSize = baseSize * THREE.MathUtils.lerp(0.0, 1.0, t);
+        }
+      }
+      p.renderSize = renderSize;
       p.renderOpacity = opacity;
 
       activeParticles.push(p);
@@ -2089,11 +2894,14 @@ export class FireworkSystem {
           shellType: 'crysanthemumNestedChild',
           shapeType: 'sphere',
           effectType: 'standard',
+          dynamicsType: 'standard',
+          effects: [],
           shellSize: 0.55,
           particleSize: 18.0,
           starLife: 350,
           particleCountMultiplier: 0.1,
           isNestedChild: true,
+          crackle: false,
           strobe: burst.strobe
         };
         this.createBurst(
@@ -2127,33 +2935,57 @@ export class FireworkSystem {
       this.burstOpacitiesArray[i] = p.renderOpacity;
     }
 
-    // Hide remaining spots
-    for (let i = count; i < this.allocatedMaxBurstParticles; i++) {
-      this.burstPositionsArray[i * 3] = 0;
-      this.burstPositionsArray[i * 3 + 1] = -99999;
-      this.burstPositionsArray[i * 3 + 2] = 0;
+    if (count > 0) {
+      this.burstPositionsAttr.needsUpdate = true;
+      this.burstColorsAttr.needsUpdate = true;
+      this.burstSizesAttr.needsUpdate = true;
+      this.burstOpacitiesAttr.needsUpdate = true;
 
-      this.burstColorsArray[i * 3] = 0;
-      this.burstColorsArray[i * 3 + 1] = 0;
-      this.burstColorsArray[i * 3 + 2] = 0;
+      if (this.burstPositionsAttr.updateRange) {
+        this.burstPositionsAttr.updateRange.offset = 0;
+        this.burstPositionsAttr.updateRange.count = count * 3;
+      }
+      if (this.burstColorsAttr.updateRange) {
+        this.burstColorsAttr.updateRange.offset = 0;
+        this.burstColorsAttr.updateRange.count = count * 3;
+      }
+      if (this.burstSizesAttr.updateRange) {
+        this.burstSizesAttr.updateRange.offset = 0;
+        this.burstSizesAttr.updateRange.count = count;
+      }
+      if (this.burstOpacitiesAttr.updateRange) {
+        this.burstOpacitiesAttr.updateRange.offset = 0;
+        this.burstOpacitiesAttr.updateRange.count = count;
+      }
 
-      this.burstSizesArray[i] = 0;
-      this.burstOpacitiesArray[i] = 0;
+      this.globalBurstGeometry.setDrawRange(
+        0,
+        count
+      );
+    } else {
+      this.globalBurstGeometry.setDrawRange(
+        0,
+        0
+      );
     }
-
-    // Mark geometry attributes for update
-    this.globalBurstGeometry.getAttribute('position').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('color').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('aSize').needsUpdate = true;
-    this.globalBurstGeometry.getAttribute('aOpacity').needsUpdate = true;
-    this.globalBurstGeometry.setDrawRange(0, count);
   }
 
   clear() {
     this.activeFireworks = [];
     this.instancedShellRenderer.update([]);
     this.burstParticles = [];
+    this.scheduledBursts = [];
     this.updateBurstParticles(0);
+  }
+
+  destroy() {
+    this.clear();
+    for (const unsubscribe of this.eventSubscriptions) {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    }
+    this.eventSubscriptions.length = 0;
   }
 
   burstAll() {
@@ -2172,6 +3004,24 @@ export class FireworkSystem {
       if (this.autoLaunchTimer >= this.autoLaunchInterval) {
         this.launchRandom();
         this.autoLaunchTimer = 0;
+      }
+    }
+
+    // Update scheduled staged bursts
+    if (this.scheduledBursts && this.scheduledBursts.length > 0) {
+      for (let i = this.scheduledBursts.length - 1; i >= 0; i--) {
+        const scheduled = this.scheduledBursts[i];
+        scheduled.timeRemaining -= deltaTime;
+        if (scheduled.timeRemaining <= 0) {
+          this.createBurst(
+            scheduled.position,
+            scheduled.color,
+            scheduled.shape,
+            scheduled.preset,
+            scheduled.shellId
+          );
+          this.scheduledBursts.splice(i, 1);
+        }
       }
     }
 

@@ -54,7 +54,11 @@ export class BurstShapeGenerator {
       case 'smiley':
       case 'galaxy':
       case 'double-helix':
+      case 'sparkling-branches':
         return shellType;
+      case 'sparkling-comet-branches':
+      case 'sparklingCometBranches':
+        return 'sparkling-branches';
       case 'half-flash':
         return 'half-flash';
       case 'split-flash':
@@ -69,6 +73,35 @@ export class BurstShapeGenerator {
   }
 
   static direction(shape, angle, index, count, preset = null) {
+    if (shape === 'sparkling-branches' || shape === 'sparkling-comet-branches') {
+      const numBranches = preset?.branchCount || 5;
+      const cometsPerBranch = preset?.cometsPerBranch || 5;
+      const branchId = Math.floor(index / cometsPerBranch) % numBranches;
+      const branchAngle = (branchId / numBranches) * Math.PI * 2;
+
+      const tier = branchId % 3;
+      const elevation = tier === 0 ? 0.65 : (tier === 1 ? 0.28 : -0.12);
+      const branchDir = new THREE.Vector3(
+        Math.cos(branchAngle),
+        elevation,
+        Math.sin(branchAngle)
+      ).normalize();
+
+      const u = Math.abs(branchDir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(branchDir, u).normalize();
+      const up = new THREE.Vector3().crossVectors(right, branchDir).normalize();
+
+      const coneAngle = 0.05 + (Math.random() * 0.12);
+      const coneAzimuth = Math.random() * Math.PI * 2;
+      const speedSpread = 0.9 + Math.random() * 0.25;
+
+      const localDir = branchDir.clone()
+        .addScaledVector(right, Math.cos(coneAzimuth) * Math.sin(coneAngle))
+        .addScaledVector(up, Math.sin(coneAzimuth) * Math.sin(coneAngle))
+        .normalize();
+
+      return localDir.multiplyScalar(speedSpread * 1.65);
+    }
     if (shape === 'upward-spray') {
       const angleY = Math.random() * Math.PI / 2.2; // Spread upwards and outwards
       const angleXZ = Math.random() * Math.PI * 2;

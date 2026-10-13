@@ -88,4 +88,23 @@ describe('AudioSystem', () => {
     mockEventBus.emit('firework:burst', { position: new THREE.Vector3(0, 0, -10), intensity: 0.25 });
     expect(playSpy).toHaveBeenCalledWith('burst', 0.5, 1.5, 0, expect.any(Object), 2);
   });
+
+  it('should not play burst sound if noBurstSound or no-burst effect is specified', () => {
+    const playSpy = vi.spyOn(audioSystem, 'playSoundBase');
+    audioSystem.sources.burst.buffers = [{}];
+
+    mockEventBus.emit('firework:burst', {
+      position: new THREE.Vector3(0, 0, -10),
+      intensity: 0.5,
+      noBurstSound: true
+    });
+    expect(playSpy).not.toHaveBeenCalled();
+
+    mockEventBus.emit('firework:burst', {
+      position: new THREE.Vector3(0, 0, -10),
+      intensity: 0.5,
+      effects: ['no-burst']
+    });
+    expect(playSpy).not.toHaveBeenCalled();
+  });
 });

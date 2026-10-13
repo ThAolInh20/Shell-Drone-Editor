@@ -28,6 +28,26 @@ export class CameraManager {
     this.isShakingApplied = false;
     this.enabled = true;
 
+    // Camera Perspective Modes: 'free', 'boat', 'birds_eye'
+    this.mode = 'free';
+    this.sceneManager = null;
+    this.stageTarget = new THREE.Vector3(0, 75, 0);
+
+    // River Boat vantage settings
+    this.boatOffset = new THREE.Vector3(0, 0, 0);
+    this.userBoatLocalPos = new THREE.Vector3(0, 0, 0);
+
+    // Birds Eye aerial drifting settings
+    this.birdsEyePos = new THREE.Vector3(0, 220, 380);
+    this.birdsEyeSpeed = 18.0;
+    this.speedMultiplier = 1.0;
+    this.birdsEyeDriftHeading = new THREE.Vector3(1, 0, -0.2).normalize();
+    this.lastWasdDirection = new THREE.Vector2(1, 0);
+
+    // Saved states for switching back to free mode
+    this.savedFreePosition = new THREE.Vector3(0, 6, 420);
+    this.savedFreeRotation = new THREE.Euler(0, 0, 0);
+
     this.eventSubscriptions = [];
     if (this.eventBus && typeof this.eventBus.on === 'function') {
       this.eventSubscriptions.push(
@@ -39,6 +59,188 @@ export class CameraManager {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', this.onResize.bind(this));
+    }
+  }
+
+  get userBoatOffset() {
+    return this.userBoatLocalPos;
+  }
+
+  setMode(mode) {
+    const validModes = ['free', 'boat', 'birds_eye'];
+    const targetMode = validModes.includes(mode) ? mode : 'free';
+
+    if (this.mode === targetMode) {
+      return;
+    }
+
+    if (this.mode === 'free') {
+      this.savedFreePosition.copy(this.instance.position);
+      this.savedFreeRotation.copy(this.instance.rotation);
+    }
+
+    this.mode = targetMode;
+
+    if (this.mode === 'free') {
+      this.instance.position.copy(this.savedFreePosition);
+      this.instance.rotation.copy(this.savedFreeRotation);
+    } else if (this.mode === 'boat') {
+      this.userBoatLocalPos.set(0, 0, 0);
+      if (this.sceneManager) {
+        if (typeof this.sceneManager.setBoatPassengerPos === 'function') {
+          this.sceneManager.setBoatPassengerPos(0, 0);
+        }
+        const boatTransform = typeof this.sceneManager.getBoatTransform === 'function'
+          ? this.sceneManager.getBoatTransform(0, 0)
+          : null;
+        if (boatTransform) {
+          this.instance.position.set(
+            boatTransform.x,
+            boatTransform.y,
+            boatTransform.z
+          );
+        }
+      }
+      this.instance.lookAt(this.stageTarget);
+    } else if (this.mode === 'birds_eye') {
+      this.birdsEyePos.set(0, 220, 380);
+      this.birdsEyeDriftHeading.set(1, 0, -0.15).normalize();
+      this.instance.position.copy(this.birdsEyePos);
+      this.instance.lookAt(this.stageTarget);
+    }
+  }
+
+  resetPosition() {
+    if (this.mode === 'free') {
+      this.instance.position.set(0, 6, 420);
+      this.instance.lookAt(0, 75, 0);
+      this.savedFreePosition.set(0, 6, 420);
+      this.savedFreeRotation.copy(this.instance.rotation);
+    } else if (this.mode === 'boat') {
+      this.userBoatLocalPos.set(0, 0, 0);
+      if (
+        this.sceneManager &&
+        typeof this.sceneManager.resetBoats === 'function'
+      ) {
+        this.sceneManager.resetBoats();
+      }
+      if (this.sceneManager) {
+        if (typeof this.sceneManager.setBoatPassengerPos === 'function') {
+          this.sceneManager.setBoatPassengerPos(0, 0);
+        }
+        const boatTransform = typeof this.sceneManager.getBoatTransform === 'function'
+          ? this.sceneManager.getBoatTransform(0, 0)
+          : null;
+        if (boatTransform) {
+          this.instance.position.set(
+            boatTransform.x,
+            boatTransform.y,
+            boatTransform.z
+          );
+        }
+      }
+      this.instance.lookAt(this.stageTarget);
+    } else if (this.mode === 'birds_eye') {
+      this.birdsEyePos.set(0, 220, 380);
+      this.birdsEyeDriftHeading.set(1, 0, -0.15).normalize();
+      this.instance.position.copy(this.birdsEyePos);
+      this.instance.lookAt(this.stageTarget);
+    }
+
+    if (this.movementSystem) {
+      this.movementSystem.reset();
+    }
+  }
+
+  setSpeedMultiplier(multiplier) {
+    this.speedMultiplier = Math.max(0.1, parseFloat(multiplier) || 1.0);
+  }
+
+  handleWasdInput(
+    dirX,
+    dirZ,
+    shift,
+    deltaTime
+  ) {
+    if (dirX !== 0 || dirZ !== 0) {
+      this.lastWasdDirection.set(dirX, dirZ).normalize();
+    }
+
+    // Compute horizontal forward and right vectors aligned with current camera view
+    const forward = new THREE.Vector3();
+    this.instance.getWorldDirection(forward);
+    forward.y = 0;
+    if (forward.lengthSq() > 0.0001) {
+      forward.normalize();
+    } else {
+      forward.set(0, 0, -1);
+    }
+
+    const right = new THREE.Vector3();
+    right.crossVectors(forward, this.instance.up).normalize();
+
+    // View-relative movement vector
+    const moveDir = new THREE.Vector3();
+    moveDir.addScaledVector(right, dirX);
+    moveDir.addScaledVector(forward, dirZ);
+    if (moveDir.lengthSq() > 0.0001) {
+      moveDir.normalize();
+    }
+
+    if (this.mode === 'birds_eye') {
+      if (dirX !== 0 || dirZ !== 0) {
+        // Steer flight drift heading relative to view angle
+        this.birdsEyeDriftHeading.copy(moveDir);
+
+        // Responsive glide nudge
+        this.birdsEyePos.x += moveDir.x * 65.0 * this.speedMultiplier * deltaTime;
+        this.birdsEyePos.z += moveDir.z * 65.0 * this.speedMultiplier * deltaTime;
+      }
+
+      if (shift && (dirZ !== 0)) {
+        this.birdsEyePos.y += dirZ * 45.0 * this.speedMultiplier * deltaTime;
+        this.birdsEyePos.y = Math.max(110.0, Math.min(380.0, this.birdsEyePos.y));
+      }
+    } else if (this.mode === 'boat') {
+      if (dirX !== 0 || dirZ !== 0) {
+        if (shift) {
+          // Shift + WASD: Drive and steer the boat itself along the river!
+          if (
+            this.sceneManager &&
+            typeof this.sceneManager.steerBoat === 'function'
+          ) {
+            this.sceneManager.steerBoat(
+              moveDir.x * deltaTime,
+              moveDir.z * deltaTime,
+              this.speedMultiplier
+            );
+          }
+        } else {
+          // Normal WASD: Walk across the physical boat deck relative to view direction
+          let localDeltaX = moveDir.x;
+          let localDeltaZ = moveDir.z;
+
+          const currentBoat = this.sceneManager?.getBoatTransform
+            ? this.sceneManager.getBoatTransform(
+                this.userBoatLocalPos.x,
+                this.userBoatLocalPos.z
+              )
+            : null;
+
+          if (currentBoat && currentBoat.dir < 0) {
+            localDeltaX = -moveDir.x;
+            localDeltaZ = -moveDir.z;
+          }
+
+          const walkSpeed = 14.0 * this.speedMultiplier;
+          this.userBoatLocalPos.x += localDeltaX * walkSpeed * deltaTime;
+          this.userBoatLocalPos.z += localDeltaZ * walkSpeed * deltaTime;
+
+          // Keep vantage within physical walkable deck boundaries
+          this.userBoatLocalPos.x = Math.max(-13.0, Math.min(13.5, this.userBoatLocalPos.x));
+          this.userBoatLocalPos.z = Math.max(-2.4, Math.min(2.4, this.userBoatLocalPos.z));
+        }
+      }
     }
   }
 
@@ -85,6 +287,61 @@ export class CameraManager {
   }
 
   update(deltaTime) {
+    // 1. Perspective Modes Handling
+    if (this.mode === 'boat') {
+      if (this.sceneManager) {
+        if (typeof this.sceneManager.setBoatPassengerPos === 'function') {
+          this.sceneManager.setBoatPassengerPos(
+            this.userBoatLocalPos.x,
+            this.userBoatLocalPos.z
+          );
+        }
+
+        const boatTransform = typeof this.sceneManager.getBoatTransform === 'function'
+          ? this.sceneManager.getBoatTransform(
+              this.userBoatLocalPos.x,
+              this.userBoatLocalPos.z
+            )
+          : null;
+
+        if (boatTransform) {
+          this.instance.position.set(
+            boatTransform.x,
+            boatTransform.y,
+            boatTransform.z
+          );
+        }
+      }
+    } else if (this.mode === 'birds_eye') {
+      const driftSpeed = (
+        this.sceneManager?.riverProps?.driftSpeed || 1.0
+      ) * this.birdsEyeSpeed * this.speedMultiplier;
+
+      // Glide in the direction of the last WASD movement
+      this.birdsEyePos.x += this.birdsEyeDriftHeading.x * driftSpeed * deltaTime;
+      this.birdsEyePos.z += this.birdsEyeDriftHeading.z * driftSpeed * deltaTime;
+
+      // Bounce / reverse direction when reaching spatial boundary limits
+      if (this.birdsEyePos.x >= 500) {
+        this.birdsEyePos.x = 500;
+        this.birdsEyeDriftHeading.x = -Math.abs(this.birdsEyeDriftHeading.x);
+      } else if (this.birdsEyePos.x <= -500) {
+        this.birdsEyePos.x = -500;
+        this.birdsEyeDriftHeading.x = Math.abs(this.birdsEyeDriftHeading.x);
+      }
+
+      if (this.birdsEyePos.z >= 550) {
+        this.birdsEyePos.z = 550;
+        this.birdsEyeDriftHeading.z = -Math.abs(this.birdsEyeDriftHeading.z);
+      } else if (this.birdsEyePos.z <= 180) {
+        this.birdsEyePos.z = 180;
+        this.birdsEyeDriftHeading.z = Math.abs(this.birdsEyeDriftHeading.z);
+      }
+
+      this.instance.position.copy(this.birdsEyePos);
+    }
+
+    // 2. Camera Shake / Trauma Dissipation
     if (this.trauma <= 0.001) {
       this.trauma = 0.0;
       this.shakeOffset.set(0, 0, 0);

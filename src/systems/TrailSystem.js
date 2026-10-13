@@ -255,6 +255,7 @@ export class TrailSystem {
 
   update(deltaTime) {
     let activeCount = 0;
+    const nowMs = performance.now();
 
     for (let i = 0; i < this.trailParticles.length; i++) {
       const particle = this.trailParticles[i];
@@ -300,7 +301,7 @@ export class TrailSystem {
 
           // Hiệu ứng strobe lấp lánh bằng ánh sáng trắng cho hạt con
           if (particle.strobe) {
-            const timeMs = performance.now() + (particle.phase ?? 0);
+            const timeMs = nowMs + (particle.phase ?? 0);
             const freq = particle.strobeFreq ?? 120;
             const cycleTime = timeMs % freq;
             const isBlinking = cycleTime < (freq * (particle.dutyRatio ?? 0.35));
@@ -314,7 +315,7 @@ export class TrailSystem {
             }
           } else if (particle.shimmer) {
             // Hiệu ứng lung linh dao động mượt mà bằng sóng hình sin độc lập
-            const timeMs = performance.now() + (particle.phase ?? 0);
+            const timeMs = nowMs + (particle.phase ?? 0);
             const speed = particle.shimmerSpeed ?? 0.05;
             
             const shimmerVal =

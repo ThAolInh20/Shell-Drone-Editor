@@ -160,9 +160,6 @@ export class BaseDirector {
 
   /** Initialise the instanced mesh used for drone rendering. */
   initInstancedMesh() {
-    const gridHelper = new THREE.GridHelper(500, 50, 0x444444, 0x222222);
-    this.sceneManager.instance.add(gridHelper);
-
     const axesHelper = new THREE.AxesHelper(100);
     axesHelper.position.y = 0.1;
     this.sceneManager.instance.add(axesHelper);

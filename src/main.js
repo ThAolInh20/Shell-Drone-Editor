@@ -67,7 +67,8 @@ loadAndApplySettings({
   postProcessing,
   audioSystem,
   smokeSystem,
-  sceneManager
+  sceneManager,
+  fireworkSystem
 });
 
 // Initialize Systems
@@ -78,9 +79,17 @@ const inputSystem = new InputSystem(
   renderer,
   postProcessing,
   audioSystem,
-  sceneManager
+  sceneManager,
+  smokeSystem
 );
-const movementSystem = new MovementSystem(inputSystem, cameraManager.instance);
+cameraManager.sceneManager = sceneManager;
+
+const movementSystem = new MovementSystem(
+  inputSystem,
+  cameraManager.instance,
+  cameraManager
+);
+cameraManager.movementSystem = movementSystem;
 
 const droneSystem = new DroneSystem(sceneManager);
 const droneSequencer = new DroneShowSequencer(droneSystem);
@@ -100,6 +109,8 @@ inputSystem.showDirector = showDirector;
 inputSystem.timelineEditor = timelineEditor;
 if (inputSystem.settingsContext) {
   inputSystem.settingsContext.timelineEditor = timelineEditor;
+  inputSystem.settingsContext.cameraManager = cameraManager;
+  inputSystem.settingsContext.movementSystem = movementSystem;
 }
 
 renderer.instance.domElement.addEventListener('click', () => {
@@ -120,6 +131,13 @@ hotkeyManager.register('global', 'shift+y', () => {
   }
   if (inputSystem.statusOverlay) {
     inputSystem.statusOverlay.style.display = inputSystem.statusOverlay.style.display === 'none' ? '' : 'none';
+  }
+});
+
+hotkeyManager.register('global', 'shift+r', () => {
+  cameraManager.resetPosition();
+  if (movementSystem) {
+    movementSystem.reset();
   }
 });
 

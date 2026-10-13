@@ -9,6 +9,46 @@ export default defineConfig({
       name: 'save-sequence-plugin',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.startsWith('/previews/')) {
+            const rawPath = req.url.split('?')[0];
+            const filePath = path.resolve(__dirname, 'public', rawPath.replace(/^\//, ''));
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              const stat = fs.statSync(filePath);
+              const fileSize = stat.size;
+              const range = req.headers.range;
+
+              const ext = path.extname(filePath).toLowerCase();
+              const contentType = ext === '.mp4' ? 'video/mp4' :
+                ext === '.webm' ? 'video/webm' :
+                ext === '.gif' ? 'image/gif' :
+                'application/octet-stream';
+
+              if (range) {
+                const parts = range.replace(/bytes=/, '').split('-');
+                const start = parseInt(parts[0], 10);
+                const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                const chunksize = (end - start) + 1;
+                const file = fs.createReadStream(filePath, { start, end });
+                res.writeHead(206, {
+                  'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+                  'Accept-Ranges': 'bytes',
+                  'Content-Length': chunksize,
+                  'Content-Type': contentType,
+                });
+                file.pipe(res);
+                return;
+              } else {
+                res.writeHead(200, {
+                  'Content-Length': fileSize,
+                  'Accept-Ranges': 'bytes',
+                  'Content-Type': contentType,
+                });
+                fs.createReadStream(filePath).pipe(res);
+                return;
+              }
+            }
+          }
+
           if (req.url === '/api/list-sequences' && req.method === 'GET') {
             const dirPath = path.resolve(__dirname, 'src/config/sequences');
             try {
@@ -64,7 +104,11 @@ export default defineConfig({
       ignored: [
         '**/src/config/sequences/**',
         '**/dist-electron/**',
-        '**/dist/**'
+        '**/dist/**',
+        '**/public/previews/**',
+        '**/*.mp4',
+        '**/*.webm',
+        '**/*.gif'
       ]
     }
   },

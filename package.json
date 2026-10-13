@@ -1,6 +1,6 @@
 {
   "name": "shell-drone-animation",
-  "version": "2.4.2",
+  "version": "2.4.4",
   "description": "Editor show Drone and Firework",
   "author": "ThaoLinn20",
   "private": true,
@@ -11,6 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "media:mute-previews": "node scripts/mute-preview-videos.js",
+    "assets:slice-moons": "node scripts/slice-moons.js",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder"
   },
@@ -55,6 +57,7 @@
     }
   },
   "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "concurrently": "^9.2.1",
     "electron": "^42.2.0",
     "electron-builder": "^26.8.1",

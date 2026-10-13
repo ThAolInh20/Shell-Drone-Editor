@@ -1,31 +1,14 @@
 import { renderingConfig } from './rendering.js';
 import { AUDIO_CONFIG } from './audio.js';
+import { LAUNCH_ZONE_CONFIG } from './launchZone.js';
 
 export const SETTINGS_DEFINITION = [
-  {
-    key: 'auto_save_enabled',
-    label: 'Auto-Save (Direct Save)',
-    type: 'checkbox',
-    category: 'general',
-    default: true,
-    apply(
-      value,
-      context
-    ) {
-      if (
-        context &&
-        context.timelineEditor &&
-        typeof context.timelineEditor.setAutoSave === 'function'
-      ) {
-        context.timelineEditor.setAutoSave(value);
-      }
-    }
-  },
   {
     key: 'exposure',
     label: 'Exposure',
     type: 'slider',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'camera_post',
     min: 0.2,
     max: 2.5,
     step: 0.02,
@@ -48,7 +31,8 @@ export const SETTINGS_DEFINITION = [
     key: 'bloom_enabled',
     label: 'Bloom Enabled',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'camera_post',
     default: true,
     apply(
       value,
@@ -68,7 +52,8 @@ export const SETTINGS_DEFINITION = [
     key: 'bloom_strength',
     label: 'Bloom Strength',
     type: 'slider',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 1.2,
     step: 0.02,
@@ -91,7 +76,8 @@ export const SETTINGS_DEFINITION = [
     key: 'bloom_radius',
     label: 'Bloom Radius',
     type: 'slider',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 2.0,
     step: 0.05,
@@ -114,7 +100,8 @@ export const SETTINGS_DEFINITION = [
     key: 'bloom_threshold',
     label: 'Bloom Threshold',
     type: 'slider',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'camera_post',
     min: 0.0,
     max: 1.0,
     step: 0.02,
@@ -134,10 +121,11 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
-    key: 'lake_mirror_reflection',
-    label: 'Lake Mirror Reflection (Trail)',
+    key: 'auto_save_enabled',
+    label: 'Auto-Save Direct',
     type: 'checkbox',
-    category: 'graphics',
+    category: 'system',
+    subgroup: 'editor_storage',
     default: true,
     apply(
       value,
@@ -145,10 +133,118 @@ export const SETTINGS_DEFINITION = [
     ) {
       if (
         context &&
-        context.sceneManager &&
-        context.sceneManager.waterSurface
+        context.timelineEditor &&
+        typeof context.timelineEditor.setAutoSave === 'function'
       ) {
-        context.sceneManager.waterSurface.setMirrorReflection(value);
+        context.timelineEditor.setAutoSave(value);
+      }
+    }
+  },
+  {
+    key: 'camera_mode',
+    label: 'Camera Perspective Mode',
+    type: 'select',
+    category: 'entities',
+    subgroup: 'camera_view',
+    options: [
+      'free',
+      'boat',
+      'birds_eye'
+    ],
+    default: 'free',
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.camera.mode = value;
+      if (
+        context &&
+        context.cameraManager
+      ) {
+        context.cameraManager.setMode(value);
+      }
+    }
+  },
+  {
+    key: 'camera_speed',
+    label: 'Camera Movement Speed',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'camera_view',
+    min: 0.2,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.camera.speed = value;
+      if (
+        context &&
+        context.cameraManager
+      ) {
+        context.cameraManager.setSpeedMultiplier(value);
+      }
+      if (
+        context &&
+        context.movementSystem
+      ) {
+        context.movementSystem.setSpeedMultiplier(value);
+      }
+    }
+  },
+  {
+    key: 'lake_mirror_reflection',
+    label: 'Lake Mirror Reflection',
+    type: 'checkbox',
+    category: 'entities',
+    subgroup: 'water',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager
+      ) {
+        if (typeof context.sceneManager.setMirrorReflection === 'function') {
+          context.sceneManager.setMirrorReflection(value);
+        } else if (context.sceneManager.waterSurface) {
+          context.sceneManager.waterSurface.setMirrorReflection(value);
+        }
+      }
+    }
+  },
+  {
+    key: 'lake_reflection_resolution',
+    label: 'Lake Reflection Resolution',
+    type: 'select',
+    category: 'entities',
+    subgroup: 'water',
+    options: [
+      'low',
+      'medium',
+      'high'
+    ],
+    default: 'medium',
+    apply(
+      value,
+      context
+    ) {
+      const scaleMap = {
+        low: 0.25,
+        medium: 0.5,
+        high: 0.75
+      };
+      const scale = scaleMap[value] || 0.5;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setReflectionResolutionScale === 'function'
+      ) {
+        context.sceneManager.setReflectionResolutionScale(scale);
       }
     }
   },
@@ -156,7 +252,8 @@ export const SETTINGS_DEFINITION = [
     key: 'lake_wave_distortion',
     label: 'Lake Wave Distortion',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
+    subgroup: 'water',
     min: 0.0,
     max: 0.08,
     step: 0.005,
@@ -175,6 +272,284 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'river_lanterns_enabled',
+    label: 'Floating Lanterns',
+    type: 'checkbox',
+    category: 'entities',
+    subgroup: 'river_props',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setLanternsEnabled(value);
+      }
+    }
+  },
+  {
+    key: 'river_lanterns_count',
+    label: 'Lanterns Count',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'river_props',
+    min: 10,
+    max: 200,
+    step: 5,
+    default: 60,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setLanternsCount(value);
+      }
+    }
+  },
+  {
+    key: 'river_boats_enabled',
+    label: 'River Boats',
+    type: 'checkbox',
+    category: 'entities',
+    subgroup: 'river_props',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setBoatsEnabled(value);
+      }
+    }
+  },
+  {
+    key: 'river_drift_speed',
+    label: 'River Drift Speed',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'river_props',
+    min: 0.1,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.riverProps
+      ) {
+        context.sceneManager.riverProps.setDriftSpeed(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_day',
+    label: 'Lunar Cycle Day',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 1,
+    max: 30,
+    step: 1,
+    default: 15,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonDay = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonDay === 'function'
+      ) {
+        context.sceneManager.setMoonDay(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_position',
+    label: 'Moon Position',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: -1.0,
+    max: 1.0,
+    step: 0.05,
+    default: 0.8,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonPosition = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonPosition === 'function'
+      ) {
+        context.sceneManager.setMoonPosition(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_altitude',
+    label: 'Moon Altitude',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 150,
+    max: 850,
+    step: 10,
+    default: 500,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonAltitude = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonAltitude === 'function'
+      ) {
+        context.sceneManager.setMoonAltitude(value);
+      }
+    }
+  },
+  {
+    key: 'sky_moon_size',
+    label: 'Moon Size',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 30,
+    max: 250,
+    step: 5,
+    default: 85,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.moonSize = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setMoonSize === 'function'
+      ) {
+        context.sceneManager.setMoonSize(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_coverage',
+    label: 'Night Cloud Coverage',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.0,
+    max: 1.0,
+    step: 0.05,
+    default: 0.55,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudCoverage = value;
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.skyDome
+      ) {
+        context.sceneManager.skyDome.setCloudCoverage(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_density',
+    label: 'Cloud Thickness',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.2,
+    max: 2.5,
+    step: 0.05,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudDensity = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudDensity === 'function'
+      ) {
+        context.sceneManager.setCloudDensity(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_scale',
+    label: 'Cloud Cluster Count',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.4,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudScale = value;
+      if (
+        context &&
+        context.sceneManager &&
+        typeof context.sceneManager.setCloudScale === 'function'
+      ) {
+        context.sceneManager.setCloudScale(value);
+      }
+    }
+  },
+  {
+    key: 'sky_cloud_speed',
+    label: 'Cloud Movement Speed',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'sky',
+    min: 0.0,
+    max: 3.0,
+    step: 0.1,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.sky.cloudSpeed = value;
+      if (
+        context &&
+        context.sceneManager &&
+        context.sceneManager.skyDome
+      ) {
+        context.sceneManager.skyDome.setCloudSpeed(value);
+      }
+    }
+  },
+  {
     key: 'smoke_quality',
     label: 'Smoke Quality',
     type: 'select',
@@ -184,7 +559,8 @@ export const SETTINGS_DEFINITION = [
       'medium',
       'high'
     ],
-    category: 'graphics',
+    category: 'entities',
+    subgroup: 'smoke',
     default: 'medium',
     apply(
       value,
@@ -203,7 +579,8 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_density',
     label: 'Smoke Density',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
+    subgroup: 'smoke',
     min: 0.1,
     max: 2.0,
     step: 0.05,
@@ -225,7 +602,8 @@ export const SETTINGS_DEFINITION = [
     key: 'smoke_wind_speed',
     label: 'Smoke Wind Speed',
     type: 'slider',
-    category: 'graphics',
+    category: 'entities',
+    subgroup: 'smoke',
     min: 0.0,
     max: 2.0,
     step: 0.05,
@@ -244,10 +622,101 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'smoke_wind_direction',
+    label: 'Smoke Wind Direction',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'smoke',
+    min: 0,
+    max: 360,
+    step: 5,
+    default: 25,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.windDirection = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setWindDirection(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_unlimited',
+    label: 'Cinematic Smoke Unlimited',
+    type: 'checkbox',
+    category: 'entities',
+    subgroup: 'smoke',
+    default: false,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.unlimited = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setUnlimited(value);
+      }
+    }
+  },
+  {
+    key: 'smoke_lifespan',
+    label: 'Smoke Lifespan',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'smoke',
+    min: 1.0,
+    max: 5.0,
+    step: 0.25,
+    default: 1.0,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.smoke.lifespanMultiplier = value;
+      if (
+        context &&
+        context.smokeSystem
+      ) {
+        context.smokeSystem.setLifespanMultiplier(value);
+      }
+    }
+  },
+  {
+    key: 'firework_max_burst_y',
+    label: 'Max Burst Altitude',
+    type: 'slider',
+    category: 'entities',
+    subgroup: 'fireworks',
+    min: 100,
+    max: 500,
+    step: 5,
+    default: 300,
+    apply(
+      value,
+      context
+    ) {
+      LAUNCH_ZONE_CONFIG.maxBurstY = value;
+      if (
+        context &&
+        context.fireworkSystem &&
+        context.fireworkSystem.launchZone
+      ) {
+        context.fireworkSystem.launchZone.maxBurstY = value;
+      }
+    }
+  },
+  {
     key: 'volume_master',
     label: 'Master Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_master',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -264,6 +733,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Lift Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -285,9 +755,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_burst',
-    label: 'Burst Volume (Large)',
+    label: 'Burst Volume Large',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -309,9 +780,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_burst_small',
-    label: 'Burst Volume (Small)',
+    label: 'Burst Volume Small',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_burst',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -336,6 +808,7 @@ export const SETTINGS_DEFINITION = [
     label: 'Crackle Volume',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_effects',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -357,9 +830,10 @@ export const SETTINGS_DEFINITION = [
   },
   {
     key: 'volume_crackle_small',
-    label: 'Crackle Volume (Small)',
+    label: 'Crackle Volume Small',
     type: 'slider',
     category: 'audio',
+    subgroup: 'audio_effects',
     min: 0.0,
     max: 1.5,
     step: 0.05,
@@ -387,9 +861,9 @@ export function loadAndApplySettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    const savedStr = localStorage.getItem(
-      `settings_${setting.key}`
-    );
+    const savedStr = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(`settings_${setting.key}`)
+      : null;
     let val = setting.default;
     if (
       savedStr !== null
@@ -426,10 +900,12 @@ export function applySetting(
   if (
     setting
   ) {
-    localStorage.setItem(
-      `settings_${key}`,
-      value.toString()
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(
+        `settings_${key}`,
+        value.toString()
+      );
+    }
     setting.apply(
       value,
       context
@@ -443,9 +919,11 @@ export function resetSettings(
   for (
     const setting of SETTINGS_DEFINITION
   ) {
-    localStorage.removeItem(
-      `settings_${setting.key}`
-    );
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(
+        `settings_${setting.key}`
+      );
+    }
     setting.apply(
       setting.default,
       context

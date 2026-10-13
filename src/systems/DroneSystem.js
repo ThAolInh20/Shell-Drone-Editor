@@ -28,12 +28,6 @@ export class DroneSystem {
         if (DRONE_ZONE_CONFIG.showHelpers) {
             const { width, height, depth } = DRONE_ZONE_CONFIG;
             
-            // Ground grid for the zone
-            const gridHelper = new THREE.GridHelper(width, 20, 0x00ffff, 0x00ffff);
-            gridHelper.material.opacity = 0.2;
-            gridHelper.material.transparent = true;
-            this.performanceZone.add(gridHelper);
-            
             // Bounding box for the zone
             const boxGeo = new THREE.BoxGeometry(width, height, depth);
             // Translate the box so its bottom rests on the zone's local origin (y=0)

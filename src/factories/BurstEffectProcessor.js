@@ -31,7 +31,12 @@ export class BurstEffectProcessor {
     'ghost-kamuro',
     'double-helix',
     'no-trail',
-    'notrail'
+    'notrail',
+    'no-burst',
+    'crossette',
+    'sparkle-trail',
+    'sparkle-apex',
+    'sparkling-branch-comet'
   ]);
 
   static effectsRegistry = new Map();
@@ -84,6 +89,7 @@ export class BurstEffectProcessor {
     const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
+    const crossetteEnabled = Boolean(preset?.crossette) || effectsList.includes('crossette') || normalizedEffect === 'crossette';
     const noTrail = Boolean(preset?.noTrail)
       || effectsList.includes('no-trail')
       || effectsList.includes('notrail')
@@ -119,6 +125,7 @@ export class BurstEffectProcessor {
       crackle: crackleEnabled,
       ghost: ghostEnabled,
       flow: flowEnabled,
+      crossette: crossetteEnabled,
       noTrail,
       spin,
       phase,
@@ -413,15 +420,81 @@ BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
 });
 
 BurstEffectProcessor.registerEffect('crysanthemum-cc', {
-  updateVelocity() {
-    return { gravityScale: 0.3 };
+  materialOpacity(age, maxLife, baseOpacity) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.85) {
+      return baseOpacity;
+    } else {
+      const t = (lifeRatio - 0.85) / 0.15;
+      return Math.max(0, baseOpacity * (1.0 - t));
+    }
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.38) {
+      // Giai đoạn 1: Bung tỏa nhanh với Màu thứ 1
+      velocity.multiplyScalar(0.994);
+      return {
+        gravityScale: 0.02,
+        spawnTrail: false
+      };
+    } else if (lifeRatio < 0.48) {
+      // Điểm chuyển giao: Phanh hãm đột ngột và chuyển biến sang Màu thứ 2
+      velocity.multiplyScalar(Math.pow(0.02, deltaTime * 14));
+      return {
+        gravityScale: 0.01,
+        spawnTrail: false
+      };
+    } else {
+      // Giai đoạn 2: Lơ lửng tồn tại rực rỡ với Màu thứ 2
+      velocity.multiplyScalar(0.92);
+      return {
+        gravityScale: 0.03,
+        spawnTrail: false
+      };
+    }
   }
 });
 
 BurstEffectProcessor.registerEffect('ghost', {
-  updateVelocity(velocity) {
-    velocity.multiplyScalar(0.996);
-    return { gravityScale: 0.15 };
+  materialOpacity(age, maxLife, baseOpacity) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.40) {
+      return 0.0;
+    } else if (lifeRatio < 0.48) {
+      const t = (lifeRatio - 0.40) / 0.08;
+      return baseOpacity * THREE.MathUtils.lerp(0.0, 1.0, t);
+    } else if (lifeRatio < 0.85) {
+      return baseOpacity;
+    } else {
+      const t = (lifeRatio - 0.85) / 0.15;
+      return Math.max(0, baseOpacity * (1.0 - t));
+    }
+  },
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    if (lifeRatio < 0.38) {
+      // Rapid ballistic expansion to target radius
+      velocity.multiplyScalar(0.994);
+      return {
+        gravityScale: 0.02,
+        spawnTrail: false
+      };
+    } else if (lifeRatio < 0.48) {
+      // Hãm phanh triệt để: Vận tốc giảm đột ngột về gần 0 ngay khi các hạt tới đích
+      velocity.multiplyScalar(Math.pow(0.02, deltaTime * 14));
+      return {
+        gravityScale: 0.01,
+        spawnTrail: false
+      };
+    } else {
+      // Lơ lửng gần như đứng yên tại vị trí đích, trôi cực chậm và êm dịu
+      velocity.multiplyScalar(0.92);
+      return {
+        gravityScale: 0.03,
+        spawnTrail: false
+      };
+    }
   }
 });
 
@@ -527,6 +600,15 @@ BurstEffectProcessor.registerEffect('notrail', {
   }
 });
 
+BurstEffectProcessor.registerEffect('no-burst', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.25,
+      spawnTrail: true
+    };
+  }
+});
+
 BurstEffectProcessor.registerEffect('ghost-kamuro', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
     velocity.x *= 0.988;
@@ -563,6 +645,56 @@ BurstEffectProcessor.registerEffect('double-helix', {
       spawnTrail: true,
       trailLife: 0.60,
       trailIntensity: 0.85
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crossette', {
+  updateVelocity() {
+    return {
+      gravityScale: 0.26,
+      spawnTrail: true,
+      trailLife: 0.65,
+      trailIntensity: 0.95
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkle-trail', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkle-apex', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('sparkling-branch-comet', {
+  updateVelocity(velocity) {
+    velocity.multiplyScalar(0.996);
+    return {
+      gravityScale: 0.28,
+      spawnTrail: true,
+      trailLife: 0.22,
+      trailIntensity: 0.18,
+      spawnSmoke: false
     };
   }
 });

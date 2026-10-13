@@ -1,18 +1,52 @@
 import * as THREE from 'three';
 
 export class MovementSystem {
-  constructor(inputSystem, camera) {
+  constructor(
+    inputSystem,
+    camera,
+    cameraManager = null
+  ) {
     this.input = inputSystem;
     this.camera = camera;
+    this.cameraManager = cameraManager;
 
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
 
+    this.baseSpeed = 500.0;
+    this.speedMultiplier = 1.0;
     this.speed = 500.0; // Movement acceleration
     this.friction = 10.0;  // Decrease velocity naturally
   }
 
+  setSpeedMultiplier(multiplier) {
+    this.speedMultiplier = Math.max(0.1, parseFloat(multiplier) || 1.0);
+    this.speed = this.baseSpeed * this.speedMultiplier;
+  }
+
+  reset() {
+    this.velocity.set(0, 0, 0);
+    this.direction.set(0, 0, 0);
+  }
+
   update(deltaTime) {
+    // If in cinematic mode (boat or birds_eye), route WASD directly to camera manager
+    if (this.cameraManager && this.cameraManager.mode !== 'free') {
+      const dirX = Number(this.input.keys.right) - Number(this.input.keys.left);
+      const dirZ = Number(this.input.keys.forward) - Number(this.input.keys.backward);
+      const shift = Boolean(this.input.keys.shift);
+
+      if (dirX !== 0 || dirZ !== 0) {
+        this.cameraManager.handleWasdInput(
+          dirX,
+          dirZ,
+          shift,
+          deltaTime
+        );
+      }
+      return;
+    }
+
     if (!this.input.controls.isLocked) return;
 
     // Apply friction to slow down over time

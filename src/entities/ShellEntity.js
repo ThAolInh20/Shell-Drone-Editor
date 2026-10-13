@@ -49,8 +49,8 @@ export class ShellEntity {
 
     // Bán kính xoắn ngẫu nhiên cho từng quả, lấy maxWobbleAmp làm mốc max
     let maxAmp = ascentCfg?.maxWobbleAmp ?? 1.15;
-    if (this.shellType === 'floral-child') {
-      maxAmp *= 0.3;
+    if (this.shellType === 'floral-child' || this.preset?.thinTrail) {
+      maxAmp *= 0.12;
     }
     this.wobbleMaxAmp = maxAmp * (0.35 + Math.random() * 0.65);
 
@@ -133,9 +133,23 @@ export class ShellEntity {
 
     this.mesh = new THREE.Group();
 
-    const coreGeometry = new THREE.SphereGeometry(SHELL_CORE_SIZE, 8, 8);
+    const isDetached = Boolean(preset?.detachedTrail)
+      || preset?.cometTrail === 'detached'
+      || preset?.cometTrail === 'detached-trail'
+      || this.shellType === 'comet_cluster_detached';
+    const isThin = Boolean(preset?.thinTrail) && !isDetached;
+    const coreSize = isDetached
+      ? SHELL_CORE_SIZE * 1.85
+      : (isThin ? SHELL_CORE_SIZE * 1.35 : SHELL_CORE_SIZE);
+    const coreGeometry = new THREE.SphereGeometry(coreSize, 8, 8);
+    const coreColor = isDetached
+      ? color.clone().offsetHSL(0, 0.05, 0.30).multiplyScalar(8.5)
+      : (isThin
+        ? color.clone().offsetHSL(0, 0.05, 0.22).multiplyScalar(3.5)
+        : color);
+
     const coreMaterial = new THREE.MeshBasicMaterial({
-      color,
+      color: coreColor,
       transparent: true,
       opacity: 1,
       depthWrite: false,
@@ -145,13 +159,34 @@ export class ShellEntity {
     this.coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
     this.mesh.add(this.coreMesh);
 
-    const haloPositions = new Float32Array(SHELL_HALO_COUNT * 3);
-    const haloColors = new Float32Array(SHELL_HALO_COUNT * 3);
+    // Lõi trung tâm siêu sáng (hot white core) làm nổi bật rực rỡ đầu hạt
+    if (isThin || isDetached) {
+      const innerSizeRatio = isDetached ? 0.70 : 0.55;
+      const innerGeometry = new THREE.SphereGeometry(coreSize * innerSizeRatio, 8, 8);
+      const innerMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(0xffffff).multiplyScalar(isDetached ? 10.0 : 4.0),
+        transparent: true,
+        opacity: 1.0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false
+      });
+      this.innerCoreMesh = new THREE.Mesh(innerGeometry, innerMaterial);
+      this.mesh.add(this.innerCoreMesh);
+    }
 
-    for (let i = 0; i < SHELL_HALO_COUNT; i++) {
+    const haloCount = isDetached ? 28 : (isThin ? 18 : SHELL_HALO_COUNT);
+    const haloPositions = new Float32Array(haloCount * 3);
+    const haloColors = new Float32Array(haloCount * 3);
+
+    for (let i = 0; i < haloCount; i++) {
       const angle = Math.random() * Math.PI * 2;
       const elevation = (Math.random() - 0.5) * Math.PI;
-      const radius = SHELL_HALO_RADIUS * (0.35 + Math.random() * 0.65);
+      const radius = SHELL_HALO_RADIUS * (
+        isDetached
+          ? (0.15 + Math.random() * 0.35)
+          : (isThin ? (0.28 + Math.random() * 0.55) : (0.35 + Math.random() * 0.65))
+      );
       const offset = new THREE.Vector3(
         Math.cos(angle) * Math.cos(elevation) * radius,
         Math.sin(elevation) * radius * 0.75,
@@ -168,21 +203,25 @@ export class ShellEntity {
         (Math.random() - 0.5) * 0.14
       );
 
-      haloColors[i * 3] = haloColor.r;
-      haloColors[i * 3 + 1] = haloColor.g;
-      haloColors[i * 3 + 2] = haloColor.b;
+      const colorMultiplier = isDetached ? 7.0 : (isThin ? 3.2 : 1.0);
+      haloColors[i * 3] = haloColor.r * colorMultiplier;
+      haloColors[i * 3 + 1] = haloColor.g * colorMultiplier;
+      haloColors[i * 3 + 2] = haloColor.b * colorMultiplier;
     }
 
     const haloGeometry = new THREE.BufferGeometry();
     haloGeometry.setAttribute('position', new THREE.BufferAttribute(haloPositions, 3));
     haloGeometry.setAttribute('color', new THREE.BufferAttribute(haloColors, 3));
 
+    const haloSize = isDetached
+      ? SHELL_HALO_SIZE * 2.6
+      : (isThin ? SHELL_HALO_SIZE * 1.6 : SHELL_HALO_SIZE);
     const haloMaterial = new THREE.PointsMaterial({
-      size: SHELL_HALO_SIZE,
+      size: haloSize,
       color: 0xffffff,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: (isThin || isDetached) ? 1.0 : 0.8,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       toneMapped: false
@@ -330,31 +369,46 @@ export class ShellEntity {
       this.mesh.position.copy(this.basePosition);
     }
 
-    if (this.isStrobe) {
+    const isSparkleEndActive = Boolean(this.preset?.sparkleAtEnd && progress > 0.60);
+    const shouldStrobe = (this.isStrobe && !this.preset?.sparkleAtEnd) || isSparkleEndActive;
+
+    if (shouldStrobe) {
       // High-frequency glittering strobe sparkle on the leading comet star head
       const strobeCycle = Math.sin(this.age * this.strobeSpeed + this.strobePhase);
       const isFlash = strobeCycle > 0.35;
-      const flashScale = isFlash ? (1.75 + Math.random() * 0.7) : 0.45;
+      const flashScale = isFlash ? (1.8 + Math.random() * 0.8) : 0.35;
 
       this.mesh.scale.setScalar(flashScale);
 
       if (this.coreMesh.material) {
-        this.coreMesh.material.opacity = isFlash ? 1.0 : 0.15;
+        if (isSparkleEndActive && isFlash) {
+          this.coreMesh.material.color.setHex(0xffffff);
+        }
+        this.coreMesh.material.opacity = isFlash ? 1.0 : 0.2;
+      }
+
+      if (this.innerCoreMesh?.material) {
+        this.innerCoreMesh.material.opacity = isFlash ? 1.0 : 0.2;
       }
 
       if (this.haloPoints.material) {
-        this.haloPoints.material.opacity = isFlash ? 1.0 : 0.08;
-        this.haloPoints.material.size = SHELL_HALO_SIZE * (isFlash ? 2.5 : 0.4);
+        this.haloPoints.material.opacity = isFlash ? 1.0 : 0.1;
+        this.haloPoints.material.size = SHELL_HALO_SIZE * (isFlash ? 2.8 : 0.4);
       }
     } else {
       this.mesh.scale.setScalar(1 + Math.sin(this.age * 12) * 0.05);
 
       if (this.coreMesh.material) {
-        this.coreMesh.material.opacity = 0.9 + Math.sin(this.age * 18) * 0.08;
+        this.coreMesh.material.opacity = 1.0;
+      }
+
+      if (this.innerCoreMesh?.material) {
+        this.innerCoreMesh.material.opacity = 1.0;
       }
 
       if (this.haloPoints.material) {
-        this.haloPoints.material.opacity = 0.55 + Math.sin(this.age * 9) * 0.12;
+        this.haloPoints.material.opacity = 0.95;
+        this.haloPoints.material.size = SHELL_HALO_SIZE * 1.5;
       }
     }
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { renderingConfig } from '../config/rendering.js';
 
 export class SkyDome {
   constructor(options = {}) {
@@ -10,11 +11,28 @@ export class SkyDome {
     this.topColor = new THREE.Color(options.topColor || 0x02020a);
     this.bottomColor = new THREE.Color(options.bottomColor || 0x091226);
     this.starCount = options.starCount || 2200;
+    this.cloudCoverage = options.cloudCoverage ?? renderingConfig.sky?.cloudCoverage ?? 0.55;
+    this.cloudSpeed = options.cloudSpeed ?? renderingConfig.sky?.cloudSpeed ?? 1.0;
+    this.cloudDensity = options.cloudDensity ?? renderingConfig.sky?.cloudDensity ?? 1.0;
+    this.cloudScale = options.cloudScale ?? renderingConfig.sky?.cloudScale ?? 1.0;
+    this.moonDay = options.moonDay ?? renderingConfig.sky?.moonDay ?? 15;
+    this.moonPhase = options.moonPhase ?? renderingConfig.sky?.moonPhase ?? 'full';
+    this.moonPosition = options.moonPosition ?? renderingConfig.sky?.moonPosition ?? 'right';
+    this.moonAltitude = options.moonAltitude ?? renderingConfig.sky?.moonAltitude ?? 'mid';
+    this.moonSize = options.moonSize ?? renderingConfig.sky?.moonSize ?? 85;
 
     this.time = 0;
 
     this._createDome();
     this._createStarfield();
+    this._createMoon();
+    this.setMoonSize(this.moonSize);
+    if (options.moonDay !== undefined) {
+      this.setMoonDay(this.moonDay);
+    } else {
+      this.setMoonPhase(this.moonPhase);
+    }
+    this._updateMoonTransform();
 
     this.setLayer(LAYER_REFLECTION);
   }
@@ -35,14 +53,110 @@ export class SkyDome {
       uniform vec3 uBottomColor;
       uniform float uOffset;
       uniform float uExponent;
+      uniform float uTime;
+      uniform float uCloudCoverage;
+      uniform float uCloudSpeed;
+      uniform float uCloudDensity;
+      uniform float uCloudScale;
+      uniform vec3 uFlashPos;
+      uniform vec3 uFlashColor;
+      uniform float uFlashIntensity;
 
       varying vec3 vWorldPosition;
+
+      float hash(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+
+      vec2 hash2(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        mat2 rot = mat2(0.87758, 0.47942, -0.47942, 0.87758);
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p = rot * p * 2.02 + vec2(1.7, 3.2);
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      float worley(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        float minDist = 1.0;
+        for (int y = -1; y <= 1; y++) {
+          for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            vec2 pt = hash2(i + neighbor);
+            vec2 diff = neighbor + pt - f;
+            minDist = min(minDist, length(diff));
+          }
+        }
+        return minDist;
+      }
 
       void main() {
         float h = normalize(vWorldPosition + vec3(0.0, uOffset, 0.0)).y;
         float factor = max(pow(max(h, 0.0), uExponent), 0.0);
-        vec3 color = mix(uBottomColor, uTopColor, factor);
-        gl_FragColor = vec4(color, 1.0);
+        vec3 skyColor = mix(uBottomColor, uTopColor, factor);
+
+        vec3 dir = normalize(vWorldPosition);
+        if (dir.y > 0.01 && uCloudCoverage > 0.001) {
+          float t = uTime * uCloudSpeed * 0.045;
+          vec2 wind1 = vec2(t * 1.0, t * 0.28);
+          vec2 wind2 = vec2(-t * 0.42, t * 0.65);
+
+          // Layer 1: Cumulus / billowy clusters with Worley carving + Domain Warping
+          vec2 uvLow = (dir.xz / (dir.y + 0.16)) * (1.8 * uCloudScale);
+          vec2 curlOffset = vec2(
+            noise(uvLow * 0.8 + wind1 * 0.5),
+            noise(uvLow * 0.8 + wind1 * 0.5 + vec2(4.3, 1.7))
+          ) * 0.45;
+
+          float wNoise = 1.0 - worley(uvLow * 1.2 + wind1 + curlOffset);
+          float fNoise = fbm(uvLow * 0.95 + wind1 + curlOffset);
+          float cumulusShape = mix(fNoise, wNoise * fNoise * 1.4, 0.45);
+          float cumulusDensity = smoothstep(0.48 - uCloudCoverage * 0.25, 0.78, cumulusShape) * uCloudDensity;
+
+          // Layer 2: Cirrus / wispy high-altitude streaks
+          vec2 uvHigh = (dir.xz / (dir.y + 0.08)) * (2.8 * uCloudScale);
+          float cirrusNoise = fbm(vec2(uvHigh.x * 2.2, uvHigh.y * 0.55) + wind2);
+          float cirrusDensity = smoothstep(0.52 - uCloudCoverage * 0.20, 0.85, cirrusNoise) * (0.35 * uCloudDensity);
+
+          float horizonFade = smoothstep(0.01, 0.22, dir.y);
+          float totalDensity = clamp((cumulusDensity + cirrusDensity) * horizonFade * uCloudCoverage, 0.0, 1.0);
+
+          vec3 cloudIllumination = vec3(0.0);
+          if (uFlashIntensity > 0.001) {
+            float distToFlash = length(vWorldPosition - uFlashPos);
+            float flashAtten = clamp(1.0 - distToFlash / 1800.0, 0.0, 1.0);
+            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * (2.8 * uCloudDensity));
+          }
+
+          vec3 baseCloudColor = mix(uBottomColor * 1.35, vec3(0.08, 0.11, 0.20), 0.65);
+          vec3 finalCloudColor = baseCloudColor + cloudIllumination;
+
+          skyColor = mix(skyColor, finalCloudColor, totalDensity * 0.82);
+        }
+
+        gl_FragColor = vec4(skyColor, 1.0);
       }
     `;
 
@@ -58,6 +172,30 @@ export class SkyDome {
       },
       uExponent: {
         value: 0.65
+      },
+      uTime: {
+        value: 0.0
+      },
+      uCloudCoverage: {
+        value: this.cloudCoverage
+      },
+      uCloudSpeed: {
+        value: this.cloudSpeed
+      },
+      uCloudDensity: {
+        value: this.cloudDensity
+      },
+      uCloudScale: {
+        value: this.cloudScale
+      },
+      uFlashPos: {
+        value: new THREE.Vector3(0, 120, 0)
+      },
+      uFlashColor: {
+        value: new THREE.Color(0x000000)
+      },
+      uFlashIntensity: {
+        value: 0.0
       }
     };
 
@@ -184,10 +322,356 @@ export class SkyDome {
     this.group.add(this.stars);
   }
 
+  _createMoon() {
+    this.moonGroup = new THREE.Group();
+    this.moonGroup.name = 'MoonGroup';
+    // Positioned in upper right background sky
+    this.moonGroup.position.set(520, 500, -750);
+
+    const quadSize = 85;
+    const moonGeo = new THREE.PlaneGeometry(
+      quadSize,
+      quadSize
+    );
+
+    this.moonTextureCache = new Map();
+    this.textureLoader = new THREE.TextureLoader();
+
+    const initialDay = 15;
+    const initialTexture = this._loadMoonTexture(initialDay);
+
+    const moonVertexShader = `
+      uniform float uMoonScale;
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        // Spherical billboard facing camera to eliminate perspective distortion
+        vec4 mvPosition = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+        mvPosition.xy += position.xy * uMoonScale;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `;
+
+    const moonFragmentShader = `
+      uniform float uMoonAngle;
+      uniform float uMoonPhaseValue;
+      uniform vec3 uMoonColor;
+      uniform sampler2D uMoonMap;
+      varying vec2 vUv;
+
+      void main() {
+        vec2 center = vec2(0.5);
+        float dist = length(vUv - center);
+
+        if (dist > 0.5) {
+          discard;
+        }
+
+        vec4 texSample = texture2D(uMoonMap, vUv);
+
+        // Lunar disc occupies radius 0.3633 (93/256 px) in the texture
+        float discRadius = 0.3633;
+
+        // Smooth disc edge antialiasing
+        float discMask = smoothstep(discRadius + 0.004, discRadius - 0.004, dist);
+
+        // Calculate surface perceived luminance
+        float luma = dot(texSample.rgb, vec3(0.299, 0.587, 0.114));
+
+        // Smooth transition between illuminated crest and shadow
+        float litFactor = smoothstep(0.04, 0.24, luma);
+
+        // Keep illuminated side vivid and contrasty while crushing dark side murkiness
+        vec3 surfaceColor = pow(texSample.rgb, vec3(1.22)) * uMoonColor;
+        vec3 moonLitColor = mix(surfaceColor * 0.02, surfaceColor, litFactor);
+
+        // Faint earthshine (1.5%) on shadow side so night sky / stars remain natural
+        float shadowAlpha = mix(0.015, 1.0, litFactor);
+        float moonAlpha = texSample.a * discMask * shadowAlpha;
+
+        // Atmospheric halo only radiates from the brightly illuminated limb
+        vec2 dir = (dist > 0.001) ? normalize(vUv - center) : vec2(0.0, 1.0);
+        vec2 edgeUv = center + dir * (discRadius - 0.025);
+        vec4 edgeSample = texture2D(uMoonMap, edgeUv);
+        float edgeLuma = dot(edgeSample.rgb, vec3(0.299, 0.587, 0.114));
+        float glowWeight = smoothstep(0.06, 0.28, edgeLuma);
+
+        float haloDist = max(0.0, dist - discRadius);
+        float haloFactor = clamp(1.0 - (haloDist / (0.5 - discRadius)), 0.0, 1.0);
+        float glow = pow(haloFactor, 3.2) * 0.24 * uMoonPhaseValue * glowWeight;
+        vec3 glowColor = vec3(0.85, 0.92, 1.0);
+
+        vec3 finalColor = mix(glowColor, moonLitColor, moonAlpha);
+        float finalAlpha = max(glow, moonAlpha);
+
+        gl_FragColor = vec4(finalColor, finalAlpha);
+      }
+    `;
+
+    this.moonUniforms = {
+      uMoonAngle: {
+        value: Math.PI
+      },
+      uMoonPhaseValue: {
+        value: 1.0
+      },
+      uMoonColor: {
+        value: new THREE.Color(0xeef4ff)
+      },
+      uMoonMap: {
+        value: initialTexture
+      },
+      uMoonScale: {
+        value: (this.moonSize || 85) / 85.0
+      }
+    };
+
+    const moonMat = new THREE.ShaderMaterial({
+      vertexShader: moonVertexShader,
+      fragmentShader: moonFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: this.moonUniforms,
+      fog: false
+    });
+
+    this.moonMesh = new THREE.Mesh(
+      moonGeo,
+      moonMat
+    );
+    this.moonGroup.add(this.moonMesh);
+
+    // Directional moonlight illuminating the world (scaled to 70% ~0.20)
+    this.moonLight = new THREE.DirectionalLight(
+      0xd5e2ff,
+      0.20
+    );
+    this.moonLight.position.copy(this.moonGroup.position);
+    this.moonLight.target.position.set(0, 0, 0);
+
+    this.group.add(this.moonGroup);
+    this.group.add(this.moonLight);
+    this.group.add(this.moonLight.target);
+  }
+
+  _updateMoonTransform() {
+    let x = 520;
+    if (typeof this.moonPosition === 'number') {
+      if (Math.abs(this.moonPosition) <= 1.0) {
+        x = this.moonPosition * 650.0;
+      } else {
+        x = Math.max(-750, Math.min(750, this.moonPosition));
+      }
+    } else if (this.moonPosition === 'left') {
+      x = -520;
+    } else if (this.moonPosition === 'center') {
+      x = 0;
+    } else if (this.moonPosition === 'right') {
+      x = 520;
+    }
+
+    let y = 500;
+    if (typeof this.moonAltitude === 'number') {
+      y = Math.max(120, Math.min(850, this.moonAltitude));
+    } else if (this.moonAltitude === 'low') {
+      y = 280;
+    } else if (this.moonAltitude === 'mid') {
+      y = 500;
+    } else if (this.moonAltitude === 'high') {
+      y = 720;
+    }
+
+    const z = -750;
+
+    if (this.moonGroup) {
+      this.moonGroup.position.set(
+        x,
+        y,
+        z
+      );
+    }
+    if (this.moonMesh) {
+      this.moonMesh.lookAt(
+        0,
+        0,
+        0
+      );
+    }
+    if (this.moonLight && this.moonGroup) {
+      this.moonLight.position.copy(this.moonGroup.position);
+    }
+  }
+
+  setMoonPosition(pos) {
+    this.moonPosition = pos !== undefined ? pos : 0.8;
+    this._updateMoonTransform();
+  }
+
+  setMoonAltitude(alt) {
+    this.moonAltitude = alt !== undefined ? alt : 500;
+    this._updateMoonTransform();
+  }
+
+  setMoonSize(size) {
+    this.moonSize = size !== undefined
+      ? Math.max(20, Math.min(300, Number(size) || 85))
+      : 85;
+    const scale = this.moonSize / 85.0;
+
+    if (this.moonUniforms && this.moonUniforms.uMoonScale) {
+      this.moonUniforms.uMoonScale.value = scale;
+    }
+
+    if (this.moonMesh) {
+      this.moonMesh.scale.set(
+        scale,
+        scale,
+        1
+      );
+    }
+  }
+
+  getMoonWorldPosition() {
+    return this.moonGroup
+      ? this.moonGroup.position.clone()
+      : new THREE.Vector3(520, 500, -750);
+  }
+
+  _loadMoonTexture(day) {
+    const d = Math.max(1, Math.min(30, parseInt(day, 10) || 15));
+    if (this.moonTextureCache && this.moonTextureCache.has(d)) {
+      return this.moonTextureCache.get(d);
+    }
+
+    if (typeof document === 'undefined' || !this.textureLoader) {
+      const fallbackTex = new THREE.Texture();
+      if (this.moonTextureCache) {
+        this.moonTextureCache.set(d, fallbackTex);
+      }
+      return fallbackTex;
+    }
+
+    const dayStr = String(d).padStart(2, '0');
+    const url = `assets/moon/day-${dayStr}.png`;
+
+    const texture = this.textureLoader.load(
+      url,
+      (tex) => {
+        tex.needsUpdate = true;
+      }
+    );
+
+    if (this.moonTextureCache) {
+      this.moonTextureCache.set(d, texture);
+    }
+    return texture;
+  }
+
+  setMoonDay(day) {
+    const d = Math.max(1, Math.min(30, parseInt(day, 10) || 15));
+    this.moonDay = d;
+
+    // Angle phi from 0 (Day 1) to 2*PI (Day 30)
+    const phi = ((d - 1) / 29.0) * (Math.PI * 2.0);
+    // Smooth cosine illumination: Day 1: 0.0 -> Day 15: 1.0 -> Day 30: 0.0
+    const phaseValue = (1.0 - Math.cos(phi)) * 0.5;
+
+    const texture = this._loadMoonTexture(d);
+
+    if (this.moonUniforms) {
+      this.moonUniforms.uMoonAngle.value = phi;
+      this.moonUniforms.uMoonPhaseValue.value = phaseValue;
+      if (texture && this.moonUniforms.uMoonMap) {
+        this.moonUniforms.uMoonMap.value = texture;
+      }
+    }
+
+    if (this.moonMesh) {
+      this.moonMesh.visible = phaseValue > 0.001;
+    }
+
+    if (this.moonLight) {
+      this.moonLight.visible = phaseValue > 0.001;
+      this.moonLight.intensity = phaseValue * 0.20;
+    }
+  }
+
+  setMoonPhase(phase) {
+    if (typeof phase === 'number') {
+      this.setMoonDay(phase);
+      return;
+    }
+
+    this.moonPhase = phase || 'full';
+    let targetDay = 15;
+
+    switch (this.moonPhase) {
+      case 'off':
+        targetDay = 1;
+        break;
+      case 'crescent':
+        targetDay = 5;
+        break;
+      case 'half':
+        targetDay = 8;
+        break;
+      case 'gibbous':
+        targetDay = 12;
+        break;
+      case 'full':
+      default:
+        targetDay = 15;
+        break;
+    }
+
+    this.setMoonDay(targetDay);
+  }
+
   setLayer(layerIndex) {
     this.group.traverse((obj) => {
       obj.layers.enable(layerIndex);
     });
+  }
+
+  setBurstFlash(position, color, intensity) {
+    if (position && this.domeUniforms.uFlashPos) {
+      this.domeUniforms.uFlashPos.value.copy(position);
+    }
+    if (color && this.domeUniforms.uFlashColor) {
+      this.domeUniforms.uFlashColor.value.copy(color);
+    }
+    if (this.domeUniforms.uFlashIntensity) {
+      this.domeUniforms.uFlashIntensity.value = intensity || 0.0;
+    }
+  }
+
+  setCloudCoverage(coverage) {
+    this.cloudCoverage = Math.max(0.0, Math.min(1.0, Number(coverage) || 0.0));
+    if (this.domeUniforms?.uCloudCoverage) {
+      this.domeUniforms.uCloudCoverage.value = this.cloudCoverage;
+    }
+  }
+
+  setCloudSpeed(speed) {
+    this.cloudSpeed = Math.max(0.0, Math.min(5.0, Number(speed) || 0.0));
+    if (this.domeUniforms?.uCloudSpeed) {
+      this.domeUniforms.uCloudSpeed.value = this.cloudSpeed;
+    }
+  }
+
+  setCloudDensity(density) {
+    this.cloudDensity = Math.max(0.1, Math.min(3.0, Number(density) || 1.0));
+    if (this.domeUniforms?.uCloudDensity) {
+      this.domeUniforms.uCloudDensity.value = this.cloudDensity;
+    }
+  }
+
+  setCloudScale(scale) {
+    this.cloudScale = Math.max(0.2, Math.min(4.0, Number(scale) || 1.0));
+    if (this.domeUniforms?.uCloudScale) {
+      this.domeUniforms.uCloudScale.value = this.cloudScale;
+    }
   }
 
   setSkyColors(topColor, bottomColor) {
@@ -201,12 +685,24 @@ export class SkyDome {
 
   update(deltaTime) {
     this.time += deltaTime;
+    if (this.domeUniforms?.uTime) {
+      this.domeUniforms.uTime.value = this.time;
+    }
     if (this.starUniforms) {
       this.starUniforms.uTime.value = this.time;
     }
   }
 
   dispose() {
+    if (this.moonTextureCache) {
+      this.moonTextureCache.forEach((tex) => {
+        if (tex && typeof tex.dispose === 'function') {
+          tex.dispose();
+        }
+      });
+      this.moonTextureCache.clear();
+    }
+
     this.group.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();

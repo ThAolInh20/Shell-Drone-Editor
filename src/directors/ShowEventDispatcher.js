@@ -33,6 +33,9 @@ export class ShowEventDispatcher {
         || evt.flow !== undefined
         || evt.noTrail !== undefined
         || evt.cometTrail !== undefined
+        || evt.stages !== undefined
+        || evt.nestingMode !== undefined
+        || evt.multiNested !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
@@ -45,6 +48,9 @@ export class ShowEventDispatcher {
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
         if (evt.flow !== undefined) overrides.flow = evt.flow;
         if (evt.noTrail !== undefined) overrides.noTrail = evt.noTrail;
+        if (evt.stages !== undefined) overrides.stages = evt.stages;
+        if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
+        if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;
         if (evt.cometTrail !== undefined) {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;
@@ -59,16 +65,41 @@ export class ShowEventDispatcher {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = true;
+            overrides.detachedTrail = false;
+          } else if (evt.cometTrail === 'detached' || evt.cometTrail === 'detached-trail') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = true;
+            overrides.cometTrail = 'detached';
+          } else if (evt.cometTrail === 'smoke' || evt.cometTrail === 'smoke_trail') {
+            overrides.launchTrail = false;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.detachedTrail = false;
+            overrides.flightSmoke = true;
+            overrides.instantBurst = false;
+            overrides.cometTrail = 'smoke';
           } else if (evt.cometTrail === 'normal') {
             overrides.launchTrail = true;
             overrides.thickTrail = false;
             overrides.thinTrail = false;
+            overrides.detachedTrail = false;
+          } else if (evt.cometTrail === 'ascent-bursts') {
+            overrides.launchTrail = true;
+            overrides.thickTrail = false;
+            overrides.thinTrail = false;
+            overrides.ascentBursts = true;
+            overrides.ascentSubShellType = evt.ascentSubShellType || 'random';
+            overrides.ascentBurstCount = evt.ascentBurstCount ? parseInt(evt.ascentBurstCount, 10) : 4;
           }
         }
+        if (evt.ascentSubShellType !== undefined) overrides.ascentSubShellType = evt.ascentSubShellType;
+        if (evt.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(evt.ascentBurstCount, 10);
       }
 
-      const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet')) 
-                    || (typeof evt.preset === 'string' && (evt.preset.startsWith('comet_cluster') || evt.preset.includes('comet')));
+      const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet' || evt.preset.type?.startsWith('comet'))) 
+                    || (typeof evt.preset === 'string' && (evt.preset === 'comet' || evt.preset.startsWith('comet_') || evt.preset.startsWith('comet')));
 
       if (isComet && context.sequencer && context.sequencer.cometSystem) {
         context.sequencer.cometSystem.launchRandom(evt.preset, { 
