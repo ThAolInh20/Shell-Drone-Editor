@@ -366,6 +366,9 @@ export const FIREWORK_CONFIG = {
       medium: 2,
       high: 4,
       unlimited: 4
-    }
+    },
+    // Hệ số sóng xung kích vụ nổ đẩy dạt khói hiện hữu
+    blastImpulseScale: 22.0,
+    blastImpulseRadiusMultiplier: 1.5
   }
 };

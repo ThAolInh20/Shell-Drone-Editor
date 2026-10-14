@@ -141,4 +141,44 @@ describe('SkyLightReactionSystem', () => {
     expect(lastCall[0].length).toBe(0);
     expect(skyLightSystem.reusableBurstLight.intensity).toBe(0);
   });
+
+  it('should incorporate drone luminous centroid into smoke illumination', () => {
+    const mockDroneSystem = {
+      getLuminousCentroid: vi.fn(() => ({
+        position: new THREE.Vector3(0, 80, 0),
+        color: new THREE.Color(0x00ffff),
+        intensity: 0.65,
+        radius: 380.0
+      }))
+    };
+
+    skyLightSystem.droneSystem = mockDroneSystem;
+
+    // When reactions are 0, resetToBase still feeds drone formation light to smoke
+    skyLightSystem.update(0.1);
+    expect(mockSmokeSystem.setMultiLights).toHaveBeenCalled();
+    let lastLights = mockSmokeSystem.setMultiLights.mock.calls[
+      mockSmokeSystem.setMultiLights.mock.calls.length - 1
+    ][0];
+    expect(lastLights.length).toBe(1);
+    expect(lastLights[0].color.getHex()).toBe(0x00ffff);
+    expect(lastLights[0].intensity).toBeCloseTo(0.65);
+
+    // When fireworks burst simultaneously, both drone light and shell light are present
+    skyLightSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff0000,
+      intensity: 0.9,
+      particleLife: 2.0
+    });
+
+    skyLightSystem.update(0.1);
+    lastLights = mockSmokeSystem.setMultiLights.mock.calls[
+      mockSmokeSystem.setMultiLights.mock.calls.length - 1
+    ][0];
+    expect(lastLights.length).toBe(2);
+    const colors = lastLights.map((l) => l.color.getHex());
+    expect(colors).toContain(0x00ffff);
+    expect(colors).toContain(0xff0000);
+  });
 });

@@ -2,9 +2,14 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 
 export class SkyLightReactionSystem {
-  constructor(sceneManager, smokeSystem = null) {
+  constructor(
+    sceneManager,
+    smokeSystem = null,
+    droneSystem = null
+  ) {
     this.sceneManager = sceneManager;
     this.smokeSystem = smokeSystem;
+    this.droneSystem = droneSystem;
     this.scene = sceneManager.instance;
     this.reactions = [];
     this.maxReactions = 8;
@@ -166,6 +171,11 @@ export class SkyLightReactionSystem {
 
     this.reactions = alive;
 
+    const droneLight = this.getDroneLight();
+    if (droneLight) {
+      activeSmokeLights.push(droneLight);
+    }
+
     // Distribute multi-source illumination to smoke system
     activeSmokeLights.sort((a, b) => b.intensity - a.intensity);
 
@@ -316,11 +326,23 @@ export class SkyLightReactionSystem {
       lerpAlpha
     );
 
+    const droneLight = this.getDroneLight();
+    const activeSmokeLights = droneLight ? [droneLight] : [];
+
     if (this.smokeSystem) {
       if (typeof this.smokeSystem.setMultiLights === 'function') {
-        this.smokeSystem.setMultiLights([]);
+        this.smokeSystem.setMultiLights(activeSmokeLights);
       } else if (typeof this.smokeSystem.setBurstFlash === 'function') {
-        this.smokeSystem.setBurstFlash(null, null, 0);
+        if (activeSmokeLights.length > 0) {
+          this.smokeSystem.setBurstFlash(
+            activeSmokeLights[0].position,
+            activeSmokeLights[0].color,
+            activeSmokeLights[0].intensity,
+            activeSmokeLights[0].radius
+          );
+        } else {
+          this.smokeSystem.setBurstFlash(null, null, 0);
+        }
       }
     }
     if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
@@ -332,5 +354,22 @@ export class SkyLightReactionSystem {
     if (this.sceneManager.skyDome && typeof this.sceneManager.skyDome.setBurstFlash === 'function') {
       this.sceneManager.skyDome.setBurstFlash(null, null, 0);
     }
+  }
+
+  getDroneLight() {
+    if (!this.droneSystem || typeof this.droneSystem.getLuminousCentroid !== 'function') {
+      return null;
+    }
+    const centroid = this.droneSystem.getLuminousCentroid();
+    if (!centroid || centroid.intensity <= 0.01) {
+      return null;
+    }
+    return {
+      position: centroid.position,
+      color: centroid.color,
+      intensity: centroid.intensity,
+      radius: centroid.radius,
+      weight: centroid.intensity
+    };
   }
 }

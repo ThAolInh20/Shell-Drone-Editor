@@ -8,6 +8,7 @@ import { globalEventBus } from '../core/EventBus.js';
 import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { atmosphereManager } from '../environment/AtmosphereManager.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const BASE_BURST_PARTICLES = FIREWORK_CONFIG.BURST.baseParticles;
@@ -2424,6 +2425,32 @@ export class FireworkSystem {
       if (p.isDyingEmber) {
         finalGravityScale = gravityScale * 1.3;
         p.velocity.multiplyScalar(0.994);
+      }
+
+      // Environmental Wind Coupling: Hat tan phao va willow troi theo huong gio he thong
+      const wind = (this.smokeSystem && this.smokeSystem.currentWind)
+        || atmosphereManager.currentWind;
+
+      if (wind) {
+        const isFloatingEffect = p.isDyingEmber
+          || p.effectType === 'willow'
+          || p.effectType === 'willow-arch'
+          || p.effectType === 'falling-leaves'
+          || p.effectType === 'kamuro';
+
+        if (isFloatingEffect) {
+          const windInfluence = p.isDyingEmber ? 0.85 : 0.45;
+          p.velocity.x = THREE.MathUtils.lerp(
+            p.velocity.x,
+            wind.x,
+            deltaTime * windInfluence
+          );
+          p.velocity.z = THREE.MathUtils.lerp(
+            p.velocity.z,
+            wind.z,
+            deltaTime * windInfluence
+          );
+        }
       }
 
       p.velocity.y += GRAVITY * deltaTime * finalGravityScale;

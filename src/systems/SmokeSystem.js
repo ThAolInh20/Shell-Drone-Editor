@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { renderingConfig } from '../config/rendering.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { atmosphereManager } from '../environment/AtmosphereManager.js';
 
 const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
   ?? FIREWORK_CONFIG.SMOKE?.qualityCapacities
@@ -37,6 +38,7 @@ const MAX_SMOKE_LIGHTS = renderingConfig.smoke?.maxLights
 
 export class SmokeSystem {
   constructor(sceneManager) {
+    this.atmosphereManager = atmosphereManager;
     this.scene = sceneManager.instance;
     this.quality = renderingConfig.smoke?.quality ?? 'medium';
     this.density = renderingConfig.smoke?.density ?? 1.0;
@@ -521,14 +523,11 @@ export class SmokeSystem {
   }
 
   updateWindVectors() {
-    const rad = ((this.windDirection % 360) * Math.PI) / 180;
-    const horizontalMagnitude = 6.04;
-    this.baseWind.set(
-      Math.cos(rad) * horizontalMagnitude,
-      0.8,
-      Math.sin(rad) * horizontalMagnitude
-    );
-    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
+    this.atmosphereManager.windDirection = this.windDirection;
+    this.atmosphereManager.windSpeed = this.windSpeed;
+    this.atmosphereManager.updateWindVectors();
+    this.baseWind.copy(this.atmosphereManager.baseWind);
+    this.currentWind.copy(this.atmosphereManager.currentWind);
   }
 
   setWindDirection(degrees) {
@@ -541,7 +540,7 @@ export class SmokeSystem {
       0,
       speedVal
     );
-    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
+    this.updateWindVectors();
   }
 
   destroy() {
@@ -818,6 +817,48 @@ export class SmokeSystem {
   onBurst(detail = {}) {
     if (this.quality === 'off') return;
 
+    const cfg = FIREWORK_CONFIG.SMOKE;
+    const burstPos = new THREE.Vector3(
+      detail.position?.x ?? 0,
+      detail.position?.y ?? 160,
+      detail.position?.z ?? 0
+    );
+
+    const intensity = THREE.MathUtils.clamp(
+      detail.intensity ?? 0.5,
+      0.1,
+      1.0
+    );
+
+    const fireworkSpread = detail.burstRadius
+      ? detail.burstRadius
+      : (38.0 + intensity * 22.0);
+
+    // Blast Wave Displacement: Song xung kich vu no thoi dat cac cum khoi hien huu xung quanh
+    if (this.puffs.length > 0) {
+      const blastEffectiveRadius = fireworkSpread * (cfg.blastImpulseRadiusMultiplier ?? 1.5);
+      const blastImpulseScale = (cfg.blastImpulseScale ?? 22.0) * intensity;
+
+      for (let i = 0; i < this.puffs.length; i++) {
+        const puff = this.puffs[i];
+        const dist = puff.position.distanceTo(burstPos);
+        if (dist < blastEffectiveRadius && dist > 0.05) {
+          const falloff = 1.0 - (dist / blastEffectiveRadius);
+          const impulse = falloff * falloff * blastImpulseScale;
+          const pushDir = puff.position.clone().sub(burstPos).normalize();
+          puff.velocity.addScaledVector(
+            pushDir,
+            impulse
+          );
+
+          const maxSpeed = 35.0;
+          if (puff.velocity.lengthSq() > maxSpeed * maxSpeed) {
+            puff.velocity.normalize().multiplyScalar(maxSpeed);
+          }
+        }
+      }
+    }
+
     const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
       || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
       || Boolean(detail.burstSmoke);
@@ -826,24 +867,11 @@ export class SmokeSystem {
       return;
     }
 
-    const cfg = FIREWORK_CONFIG.SMOKE;
-    const burstPos = new THREE.Vector3(
-      detail.position?.x ?? 0,
-      detail.position?.y ?? 160,
-      detail.position?.z ?? 0
-    );
-
     // Khoi mac dinh mau trang; chi khi co custom mau thi moi nhan mau theo phao
     const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
     const smokeColor = detail.hasCustomColor && detail.colorHex !== undefined
       ? new THREE.Color(detail.colorHex)
       : defaultWhiteSmoke;
-
-    const intensity = THREE.MathUtils.clamp(
-      detail.intensity ?? 0.5,
-      0.1,
-      1.0
-    );
 
     // 1. Bien dang the tich 3D khong doi xung (anisotropic stretch tensor)
     // Thiet lap ti le det truc doc Y de khoi bung rong be ngang tu nhien hon
@@ -861,10 +889,6 @@ export class SmokeSystem {
     ).normalize();
 
     const harmonicPhase = Math.random() * Math.PI * 2;
-    // Ban kinh phao hoa toa ra toan phan (mac dinh 38 - 60m)
-    const fireworkSpread = detail.burstRadius
-      ? detail.burstRadius
-      : (38.0 + intensity * 22.0);
     // Ban kinh cum khoi co ban nam trong khoang ~1/4 den 1/3 ban kinh phao
     const burstSpreadRadius = fireworkSpread * (0.18 + 0.08 * intensity);
 

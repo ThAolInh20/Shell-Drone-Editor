@@ -472,4 +472,31 @@ describe('SmokeSystem', () => {
     smokeSystem.setMultiLights(lights);
     expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(4);
   });
+
+  it('should push existing smoke puffs radially outward when a nearby burst shockwave occurs', () => {
+    smokeSystem.setQuality('high');
+    smokeSystem.clear();
+
+    // Spawn an existing resting puff at (10, 150, 0)
+    smokeSystem.spawnPuff(
+      new THREE.Vector3(10, 150, 0),
+      new THREE.Vector3(0, 0, 0),
+      { life: 5.0 }
+    );
+
+    expect(smokeSystem.puffs.length).toBe(1);
+    expect(smokeSystem.puffs[0].velocity.x).toBe(0);
+
+    // Firework bursts at origin (0, 150, 0), which is 10 units away in +X direction
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      burstRadius: 50.0,
+      intensity: 0.9,
+      effects: ['burst-smoke']
+    });
+
+    // The existing puff must receive an outward +X radial velocity impulse
+    const existingPuff = smokeSystem.puffs[0];
+    expect(existingPuff.velocity.x).toBeGreaterThan(5.0);
+  });
 });

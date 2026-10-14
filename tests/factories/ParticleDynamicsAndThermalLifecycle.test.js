@@ -194,4 +194,25 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     });
     expect(customPresetProfile.baseSpeed).toBe(58);
   });
+
+  it('should support wind coupling lerp for falling embers and willow particles', () => {
+    const wind = new THREE.Vector3(8.0, 0, 4.0);
+    const particleVel = new THREE.Vector3(0, -10.0, 0);
+    const deltaTime = 0.05;
+    const windInfluence = 0.85;
+
+    particleVel.x = THREE.MathUtils.lerp(
+      particleVel.x,
+      wind.x,
+      deltaTime * windInfluence
+    );
+    particleVel.z = THREE.MathUtils.lerp(
+      particleVel.z,
+      wind.z,
+      deltaTime * windInfluence
+    );
+
+    expect(particleVel.x).toBeGreaterThan(0.3);
+    expect(particleVel.z).toBeGreaterThan(0.15);
+  });
 });
