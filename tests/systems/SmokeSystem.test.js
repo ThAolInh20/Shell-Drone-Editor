@@ -53,14 +53,32 @@ describe('SmokeSystem', () => {
     expect(firstPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMax);
   });
 
-  it('should NOT spawn burst smoke onBurst if burst-smoke effect is not present', () => {
+  it('should spawn subtle ambient smoke onBurst automatically (100% chance) when burst-smoke is absent', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    // Default call without ambientSmokeRoll override: 100% chance always spawns
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff4500,
+      intensity: 0.8
+    });
+
+    const expectedCount = FIREWORK_CONFIG.SMOKE.ambientBurstPuffCount.medium;
+    expect(smokeSystem.puffs.length).toBe(expectedCount);
+    const ambientPuff = smokeSystem.puffs[0];
+    expect(ambientPuff.baseScale).toBeLessThan(FIREWORK_CONFIG.SMOKE.burstBaseScale * 1.5);
+  });
+
+  it('should NOT spawn ambient burst smoke if ambient roll exceeds ambientBurstSmokeChance', () => {
     smokeSystem.setQuality('medium');
     smokeSystem.clear();
 
     smokeSystem.onBurst({
       position: { x: 0, y: 150, z: 0 },
       colorHex: 0xff4500,
-      intensity: 0.8
+      intensity: 0.8,
+      ambientSmokeRoll: 1.05
     });
 
     expect(smokeSystem.puffs.length).toBe(0);

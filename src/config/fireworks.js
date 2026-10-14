@@ -369,6 +369,18 @@ export const FIREWORK_CONFIG = {
     },
     // Hệ số sóng xung kích vụ nổ đẩy dạt khói hiện hữu
     blastImpulseScale: 22.0,
-    blastImpulseRadiusMultiplier: 1.5
+    blastImpulseRadiusMultiplier: 1.5,
+    // Tỷ lệ sinh khói nhẹ tự nhiên sau mỗi vụ nổ pháo hoa thông thường (100% các vụ nổ)
+    ambientBurstSmokeChance: 1.0,
+    // Số lượng cụm khói nhỏ sinh ra khi nổ tự nhiên theo phân cấp đồ họa
+    ambientBurstPuffCount: {
+      low: 1,
+      medium: 2,
+      high: 3,
+      unlimited: 4
+    },
+    // Hệ số kích thước và độ mờ cho lượng khói nhỏ tự nhiên
+    ambientBurstScaleMultiplier: 0.70,
+    ambientBurstOpacityMultiplier: 0.65
   }
 };

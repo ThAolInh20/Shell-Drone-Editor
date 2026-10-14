@@ -859,19 +859,32 @@ export class SmokeSystem {
       }
     }
 
-    const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
-      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
-      || Boolean(detail.burstSmoke);
-
-    if (!hasBurstSmoke) {
-      return;
-    }
-
     // Khoi mac dinh mau trang; chi khi co custom mau thi moi nhan mau theo phao
     const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
     const smokeColor = detail.hasCustomColor && detail.colorHex !== undefined
       ? new THREE.Color(detail.colorHex)
       : defaultWhiteSmoke;
+
+    const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
+      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
+      || Boolean(detail.burstSmoke);
+
+    if (!hasBurstSmoke) {
+      const ambientChance = cfg.ambientBurstSmokeChance ?? 1.0;
+      const roll = detail.ambientSmokeRoll !== undefined
+        ? detail.ambientSmokeRoll
+        : Math.random();
+
+      if (roll < ambientChance) {
+        this.spawnAmbientBurstSmoke(
+          burstPos,
+          intensity,
+          smokeColor,
+          cfg
+        );
+      }
+      return;
+    }
 
     // 1. Bien dang the tich 3D khong doi xung (anisotropic stretch tensor)
     // Thiet lap ti le det truc doc Y de khoi bung rong be ngang tu nhien hon
@@ -1116,6 +1129,64 @@ export class SmokeSystem {
           }
         );
       }
+    }
+  }
+
+  spawnAmbientBurstSmoke(
+    burstPos,
+    intensity,
+    smokeColor,
+    cfg
+  ) {
+    const puffCounts = cfg.ambientBurstPuffCount ?? {
+      low: 1,
+      medium: 2,
+      high: 3,
+      unlimited: 4
+    };
+    const count = this.unlimited
+      ? (puffCounts.unlimited ?? 4)
+      : (puffCounts[this.quality] ?? 2);
+
+    const scaleMult = cfg.ambientBurstScaleMultiplier ?? 0.70;
+    const opacityMult = cfg.ambientBurstOpacityMultiplier ?? 0.65;
+
+    for (let i = 0; i < count; i++) {
+      const offset = new THREE.Vector3(
+        (Math.random() - 0.5) * 4.0,
+        (Math.random() - 0.5) * 3.0,
+        (Math.random() - 0.5) * 4.0
+      );
+      const velocity = offset.clone().normalize().multiplyScalar(
+        0.5 + Math.random() * 1.2
+      );
+      const life = (
+        cfg.burstLifeMin +
+        Math.random() * (cfg.burstLifeMax - cfg.burstLifeMin)
+      ) * 0.75;
+      const drag = cfg.burstDragMin + Math.random() * (cfg.burstDragMax - cfg.burstDragMin);
+      const buoyancy = (
+        cfg.burstBuoyancyMin +
+        Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin)
+      ) * 0.8;
+
+      this.spawnPuff(
+        burstPos.clone().add(offset),
+        velocity,
+        {
+          category: 'aerial',
+          isNucleus: i === 0,
+          nucleusBoost: 2.0,
+          life: life,
+          scale: ((cfg.burstBaseScale * 0.8) + Math.random() * 1.8) * scaleMult,
+          growth: (cfg.burstGrowth * 0.45 + Math.random() * 0.6) * scaleMult,
+          drag: drag,
+          buoyancy: buoyancy,
+          seed: Math.random(),
+          opacity: (cfg.burstOpacity * 0.9 + Math.random() * 0.05) * opacityMult,
+          color: smokeColor
+        }
+      );
     }
   }
 
