@@ -567,7 +567,7 @@ export class ShellPresetFactory {
       shellType: 'ringV2',
       shapeType: 'ring',
       effectType: 'standard',
-      strobe: true,
+      strobe: false,
       shapeRenderMode: 'outline',
       particleCountMultiplier: 1.2,
       outlineThickness: 0.04,
@@ -613,7 +613,7 @@ export class ShellPresetFactory {
     };
   }
 
-  strobeShell(size = 1) {
+  strobeShell(size = 1.25) {
     return {
       ...this.basePreset(size),
       shellType: 'strobe',
@@ -740,12 +740,12 @@ export class ShellPresetFactory {
       shellType: 'fallingLeaves',
       shapeType: 'sphere',
       effectType: 'falling-leaves',
-      particleCountMultiplier: 1.05,
+      particleCountMultiplier: 0.75,
       fallingLeaves: true,
       starDensity: 0.12,
       starLife: 1200 + size * 120,
       starLifeVariation: 0.5,
-      glitter: 'medium',
+      glitter: 'light',
       glitterColor: COLOR.Gold,
       pistil: false,
       streamers: false
@@ -1169,7 +1169,7 @@ export class ShellPresetFactory {
     return Math.random() < 0.5 ? COLOR.White : COLOR.Gold;
   }
 
-  galaxyShell(size = 1) {
+  galaxyShell(size = 1.45) {
     const color = Math.random() < 0.5 ? 0x00b4d8 : 0x00a896; // Tông xanh lam ngọc dịu nhẹ hơn tránh chói
     return {
       ...this.basePreset(size),
@@ -1187,7 +1187,7 @@ export class ShellPresetFactory {
     };
   }
 
-  ghostKamuroShell(size = 1) {
+  ghostKamuroShell(size = 1.45) {
     return {
       ...this.basePreset(size),
       shellType: 'ghostKamuro',
@@ -1216,7 +1216,7 @@ export class ShellPresetFactory {
       color: primaryColor,
       secondColor: secondaryColor,
       starLife: 1800 + size * 300,
-      particleCountMultiplier: 1.25,
+      particleCountMultiplier: 0.85,
       crackle: false,
       strobe: false,
       pistil: false,

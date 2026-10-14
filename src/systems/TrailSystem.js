@@ -135,7 +135,7 @@ export class TrailSystem {
     lifeMultiplier = 1.0,
     zeroVelocity = false,
     customLife = null,
-    opacityMultiplier = 1.0,
+    opacityMultiplier = 0.65,
     strobe = false,
     customVelocity = null,
     gravityScale = 1.0,
@@ -294,18 +294,18 @@ export class TrailSystem {
             Math.max(
               0,
               Math.pow(1.0 - lifeRatio, 2.5)
-            ) * (particle.opacity ?? 1.0);
+            ) * (particle.opacity ?? 0.65) * 0.75;
           let r = particle.color.r;
           let g = particle.color.g;
           let b = particle.color.b;
 
-          // Vòng đời nhiệt sắc cho hạt vệt (Thermal Lifecycle)
+          // Vòng đời nhiệt sắc cho hạt vệt (Thermal Lifecycle) - giảm nhẹ độ chói chồng lấp
           if (!particle.strobe && !particle.shimmer) {
             if (lifeRatio < 0.15) {
               const flashT = 1.0 - (lifeRatio / 0.15);
-              r = THREE.MathUtils.lerp(r, Math.max(r, 1.3), flashT * 0.6);
-              g = THREE.MathUtils.lerp(g, Math.max(g, 1.2), flashT * 0.55);
-              b = THREE.MathUtils.lerp(b, Math.max(b, 1.1), flashT * 0.45);
+              r = THREE.MathUtils.lerp(r, Math.max(r, 1.05), flashT * 0.35);
+              g = THREE.MathUtils.lerp(g, Math.max(g, 1.02), flashT * 0.30);
+              b = THREE.MathUtils.lerp(b, Math.max(b, 1.0), flashT * 0.25);
             } else if (lifeRatio > 0.65) {
               const coolT = (lifeRatio - 0.65) / 0.35;
               r = THREE.MathUtils.lerp(r, 0.95, coolT * 0.5);

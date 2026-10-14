@@ -695,9 +695,9 @@ BurstEffectProcessor.registerEffect('no-burst', {
 
 BurstEffectProcessor.registerEffect('ghost-kamuro', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
-    velocity.x *= 0.988;
-    velocity.z *= 0.988;
-    velocity.y = velocity.y * 0.990 - 0.05 * (age / Math.max(0.1, maxLife)) * 9.8 * deltaTime;
+    velocity.x *= 0.994;
+    velocity.z *= 0.994;
+    velocity.y = velocity.y * 0.994 - 0.05 * (age / Math.max(0.1, maxLife)) * 9.8 * deltaTime;
 
     const lifeRatio = maxLife > 0 ? age / maxLife : 0;
     const isReignited = lifeRatio > 0.60;
@@ -727,8 +727,8 @@ BurstEffectProcessor.registerEffect('double-helix', {
     return {
       gravityScale: 0.16,
       spawnTrail: true,
-      trailLife: 0.60,
-      trailIntensity: 0.85
+      trailLife: 0.50,
+      trailIntensity: 0.55
     };
   }
 });

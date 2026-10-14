@@ -122,8 +122,8 @@ export class BurstShapeGenerator {
 
       const t = particleIndex / particlesPerArm;
       const theta = t * Math.PI * 5 + (armId * (Math.PI * 2 / numArms));
-      // Bắt đầu bán kính từ 0.5 và tăng tuyến tính để giãn rộng tâm tránh chói lóa dồn tụ
-      const r = 0.5 + 0.5 * t;
+      // Bắt đầu bán kính từ 0.65 và mở rộng lên 1.5 để tăng kích thước dải thiên hà
+      const r = 0.65 + 0.85 * t;
 
       const x = Math.cos(theta) * r;
       const y = Math.sin(theta) * r;
@@ -336,8 +336,10 @@ export class BurstShapeGenerator {
       let distortion = 0;
       let noiseRadius = 0;
       
-      // Ring v1 cần hình tròn hoàn hảo, không có méo mó hình học
-      if (preset?.shellType !== 'ring') {
+      // Cả Ring v1 và Ring v2 cần hình tròn hoàn hảo, không có méo mó hình học gây biến dạng
+      const isRingV1 = preset?.shellType === 'ring';
+      const isRingV2 = preset?.shellType === 'ringV2' || preset?.shellType === 'ring_v2';
+      if (!isRingV1 && !isRingV2) {
         distortion = Math.sin(perfectAngle * 3) * 0.05 + Math.cos(perfectAngle * 5) * 0.03;
         noiseRadius = (Math.random() - 0.5) * 0.02; 
       }
@@ -346,7 +348,7 @@ export class BurstShapeGenerator {
       
       let yOffset = (Math.random() - 0.5) * 0.03;
       if (isDoubleRing) {
-        yOffset += index % 2 === 0 ? 0.2 : -0.2; // 2 mặt phẳng song song (cách nhau 0.4)
+        yOffset += index % 2 === 0 ? 0.08 : -0.08; // 2 mặt phẳng song song ôm sát để giữ hình thể tròn đồng nhất
       }
 
       return new THREE.Vector3(

@@ -1518,12 +1518,18 @@ export class FireworkSystem {
       if (isCoreParticle) {
         baseSpeed = profileBaseSpeed * coreSpeedBand;
       } else if (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star') {
-        let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart, star và ring v2
-        if (preset?.shellType === 'ring') {
-          speedVariance = 0.01; // Ring v1 cần tròn xoe hoàn hảo không méo
+        let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart và star
+        if (
+          preset?.shellType === 'ring' ||
+          preset?.shellType === 'ringV2' ||
+          preset?.shellType === 'ring_v2'
+        ) {
+          speedVariance = 0.015; // Cả ring v1 và ring v2 đều giữ dạng tròn hoàn hảo, không bị biến dạng
         }
         const outlineSpeedBand = 1.0 + (Math.random() - 0.5) * speedVariance;
         baseSpeed = profileBaseSpeed * outlineSpeedBand;
+      } else if (particleShape === 'galaxy') {
+        baseSpeed = profileBaseSpeed * (1.15 + Math.random() * 0.2);
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
         const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
           ? (0.97 + Math.random() * 0.06)
@@ -2560,7 +2566,7 @@ export class FireworkSystem {
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();
-          const currentIntensity = (trailIntensity ?? 0.35) * parentFade;
+          const currentIntensity = (trailIntensity ?? 0.25) * parentFade;
           trailColor.multiplyScalar(currentIntensity);
 
           const currentLife = (trailLife || 0.8) * (0.2 + 0.8 * parentFade);
@@ -2576,7 +2582,7 @@ export class FireworkSystem {
             isCometRing ? 1.0 : currentLife,
             false,
             isCometRing ? currentLife : null,
-            1.0,
+            0.65,
             false,
             trailVel,
             trailGrav,
@@ -2910,9 +2916,9 @@ export class FireworkSystem {
           const activeR = p.baseColor.r * (1.0 - blendT) + p.color2.r * blendT;
           const activeG = p.baseColor.g * (1.0 - blendT) + p.color2.g * blendT;
           const activeB = p.baseColor.b * (1.0 - blendT) + p.color2.b * blendT;
-          r = activeR * 1.15;
-          g = activeG * 1.15;
-          b = activeB * 1.15;
+          r = activeR;
+          g = activeG;
+          b = activeB;
         }
       } else if (profile?.thermalCooling !== false) {
         // Vòng đời nhiệt sắc (Thermal Cooling Lifecycle):

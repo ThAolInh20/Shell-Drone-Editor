@@ -155,7 +155,7 @@ export const FIREWORK_CONFIG = {
     willow: 1.18,
     lightning: 1.16,
     star: 1.14,
-    'double-helix': 1.25,
+    'double-helix': 0.95,
     'sparkling-branches': 1.0
   },
 
@@ -164,7 +164,7 @@ export const FIREWORK_CONFIG = {
     standard: 1,
     crackle: 1.15,
     floral: 1.18,
-    'falling-leaves': 1.04,
+    'falling-leaves': 0.78,
     heart: 1.22,
     strobe: 1.08,
     wave: 1.1,
@@ -177,7 +177,7 @@ export const FIREWORK_CONFIG = {
     'crysanthemum-cc': 1.25,
     'ghost-kamuro': 0.8,
     ghost: 1.15,
-    'double-helix': 1.25,
+    'double-helix': 0.90,
     crossette: 0.6,
     'sparkle-trail': 1.0,
     'sparkling-branch-comet': 1.0,
