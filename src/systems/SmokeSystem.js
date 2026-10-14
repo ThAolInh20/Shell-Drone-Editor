@@ -684,6 +684,10 @@ export class SmokeSystem {
   // Fast direct particle injection method (bypasses EventBus for high performance)
   addSmokePoint(origin, velocity, options = {}) {
     if (this.quality === 'off') return;
+    const cfg = FIREWORK_CONFIG.SMOKE;
+    if (cfg?.disableFlightSmoke && options.category !== 'burst' && !options.force) {
+      return;
+    }
     this.spawnPuff(
       origin,
       velocity,
@@ -866,23 +870,10 @@ export class SmokeSystem {
       : defaultWhiteSmoke;
 
     const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
-      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
-      || Boolean(detail.burstSmoke);
+      || Boolean(detail.burstSmoke)
+      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'));
 
     if (!hasBurstSmoke) {
-      const ambientChance = cfg.ambientBurstSmokeChance ?? 1.0;
-      const roll = detail.ambientSmokeRoll !== undefined
-        ? detail.ambientSmokeRoll
-        : Math.random();
-
-      if (roll < ambientChance) {
-        this.spawnAmbientBurstSmoke(
-          burstPos,
-          intensity,
-          smokeColor,
-          cfg
-        );
-      }
       return;
     }
 
@@ -1058,7 +1049,7 @@ export class SmokeSystem {
         tuftDir.clone().multiplyScalar(2.5 + Math.random() * 3.5),
         {
           life: burstLife,
-          scale: (cfg.burstBaseScale * 0.45) + Math.random() * 2.0,
+          scale: (cfg.burstBaseScale * 0.85) + Math.random() * 4.0,
           growth: (cfg.burstGrowth * 0.5) + Math.random() * 0.7,
           drag: burstDrag,
           buoyancy: burstBuoyancy,
@@ -1069,65 +1060,66 @@ export class SmokeSystem {
       );
     }
 
-    // Phase 4: Radial Burst Streaks (Cac vet khoi toa theo tia ban cua hat, keo dai xap xi 1/3 phao)
-    // Mo phong tia khoi sinh ra theo duong bay cua hat trong khoang 1/3 ban kinh/dien tich toa
-    const streakCount = this.unlimited
-      ? 14
-      : (this.quality === 'high' ? 9 : (this.quality === 'low' ? 3 : 6));
+    // Phase 4: Radial Burst Streaks (Tia ban hat vi mo - bo qua khi bat che do onlyBurstSmoke)
+    if (!cfg.onlyBurstSmoke) {
+      const streakCount = this.unlimited
+        ? 14
+        : (this.quality === 'high' ? 9 : (this.quality === 'low' ? 3 : 6));
 
-    for (let s = 0; s < streakCount; s++) {
-      const sAzimuth = Math.random() * Math.PI * 2;
-      const sElev = (Math.random() - 0.5) * Math.PI * 0.85;
-      const streakDir = new THREE.Vector3(
-        Math.cos(sElev) * Math.cos(sAzimuth),
-        Math.sin(sElev),
-        Math.cos(sElev) * Math.sin(sAzimuth)
-      ).normalize();
+      for (let s = 0; s < streakCount; s++) {
+        const sAzimuth = Math.random() * Math.PI * 2;
+        const sElev = (Math.random() - 0.5) * Math.PI * 0.85;
+        const streakDir = new THREE.Vector3(
+          Math.cos(sElev) * Math.cos(sAzimuth),
+          Math.sin(sElev),
+          Math.cos(sElev) * Math.sin(sAzimuth)
+        ).normalize();
 
-      // Do dai tia xap xi ngau nhien trong khoang 1/3 ban kinh/dien tich toa cua phao (0.24 den 0.38)
-      const maxStreakDist = fireworkSpread * (0.24 + Math.random() * 0.14);
-      const pointsOnStreak = this.quality === 'low' ? 2 : 3;
+        // Do dai tia xap xi ngau nhien trong khoang 1/3 ban kinh/dien tich toa cua phao (0.24 den 0.38)
+        const maxStreakDist = fireworkSpread * (0.24 + Math.random() * 0.14);
+        const pointsOnStreak = this.quality === 'low' ? 2 : 3;
 
-      for (let p = 1; p <= pointsOnStreak; p++) {
-        const frac = p / pointsOnStreak;
-        const d = maxStreakDist * (frac * 0.75 + 0.25 * Math.random());
-        const streakPos = burstPos.clone().add(
-          new THREE.Vector3(
-            streakDir.x * d * stretchX,
-            streakDir.y * d * stretchY,
-            streakDir.z * d * stretchZ
-          )
-        );
+        for (let p = 1; p <= pointsOnStreak; p++) {
+          const frac = p / pointsOnStreak;
+          const d = maxStreakDist * (frac * 0.75 + 0.25 * Math.random());
+          const streakPos = burstPos.clone().add(
+            new THREE.Vector3(
+              streakDir.x * d * stretchX,
+              streakDir.y * d * stretchY,
+              streakDir.z * d * stretchZ
+            )
+          );
 
-        // Van toc huong doc theo tia ban cua hat
-        const streakVel = streakDir.clone().multiplyScalar(
-          (2.2 + Math.random() * 2.8) * (1.1 - frac * 0.4)
-        ).add(
-          new THREE.Vector3(
-            (Math.random() - 0.5) * 1.2,
-            0.4 + Math.random() * 1.0,
-            (Math.random() - 0.5) * 1.2
-          )
-        );
+          // Van toc huong doc theo tia ban cua hat
+          const streakVel = streakDir.clone().multiplyScalar(
+            (2.2 + Math.random() * 2.8) * (1.1 - frac * 0.4)
+          ).add(
+            new THREE.Vector3(
+              (Math.random() - 0.5) * 1.2,
+              0.4 + Math.random() * 1.0,
+              (Math.random() - 0.5) * 1.2
+            )
+          );
 
-        const burstLife = cfg.burstLifeMin * 0.85 + Math.random() * 3.5;
-        const burstDrag = cfg.burstDragMin + Math.random() * 0.6;
-        const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.25;
+          const burstLife = cfg.burstLifeMin * 0.85 + Math.random() * 3.5;
+          const burstDrag = cfg.burstDragMin + Math.random() * 0.6;
+          const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.25;
 
-        this.spawnPuff(
-          streakPos,
-          streakVel,
-          {
-            life: burstLife,
-            scale: (cfg.burstBaseScale * (0.55 + 0.35 * (1.0 - frac * 0.5))) + Math.random() * 1.8,
-            growth: (cfg.burstGrowth * 0.52) + Math.random() * 0.6,
-            drag: burstDrag,
-            buoyancy: burstBuoyancy,
-            seed: (s * 0.17 + p * 0.29) % 1.0,
-            opacity: (cfg.burstOpacity * (0.85 - frac * 0.25)) + Math.random() * 0.05,
-            color: smokeColor
-          }
-        );
+          this.spawnPuff(
+            streakPos,
+            streakVel,
+            {
+              life: burstLife,
+              scale: (cfg.burstBaseScale * (0.55 + 0.35 * (1.0 - frac * 0.5))) + Math.random() * 1.8,
+              growth: (cfg.burstGrowth * 0.52) + Math.random() * 0.6,
+              drag: burstDrag,
+              buoyancy: burstBuoyancy,
+              seed: (s * 0.17 + p * 0.29) % 1.0,
+              opacity: (cfg.burstOpacity * (0.85 - frac * 0.25)) + Math.random() * 0.05,
+              color: smokeColor
+            }
+          );
+        }
       }
     }
   }
@@ -1141,34 +1133,37 @@ export class SmokeSystem {
     const puffCounts = cfg.ambientBurstPuffCount ?? {
       low: 1,
       medium: 2,
-      high: 3,
-      unlimited: 4
+      high: 2,
+      unlimited: 3
     };
     const count = this.unlimited
-      ? (puffCounts.unlimited ?? 4)
+      ? (puffCounts.unlimited ?? 3)
       : (puffCounts[this.quality] ?? 2);
 
-    const scaleMult = cfg.ambientBurstScaleMultiplier ?? 0.70;
-    const opacityMult = cfg.ambientBurstOpacityMultiplier ?? 0.65;
+    const scaleMult = cfg.ambientBurstScaleMultiplier ?? 0.95;
+    const opacityMult = cfg.ambientBurstOpacityMultiplier ?? 0.75;
 
     for (let i = 0; i < count; i++) {
       const offset = new THREE.Vector3(
-        (Math.random() - 0.5) * 4.0,
-        (Math.random() - 0.5) * 3.0,
-        (Math.random() - 0.5) * 4.0
+        (Math.random() - 0.5) * 8.0,
+        (Math.random() - 0.5) * 6.0,
+        (Math.random() - 0.5) * 8.0
       );
       const velocity = offset.clone().normalize().multiplyScalar(
-        0.5 + Math.random() * 1.2
+        0.6 + Math.random() * 1.5
       );
       const life = (
         cfg.burstLifeMin +
         Math.random() * (cfg.burstLifeMax - cfg.burstLifeMin)
-      ) * 0.75;
+      ) * 0.85;
       const drag = cfg.burstDragMin + Math.random() * (cfg.burstDragMax - cfg.burstDragMin);
       const buoyancy = (
         cfg.burstBuoyancyMin +
         Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin)
-      ) * 0.8;
+      ) * 0.75;
+
+      const largeScale = (cfg.burstBaseScale * (0.90 + Math.random() * 0.25)) * scaleMult;
+      const softOpacity = (cfg.burstOpacity * (0.85 + Math.random() * 0.15)) * opacityMult;
 
       this.spawnPuff(
         burstPos.clone().add(offset),
@@ -1176,14 +1171,14 @@ export class SmokeSystem {
         {
           category: 'aerial',
           isNucleus: i === 0,
-          nucleusBoost: 2.0,
+          nucleusBoost: 1.8,
           life: life,
-          scale: ((cfg.burstBaseScale * 0.8) + Math.random() * 1.8) * scaleMult,
-          growth: (cfg.burstGrowth * 0.45 + Math.random() * 0.6) * scaleMult,
+          scale: largeScale,
+          growth: cfg.burstGrowth * 0.65,
           drag: drag,
           buoyancy: buoyancy,
           seed: Math.random(),
-          opacity: (cfg.burstOpacity * 0.9 + Math.random() * 0.05) * opacityMult,
+          opacity: softOpacity,
           color: smokeColor
         }
       );

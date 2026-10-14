@@ -329,13 +329,15 @@ export const FIREWORK_CONFIG = {
     burstBuoyancyMin: 0.55,
     burstBuoyancyMax: 0.9,
     // Kích thước cơ bản và hệ số phồng to (growth)
-    trailBaseScale: 6.5,
-    trailGrowth: 4.2,
-    burstBaseScale: 8.5,
-    burstGrowth: 5.2,
+    trailBaseScale: 14.0,
+    trailGrowth: 3.5,
+    burstBaseScale: 32.0,
+    burstGrowth: 3.2,
     // Độ mờ quang học cơ bản (base opacity)
-    trailOpacity: 0.22,
-    burstOpacity: 0.26,
+    trailOpacity: 0.24,
+    burstOpacity: 0.18,
+    // Vô hiệu hóa khói vi mô li ti rải rác dọc đường bay của hạt pháo
+    disableFlightSmoke: true,
     // Cấu hình vệt khói phóng rocket dạng tia phân đoạn liên tục (flight smoke streak trail)
     flightSmokeLifeMin: 3.5,
     flightSmokeLifeMax: 6.5,
@@ -348,7 +350,7 @@ export const FIREWORK_CONFIG = {
     // Cấu hình sương mù nền chuyển sinh liên tục (Ambient Haze Consolidation: 30% sinh, 70% sương nền)
     hazeConsolidation: true,
     hazeChance: 0.22,
-    hazeHandoverRatio: 0.30,
+    handoverRatio: 0.30,
     hazeLifeRatio: 0.70,
     hazeLifeMin: 10.0,
     hazeLifeMax: 18.0,
@@ -363,24 +365,24 @@ export const FIREWORK_CONFIG = {
     maxLights: 4,
     qualityMaxLights: {
       low: 1,
-      medium: 2,
-      high: 4,
-      unlimited: 4
+      medium: 1,
+      high: 1,
+      unlimited: 1
     },
     // Hệ số sóng xung kích vụ nổ đẩy dạt khói hiện hữu
     blastImpulseScale: 22.0,
     blastImpulseRadiusMultiplier: 1.5,
     // Tỷ lệ sinh khói nhẹ tự nhiên sau mỗi vụ nổ pháo hoa thông thường (100% các vụ nổ)
     ambientBurstSmokeChance: 1.0,
-    // Số lượng cụm khói nhỏ sinh ra khi nổ tự nhiên theo phân cấp đồ họa
+    // Số lượng khối mây khói lớn sinh ra khi nổ tự nhiên theo phân cấp đồ họa
     ambientBurstPuffCount: {
       low: 1,
       medium: 2,
-      high: 3,
-      unlimited: 4
+      high: 2,
+      unlimited: 3
     },
-    // Hệ số kích thước và độ mờ cho lượng khói nhỏ tự nhiên
-    ambientBurstScaleMultiplier: 0.70,
-    ambientBurstOpacityMultiplier: 0.65
+    // Hệ số kích thước và độ mờ cho khối khói lớn tự nhiên
+    ambientBurstScaleMultiplier: 0.95,
+    ambientBurstOpacityMultiplier: 0.75
   }
 };

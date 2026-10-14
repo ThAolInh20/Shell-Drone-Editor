@@ -53,38 +53,20 @@ describe('SmokeSystem', () => {
     expect(firstPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMax);
   });
 
-  it('should spawn subtle ambient smoke onBurst automatically (100% chance) when burst-smoke is absent', () => {
+  it('should NOT spawn smoke onBurst by default when burst-smoke is absent', () => {
     smokeSystem.setQuality('medium');
     smokeSystem.clear();
 
-    // Default call without ambientSmokeRoll override: 100% chance always spawns
     smokeSystem.onBurst({
       position: { x: 0, y: 150, z: 0 },
       colorHex: 0xff4500,
       intensity: 0.8
     });
 
-    const expectedCount = FIREWORK_CONFIG.SMOKE.ambientBurstPuffCount.medium;
-    expect(smokeSystem.puffs.length).toBe(expectedCount);
-    const ambientPuff = smokeSystem.puffs[0];
-    expect(ambientPuff.baseScale).toBeLessThan(FIREWORK_CONFIG.SMOKE.burstBaseScale * 1.5);
-  });
-
-  it('should NOT spawn ambient burst smoke if ambient roll exceeds ambientBurstSmokeChance', () => {
-    smokeSystem.setQuality('medium');
-    smokeSystem.clear();
-
-    smokeSystem.onBurst({
-      position: { x: 0, y: 150, z: 0 },
-      colorHex: 0xff4500,
-      intensity: 0.8,
-      ambientSmokeRoll: 1.05
-    });
-
     expect(smokeSystem.puffs.length).toBe(0);
   });
 
-  it('should spawn trail smoke onLaunch', () => {
+  it('should spawn launch smoke puffs onLaunch using launch quota', () => {
     smokeSystem.setQuality('medium');
     smokeSystem.clear();
 
@@ -93,12 +75,13 @@ describe('SmokeSystem', () => {
     });
 
     expect(smokeSystem.puffs.length).toBeGreaterThan(0);
-    const trailPuff = smokeSystem.puffs[0];
-    expect(trailPuff.position.x).toBeGreaterThanOrEqual(8);
-    expect(trailPuff.position.x).toBeLessThanOrEqual(12);
-    expect(trailPuff.drag).toBeDefined();
-    expect(trailPuff.life).toBeGreaterThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMin);
-    expect(trailPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMax);
+    const launchPuff = smokeSystem.puffs[0];
+    expect(launchPuff.category).toBe('launch');
+    expect(launchPuff.position.x).toBeGreaterThanOrEqual(8);
+    expect(launchPuff.position.x).toBeLessThanOrEqual(12);
+    expect(launchPuff.drag).toBeDefined();
+    expect(launchPuff.life).toBeGreaterThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMin);
+    expect(launchPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.trailLifeMax);
   });
 
   it('should apply exponential drag and wind lerp on update', () => {
@@ -271,6 +254,7 @@ describe('SmokeSystem', () => {
     const origin = new THREE.Vector3(0, 10, 0);
     const vel = new THREE.Vector3(0, -2, 0);
     const options = {
+      force: true,
       life: 4.5,
       scale: 4.8,
       growth: 3.2,
@@ -430,41 +414,52 @@ describe('SmokeSystem', () => {
   });
 
   it('should support multiple concurrent dynamic light sources via setMultiLights', () => {
-    smokeSystem.setQuality('high');
-    const lights = [
-      {
-        position: new THREE.Vector3(10, 100, 20),
-        color: new THREE.Color(0xff0000),
-        intensity: 0.9,
-        radius: 350
-      },
-      {
-        position: new THREE.Vector3(-40, 120, 50),
-        color: new THREE.Color(0x00ff00),
-        intensity: 0.75,
-        radius: 320
-      },
-      {
-        position: new THREE.Vector3(80, 150, -60),
-        color: new THREE.Color(0x0000ff),
-        intensity: 0.6,
-        radius: 300
-      }
-    ];
+    const originalLimits = { ...FIREWORK_CONFIG.SMOKE.qualityMaxLights };
+    try {
+      FIREWORK_CONFIG.SMOKE.qualityMaxLights = {
+        low: 1,
+        medium: 3,
+        high: 4,
+        unlimited: 4
+      };
+      smokeSystem.setQuality('medium');
+      const lights = [
+        {
+          position: new THREE.Vector3(10, 100, 20),
+          color: new THREE.Color(0xff0000),
+          intensity: 0.9,
+          radius: 350
+        },
+        {
+          position: new THREE.Vector3(-40, 120, 50),
+          color: new THREE.Color(0x00ff00),
+          intensity: 0.75,
+          radius: 320
+        },
+        {
+          position: new THREE.Vector3(80, 150, -60),
+          color: new THREE.Color(0x0000ff),
+          intensity: 0.6,
+          radius: 300
+        }
+      ];
 
-    smokeSystem.setMultiLights(lights);
+      smokeSystem.setMultiLights(lights);
 
-    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(3);
-    expect(smokeSystem.smokeUniforms.uLightPositions.value[0].x).toBe(10);
-    expect(smokeSystem.smokeUniforms.uLightColors.value[0].getHex()).toBe(0xff0000);
-    expect(smokeSystem.smokeUniforms.uLightIntensities.value[0]).toBeCloseTo(0.9);
-    expect(smokeSystem.smokeUniforms.uLightRadii.value[0]).toBeCloseTo(350);
+      expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(3);
+      expect(smokeSystem.smokeUniforms.uLightPositions.value[0].x).toBe(10);
+      expect(smokeSystem.smokeUniforms.uLightColors.value[0].getHex()).toBe(0xff0000);
+      expect(smokeSystem.smokeUniforms.uLightIntensities.value[0]).toBeCloseTo(0.9);
+      expect(smokeSystem.smokeUniforms.uLightRadii.value[0]).toBeCloseTo(350);
 
-    expect(smokeSystem.smokeUniforms.uLightPositions.value[1].x).toBe(-40);
-    expect(smokeSystem.smokeUniforms.uLightColors.value[1].getHex()).toBe(0x00ff00);
+      expect(smokeSystem.smokeUniforms.uLightPositions.value[1].x).toBe(-40);
+      expect(smokeSystem.smokeUniforms.uLightColors.value[1].getHex()).toBe(0x00ff00);
 
-    expect(smokeSystem.smokeUniforms.uLightPositions.value[2].x).toBe(80);
-    expect(smokeSystem.smokeUniforms.uLightColors.value[2].getHex()).toBe(0x0000ff);
+      expect(smokeSystem.smokeUniforms.uLightPositions.value[2].x).toBe(80);
+      expect(smokeSystem.smokeUniforms.uLightColors.value[2].getHex()).toBe(0x0000ff);
+    } finally {
+      FIREWORK_CONFIG.SMOKE.qualityMaxLights = originalLimits;
+    }
   });
 
   it('should limit active lights according to quality preset', () => {
@@ -475,20 +470,23 @@ describe('SmokeSystem', () => {
       { position: new THREE.Vector3(30, 100, 0), color: new THREE.Color(0xffffff), intensity: 1, radius: 400 }
     ];
 
-    // Low quality: capped at 1 light
     smokeSystem.setQuality('low');
     smokeSystem.setMultiLights(lights);
-    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(1);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(
+      FIREWORK_CONFIG.SMOKE.qualityMaxLights.low
+    );
 
-    // Medium quality: capped at 2 lights
     smokeSystem.setQuality('medium');
     smokeSystem.setMultiLights(lights);
-    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(2);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(
+      FIREWORK_CONFIG.SMOKE.qualityMaxLights.medium
+    );
 
-    // High quality: up to 4 lights
     smokeSystem.setQuality('high');
     smokeSystem.setMultiLights(lights);
-    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(4);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(
+      FIREWORK_CONFIG.SMOKE.qualityMaxLights.high
+    );
   });
 
   it('should push existing smoke puffs radially outward when a nearby burst shockwave occurs', () => {
@@ -509,8 +507,7 @@ describe('SmokeSystem', () => {
     smokeSystem.onBurst({
       position: { x: 0, y: 150, z: 0 },
       burstRadius: 50.0,
-      intensity: 0.9,
-      effects: ['burst-smoke']
+      intensity: 0.9
     });
 
     // The existing puff must receive an outward +X radial velocity impulse
