@@ -31,6 +31,10 @@ const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
 const BUFFER_CAPACITY = (QUALITY_CAPACITIES.unlimited?.launch ?? 10000)
   + (QUALITY_CAPACITIES.unlimited?.aerial ?? 15000);
 
+const MAX_SMOKE_LIGHTS = renderingConfig.smoke?.maxLights
+  ?? FIREWORK_CONFIG.SMOKE?.maxLights
+  ?? 4;
+
 export class SmokeSystem {
   constructor(sceneManager) {
     this.scene = sceneManager.instance;
@@ -102,6 +106,36 @@ export class SmokeSystem {
       uTime: {
         value: 0
       },
+      uActiveLightCount: {
+        value: 0.0
+      },
+      uLightPositions: {
+        value: [
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0)
+        ]
+      },
+      uLightColors: {
+        value: [
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000)
+        ]
+      },
+      uLightIntensities: {
+        value: new Float32Array(MAX_SMOKE_LIGHTS)
+      },
+      uLightRadii: {
+        value: new Float32Array([
+          650.0,
+          650.0,
+          650.0,
+          650.0
+        ])
+      },
       uFlashPos: {
         value: new THREE.Vector3(0, 100, 0)
       },
@@ -125,9 +159,14 @@ export class SmokeSystem {
       vertexColors: true
     });
 
-    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and dynamic burst flash illumination
+    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and dynamic multi-burst illumination
     this.smokeMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = this.smokeUniforms.uTime;
+      shader.uniforms.uActiveLightCount = this.smokeUniforms.uActiveLightCount;
+      shader.uniforms.uLightPositions = this.smokeUniforms.uLightPositions;
+      shader.uniforms.uLightColors = this.smokeUniforms.uLightColors;
+      shader.uniforms.uLightIntensities = this.smokeUniforms.uLightIntensities;
+      shader.uniforms.uLightRadii = this.smokeUniforms.uLightRadii;
       shader.uniforms.uFlashPos = this.smokeUniforms.uFlashPos;
       shader.uniforms.uFlashColor = this.smokeUniforms.uFlashColor;
       shader.uniforms.uFlashIntensity = this.smokeUniforms.uFlashIntensity;
@@ -158,7 +197,13 @@ export class SmokeSystem {
       );
 
       shader.fragmentShader = `
+        #define MAX_LIGHTS 4
         uniform float uTime;
+        uniform float uActiveLightCount;
+        uniform vec3 uLightPositions[MAX_LIGHTS];
+        uniform vec3 uLightColors[MAX_LIGHTS];
+        uniform float uLightIntensities[MAX_LIGHTS];
+        uniform float uLightRadii[MAX_LIGHTS];
         uniform vec3 uFlashPos;
         uniform vec3 uFlashColor;
         uniform float uFlashIntensity;
@@ -193,19 +238,85 @@ export class SmokeSystem {
 
         // Troi dem: khoi khong tu phat sang, co mau tram toi mac dinh
         vec3 nightAmbient = diffuseColor.rgb * 0.16;
+        vec3 accumulatedDyedColor = vec3(0.0);
+        float totalIllumAccum = 0.0;
 
-        if (uFlashIntensity > 0.001) {
+        // Pseudo-spherical normal across billboard point sprite
+        vec2 centeredP = gl_PointCoord - vec2(0.5);
+        float r2 = clamp(dot(centeredP, centeredP) * 4.0, 0.0, 1.0);
+        float nz = sqrt(max(0.0, 1.0 - r2));
+        float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
+
+        int activeLights = int(clamp(uActiveLightCount, 0.0, float(MAX_LIGHTS)));
+
+        if (activeLights > 0) {
+          for (int i = 0; i < MAX_LIGHTS; i++) {
+            if (i >= activeLights) {
+              break;
+            }
+            float lIntensity = uLightIntensities[i];
+            if (lIntensity <= 0.001) {
+              continue;
+            }
+
+            vec3 lPos = uLightPositions[i];
+            vec3 lColor = uLightColors[i];
+            float lRadius = max(10.0, uLightRadii[i]);
+
+            vec3 toLight = lPos - vWorldPos;
+            float distToLight = length(toLight);
+            if (distToLight >= lRadius) {
+              continue;
+            }
+
+            float lightAtten = clamp(1.0 - distToLight / lRadius, 0.0, 1.0);
+            lightAtten = lightAtten * lightAtten;
+
+            vec2 dirToLight2D = normalize(toLight.xz + vec2(0.0001));
+            float NdotL = clamp(
+              dot(centeredP * 2.0, dirToLight2D) * 0.45 + nz * 0.55 + 0.2,
+              0.2,
+              1.25
+            );
+
+            float lightIllum = (NdotL + edgeScattering) * lightAtten * lIntensity * 2.5;
+
+            // Phan tich do bao hoa mau (color saturation) cua anh sang phao hoa
+            float maxChan = max(lColor.r, max(lColor.g, lColor.b));
+            float minChan = min(lColor.r, min(lColor.g, lColor.b));
+            float colorSat = (maxChan > 0.001) ? ((maxChan - minChan) / maxChan) : 0.0;
+
+            vec3 illuminatedWhite = diffuseColor.rgb * 1.45;
+            float dyeRatio = clamp(0.35 + colorSat * 0.60, 0.35, 0.95);
+            vec3 dyedColor = mix(
+              illuminatedWhite,
+              lColor * 1.85,
+              dyeRatio
+            );
+
+            float illumFactor = clamp(lightIllum, 0.0, 1.0);
+            accumulatedDyedColor += dyedColor * illumFactor;
+            accumulatedDyedColor += dyedColor * (max(0.0, lightIllum - 1.0) * 0.35);
+            totalIllumAccum += illumFactor;
+          }
+
+          if (totalIllumAccum > 0.001) {
+            float blendWeight = clamp(totalIllumAccum, 0.0, 1.0);
+            diffuseColor.rgb = mix(
+              nightAmbient,
+              accumulatedDyedColor,
+              blendWeight
+            );
+          } else {
+            diffuseColor.rgb = nightAmbient;
+          }
+        } else if (uFlashIntensity > 0.001) {
+          // Fallback legacy single-light path
           vec3 toLight = uFlashPos - vWorldPos;
           float distToFlash = length(toLight);
           float flashAtten = clamp(1.0 - distToFlash / uFlashRadius, 0.0, 1.0);
           flashAtten = flashAtten * flashAtten;
 
-          // Pseudo-spherical normal across billboard point sprite
-          vec2 centeredP = gl_PointCoord - vec2(0.5);
-          float r2 = clamp(dot(centeredP, centeredP) * 4.0, 0.0, 1.0);
-          float nz = sqrt(max(0.0, 1.0 - r2));
-
-          // Directional illumination from burst position towards puff surface
           vec2 dirToLight2D = normalize(toLight.xz + vec2(0.0001));
           float NdotL = clamp(
             dot(centeredP * 2.0, dirToLight2D) * 0.45 + nz * 0.55 + 0.2,
@@ -213,19 +324,12 @@ export class SmokeSystem {
             1.25
           );
 
-          // Translucent rim scattering on puff boundaries
-          float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
           float totalIllum = (NdotL + edgeScattering) * flashAtten * uFlashIntensity * 2.5;
-
-          // Phan tich do bao hoa mau (color saturation) cua anh sang phao hoa
           float maxChan = max(uFlashColor.r, max(uFlashColor.g, uFlashColor.b));
           float minChan = min(uFlashColor.r, min(uFlashColor.g, uFlashColor.b));
           float colorSat = (maxChan > 0.001) ? ((maxChan - minChan) / maxChan) : 0.0;
 
-          // 1. Anh sang trang hoac vang nhe: kich thich hien ro khoi trang sang tu nhien
           vec3 illuminatedWhite = diffuseColor.rgb * 1.45;
-
-          // 2. Anh sang mau cuong do manh: nhuom mau sac dam da cua phao hoa len khoi
           float dyeRatio = clamp(0.35 + colorSat * 0.60, 0.35, 0.95);
           vec3 dyedColor = mix(
             illuminatedWhite,
@@ -233,15 +337,12 @@ export class SmokeSystem {
             dyeRatio
           );
 
-          // Chuyen doi tu bong toi dem sang the tich khoi duoc chieu sang
           float illumFactor = clamp(totalIllum, 0.0, 1.0);
           diffuseColor.rgb = mix(
             nightAmbient,
             dyedColor,
             illumFactor
           );
-
-          // Hieu ung phan xa the tich loi khi o rat gan tam no phao
           diffuseColor.rgb += dyedColor * (max(0.0, totalIllum - 1.0) * 0.35);
         } else {
           diffuseColor.rgb = nightAmbient;
@@ -265,7 +366,58 @@ export class SmokeSystem {
     this.setupEventListeners();
   }
 
-  setBurstFlash(position, color, intensity) {
+  setMultiLights(lights = []) {
+    const qualityLimits = FIREWORK_CONFIG.SMOKE?.qualityMaxLights ?? {
+      low: 1,
+      medium: 2,
+      high: MAX_SMOKE_LIGHTS,
+      unlimited: MAX_SMOKE_LIGHTS
+    };
+    const maxLightsByQuality = qualityLimits[this.quality] ?? MAX_SMOKE_LIGHTS;
+    const count = Math.min(
+      maxLightsByQuality,
+      Math.min(MAX_SMOKE_LIGHTS, lights.length)
+    );
+    this.smokeUniforms.uActiveLightCount.value = count;
+
+    for (let i = 0; i < MAX_SMOKE_LIGHTS; i++) {
+      if (i < count) {
+        const light = lights[i];
+        if (light.position) {
+          this.smokeUniforms.uLightPositions.value[i].copy(light.position);
+        }
+        if (light.color) {
+          this.smokeUniforms.uLightColors.value[i].copy(light.color);
+        }
+        this.smokeUniforms.uLightIntensities.value[i] = Math.max(
+          0,
+          Number(light.intensity) || 0
+        );
+        this.smokeUniforms.uLightRadii.value[i] = Math.max(
+          10,
+          Number(light.radius) || 450
+        );
+      } else {
+        this.smokeUniforms.uLightIntensities.value[i] = 0.0;
+      }
+    }
+
+    if (count > 0) {
+      const primary = lights[0];
+      if (primary.position) {
+        this.smokeUniforms.uFlashPos.value.copy(primary.position);
+      }
+      if (primary.color) {
+        this.smokeUniforms.uFlashColor.value.copy(primary.color);
+      }
+      this.smokeUniforms.uFlashIntensity.value = primary.intensity || 0.0;
+      this.smokeUniforms.uFlashRadius.value = primary.radius || 650.0;
+    } else {
+      this.smokeUniforms.uFlashIntensity.value = 0.0;
+    }
+  }
+
+  setBurstFlash(position, color, intensity, radius = 650.0) {
     if (position) {
       this.smokeUniforms.uFlashPos.value.copy(position);
     }
@@ -273,6 +425,20 @@ export class SmokeSystem {
       this.smokeUniforms.uFlashColor.value.copy(color);
     }
     this.smokeUniforms.uFlashIntensity.value = intensity || 0.0;
+    this.smokeUniforms.uFlashRadius.value = radius || 650.0;
+
+    if (intensity > 0.001 && position && color) {
+      this.setMultiLights([
+        {
+          position,
+          color,
+          intensity,
+          radius
+        }
+      ]);
+    } else {
+      this.setMultiLights([]);
+    }
   }
 
   setupEventListeners() {

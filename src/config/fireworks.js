@@ -358,6 +358,14 @@ export const FIREWORK_CONFIG = {
     // Cấu hình hòa trộn sáp nhập hạt khói (Progressive Particle Coalescence)
     coalescenceEnabled: true,
     coalescenceNucleusRatio: 0.25,
-    coalescenceExpansionBoost: 3.5
+    coalescenceExpansionBoost: 3.5,
+    // Số lượng nguồn sáng động chiếu rọi lên khói tối đa và theo phân cấp đồ họa
+    maxLights: 4,
+    qualityMaxLights: {
+      low: 1,
+      medium: 2,
+      high: 4,
+      unlimited: 4
+    }
   }
 };

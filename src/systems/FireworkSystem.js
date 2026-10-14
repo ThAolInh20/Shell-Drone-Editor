@@ -365,6 +365,10 @@ export class FireworkSystem {
 
       const shellSizeVal = shellPreset.shellSize ?? 1;
       const normalizedEnergy = 0.35 + ((shellSizeVal - 1) / 5) * 0.65;
+      const isStrobeManual = (Array.isArray(shellPreset.effects) && shellPreset.effects.includes('strobe'))
+        || shellPreset.effectType === 'strobe'
+        || Boolean(shellPreset.strobe);
+      const isDyingEmberManual = Boolean(shellPreset.isDyingEmber);
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -382,7 +386,9 @@ export class FireworkSystem {
             z: burstPos.z
           },
           intensity: normalizedEnergy,
-          duration: 1.25 + normalizedEnergy * 1.1
+          duration: 1.25 + normalizedEnergy * 1.1,
+          particleLife: BURST_LIFE * (isDyingEmberManual ? 2.0 : 1.0),
+          isStrobe: isStrobeManual
         }
       );
       return;
@@ -2194,6 +2200,11 @@ export class FireworkSystem {
       || Boolean(item.preset?.['burst-smoke'])
       || Boolean(item.preset?.burstSmoke);
 
+    const isStrobe = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('strobe'))
+      || item.preset?.effectType === 'strobe'
+      || Boolean(item.preset?.strobe);
+    const isDyingEmber = Boolean(item.preset?.isDyingEmber);
+
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
       shellType: item.shellType ?? item.shape,
@@ -2204,6 +2215,7 @@ export class FireworkSystem {
       hasCustomColor: Boolean(item.preset?.hasCustomColor),
       noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
       colorHex: item.color.getHex(),
+      color2Hex: item.color2 ? item.color2.getHex() : null,
       position: {
         x: burstPosition.x,
         y: burstPosition.y,
@@ -2211,7 +2223,9 @@ export class FireworkSystem {
       },
       burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
       intensity: isGhostShell ? 0.0 : normalizedEnergy,
-      duration: 1.25 + normalizedEnergy * 1.1
+      duration: 1.25 + normalizedEnergy * 1.1,
+      particleLife: BURST_LIFE * (isDyingEmber ? 2.0 : 1.0),
+      isStrobe
     });
   }
 

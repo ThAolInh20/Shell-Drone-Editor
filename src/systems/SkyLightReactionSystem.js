@@ -33,9 +33,25 @@ export class SkyLightReactionSystem {
       return;
     }
     const color = new THREE.Color(detail.colorHex ?? 0xffffff);
-    const rawIntensity = THREE.MathUtils.clamp(detail.intensity ?? 0.6, 0.1, 1);
+    const color2 = detail.color2Hex !== undefined && detail.color2Hex !== null
+      ? new THREE.Color(detail.color2Hex)
+      : null;
+    const rawIntensity = THREE.MathUtils.clamp(
+      detail.intensity ?? 0.6,
+      0.1,
+      1.0
+    );
     const intensity = Math.pow(rawIntensity, 1.35);
-    const duration = THREE.MathUtils.clamp(detail.duration ?? 1.2, 0.35, 1.6);
+    const skyDuration = THREE.MathUtils.clamp(
+      detail.duration ?? 1.2,
+      0.35,
+      1.6
+    );
+    const starDuration = THREE.MathUtils.clamp(
+      detail.particleLife ?? (2.0 + intensity * 1.5),
+      1.2,
+      6.0
+    );
 
     const position = new THREE.Vector3(
       detail.position?.x ?? 0,
@@ -45,10 +61,14 @@ export class SkyLightReactionSystem {
 
     this.reactions.push({
       color,
+      color2,
       intensity,
-      duration,
+      skyDuration,
+      starDuration,
       age: 0,
-      position
+      position,
+      burstRadius: detail.burstRadius ?? 45.0,
+      isStrobe: Boolean(detail.isStrobe)
     });
 
     if (this.reactions.length > this.maxReactions) {
@@ -68,34 +88,76 @@ export class SkyLightReactionSystem {
     let skyEnergy = 0;
     let strongest = null;
     let secondStrongest = null;
+    const activeSmokeLights = [];
 
     for (const reaction of this.reactions) {
       reaction.age += deltaTime;
-      const t = reaction.age / reaction.duration;
-      if (t >= 1) {
+      if (reaction.age >= reaction.starDuration) {
         continue;
       }
-      // Strong immediate flash with softer trailing afterglow.
-      const flash = Math.exp(-4.6 * t) * reaction.intensity;
-      const tail = Math.exp(-1.55 * t) * reaction.intensity * 0.42;
-      const weight = flash + tail;
 
-      totalWeight += weight;
-      skyEnergy += weight;
-      colorAccumulator.add(reaction.color.clone().multiplyScalar(weight));
+      // 1. Sky & Ambient Lighting (Short flash to keep sky night dark)
+      const tSky = reaction.age / reaction.skyDuration;
+      let skyWeight = 0;
+      if (tSky < 1.0) {
+        const flash = Math.exp(-4.6 * tSky) * reaction.intensity;
+        const tail = Math.exp(-1.55 * tSky) * reaction.intensity * 0.42;
+        skyWeight = flash + tail;
+        totalWeight += skyWeight;
+        skyEnergy += skyWeight;
+        colorAccumulator.add(reaction.color.clone().multiplyScalar(skyWeight));
+      }
 
-      if (!strongest || weight > strongest.weight) {
+      // 2. Star Cluster Radiance & Burst Illumination for Smoke & Local Objects
+      const tStar = reaction.age / reaction.starDuration;
+      const flashPeak = Math.exp(-7.5 * reaction.age) * reaction.intensity * 1.6;
+      const starFuel = Math.pow(Math.max(0.0, 1.0 - tStar), 1.2);
+      let starRadiance = reaction.intensity * 0.9 * starFuel;
+
+      if (reaction.isStrobe) {
+        const strobePhase = Math.sin(reaction.age * 36.0);
+        const strobeMultiplier = strobePhase > 0.0 ? 1.4 : 0.2;
+        starRadiance *= strobeMultiplier;
+      }
+
+      const localIntensity = flashPeak + starRadiance;
+      const lightRadius = THREE.MathUtils.lerp(
+        180.0,
+        420.0,
+        Math.min(1.0, reaction.age * 0.85)
+      );
+
+      const lightColor = reaction.color2
+        ? reaction.color.clone().lerp(reaction.color2, tStar)
+        : reaction.color;
+
+      if (localIntensity > 0.005) {
+        activeSmokeLights.push({
+          position: reaction.position,
+          color: lightColor,
+          intensity: THREE.MathUtils.clamp(
+            localIntensity * 1.35,
+            0.0,
+            1.8
+          ),
+          radius: lightRadius,
+          weight: localIntensity
+        });
+      }
+
+      const combinedWeight = Math.max(skyWeight, localIntensity);
+      if (!strongest || combinedWeight > strongest.weight) {
         secondStrongest = strongest;
         strongest = {
-          weight,
+          weight: combinedWeight,
           position: reaction.position,
-          color: reaction.color
+          color: lightColor
         };
-      } else if (!secondStrongest || weight > secondStrongest.weight) {
+      } else if (!secondStrongest || combinedWeight > secondStrongest.weight) {
         secondStrongest = {
-          weight,
+          weight: combinedWeight,
           position: reaction.position,
-          color: reaction.color
+          color: lightColor
         };
       }
 
@@ -104,10 +166,30 @@ export class SkyLightReactionSystem {
 
     this.reactions = alive;
 
+    // Distribute multi-source illumination to smoke system
+    activeSmokeLights.sort((a, b) => b.intensity - a.intensity);
+
+    if (this.smokeSystem) {
+      if (typeof this.smokeSystem.setMultiLights === 'function') {
+        this.smokeSystem.setMultiLights(activeSmokeLights);
+      } else if (typeof this.smokeSystem.setBurstFlash === 'function') {
+        if (activeSmokeLights.length > 0) {
+          this.smokeSystem.setBurstFlash(
+            activeSmokeLights[0].position,
+            activeSmokeLights[0].color,
+            activeSmokeLights[0].intensity,
+            activeSmokeLights[0].radius
+          );
+        } else {
+          this.smokeSystem.setBurstFlash(null, null, 0);
+        }
+      }
+    }
+
     const blendedColor = totalWeight > 0
       ? colorAccumulator.multiplyScalar(1 / totalWeight)
       : this.baseSkyColor.clone();
-      
+
     // Significantly reduced global light influence to keep the sky dark
     const skyMix = THREE.MathUtils.clamp(
       skyEnergy * 0.005,
@@ -148,17 +230,18 @@ export class SkyLightReactionSystem {
     if (strongest) {
       this.reusableBurstLight.color.copy(strongest.color);
       this.reusableBurstLight.position.copy(strongest.position);
-      // Increased the multiplier and max intensity since global lighting is reduced
-      this.reusableBurstLight.intensity = THREE.MathUtils.clamp(strongest.weight * 3.5, 0, 2.0);
+      this.reusableBurstLight.intensity = THREE.MathUtils.clamp(
+        strongest.weight * 3.5,
+        0,
+        2.0
+      );
 
-      const flashIntensity = THREE.MathUtils.clamp(strongest.weight * 1.5, 0, 1.0);
-      if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
-        this.smokeSystem.setBurstFlash(
-          strongest.position,
-          strongest.color,
-          flashIntensity
-        );
-      }
+      const flashIntensity = THREE.MathUtils.clamp(
+        strongest.weight * 1.5,
+        0,
+        1.0
+      );
+
       if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
         this.sceneManager.waterSurface.setBurstFlash(
           strongest.position,
@@ -168,25 +251,11 @@ export class SkyLightReactionSystem {
       }
       if (this.sceneManager.distantMountains) {
         if (typeof this.sceneManager.distantMountains.updateFlashes === 'function') {
-          const flashes = [
-            {
-              position: strongest.position,
-              color: strongest.color,
-              intensity: flashIntensity * 0.45
-            }
-          ];
-          if (secondStrongest) {
-            const secondFlash = THREE.MathUtils.clamp(
-              secondStrongest.weight * 1.5,
-              0,
-              1.0
-            );
-            flashes.push({
-              position: secondStrongest.position,
-              color: secondStrongest.color,
-              intensity: secondFlash * 0.35
-            });
-          }
+          const flashes = activeSmokeLights.slice(0, 2).map((l, idx) => ({
+            position: l.position,
+            color: l.color,
+            intensity: l.intensity * (idx === 0 ? 0.45 : 0.35)
+          }));
           this.sceneManager.distantMountains.updateFlashes(flashes);
         } else if (typeof this.sceneManager.distantMountains.setBurstFlash === 'function') {
           this.sceneManager.distantMountains.setBurstFlash(
@@ -205,9 +274,6 @@ export class SkyLightReactionSystem {
       }
     } else {
       this.reusableBurstLight.intensity = 0;
-      if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
-        this.smokeSystem.setBurstFlash(null, null, 0);
-      }
       if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
         this.sceneManager.waterSurface.setBurstFlash(null, null, 0);
       }
@@ -244,10 +310,18 @@ export class SkyLightReactionSystem {
       this.baseHemisphereIntensity,
       lerpAlpha
     );
-    this.reusableBurstLight.intensity = THREE.MathUtils.lerp(this.reusableBurstLight.intensity, 0, lerpAlpha);
+    this.reusableBurstLight.intensity = THREE.MathUtils.lerp(
+      this.reusableBurstLight.intensity,
+      0,
+      lerpAlpha
+    );
 
-    if (this.smokeSystem && typeof this.smokeSystem.setBurstFlash === 'function') {
-      this.smokeSystem.setBurstFlash(null, null, 0);
+    if (this.smokeSystem) {
+      if (typeof this.smokeSystem.setMultiLights === 'function') {
+        this.smokeSystem.setMultiLights([]);
+      } else if (typeof this.smokeSystem.setBurstFlash === 'function') {
+        this.smokeSystem.setBurstFlash(null, null, 0);
+      }
     }
     if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
       this.sceneManager.waterSurface.setBurstFlash(null, null, 0);

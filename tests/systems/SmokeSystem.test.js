@@ -410,4 +410,66 @@ describe('SmokeSystem', () => {
     expect(smokeSystem.smokeUniforms.uFlashPos.value.y).toBe(250);
     expect(smokeSystem.smokeUniforms.uFlashPos.value.z).toBe(-40);
   });
+
+  it('should support multiple concurrent dynamic light sources via setMultiLights', () => {
+    smokeSystem.setQuality('high');
+    const lights = [
+      {
+        position: new THREE.Vector3(10, 100, 20),
+        color: new THREE.Color(0xff0000),
+        intensity: 0.9,
+        radius: 350
+      },
+      {
+        position: new THREE.Vector3(-40, 120, 50),
+        color: new THREE.Color(0x00ff00),
+        intensity: 0.75,
+        radius: 320
+      },
+      {
+        position: new THREE.Vector3(80, 150, -60),
+        color: new THREE.Color(0x0000ff),
+        intensity: 0.6,
+        radius: 300
+      }
+    ];
+
+    smokeSystem.setMultiLights(lights);
+
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(3);
+    expect(smokeSystem.smokeUniforms.uLightPositions.value[0].x).toBe(10);
+    expect(smokeSystem.smokeUniforms.uLightColors.value[0].getHex()).toBe(0xff0000);
+    expect(smokeSystem.smokeUniforms.uLightIntensities.value[0]).toBeCloseTo(0.9);
+    expect(smokeSystem.smokeUniforms.uLightRadii.value[0]).toBeCloseTo(350);
+
+    expect(smokeSystem.smokeUniforms.uLightPositions.value[1].x).toBe(-40);
+    expect(smokeSystem.smokeUniforms.uLightColors.value[1].getHex()).toBe(0x00ff00);
+
+    expect(smokeSystem.smokeUniforms.uLightPositions.value[2].x).toBe(80);
+    expect(smokeSystem.smokeUniforms.uLightColors.value[2].getHex()).toBe(0x0000ff);
+  });
+
+  it('should limit active lights according to quality preset', () => {
+    const lights = [
+      { position: new THREE.Vector3(0, 100, 0), color: new THREE.Color(0xffffff), intensity: 1, radius: 400 },
+      { position: new THREE.Vector3(10, 100, 0), color: new THREE.Color(0xffffff), intensity: 1, radius: 400 },
+      { position: new THREE.Vector3(20, 100, 0), color: new THREE.Color(0xffffff), intensity: 1, radius: 400 },
+      { position: new THREE.Vector3(30, 100, 0), color: new THREE.Color(0xffffff), intensity: 1, radius: 400 }
+    ];
+
+    // Low quality: capped at 1 light
+    smokeSystem.setQuality('low');
+    smokeSystem.setMultiLights(lights);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(1);
+
+    // Medium quality: capped at 2 lights
+    smokeSystem.setQuality('medium');
+    smokeSystem.setMultiLights(lights);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(2);
+
+    // High quality: up to 4 lights
+    smokeSystem.setQuality('high');
+    smokeSystem.setMultiLights(lights);
+    expect(smokeSystem.smokeUniforms.uActiveLightCount.value).toBe(4);
+  });
 });
