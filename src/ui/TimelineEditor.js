@@ -6,6 +6,7 @@ import { globalEventBus } from '../core/EventBus.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
 import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
 import { showToast } from '../utils/Toast.js';
+import { WaveformGenerator } from '../utils/WaveformGenerator.js';
 
 
 export class TimelineEditor {
@@ -1296,6 +1297,56 @@ export class TimelineEditor {
       }
       block.appendChild(textSpan);
 
+      // Render audio waveform behind the text label
+      if (seq.type === 'audio') {
+        textSpan.style.position = 'relative';
+        textSpan.style.zIndex = '2';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.opacity = '0.55';
+        canvas.style.zIndex = '1';
+        block.appendChild(canvas);
+
+        const renderWave = (peaks) => {
+          WaveformGenerator.renderWaveform(
+            canvas,
+            peaks,
+            {
+              width,
+              height: this.rowHeight,
+              color: 'rgba(255, 255, 255, 0.75)'
+            }
+          );
+        };
+
+        if (seq._waveformPeaks) {
+          renderWave(seq._waveformPeaks);
+        } else {
+          const audioSrc = seq._blobUrl ||
+            seq._file ||
+            (seq.url ? (seq.url.startsWith('/') || seq.url.startsWith('http') ? seq.url : `/${seq.url}`) : null);
+
+          if (audioSrc && !seq._waveformPromise) {
+            seq._waveformPromise = WaveformGenerator.getPeaks(audioSrc)
+              .then((peaks) => {
+                seq._waveformPeaks = peaks;
+                delete seq._waveformPromise;
+                this.renderTracks();
+              })
+              .catch((err) => {
+                delete seq._waveformPromise;
+                console.warn('Could not generate waveform:', err);
+              });
+          }
+        }
+      }
+
       // Render yellow dots for beats if it's an audio block
       if (seq.type === 'audio' && seq.beats) {
         seq.beats.forEach((beatTime) => {
@@ -1312,6 +1363,7 @@ export class TimelineEditor {
             dot.style.backgroundColor = '#ffd700';
             dot.style.border = '1px solid rgba(0,0,0,0.5)';
             dot.style.cursor = 'pointer';
+            dot.style.zIndex = '3';
             dot.title = `Beat: ${beatTime.toFixed(2)}s (Double click to delete)`;
 
             dot.addEventListener(
@@ -1554,12 +1606,56 @@ export class TimelineEditor {
     try {
       const fileData = await fileStorage.openFileDialog();
       if (fileData) {
-        const { filePath, content, filename } = fileData;
+        const {
+          filePath,
+          content,
+          filename,
+          companionAudios
+        } = fileData;
         const data = JSON.parse(content);
-        if (!Array.isArray(data)) throw new Error(t('editor.filePanel.alertInvalidJson'));
+        if (!Array.isArray(data)) {
+          throw new Error(t('editor.filePanel.alertInvalidJson'));
+        }
 
-        if (this.sequences.length > 0 && !confirm(t('editor.timelinePanel.importConfirm'))) {
+        if (
+          this.sequences.length > 0 &&
+          !confirm(t('editor.timelinePanel.importConfirm'))
+        ) {
           return;
+        }
+
+        if (companionAudios) {
+          const blobUrlCache = {};
+          const attachAudio = (list) => {
+            list.forEach((item) => {
+              if (item.type === 'audio') {
+                const audioName = (item.url || item.name || '').split(/[\\/]/).pop();
+                const match = companionAudios[audioName] ||
+                  companionAudios[item.url] ||
+                  companionAudios[item.name];
+                if (match && match.buffer) {
+                  const cacheKey = audioName || item.url || item.name;
+                  if (!blobUrlCache[cacheKey]) {
+                    const blob = new Blob(
+                      [match.buffer],
+                      {
+                        type: match.mimeType || 'audio/mpeg'
+                      }
+                    );
+                    blobUrlCache[cacheKey] = URL.createObjectURL(blob);
+                  }
+                  item._blobUrl = blobUrlCache[cacheKey];
+                }
+              }
+              if (
+                item.type === 'group' &&
+                Array.isArray(item.children)
+              ) {
+                attachAudio(item.children);
+              }
+            });
+          };
+          attachAudio(data);
         }
 
         this.sequences = data;
@@ -1636,7 +1732,16 @@ export class TimelineEditor {
   }
 
   cleanSequence(s) {
-    const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
+    const {
+      _trackRow,
+      _deleted,
+      _blobUrl,
+      _waveformPeaks,
+      _waveformLoading,
+      _waveformPromise,
+      initialTime,
+      ...cleanObj
+    } = s;
     if (cleanObj.type === 'group' && cleanObj.children) {
       cleanObj.children = cleanObj.children.map((child) => {
         return this.cleanSequence(child);
