@@ -34,18 +34,112 @@ export const FIREWORK_CONFIG = {
 
   // Thông số mặc định cho pha phát nổ tiêu chuẩn
   BURST: {
-    // Vận tốc bung hạt cơ bản khi pháo nổ
-    baseSpeed: 65,
+    // Vận tốc bung hạt cơ bản khi pháo nổ (mở rộng trang nhã, không quá nhanh)
+    baseSpeed: 74,
     // Thời gian sống cơ bản của hạt nổ pháo hoa (giây)
     baseLife: 2.3,
     // Ngưỡng tỉ lệ vòng đời bắt đầu thực hiện hiệu ứng mờ dần (dissolve)
     dissolveStart: 0.62,
+    // Hệ số lực cản không khí cơ bản giúp hạt hãm phanh êm dịu tự nhiên
+    baseDrag: 0.46,
+    // Độ phân tán lực cản ngẫu nhiên giữa các hạt
+    dragJitter: 0.20,
+    // Độ lệch vận tốc nổ ban đầu để phá vỡ khối cầu đồng nhất
+    speedJitter: 0.10,
+    // Độ phân tán thời gian sống của hạt
+    lifeJitter: 0.15,
     // Số hạt nổ mặc định cho một quả pháo tiêu chuẩn
     baseParticles: 110,
     // Số hạt nổ tối thiểu cho phép
     minParticles: 60,
     // Số hạt nổ tối đa cho phép để bảo vệ FPS
     maxParticles: 220
+  },
+
+  // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
+  // Giúp từng nhóm pháo hoa có vận tốc, lực cản và đường cong chuyển động riêng biệt
+  DYNAMICS_PROFILES: {
+    // Pháo nổ tiêu chuẩn (Chrysanthemum, Peony, Brocade, Sphere, Pistil)
+    standard: {
+      baseSpeed: 74,
+      baseDrag: 0.46,
+      dragJitter: 0.20,
+      speedJitter: 0.10,
+      lifeJitter: 0.15,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.32,
+      gravityRampFull: 0.55,
+      minGravity: 0.05,
+      thermalCooling: true
+    },
+    // Hình dạng hình học đường viền (Ring, Heart, Star, Smiley, Cat, Fish)
+    geometric: {
+      baseSpeed: 54,
+      baseDrag: 0.40,
+      dragJitter: 0.05,
+      speedJitter: 0.04,
+      lifeJitter: 0.10,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.35,
+      gravityRampFull: 0.60,
+      minGravity: 0.08,
+      thermalCooling: true
+    },
+    // Liễu rủ vàng kim và tàn rơi dài (Willow, Kamuro, Weeping Willow, Falling Comets)
+    willow: {
+      baseSpeed: 58,
+      baseDrag: 0.20,
+      dragJitter: 0.12,
+      speedJitter: 0.10,
+      lifeJitter: 0.25,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.20,
+      gravityRampFull: 0.45,
+      minGravity: 0.10,
+      thermalCooling: false
+    },
+    // Hạt trôi nổi, bồng bềnh hữu cơ (Flow, Snow, Wave, Falling Leaves, Swimming Star)
+    floating: {
+      baseSpeed: 36,
+      baseDrag: 0.70,
+      dragJitter: 0.16,
+      speedJitter: 0.12,
+      lifeJitter: 0.20,
+      hasApexBrake: false,
+      delayedGravity: false,
+      thermalCooling: false
+    },
+    // Pháo nổ tách chữ thập (Crossette)
+    crossette: {
+      baseSpeed: 62,
+      baseDrag: 0.38,
+      dragJitter: 0.10,
+      speedJitter: 0.08,
+      lifeJitter: 0.10,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.32,
+      gravityRampFull: 0.55,
+      minGravity: 0.06,
+      thermalCooling: true
+    },
+    // Chùm tia sao băng (Bouquet Comet, Comet Ring, Half-Flash, Split-Flash)
+    comet: {
+      baseSpeed: 70,
+      baseDrag: 0.30,
+      dragJitter: 0.14,
+      speedJitter: 0.10,
+      lifeJitter: 0.15,
+      hasApexBrake: false,
+      delayedGravity: true,
+      gravityRampStart: 0.28,
+      gravityRampFull: 0.52,
+      minGravity: 0.06,
+      thermalCooling: true
+    }
   },
 
   // Hệ số nhân số lượng hạt dựa trên hình dạng vụ nổ (Shape)
@@ -61,7 +155,7 @@ export const FIREWORK_CONFIG = {
     willow: 1.18,
     lightning: 1.16,
     star: 1.14,
-    'double-helix': 1.25,
+    'double-helix': 0.95,
     'sparkling-branches': 1.0
   },
 
@@ -70,7 +164,7 @@ export const FIREWORK_CONFIG = {
     standard: 1,
     crackle: 1.15,
     floral: 1.18,
-    'falling-leaves': 1.04,
+    'falling-leaves': 0.78,
     heart: 1.22,
     strobe: 1.08,
     wave: 1.1,
@@ -83,7 +177,7 @@ export const FIREWORK_CONFIG = {
     'crysanthemum-cc': 1.25,
     'ghost-kamuro': 0.8,
     ghost: 1.15,
-    'double-helix': 1.25,
+    'double-helix': 0.90,
     crossette: 0.6,
     'sparkle-trail': 1.0,
     'sparkling-branch-comet': 1.0,
@@ -235,13 +329,15 @@ export const FIREWORK_CONFIG = {
     burstBuoyancyMin: 0.55,
     burstBuoyancyMax: 0.9,
     // Kích thước cơ bản và hệ số phồng to (growth)
-    trailBaseScale: 6.5,
-    trailGrowth: 4.2,
-    burstBaseScale: 8.5,
-    burstGrowth: 5.2,
+    trailBaseScale: 14.0,
+    trailGrowth: 3.5,
+    burstBaseScale: 32.0,
+    burstGrowth: 3.2,
     // Độ mờ quang học cơ bản (base opacity)
-    trailOpacity: 0.22,
-    burstOpacity: 0.26,
+    trailOpacity: 0.24,
+    burstOpacity: 0.18,
+    // Vô hiệu hóa khói vi mô li ti rải rác dọc đường bay của hạt pháo
+    disableFlightSmoke: true,
     // Cấu hình vệt khói phóng rocket dạng tia phân đoạn liên tục (flight smoke streak trail)
     flightSmokeLifeMin: 3.5,
     flightSmokeLifeMax: 6.5,
@@ -254,7 +350,7 @@ export const FIREWORK_CONFIG = {
     // Cấu hình sương mù nền chuyển sinh liên tục (Ambient Haze Consolidation: 30% sinh, 70% sương nền)
     hazeConsolidation: true,
     hazeChance: 0.22,
-    hazeHandoverRatio: 0.30,
+    handoverRatio: 0.30,
     hazeLifeRatio: 0.70,
     hazeLifeMin: 10.0,
     hazeLifeMax: 18.0,
@@ -264,6 +360,29 @@ export const FIREWORK_CONFIG = {
     // Cấu hình hòa trộn sáp nhập hạt khói (Progressive Particle Coalescence)
     coalescenceEnabled: true,
     coalescenceNucleusRatio: 0.25,
-    coalescenceExpansionBoost: 3.5
+    coalescenceExpansionBoost: 3.5,
+    // Số lượng nguồn sáng động chiếu rọi lên khói tối đa và theo phân cấp đồ họa
+    maxLights: 4,
+    qualityMaxLights: {
+      low: 1,
+      medium: 1,
+      high: 1,
+      unlimited: 1
+    },
+    // Hệ số sóng xung kích vụ nổ đẩy dạt khói hiện hữu
+    blastImpulseScale: 22.0,
+    blastImpulseRadiusMultiplier: 1.5,
+    // Tỷ lệ sinh khói nhẹ tự nhiên sau mỗi vụ nổ pháo hoa thông thường (100% các vụ nổ)
+    ambientBurstSmokeChance: 1.0,
+    // Số lượng khối mây khói lớn sinh ra khi nổ tự nhiên theo phân cấp đồ họa
+    ambientBurstPuffCount: {
+      low: 1,
+      medium: 2,
+      high: 2,
+      unlimited: 3
+    },
+    // Hệ số kích thước và độ mờ cho khối khói lớn tự nhiên
+    ambientBurstScaleMultiplier: 0.95,
+    ambientBurstOpacityMultiplier: 0.75
   }
 };

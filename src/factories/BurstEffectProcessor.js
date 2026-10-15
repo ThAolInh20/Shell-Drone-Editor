@@ -1,6 +1,86 @@
 import * as THREE from 'three';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 export class BurstEffectProcessor {
+  static getDynamicsProfile(dynamicsType, shapeType, preset = null) {
+    const profiles = FIREWORK_CONFIG.DYNAMICS_PROFILES;
+    if (!profiles) return null;
+
+    // 1. Kiem tra cau hinh ghi de truc tiep trong preset
+    if (preset?.dynamicsProfile && profiles[preset.dynamicsProfile]) {
+      return profiles[preset.dynamicsProfile];
+    }
+
+    const normDynamics = (
+      dynamicsType ||
+      preset?.dynamicsType ||
+      preset?.dynamics ||
+      preset?.effectType ||
+      ''
+    ).toLowerCase();
+
+    // 2. Tra cuu theo loai Dynamics
+    if (
+      normDynamics === 'willow' ||
+      normDynamics === 'willow-up' ||
+      normDynamics === 'willow-arch' ||
+      normDynamics === 'kamuro' ||
+      normDynamics === 'ghost-kamuro' ||
+      normDynamics === 'falling-comets' ||
+      normDynamics === 'falling-comets-glitter'
+    ) {
+      return profiles.willow;
+    }
+
+    if (normDynamics === 'crossette') {
+      return profiles.crossette;
+    }
+
+    if (
+      normDynamics === 'flow' ||
+      normDynamics === 'snow' ||
+      normDynamics === 'wave' ||
+      normDynamics === 'falling-leaves' ||
+      normDynamics === 'swimming-star' ||
+      normDynamics === 'galaxy-spin'
+    ) {
+      return profiles.floating;
+    }
+
+    if (
+      normDynamics === 'bouquet-comet' ||
+      normDynamics === 'comet-ring' ||
+      normDynamics === 'sparkling-branches' ||
+      normDynamics === 'sparkling-branch-comet' ||
+      normDynamics === 'half-flash' ||
+      normDynamics === 'split-flash'
+    ) {
+      return profiles.comet;
+    }
+
+    // 3. Tra cuu theo loai Shape hinh hoc duong vien
+    const normShape = (
+      shapeType ||
+      preset?.shapeType ||
+      preset?.shape ||
+      ''
+    ).toLowerCase();
+
+    if (
+      normShape === 'ring' ||
+      normShape === 'heart' ||
+      normShape === 'star' ||
+      normShape === 'smiley' ||
+      normShape === 'cat' ||
+      normShape === 'fish' ||
+      normShape === 'flower'
+    ) {
+      return profiles.geometric;
+    }
+
+    // 4. Mac dinh la profile standard
+    return profiles.standard;
+  }
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
@@ -147,6 +227,7 @@ export class BurstEffectProcessor {
     const effectType = this.normalizeEffectType(effectState?.effectType ?? 'standard');
 
     let gravityScale = 0.3;
+    let dragCoefficient = undefined;
     let emitSpark = false;
     let spawnTrail = false;
     let trailLife = 0.8;
@@ -161,6 +242,8 @@ export class BurstEffectProcessor {
       const overrides = strategy.updateVelocity(velocity, index, deltaTime, age, maxLife, effectState);
       if (overrides) {
         if (overrides.gravityScale !== undefined) gravityScale = overrides.gravityScale;
+        if (overrides.dragCoefficient !== undefined) dragCoefficient = overrides.dragCoefficient;
+        if (overrides.drag !== undefined) dragCoefficient = overrides.drag;
         if (overrides.emitSpark !== undefined) emitSpark = overrides.emitSpark;
         if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
         if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
@@ -230,6 +313,7 @@ export class BurstEffectProcessor {
 
     return {
       gravityScale,
+      dragCoefficient,
       emitSpark,
       spawnTrail,
       trailLife,
@@ -611,9 +695,9 @@ BurstEffectProcessor.registerEffect('no-burst', {
 
 BurstEffectProcessor.registerEffect('ghost-kamuro', {
   updateVelocity(velocity, index, deltaTime, age, maxLife) {
-    velocity.x *= 0.988;
-    velocity.z *= 0.988;
-    velocity.y = velocity.y * 0.990 - 0.05 * (age / Math.max(0.1, maxLife)) * 9.8 * deltaTime;
+    velocity.x *= 0.994;
+    velocity.z *= 0.994;
+    velocity.y = velocity.y * 0.994 - 0.05 * (age / Math.max(0.1, maxLife)) * 9.8 * deltaTime;
 
     const lifeRatio = maxLife > 0 ? age / maxLife : 0;
     const isReignited = lifeRatio > 0.60;
@@ -643,8 +727,8 @@ BurstEffectProcessor.registerEffect('double-helix', {
     return {
       gravityScale: 0.16,
       spawnTrail: true,
-      trailLife: 0.60,
-      trailIntensity: 0.85
+      trailLife: 0.50,
+      trailIntensity: 0.55
     };
   }
 });

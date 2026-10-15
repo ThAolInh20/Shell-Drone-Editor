@@ -1,19 +1,16 @@
-# Release Notes - v2.4.4
+# Release Notes - v2.4.5
 
 ## Features
-- Added realistic 30-day lunar cycle phases and dynamic moon appearance controls.
-- Added procedural 3D karst mountains and islands with night illumination and firework flash reflections.
-- Added dual-layer nighttime clouds with adjustable cluster density and thickness controls.
-- Upgraded volumetric smoke simulation with irregular burst shapes, radial launch trails, and customizable wind direction.
-- Added dynamic lighting and ambient night illumination for smoke particles reacting to firework explosions.
-- Added maximum burst altitude setting for firework shells.
-
-## Bug Fixes
-- Fixed multi-stage burst handling for Multi-Shell firework presets.
+- Added audio waveform visualization on the timeline and automatic audio track loading when importing show scenarios.
+- Added interactive onboarding tours for the timeline editor and inspector panel with target auto-scrolling.
+- Added quick keyboard shortcut guide overlay for fast reference within the editor.
+- Added realistic particle dynamics and thermal cooling for natural spark deceleration and glowing color transitions.
+- Added unified environmental physics linking wind, smoke dispersion, explosion blast waves, and drone light.
+- Added sustained star radiance and dynamic multi-burst illumination on smoke clouds.
 
 ## Updates
-- Optimized smoke simulation performance with intelligent particle consolidation and budget controls.
-- Improved rendering performance for lake reflections and environmental lighting passes.
-- Enhanced particle rendering efficiency and memory management during intense firework shows.
-- Added comet projectile density scaling based on graphics quality settings.
-- Improved slider value display formatting across editor settings.
+- Optimized firework particle density scaling and stabilized ring geometry across quality presets.
+- Improved water reflection dynamics and eliminated repetitive texture patterns on water surfaces.
+- Refined explosion burst smoke generation and balanced smoke particle budgets for smoother performance.
+- Streamlined guided tour navigation and step ordering for new users.
+- Updated the built-in demo show scenario.

@@ -130,4 +130,55 @@ export class DroneSystem {
         }
         return arrivedCount / this.drones.length >= 0.70;
     }
+
+    getLuminousCentroid() {
+        if (!this.drones || this.drones.length === 0) return null;
+        let sumX = 0;
+        let sumY = 0;
+        let sumZ = 0;
+        let sumR = 0;
+        let sumG = 0;
+        let sumB = 0;
+        let airborneCount = 0;
+
+        for (let i = 0; i < this.drones.length; i++) {
+            const drone = this.drones[i];
+            if (drone.position.y > 6.0) {
+                sumX += drone.position.x;
+                sumY += drone.position.y;
+                sumZ += drone.position.z;
+                sumR += drone.color.r;
+                sumG += drone.color.g;
+                sumB += drone.color.b;
+                airborneCount++;
+            }
+        }
+
+        if (airborneCount === 0) return null;
+
+        const centroidLocal = new THREE.Vector3(
+            sumX / airborneCount,
+            sumY / airborneCount,
+            sumZ / airborneCount
+        );
+
+        const centroidWorld = centroidLocal.clone();
+        if (this.performanceZone) {
+            centroidWorld.applyMatrix4(this.performanceZone.matrixWorld);
+        }
+
+        const avgColor = new THREE.Color(
+            sumR / airborneCount,
+            sumG / airborneCount,
+            sumB / airborneCount
+        );
+
+        const densityFactor = Math.min(1.0, airborneCount / 120.0);
+        return {
+            position: centroidWorld,
+            color: avgColor,
+            intensity: densityFactor * 0.75,
+            radius: 380.0
+        };
+    }
 }

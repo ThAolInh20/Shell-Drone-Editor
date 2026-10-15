@@ -24,7 +24,8 @@ export const renderingConfig = {
     windDirection: 25,
     unlimited: false,
     lifespanMultiplier: 1.0,
-    hazeConsolidation: true
+    hazeConsolidation: true,
+    maxLights: 4
   },
   sky: {
     cloudCoverage: 0.55,

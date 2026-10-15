@@ -313,6 +313,93 @@ ipcMain.handle('save-sequence', async (event, { filename, content }) => {
   }
 });
 
+function findCompanionAudios(filePath, jsonContent) {
+  try {
+    const parsed = JSON.parse(jsonContent);
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+    const dir = path.dirname(filePath);
+    const audioFiles = new Set();
+
+    const collectAudioNames = (items) => {
+      items.forEach((item) => {
+        if (item && item.type === 'audio') {
+          if (item.url) {
+            audioFiles.add(item.url);
+            audioFiles.add(path.basename(item.url));
+          }
+          if (item.name) {
+            audioFiles.add(item.name);
+            audioFiles.add(path.basename(item.name));
+          }
+        }
+        if (item && item.type === 'group' && Array.isArray(item.children)) {
+          collectAudioNames(item.children);
+        }
+      });
+    };
+    collectAudioNames(parsed);
+
+    if (audioFiles.size === 0) {
+      return null;
+    }
+
+    const filesInDir = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+    const companions = {};
+
+    for (const name of audioFiles) {
+      let resolvedPath = null;
+      if (path.isAbsolute(name) && fs.existsSync(name)) {
+        resolvedPath = name;
+      } else {
+        const candidate = path.join(dir, name);
+        if (fs.existsSync(candidate)) {
+          resolvedPath = candidate;
+        } else {
+          const baseCandidate = path.join(dir, path.basename(name));
+          if (fs.existsSync(baseCandidate)) {
+            resolvedPath = baseCandidate;
+          } else {
+            const baseLower = path.basename(name).toLowerCase();
+            const found = filesInDir.find((f) => {
+              return f.toLowerCase() === baseLower;
+            });
+            if (found) {
+              resolvedPath = path.join(dir, found);
+            }
+          }
+        }
+      }
+
+      if (resolvedPath && fs.existsSync(resolvedPath)) {
+        const buffer = fs.readFileSync(resolvedPath);
+        const ext = path.extname(resolvedPath).toLowerCase();
+        let mimeType = 'audio/mpeg';
+        if (ext === '.wav') {
+          mimeType = 'audio/wav';
+        } else if (ext === '.ogg') {
+          mimeType = 'audio/ogg';
+        }
+        companions[name] = {
+          buffer,
+          mimeType
+        };
+        companions[path.basename(name)] = {
+          buffer,
+          mimeType
+        };
+      }
+    }
+
+    return Object.keys(companions).length > 0
+      ? companions
+      : null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // IPC Handlers for native OS Dialogs (Notepad-style Direct Save)
 ipcMain.handle('open-file-dialog', async (event) => {
   try {
@@ -324,7 +411,16 @@ ipcMain.handle('open-file-dialog', async (event) => {
       const filePath = result.filePaths[0];
       const content = fs.readFileSync(filePath, 'utf8');
       const filename = path.basename(filePath);
-      return { filePath, content, filename };
+      const companionAudios = findCompanionAudios(
+        filePath,
+        content
+      );
+      return {
+        filePath,
+        content,
+        filename,
+        companionAudios
+      };
     }
     return null;
   } catch (err) {

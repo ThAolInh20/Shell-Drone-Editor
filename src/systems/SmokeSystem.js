@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { renderingConfig } from '../config/rendering.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { atmosphereManager } from '../environment/AtmosphereManager.js';
 
 const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
   ?? FIREWORK_CONFIG.SMOKE?.qualityCapacities
@@ -31,8 +32,13 @@ const QUALITY_CAPACITIES = renderingConfig.smoke?.qualityCapacities
 const BUFFER_CAPACITY = (QUALITY_CAPACITIES.unlimited?.launch ?? 10000)
   + (QUALITY_CAPACITIES.unlimited?.aerial ?? 15000);
 
+const MAX_SMOKE_LIGHTS = renderingConfig.smoke?.maxLights
+  ?? FIREWORK_CONFIG.SMOKE?.maxLights
+  ?? 4;
+
 export class SmokeSystem {
   constructor(sceneManager) {
+    this.atmosphereManager = atmosphereManager;
     this.scene = sceneManager.instance;
     this.quality = renderingConfig.smoke?.quality ?? 'medium';
     this.density = renderingConfig.smoke?.density ?? 1.0;
@@ -102,6 +108,36 @@ export class SmokeSystem {
       uTime: {
         value: 0
       },
+      uActiveLightCount: {
+        value: 0.0
+      },
+      uLightPositions: {
+        value: [
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0),
+          new THREE.Vector3(0, 100, 0)
+        ]
+      },
+      uLightColors: {
+        value: [
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000),
+          new THREE.Color(0x000000)
+        ]
+      },
+      uLightIntensities: {
+        value: new Float32Array(MAX_SMOKE_LIGHTS)
+      },
+      uLightRadii: {
+        value: new Float32Array([
+          650.0,
+          650.0,
+          650.0,
+          650.0
+        ])
+      },
       uFlashPos: {
         value: new THREE.Vector3(0, 100, 0)
       },
@@ -125,9 +161,14 @@ export class SmokeSystem {
       vertexColors: true
     });
 
-    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and dynamic burst flash illumination
+    // Custom GLSL shader with per-point size, opacity, atmospheric haze, and dynamic multi-burst illumination
     this.smokeMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = this.smokeUniforms.uTime;
+      shader.uniforms.uActiveLightCount = this.smokeUniforms.uActiveLightCount;
+      shader.uniforms.uLightPositions = this.smokeUniforms.uLightPositions;
+      shader.uniforms.uLightColors = this.smokeUniforms.uLightColors;
+      shader.uniforms.uLightIntensities = this.smokeUniforms.uLightIntensities;
+      shader.uniforms.uLightRadii = this.smokeUniforms.uLightRadii;
       shader.uniforms.uFlashPos = this.smokeUniforms.uFlashPos;
       shader.uniforms.uFlashColor = this.smokeUniforms.uFlashColor;
       shader.uniforms.uFlashIntensity = this.smokeUniforms.uFlashIntensity;
@@ -158,7 +199,13 @@ export class SmokeSystem {
       );
 
       shader.fragmentShader = `
+        #define MAX_LIGHTS 4
         uniform float uTime;
+        uniform float uActiveLightCount;
+        uniform vec3 uLightPositions[MAX_LIGHTS];
+        uniform vec3 uLightColors[MAX_LIGHTS];
+        uniform float uLightIntensities[MAX_LIGHTS];
+        uniform float uLightRadii[MAX_LIGHTS];
         uniform vec3 uFlashPos;
         uniform vec3 uFlashColor;
         uniform float uFlashIntensity;
@@ -193,19 +240,85 @@ export class SmokeSystem {
 
         // Troi dem: khoi khong tu phat sang, co mau tram toi mac dinh
         vec3 nightAmbient = diffuseColor.rgb * 0.16;
+        vec3 accumulatedDyedColor = vec3(0.0);
+        float totalIllumAccum = 0.0;
 
-        if (uFlashIntensity > 0.001) {
+        // Pseudo-spherical normal across billboard point sprite
+        vec2 centeredP = gl_PointCoord - vec2(0.5);
+        float r2 = clamp(dot(centeredP, centeredP) * 4.0, 0.0, 1.0);
+        float nz = sqrt(max(0.0, 1.0 - r2));
+        float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
+
+        int activeLights = int(clamp(uActiveLightCount, 0.0, float(MAX_LIGHTS)));
+
+        if (activeLights > 0) {
+          for (int i = 0; i < MAX_LIGHTS; i++) {
+            if (i >= activeLights) {
+              break;
+            }
+            float lIntensity = uLightIntensities[i];
+            if (lIntensity <= 0.001) {
+              continue;
+            }
+
+            vec3 lPos = uLightPositions[i];
+            vec3 lColor = uLightColors[i];
+            float lRadius = max(10.0, uLightRadii[i]);
+
+            vec3 toLight = lPos - vWorldPos;
+            float distToLight = length(toLight);
+            if (distToLight >= lRadius) {
+              continue;
+            }
+
+            float lightAtten = clamp(1.0 - distToLight / lRadius, 0.0, 1.0);
+            lightAtten = lightAtten * lightAtten;
+
+            vec2 dirToLight2D = normalize(toLight.xz + vec2(0.0001));
+            float NdotL = clamp(
+              dot(centeredP * 2.0, dirToLight2D) * 0.45 + nz * 0.55 + 0.2,
+              0.2,
+              1.25
+            );
+
+            float lightIllum = (NdotL + edgeScattering) * lightAtten * lIntensity * 2.5;
+
+            // Phan tich do bao hoa mau (color saturation) cua anh sang phao hoa
+            float maxChan = max(lColor.r, max(lColor.g, lColor.b));
+            float minChan = min(lColor.r, min(lColor.g, lColor.b));
+            float colorSat = (maxChan > 0.001) ? ((maxChan - minChan) / maxChan) : 0.0;
+
+            vec3 illuminatedWhite = diffuseColor.rgb * 1.45;
+            float dyeRatio = clamp(0.35 + colorSat * 0.60, 0.35, 0.95);
+            vec3 dyedColor = mix(
+              illuminatedWhite,
+              lColor * 1.85,
+              dyeRatio
+            );
+
+            float illumFactor = clamp(lightIllum, 0.0, 1.0);
+            accumulatedDyedColor += dyedColor * illumFactor;
+            accumulatedDyedColor += dyedColor * (max(0.0, lightIllum - 1.0) * 0.35);
+            totalIllumAccum += illumFactor;
+          }
+
+          if (totalIllumAccum > 0.001) {
+            float blendWeight = clamp(totalIllumAccum, 0.0, 1.0);
+            diffuseColor.rgb = mix(
+              nightAmbient,
+              accumulatedDyedColor,
+              blendWeight
+            );
+          } else {
+            diffuseColor.rgb = nightAmbient;
+          }
+        } else if (uFlashIntensity > 0.001) {
+          // Fallback legacy single-light path
           vec3 toLight = uFlashPos - vWorldPos;
           float distToFlash = length(toLight);
           float flashAtten = clamp(1.0 - distToFlash / uFlashRadius, 0.0, 1.0);
           flashAtten = flashAtten * flashAtten;
 
-          // Pseudo-spherical normal across billboard point sprite
-          vec2 centeredP = gl_PointCoord - vec2(0.5);
-          float r2 = clamp(dot(centeredP, centeredP) * 4.0, 0.0, 1.0);
-          float nz = sqrt(max(0.0, 1.0 - r2));
-
-          // Directional illumination from burst position towards puff surface
           vec2 dirToLight2D = normalize(toLight.xz + vec2(0.0001));
           float NdotL = clamp(
             dot(centeredP * 2.0, dirToLight2D) * 0.45 + nz * 0.55 + 0.2,
@@ -213,19 +326,12 @@ export class SmokeSystem {
             1.25
           );
 
-          // Translucent rim scattering on puff boundaries
-          float edgeScattering = pow(1.0 - nz, 1.6) * 0.55;
           float totalIllum = (NdotL + edgeScattering) * flashAtten * uFlashIntensity * 2.5;
-
-          // Phan tich do bao hoa mau (color saturation) cua anh sang phao hoa
           float maxChan = max(uFlashColor.r, max(uFlashColor.g, uFlashColor.b));
           float minChan = min(uFlashColor.r, min(uFlashColor.g, uFlashColor.b));
           float colorSat = (maxChan > 0.001) ? ((maxChan - minChan) / maxChan) : 0.0;
 
-          // 1. Anh sang trang hoac vang nhe: kich thich hien ro khoi trang sang tu nhien
           vec3 illuminatedWhite = diffuseColor.rgb * 1.45;
-
-          // 2. Anh sang mau cuong do manh: nhuom mau sac dam da cua phao hoa len khoi
           float dyeRatio = clamp(0.35 + colorSat * 0.60, 0.35, 0.95);
           vec3 dyedColor = mix(
             illuminatedWhite,
@@ -233,15 +339,12 @@ export class SmokeSystem {
             dyeRatio
           );
 
-          // Chuyen doi tu bong toi dem sang the tich khoi duoc chieu sang
           float illumFactor = clamp(totalIllum, 0.0, 1.0);
           diffuseColor.rgb = mix(
             nightAmbient,
             dyedColor,
             illumFactor
           );
-
-          // Hieu ung phan xa the tich loi khi o rat gan tam no phao
           diffuseColor.rgb += dyedColor * (max(0.0, totalIllum - 1.0) * 0.35);
         } else {
           diffuseColor.rgb = nightAmbient;
@@ -265,7 +368,58 @@ export class SmokeSystem {
     this.setupEventListeners();
   }
 
-  setBurstFlash(position, color, intensity) {
+  setMultiLights(lights = []) {
+    const qualityLimits = FIREWORK_CONFIG.SMOKE?.qualityMaxLights ?? {
+      low: 1,
+      medium: 2,
+      high: MAX_SMOKE_LIGHTS,
+      unlimited: MAX_SMOKE_LIGHTS
+    };
+    const maxLightsByQuality = qualityLimits[this.quality] ?? MAX_SMOKE_LIGHTS;
+    const count = Math.min(
+      maxLightsByQuality,
+      Math.min(MAX_SMOKE_LIGHTS, lights.length)
+    );
+    this.smokeUniforms.uActiveLightCount.value = count;
+
+    for (let i = 0; i < MAX_SMOKE_LIGHTS; i++) {
+      if (i < count) {
+        const light = lights[i];
+        if (light.position) {
+          this.smokeUniforms.uLightPositions.value[i].copy(light.position);
+        }
+        if (light.color) {
+          this.smokeUniforms.uLightColors.value[i].copy(light.color);
+        }
+        this.smokeUniforms.uLightIntensities.value[i] = Math.max(
+          0,
+          Number(light.intensity) || 0
+        );
+        this.smokeUniforms.uLightRadii.value[i] = Math.max(
+          10,
+          Number(light.radius) || 450
+        );
+      } else {
+        this.smokeUniforms.uLightIntensities.value[i] = 0.0;
+      }
+    }
+
+    if (count > 0) {
+      const primary = lights[0];
+      if (primary.position) {
+        this.smokeUniforms.uFlashPos.value.copy(primary.position);
+      }
+      if (primary.color) {
+        this.smokeUniforms.uFlashColor.value.copy(primary.color);
+      }
+      this.smokeUniforms.uFlashIntensity.value = primary.intensity || 0.0;
+      this.smokeUniforms.uFlashRadius.value = primary.radius || 650.0;
+    } else {
+      this.smokeUniforms.uFlashIntensity.value = 0.0;
+    }
+  }
+
+  setBurstFlash(position, color, intensity, radius = 650.0) {
     if (position) {
       this.smokeUniforms.uFlashPos.value.copy(position);
     }
@@ -273,6 +427,20 @@ export class SmokeSystem {
       this.smokeUniforms.uFlashColor.value.copy(color);
     }
     this.smokeUniforms.uFlashIntensity.value = intensity || 0.0;
+    this.smokeUniforms.uFlashRadius.value = radius || 650.0;
+
+    if (intensity > 0.001 && position && color) {
+      this.setMultiLights([
+        {
+          position,
+          color,
+          intensity,
+          radius
+        }
+      ]);
+    } else {
+      this.setMultiLights([]);
+    }
   }
 
   setupEventListeners() {
@@ -355,14 +523,11 @@ export class SmokeSystem {
   }
 
   updateWindVectors() {
-    const rad = ((this.windDirection % 360) * Math.PI) / 180;
-    const horizontalMagnitude = 6.04;
-    this.baseWind.set(
-      Math.cos(rad) * horizontalMagnitude,
-      0.8,
-      Math.sin(rad) * horizontalMagnitude
-    );
-    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
+    this.atmosphereManager.windDirection = this.windDirection;
+    this.atmosphereManager.windSpeed = this.windSpeed;
+    this.atmosphereManager.updateWindVectors();
+    this.baseWind.copy(this.atmosphereManager.baseWind);
+    this.currentWind.copy(this.atmosphereManager.currentWind);
   }
 
   setWindDirection(degrees) {
@@ -375,7 +540,7 @@ export class SmokeSystem {
       0,
       speedVal
     );
-    this.currentWind.copy(this.baseWind).multiplyScalar(this.windSpeed);
+    this.updateWindVectors();
   }
 
   destroy() {
@@ -519,6 +684,10 @@ export class SmokeSystem {
   // Fast direct particle injection method (bypasses EventBus for high performance)
   addSmokePoint(origin, velocity, options = {}) {
     if (this.quality === 'off') return;
+    const cfg = FIREWORK_CONFIG.SMOKE;
+    if (cfg?.disableFlightSmoke && options.category !== 'burst' && !options.force) {
+      return;
+    }
     this.spawnPuff(
       origin,
       velocity,
@@ -652,14 +821,6 @@ export class SmokeSystem {
   onBurst(detail = {}) {
     if (this.quality === 'off') return;
 
-    const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
-      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'))
-      || Boolean(detail.burstSmoke);
-
-    if (!hasBurstSmoke) {
-      return;
-    }
-
     const cfg = FIREWORK_CONFIG.SMOKE;
     const burstPos = new THREE.Vector3(
       detail.position?.x ?? 0,
@@ -667,17 +828,54 @@ export class SmokeSystem {
       detail.position?.z ?? 0
     );
 
+    const intensity = THREE.MathUtils.clamp(
+      detail.intensity ?? 0.5,
+      0.1,
+      1.0
+    );
+
+    const fireworkSpread = detail.burstRadius
+      ? detail.burstRadius
+      : (38.0 + intensity * 22.0);
+
+    // Blast Wave Displacement: Song xung kich vu no thoi dat cac cum khoi hien huu xung quanh
+    if (this.puffs.length > 0) {
+      const blastEffectiveRadius = fireworkSpread * (cfg.blastImpulseRadiusMultiplier ?? 1.5);
+      const blastImpulseScale = (cfg.blastImpulseScale ?? 22.0) * intensity;
+
+      for (let i = 0; i < this.puffs.length; i++) {
+        const puff = this.puffs[i];
+        const dist = puff.position.distanceTo(burstPos);
+        if (dist < blastEffectiveRadius && dist > 0.05) {
+          const falloff = 1.0 - (dist / blastEffectiveRadius);
+          const impulse = falloff * falloff * blastImpulseScale;
+          const pushDir = puff.position.clone().sub(burstPos).normalize();
+          puff.velocity.addScaledVector(
+            pushDir,
+            impulse
+          );
+
+          const maxSpeed = 35.0;
+          if (puff.velocity.lengthSq() > maxSpeed * maxSpeed) {
+            puff.velocity.normalize().multiplyScalar(maxSpeed);
+          }
+        }
+      }
+    }
+
     // Khoi mac dinh mau trang; chi khi co custom mau thi moi nhan mau theo phao
     const defaultWhiteSmoke = new THREE.Color(0xf2f5f9);
     const smokeColor = detail.hasCustomColor && detail.colorHex !== undefined
       ? new THREE.Color(detail.colorHex)
       : defaultWhiteSmoke;
 
-    const intensity = THREE.MathUtils.clamp(
-      detail.intensity ?? 0.5,
-      0.1,
-      1.0
-    );
+    const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
+      || Boolean(detail.burstSmoke)
+      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'));
+
+    if (!hasBurstSmoke) {
+      return;
+    }
 
     // 1. Bien dang the tich 3D khong doi xung (anisotropic stretch tensor)
     // Thiet lap ti le det truc doc Y de khoi bung rong be ngang tu nhien hon
@@ -695,10 +893,6 @@ export class SmokeSystem {
     ).normalize();
 
     const harmonicPhase = Math.random() * Math.PI * 2;
-    // Ban kinh phao hoa toa ra toan phan (mac dinh 38 - 60m)
-    const fireworkSpread = detail.burstRadius
-      ? detail.burstRadius
-      : (38.0 + intensity * 22.0);
     // Ban kinh cum khoi co ban nam trong khoang ~1/4 den 1/3 ban kinh phao
     const burstSpreadRadius = fireworkSpread * (0.18 + 0.08 * intensity);
 
@@ -855,7 +1049,7 @@ export class SmokeSystem {
         tuftDir.clone().multiplyScalar(2.5 + Math.random() * 3.5),
         {
           life: burstLife,
-          scale: (cfg.burstBaseScale * 0.45) + Math.random() * 2.0,
+          scale: (cfg.burstBaseScale * 0.85) + Math.random() * 4.0,
           growth: (cfg.burstGrowth * 0.5) + Math.random() * 0.7,
           drag: burstDrag,
           buoyancy: burstBuoyancy,
@@ -866,66 +1060,128 @@ export class SmokeSystem {
       );
     }
 
-    // Phase 4: Radial Burst Streaks (Cac vet khoi toa theo tia ban cua hat, keo dai xap xi 1/3 phao)
-    // Mo phong tia khoi sinh ra theo duong bay cua hat trong khoang 1/3 ban kinh/dien tich toa
-    const streakCount = this.unlimited
-      ? 14
-      : (this.quality === 'high' ? 9 : (this.quality === 'low' ? 3 : 6));
+    // Phase 4: Radial Burst Streaks (Tia ban hat vi mo - bo qua khi bat che do onlyBurstSmoke)
+    if (!cfg.onlyBurstSmoke) {
+      const streakCount = this.unlimited
+        ? 14
+        : (this.quality === 'high' ? 9 : (this.quality === 'low' ? 3 : 6));
 
-    for (let s = 0; s < streakCount; s++) {
-      const sAzimuth = Math.random() * Math.PI * 2;
-      const sElev = (Math.random() - 0.5) * Math.PI * 0.85;
-      const streakDir = new THREE.Vector3(
-        Math.cos(sElev) * Math.cos(sAzimuth),
-        Math.sin(sElev),
-        Math.cos(sElev) * Math.sin(sAzimuth)
-      ).normalize();
+      for (let s = 0; s < streakCount; s++) {
+        const sAzimuth = Math.random() * Math.PI * 2;
+        const sElev = (Math.random() - 0.5) * Math.PI * 0.85;
+        const streakDir = new THREE.Vector3(
+          Math.cos(sElev) * Math.cos(sAzimuth),
+          Math.sin(sElev),
+          Math.cos(sElev) * Math.sin(sAzimuth)
+        ).normalize();
 
-      // Do dai tia xap xi ngau nhien trong khoang 1/3 ban kinh/dien tich toa cua phao (0.24 den 0.38)
-      const maxStreakDist = fireworkSpread * (0.24 + Math.random() * 0.14);
-      const pointsOnStreak = this.quality === 'low' ? 2 : 3;
+        // Do dai tia xap xi ngau nhien trong khoang 1/3 ban kinh/dien tich toa cua phao (0.24 den 0.38)
+        const maxStreakDist = fireworkSpread * (0.24 + Math.random() * 0.14);
+        const pointsOnStreak = this.quality === 'low' ? 2 : 3;
 
-      for (let p = 1; p <= pointsOnStreak; p++) {
-        const frac = p / pointsOnStreak;
-        const d = maxStreakDist * (frac * 0.75 + 0.25 * Math.random());
-        const streakPos = burstPos.clone().add(
-          new THREE.Vector3(
-            streakDir.x * d * stretchX,
-            streakDir.y * d * stretchY,
-            streakDir.z * d * stretchZ
-          )
-        );
+        for (let p = 1; p <= pointsOnStreak; p++) {
+          const frac = p / pointsOnStreak;
+          const d = maxStreakDist * (frac * 0.75 + 0.25 * Math.random());
+          const streakPos = burstPos.clone().add(
+            new THREE.Vector3(
+              streakDir.x * d * stretchX,
+              streakDir.y * d * stretchY,
+              streakDir.z * d * stretchZ
+            )
+          );
 
-        // Van toc huong doc theo tia ban cua hat
-        const streakVel = streakDir.clone().multiplyScalar(
-          (2.2 + Math.random() * 2.8) * (1.1 - frac * 0.4)
-        ).add(
-          new THREE.Vector3(
-            (Math.random() - 0.5) * 1.2,
-            0.4 + Math.random() * 1.0,
-            (Math.random() - 0.5) * 1.2
-          )
-        );
+          // Van toc huong doc theo tia ban cua hat
+          const streakVel = streakDir.clone().multiplyScalar(
+            (2.2 + Math.random() * 2.8) * (1.1 - frac * 0.4)
+          ).add(
+            new THREE.Vector3(
+              (Math.random() - 0.5) * 1.2,
+              0.4 + Math.random() * 1.0,
+              (Math.random() - 0.5) * 1.2
+            )
+          );
 
-        const burstLife = cfg.burstLifeMin * 0.85 + Math.random() * 3.5;
-        const burstDrag = cfg.burstDragMin + Math.random() * 0.6;
-        const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.25;
+          const burstLife = cfg.burstLifeMin * 0.85 + Math.random() * 3.5;
+          const burstDrag = cfg.burstDragMin + Math.random() * 0.6;
+          const burstBuoyancy = cfg.burstBuoyancyMin + Math.random() * 0.25;
 
-        this.spawnPuff(
-          streakPos,
-          streakVel,
-          {
-            life: burstLife,
-            scale: (cfg.burstBaseScale * (0.55 + 0.35 * (1.0 - frac * 0.5))) + Math.random() * 1.8,
-            growth: (cfg.burstGrowth * 0.52) + Math.random() * 0.6,
-            drag: burstDrag,
-            buoyancy: burstBuoyancy,
-            seed: (s * 0.17 + p * 0.29) % 1.0,
-            opacity: (cfg.burstOpacity * (0.85 - frac * 0.25)) + Math.random() * 0.05,
-            color: smokeColor
-          }
-        );
+          this.spawnPuff(
+            streakPos,
+            streakVel,
+            {
+              life: burstLife,
+              scale: (cfg.burstBaseScale * (0.55 + 0.35 * (1.0 - frac * 0.5))) + Math.random() * 1.8,
+              growth: (cfg.burstGrowth * 0.52) + Math.random() * 0.6,
+              drag: burstDrag,
+              buoyancy: burstBuoyancy,
+              seed: (s * 0.17 + p * 0.29) % 1.0,
+              opacity: (cfg.burstOpacity * (0.85 - frac * 0.25)) + Math.random() * 0.05,
+              color: smokeColor
+            }
+          );
+        }
       }
+    }
+  }
+
+  spawnAmbientBurstSmoke(
+    burstPos,
+    intensity,
+    smokeColor,
+    cfg
+  ) {
+    const puffCounts = cfg.ambientBurstPuffCount ?? {
+      low: 1,
+      medium: 2,
+      high: 2,
+      unlimited: 3
+    };
+    const count = this.unlimited
+      ? (puffCounts.unlimited ?? 3)
+      : (puffCounts[this.quality] ?? 2);
+
+    const scaleMult = cfg.ambientBurstScaleMultiplier ?? 0.95;
+    const opacityMult = cfg.ambientBurstOpacityMultiplier ?? 0.75;
+
+    for (let i = 0; i < count; i++) {
+      const offset = new THREE.Vector3(
+        (Math.random() - 0.5) * 8.0,
+        (Math.random() - 0.5) * 6.0,
+        (Math.random() - 0.5) * 8.0
+      );
+      const velocity = offset.clone().normalize().multiplyScalar(
+        0.6 + Math.random() * 1.5
+      );
+      const life = (
+        cfg.burstLifeMin +
+        Math.random() * (cfg.burstLifeMax - cfg.burstLifeMin)
+      ) * 0.85;
+      const drag = cfg.burstDragMin + Math.random() * (cfg.burstDragMax - cfg.burstDragMin);
+      const buoyancy = (
+        cfg.burstBuoyancyMin +
+        Math.random() * (cfg.burstBuoyancyMax - cfg.burstBuoyancyMin)
+      ) * 0.75;
+
+      const largeScale = (cfg.burstBaseScale * (0.90 + Math.random() * 0.25)) * scaleMult;
+      const softOpacity = (cfg.burstOpacity * (0.85 + Math.random() * 0.15)) * opacityMult;
+
+      this.spawnPuff(
+        burstPos.clone().add(offset),
+        velocity,
+        {
+          category: 'aerial',
+          isNucleus: i === 0,
+          nucleusBoost: 1.8,
+          life: life,
+          scale: largeScale,
+          growth: cfg.burstGrowth * 0.65,
+          drag: drag,
+          buoyancy: buoyancy,
+          seed: Math.random(),
+          opacity: softOpacity,
+          color: smokeColor
+        }
+      );
     }
   }
 

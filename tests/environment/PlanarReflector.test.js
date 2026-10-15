@@ -102,4 +102,30 @@ describe('PlanarReflector and Water Reflection Optimizations', () => {
     );
     expect(updateSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('should compile WaterSurface shader with continuous world-space mapping and anisotropic vertical smear', () => {
+    const waterSurface = new WaterSurface({
+      planarReflector,
+      size: 2000
+    });
+
+    const fragmentShader = waterSurface.mesh.material.fragmentShader;
+
+    // Check world-space coordinates mapping (decoupling from mesh UV tiling)
+    expect(fragmentShader).toContain('vec2 worldXZ = vWorldPosition.xz');
+    expect(fragmentShader).toContain('domainWarp');
+
+    // Check anisotropic vertical smear
+    expect(fragmentShader).toContain('vec2(normal.x * 0.35, normal.z * 1.15)');
+
+    // Check multi-tap reflection smoothing
+    expect(fragmentShader).toContain('reflSampleCenter');
+    expect(fragmentShader).toContain('reflSampleUp');
+    expect(fragmentShader).toContain('reflSampleDown');
+
+    // Check reflection ceiling damping
+    expect(fragmentShader).toContain('reflWeight = clamp(fresnel * 0.82, 0.04, 0.62)');
+
+    waterSurface.dispose();
+  });
 });
