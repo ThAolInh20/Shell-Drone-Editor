@@ -199,6 +199,23 @@ export default {
       step6Desc: "点击轨道上的任意事件块即可选中并在右侧打开属性面板，调整烟花预设、颜色与高度参数。",
       step6Shortcut: "操作: 点击事件块查看详细属性"
     },
+    inspectorTour: {
+      helpBtn: "使用指南",
+      helpBtnTooltip: "查看属性面板使用指南",
+      stepIndicator: "第 {current} 步 共 {total} 步",
+      step1Title: "事件属性面板",
+      step1Desc: "显示当前时间线上选中事件的详细参数。未选择事件时面板处于待机状态。",
+      step1Shortcut: "提示: 点击轨道上的任意事件块即可打开属性面板",
+      step2Title: "核心参数与发射模式",
+      step2Desc: "配置事件起始时间、发射弹数、持续时长、发射花样以及发射阵地分区。",
+      step2Shortcut: "提示: 选择阵地分区将发射架分布于左、中、右区域",
+      step3Title: "烟花效果组合架构",
+      step3Desc: "自由组合初始爆炸形状、下坠动力学行为以及频闪闪烁等光学修饰效果。",
+      step3Shortcut: "规范: 完全解耦空间几何形状与重力下坠动态",
+      step4Title: "发射花样偏移参数",
+      step4Desc: "精细调整坐标偏移与缩放比例 ratioX, ratioY, x1, x2, y1, y2 以自定义花样发射轨迹形态。",
+      step4Shortcut: "操作: 参数数值范围为 0 至 1 用于控制花样扫描幅度"
+    },
     stepPanel: {
       title: "步骤 Step 属性",
       timingGlobal: "全局时序控制 Global",

@@ -210,6 +210,23 @@ export default {
       step6Desc: "Click any event block on the track to select it and open the Property Inspector on the right, allowing you to fine-tune presets, colors, and launch angles.",
       step6Shortcut: "Action: Click a block to inspect detailed properties"
     },
+    inspectorTour: {
+      helpBtn: "Guide",
+      helpBtnTooltip: "View Property Inspector guide",
+      stepIndicator: "Step {current} of {total}",
+      step1Title: "Event Property Inspector",
+      step1Desc: "Displays detailed parameters for the selected timeline event. When no event is selected, the panel remains in standby.",
+      step1Shortcut: "Tip: Click any event block on the track to open the inspector",
+      step2Title: "Core Settings and Patterns",
+      step2Desc: "Configures event start time, projectile count, sequence duration, launch pattern, and firing sector.",
+      step2Shortcut: "Tip: Select Sector to position launch pods left, center, or right",
+      step3Title: "Firework Effect Composition",
+      step3Desc: "Combine initial burst Shape geometry, falling Dynamics behavior, and optical modifiers like Strobe and Crackle.",
+      step3Shortcut: "Standard: Decouples burst spatial geometry from droplet kinematics",
+      step4Title: "Pattern Offsets",
+      step4Desc: "Fine-tune coordinate offsets and scaling ratios ratioX, ratioY, x1, x2, y1, y2 to customize the trajectory of the launch pattern.",
+      step4Shortcut: "Action: Values range from 0 to 1 to adjust pattern sweep spread"
+    },
     stepPanel: {
       title: "Step Properties",
       timingGlobal: "Timing",
@@ -424,7 +441,7 @@ export default {
         cometConfig: "Comet Config",
         angleConfig: "Launch Angle",
         visualEffects: "Visual Effects",
-        geometryOffsets: "Geometry & Offsets",
+        geometryOffsets: "Offsets",
         beatSettings: "Beat Editor",
         groupSettings: "Group Settings",
         groupChildren: "Grouped Events",

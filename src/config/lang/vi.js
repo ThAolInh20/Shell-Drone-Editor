@@ -210,6 +210,23 @@ export default {
       step6Desc: "Nhấp chuột vào khối sự kiện trên track để chọn và mở bảng thuộc tính Inspector bên phải, nơi bạn có thể tinh chỉnh màu sắc, preset và cao độ.",
       step6Shortcut: "Thao tác: Nhấp chọn khối để xem thuộc tính chi tiết"
     },
+    inspectorTour: {
+      helpBtn: "Hướng dẫn",
+      helpBtnTooltip: "Xem hướng dẫn bảng thuộc tính",
+      stepIndicator: "Bước {current} trên {total}",
+      step1Title: "Bảng thuộc tính sự kiện",
+      step1Desc: "Hiển thị thông số chi tiết của sự kiện đang chọn trên Timeline. Khi chưa chọn sự kiện nào, bảng sẽ ở trạng thái chờ.",
+      step1Shortcut: "Mẹo: Nhấp chuột vào bất kỳ khối sự kiện trên track để mở bảng",
+      step2Title: "Thiết lập cơ bản và Mẫu bắn",
+      step2Desc: "Cho phép điều chỉnh mốc thời gian bắt đầu, số lượng phát bắn Count, thời lượng Duration, mẫu quét Pattern và phân khu bệ bắn Sector.",
+      step2Shortcut: "Gợi ý: Chọn Sector để phân bố bệ phóng sang trái, giữa hoặc phải",
+      step3Title: "Bộ phối ghép hiệu ứng pháo hoa",
+      step3Desc: "Tự do kết hợp hình học nổ ban đầu Shape, động học rơi rủ Dynamics, cùng các hiệu ứng quang học chớp nháy Strobe và Crackle.",
+      step3Shortcut: "Quy chuẩn: Tách biệt hoàn toàn hình học ban đầu và chuyển động rơi",
+      step4Title: "Thông số căn lề Pattern Offsets",
+      step4Desc: "Cho phép tinh chỉnh các thông số tọa độ và tỷ lệ độ lệch ratioX, ratioY, x1, x2, y1, y2 để tùy biến hình dạng đường quét của Pattern.",
+      step4Shortcut: "Thao tác: Giá trị dao động từ 0 đến 1 để điều chỉnh biên độ quét"
+    },
     stepPanel: {
       title: "Thuộc tính Bước Step",
       timingGlobal: "Timing",

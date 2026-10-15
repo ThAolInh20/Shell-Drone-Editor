@@ -4,6 +4,7 @@ import { globalEventBus } from '../core/EventBus.js';
 export class TimelineTourGuide {
   constructor(timelineEditor) {
     this.timelineEditor = timelineEditor;
+    this.currentTourType = 'timeline';
     this.currentStepIndex = 0;
     this.isActive = false;
     this.overlayElement = null;
@@ -12,11 +13,14 @@ export class TimelineTourGuide {
     this.promptBanner = null;
     this.boundKeyHandler = this.handleKeyDown.bind(this);
     this.boundResizeHandler = this.updatePosition.bind(this);
+    this.boundScrollHandler = this.handleScroll.bind(this);
+    this.scrollRafId = null;
 
     // Allow QA or developers to reset tour state via browser console
     if (typeof window !== 'undefined') {
       window.resetTimelineTour = () => {
         localStorage.removeItem('timeline_tour_status');
+        localStorage.removeItem('inspector_tour_status');
         console.log('[TimelineTourGuide] Tour status reset. Reopen timeline to trigger.');
       };
     }
@@ -25,12 +29,125 @@ export class TimelineTourGuide {
     globalEventBus.on(
       'timeline:request-tour',
       () => {
-        this.startTour();
+        this.startTour('timeline');
+      }
+    );
+
+    globalEventBus.on(
+      'timeline:request-inspector-tour',
+      () => {
+        this.startInspectorTour();
       }
     );
   }
 
   getSteps() {
+    return this.currentTourType === 'inspector'
+      ? this.getInspectorSteps()
+      : this.getTimelineSteps();
+  }
+
+  getInspectorSteps() {
+    return [
+      {
+        id: 'inspectorHeader',
+        title: t('editor.inspectorTour.step1Title') || 'Bảng thuộc tính sự kiện',
+        desc: t('editor.inspectorTour.step1Desc') ||
+          'Hiển thị thông số chi tiết của sự kiện đang chọn trên Timeline. Khi chưa chọn sự kiện nào, bảng sẽ ở trạng thái chờ.',
+        shortcut: t('editor.inspectorTour.step1Shortcut') ||
+          'Mẹo: Nhấp chuột vào bất kỳ khối sự kiện trên track để mở bảng',
+        getTarget: () => {
+          this.ensureInspectorReady();
+          const header = this.timelineEditor.inspectorContainer?.querySelector('.inspector-header');
+          return header || this.timelineEditor.inspectorContainer;
+        }
+      },
+      {
+        id: 'inspectorCore',
+        title: t('editor.inspectorTour.step2Title') || 'Thiết lập cơ bản và Mẫu bắn',
+        desc: t('editor.inspectorTour.step2Desc') ||
+          'Cho phép điều chỉnh mốc thời gian bắt đầu, số lượng phát bắn Count, thời lượng Duration, mẫu quét Pattern và phân khu bệ bắn Sector.',
+        shortcut: t('editor.inspectorTour.step2Shortcut') ||
+          'Gợi ý: Chọn Sector để phân bố bệ phóng sang trái, giữa hoặc phải',
+        getTarget: () => {
+          this.ensureInspectorReady();
+          const inspector = this.timelineEditor.inspector;
+          if (inspector && inspector.collapsedGroups && inspector.collapsedGroups['coreSettings']) {
+            inspector.collapsedGroups['coreSettings'] = false;
+            if (typeof inspector.render === 'function') {
+              inspector.render();
+            }
+          }
+          const group =
+            this.timelineEditor.inspectorContainer?.querySelector('.inspector-group-coreSettings') ||
+            this.timelineEditor.inspectorContainer?.querySelector('.inspector-accordion');
+          if (group && typeof group.scrollIntoView === 'function') {
+            group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          return group || this.timelineEditor.inspectorContainer;
+        }
+      },
+      {
+        id: 'inspectorComposition',
+        title: t('editor.inspectorTour.step3Title') || 'Bộ phối ghép hiệu ứng pháo hoa',
+        desc: t('editor.inspectorTour.step3Desc') ||
+          'Tự do kết hợp hình học nổ ban đầu Shape, động học rơi rủ Dynamics, cùng các hiệu ứng quang học chớp nháy Strobe và Crackle.',
+        shortcut: t('editor.inspectorTour.step3Shortcut') ||
+          'Quy chuẩn: Tách biệt hoàn toàn hình học ban đầu và chuyển động rơi',
+        getTarget: () => {
+          this.ensureInspectorReady();
+          const inspector = this.timelineEditor.inspector;
+          if (inspector && inspector.collapsedGroups && inspector.collapsedGroups['compositionSettings']) {
+            inspector.collapsedGroups['compositionSettings'] = false;
+            if (typeof inspector.render === 'function') {
+              inspector.render();
+            }
+          }
+          const group =
+            this.timelineEditor.inspectorContainer?.querySelector('.inspector-group-compositionSettings') ||
+            this.timelineEditor.inspectorContainer?.querySelector('.inspector-group-coreSettings') ||
+            this.timelineEditor.inspectorContainer?.querySelector('.inspector-accordion');
+          if (group && typeof group.scrollIntoView === 'function') {
+            group.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          return group || this.timelineEditor.inspectorContainer;
+        }
+      },
+      {
+        id: 'inspectorOffsets',
+        title: t('editor.inspectorTour.step4Title') || 'Thông số căn lề Pattern Offsets',
+        desc: t('editor.inspectorTour.step4Desc') ||
+          'Cho phép tinh chỉnh các thông số tọa độ và tỷ lệ độ lệch ratioX, ratioY, x1, x2, y1, y2 để tùy biến hình dạng đường quét của Pattern.',
+        shortcut: t('editor.inspectorTour.step4Shortcut') ||
+          'Thao tác: Giá trị dao động từ 0 đến 1 để điều chỉnh biên độ quét',
+        getTarget: () => {
+          this.ensureInspectorReady();
+          const inspector = this.timelineEditor.inspector;
+          if (
+            inspector &&
+            inspector.collapsedGroups &&
+            inspector.collapsedGroups['geometryOffsets']
+          ) {
+            inspector.collapsedGroups['geometryOffsets'] = false;
+            if (typeof inspector.render === 'function') {
+              inspector.render();
+            }
+          }
+          const group =
+            this.timelineEditor.inspectorContainer?.querySelector(
+              '.inspector-group-geometryOffsets'
+            ) ||
+            this.timelineEditor.inspectorContainer?.querySelector(
+              '.inspector-accordion:last-of-type'
+            ) ||
+            this.timelineEditor.inspectorContainer;
+          return group;
+        }
+      }
+    ];
+  }
+
+  getTimelineSteps() {
     return [
       {
         id: 'toolbar',
@@ -81,14 +198,7 @@ export class TimelineTourGuide {
               (tracksArea.querySelector('.timeline-block-audio') ||
                 tracksArea.querySelector('[data-event-type="audio"]'))) ||
             tracksArea.firstElementChild;
-          if (audioBlock) {
-            const blockLeft = parseFloat(audioBlock.style.left) || 0;
-            if (this.timelineEditor.trackContainer) {
-              this.timelineEditor.trackContainer.scrollLeft = Math.max(0, blockLeft - 80);
-            }
-            return audioBlock;
-          }
-          return tracksArea;
+          return audioBlock || tracksArea;
         }
       },
       {
@@ -108,14 +218,7 @@ export class TimelineTourGuide {
                 tracksArea.querySelector('.timeline-event-block:not([data-event-type="audio"])') ||
                 tracksArea.querySelector('.timeline-event-block'))) ||
             tracksArea.firstElementChild;
-          if (eventBlock) {
-            const blockLeft = parseFloat(eventBlock.style.left) || 0;
-            if (this.timelineEditor.trackContainer) {
-              this.timelineEditor.trackContainer.scrollLeft = Math.max(0, blockLeft - 80);
-            }
-            return eventBlock;
-          }
-          return tracksArea;
+          return eventBlock || tracksArea;
         }
       }
     ];
@@ -210,7 +313,95 @@ export class TimelineTourGuide {
     this.promptBanner = banner;
   }
 
-  startTour() {
+  ensureInspectorReady() {
+    if (!this.timelineEditor) return;
+    const inspectorContainer = this.timelineEditor.inspectorContainer;
+    if (inspectorContainer && inspectorContainer.style) {
+      inspectorContainer.style.display = 'block';
+    }
+    const inspector = this.timelineEditor.inspector;
+    if (inspector && !inspector.selectedEvent) {
+      const sequences = this.timelineEditor.sequences;
+      let targetEvent = null;
+      if (Array.isArray(sequences)) {
+        targetEvent =
+          sequences.find((s) => s && s.type !== 'audio' && s.type !== 'group') ||
+          sequences[0];
+      }
+      if (targetEvent && typeof inspector.show === 'function') {
+        inspector.show(targetEvent);
+      }
+    }
+  }
+
+  scrollTargetIntoView(targetEl) {
+    if (!targetEl || typeof targetEl.getBoundingClientRect !== 'function') return;
+
+    // 1. If target is inside trackContainer
+    const trackContainer = this.timelineEditor?.trackContainer;
+    if (
+      trackContainer &&
+      typeof trackContainer.getBoundingClientRect === 'function' &&
+      typeof trackContainer.contains === 'function' &&
+      trackContainer.contains(targetEl)
+    ) {
+      const containerRect = trackContainer.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+
+      // Check horizontal visibility
+      const isOffLeft = targetRect.left < containerRect.left + 60;
+      const isOffRight = targetRect.right > containerRect.right - 60;
+
+      if (isOffLeft || isOffRight) {
+        const currentScrollLeft = trackContainer.scrollLeft || 0;
+        const relativeLeft = targetRect.left - containerRect.left;
+        trackContainer.scrollLeft = Math.max(0, currentScrollLeft + relativeLeft - 100);
+      }
+
+      // Check vertical visibility
+      const isOffTop = targetRect.top < containerRect.top + 30;
+      const isOffBottom = targetRect.bottom > containerRect.bottom - 30;
+
+      if (isOffTop || isOffBottom) {
+        const currentScrollTop = trackContainer.scrollTop || 0;
+        const relativeTop = targetRect.top - containerRect.top;
+        trackContainer.scrollTop = Math.max(0, currentScrollTop + relativeTop - 40);
+      }
+    }
+
+    // 2. If target is inside inspectorContainer
+    const inspectorContainer = this.timelineEditor?.inspectorContainer;
+    if (
+      inspectorContainer &&
+      typeof inspectorContainer.getBoundingClientRect === 'function' &&
+      typeof inspectorContainer.contains === 'function' &&
+      inspectorContainer.contains(targetEl)
+    ) {
+      const containerRect = inspectorContainer.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+
+      const isOffTop = targetRect.top < containerRect.top + 20;
+      const isOffBottom = targetRect.bottom > containerRect.bottom - 40;
+
+      if (isOffTop || isOffBottom) {
+        const currentScrollTop = inspectorContainer.scrollTop || 0;
+        const relativeTop = targetRect.top - containerRect.top;
+        inspectorContainer.scrollTop = Math.max(0, currentScrollTop + relativeTop - 20);
+      }
+    }
+  }
+
+  handleScroll() {
+    if (!this.isActive) return;
+    if (this.scrollRafId) {
+      cancelAnimationFrame(this.scrollRafId);
+    }
+    this.scrollRafId = requestAnimationFrame(() => {
+      this.updatePosition();
+    });
+  }
+
+  startTour(type = 'timeline') {
     if (this.promptBanner) {
       this.promptBanner.remove();
       this.promptBanner = null;
@@ -220,6 +411,11 @@ export class TimelineTourGuide {
       this.timelineEditor.toggle();
     }
 
+    this.currentTourType = type;
+    if (type === 'inspector') {
+      this.ensureInspectorReady();
+    }
+
     this.currentStepIndex = 0;
     this.isActive = true;
     this.initDOM();
@@ -227,7 +423,12 @@ export class TimelineTourGuide {
 
     window.addEventListener('keydown', this.boundKeyHandler, true);
     window.addEventListener('resize', this.boundResizeHandler);
-    globalEventBus.emit('timeline:tour-start');
+    window.addEventListener('scroll', this.boundScrollHandler, true);
+    globalEventBus.emit('timeline:tour-start', { type });
+  }
+
+  startInspectorTour() {
+    this.startTour('inspector');
   }
 
   initDOM() {
@@ -286,6 +487,11 @@ export class TimelineTourGuide {
     const step = steps[index];
     const total = steps.length;
 
+    const targetEl = step.getTarget();
+    if (targetEl) {
+      this.scrollTargetIntoView(targetEl);
+    }
+
     this.tooltipCard.innerHTML = '';
 
     // Step Header
@@ -296,7 +502,10 @@ export class TimelineTourGuide {
     headerRow.style.marginBottom = '8px';
 
     const stepBadge = document.createElement('span');
-    const indicatorTemplate = t('editor.timelineTour.stepIndicator') || 'Bước {current} trên {total}';
+    const indicatorTemplate =
+      (this.currentTourType === 'inspector'
+        ? t('editor.inspectorTour.stepIndicator')
+        : t('editor.timelineTour.stepIndicator')) || 'Bước {current} trên {total}';
     stepBadge.textContent = indicatorTemplate
       .replace('{current}', (index + 1).toString())
       .replace('{total}', total.toString());
@@ -418,6 +627,11 @@ export class TimelineTourGuide {
     this.tooltipCard.appendChild(footerRow);
 
     this.updatePosition();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        this.updatePosition();
+      });
+    }
   }
 
   updatePosition() {
@@ -441,19 +655,26 @@ export class TimelineTourGuide {
     const cardWidth = 350;
     const cardHeight = this.tooltipCard.offsetHeight || 220;
 
-    // Determine vertical placement: place above target if space permits, else below
-    let top = rect.top - cardHeight - 16;
-    if (top < 10) {
-      top = rect.bottom + 16;
-    }
-
-    // Determine horizontal placement: align with target left, clamp within screen
+    let top = rect.top;
     let left = rect.left;
-    if (left + cardWidth > window.innerWidth - 10) {
-      left = window.innerWidth - cardWidth - 10;
-    }
-    if (left < 10) {
-      left = 10;
+
+    if (rect.left > window.innerWidth - 450) {
+      // For elements docked on the right side (such as Property Inspector), place card to the left
+      left = Math.max(10, rect.left - cardWidth - 16);
+      top = Math.max(10, Math.min(window.innerHeight - cardHeight - 20, rect.top));
+    } else {
+      // Determine vertical placement: place above target if space permits, else below
+      top = rect.top - cardHeight - 16;
+      if (top < 10) {
+        top = rect.bottom + 16;
+      }
+      left = rect.left;
+      if (left + cardWidth > window.innerWidth - 10) {
+        left = window.innerWidth - cardWidth - 10;
+      }
+      if (left < 10) {
+        left = 10;
+      }
     }
 
     this.tooltipCard.style.top = top + 'px';
@@ -487,13 +708,24 @@ export class TimelineTourGuide {
 
   finishTour(status = 'completed') {
     this.isActive = false;
+    const storageKey = this.currentTourType === 'inspector'
+      ? 'inspector_tour_status'
+      : 'timeline_tour_status';
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('timeline_tour_status', status);
+      localStorage.setItem(storageKey, status);
     }
     window.removeEventListener('keydown', this.boundKeyHandler, true);
     window.removeEventListener('resize', this.boundResizeHandler);
+    window.removeEventListener('scroll', this.boundScrollHandler, true);
+    if (this.scrollRafId) {
+      cancelAnimationFrame(this.scrollRafId);
+      this.scrollRafId = null;
+    }
     this.destroyDOM();
-    globalEventBus.emit('timeline:tour-finish', { status });
+    globalEventBus.emit('timeline:tour-finish', {
+      type: this.currentTourType,
+      status
+    });
   }
 
   destroyDOM() {

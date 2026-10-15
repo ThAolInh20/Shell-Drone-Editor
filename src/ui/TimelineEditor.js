@@ -488,7 +488,12 @@ export class TimelineEditor {
           this.renderTracks();
         }
       },
-      presetOptions
+      presetOptions,
+      () => {
+        if (this.tourGuide) {
+          this.tourGuide.startInspectorTour();
+        }
+      }
     );
 
     document.body.appendChild(this.container);

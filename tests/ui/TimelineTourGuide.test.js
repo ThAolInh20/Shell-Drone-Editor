@@ -54,6 +54,9 @@ describe('TimelineTourGuide Component', () => {
         }
         domElements = domElements.filter((item) => item !== el);
       }),
+      scrollLeft: 0,
+      scrollTop: 0,
+      contains: vi.fn((child) => el.children.includes(child)),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       querySelector: vi.fn(() => createMockElement('div')),
@@ -164,7 +167,35 @@ describe('TimelineTourGuide Component', () => {
     expect(tourGuide.overlayElement).not.toBeNull();
     expect(tourGuide.highlightBox).not.toBeNull();
     expect(tourGuide.tooltipCard).not.toBeNull();
-    expect(emitSpy).toHaveBeenCalledWith('timeline:tour-start');
+    expect(emitSpy).toHaveBeenCalledWith('timeline:tour-start', { type: 'timeline' });
+  });
+
+  it('should initialize with 4 valid inspector tour steps', () => {
+    const steps = tourGuide.getInspectorSteps();
+    expect(steps.length).toBe(4);
+    expect(steps[0].id).toBe('inspectorHeader');
+    expect(steps[1].id).toBe('inspectorCore');
+    expect(steps[2].id).toBe('inspectorComposition');
+    expect(steps[3].id).toBe('inspectorOffsets');
+
+    steps.forEach((step) => {
+      expect(step.title).toBeDefined();
+      expect(step.desc).toBeDefined();
+      expect(typeof step.getTarget).toBe('function');
+    });
+  });
+
+  it('should start inspector tour, configure inspector readiness, and emit tour start event', () => {
+    const emitSpy = vi.spyOn(globalEventBus, 'emit');
+    tourGuide.startInspectorTour();
+
+    expect(tourGuide.isActive).toBe(true);
+    expect(tourGuide.currentTourType).toBe('inspector');
+    expect(tourGuide.currentStepIndex).toBe(0);
+    expect(emitSpy).toHaveBeenCalledWith('timeline:tour-start', { type: 'inspector' });
+
+    tourGuide.finishTour('completed');
+    expect(store['inspector_tour_status']).toBe('completed');
   });
 
   it('should navigate through steps and finish tour on last step', () => {
@@ -202,5 +233,35 @@ describe('TimelineTourGuide Component', () => {
     const startTourSpy = vi.spyOn(tourGuide, 'startTour');
     globalEventBus.emit('timeline:request-tour');
     expect(startTourSpy).toHaveBeenCalled();
+  });
+
+  it('should react to timeline:request-inspector-tour global event', () => {
+    const startInspectorSpy = vi.spyOn(tourGuide, 'startInspectorTour');
+    globalEventBus.emit('timeline:request-inspector-tour');
+    expect(startInspectorSpy).toHaveBeenCalled();
+  });
+
+  it('should scroll target into view if offscreen in trackContainer or inspectorContainer', () => {
+    const mockBlock = createMockElement('div');
+    mockTimelineEditor.trackContainer.appendChild(mockBlock);
+    mockBlock.getBoundingClientRect = vi.fn(() => ({
+      top: 100,
+      bottom: 150,
+      left: 1200,
+      right: 1400,
+      width: 200,
+      height: 50
+    }));
+    mockTimelineEditor.trackContainer.getBoundingClientRect = vi.fn(() => ({
+      top: 50,
+      bottom: 300,
+      left: 0,
+      right: 600,
+      width: 600,
+      height: 250
+    }));
+
+    tourGuide.scrollTargetIntoView(mockBlock);
+    expect(mockTimelineEditor.trackContainer.scrollLeft).toBeGreaterThan(0);
   });
 });
