@@ -92,6 +92,7 @@ const movementSystem = new MovementSystem(
 cameraManager.movementSystem = movementSystem;
 
 const droneSystem = new DroneSystem(sceneManager);
+skyLightReactionSystem.droneSystem = droneSystem;
 const droneSequencer = new DroneShowSequencer(droneSystem);
 // Note: We no longer auto-play demo sequence because ShowDirector manages it
 

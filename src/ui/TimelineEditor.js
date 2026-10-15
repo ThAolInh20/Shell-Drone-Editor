@@ -6,6 +6,8 @@ import { globalEventBus } from '../core/EventBus.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
 import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
 import { showToast } from '../utils/Toast.js';
+import { WaveformGenerator } from '../utils/WaveformGenerator.js';
+import { TimelineTourGuide } from './TimelineTourGuide.js';
 
 
 export class TimelineEditor {
@@ -16,7 +18,7 @@ export class TimelineEditor {
     this.pixelsPerSecond = 50;
     this.rowHeight = 30;
     this.minBlockWidth = 20;
-    this.visible = false;
+    this.visible = true;
     this.dragOffsetX = 0;
     this.isResizing = false;
     this.resizedEvent = null;
@@ -35,7 +37,21 @@ export class TimelineEditor {
     this.autoSaveTimer = null;
 
     this.initDOM();
+    this.tourGuide = new TimelineTourGuide(this);
     this.renderTracks();
+
+    if (this.visible) {
+      if (
+        this.hotkeyManager &&
+        typeof this.hotkeyManager.setActiveContext === 'function'
+      ) {
+        this.hotkeyManager.setActiveContext('timeline');
+      }
+      globalEventBus.emit('timeline:toggle', true);
+      if (this.tourGuide) {
+        this.tourGuide.promptFirstTimeTour();
+      }
+    }
 
     // Update playhead on animation frame
     this.updateLoop = this.updatePlayhead.bind(this);
@@ -59,7 +75,7 @@ export class TimelineEditor {
     this.container.style.background = 'rgba(10, 15, 20, 0.85)';
     this.container.style.backdropFilter = 'blur(10px)';
     this.container.style.borderTop = '1px solid #444';
-    this.container.style.display = 'none';
+    this.container.style.display = this.visible ? 'flex' : 'none';
     this.container.style.flexDirection = 'row';
     this.container.style.zIndex = '1000';
     this.container.style.color = 'white';
@@ -286,16 +302,42 @@ export class TimelineEditor {
       }
     );
 
+    this.toolbar = toolbar;
+
+    const helpBtn = document.createElement('button');
+    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Hướng dẫn';
+    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') || 'Xem hướng dẫn thao tác cơ bản trên Timeline';
+    helpBtn.style.background = '#273544';
+    helpBtn.style.color = '#00e5ff';
+    helpBtn.style.border = '1px solid #486581';
+    helpBtn.style.borderRadius = '4px';
+    helpBtn.style.cursor = 'pointer';
+    helpBtn.style.marginLeft = 'auto';
+    helpBtn.addEventListener(
+      'click',
+      () => {
+        this.tourGuide.startTour();
+      }
+    );
+
+    const dataActionsGroup = document.createElement('div');
+    dataActionsGroup.style.display = 'inline-flex';
+    dataActionsGroup.style.alignItems = 'center';
+    dataActionsGroup.style.gap = '10px';
+    dataActionsGroup.appendChild(addBtn);
+    dataActionsGroup.appendChild(importBtn);
+    dataActionsGroup.appendChild(addFileDropdownContainer);
+    this.dataActionsGroup = dataActionsGroup;
+
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
-    toolbar.appendChild(addBtn);
-    toolbar.appendChild(importBtn);
-    toolbar.appendChild(addFileDropdownContainer);
+    toolbar.appendChild(dataActionsGroup);
     toolbar.appendChild(groupBtn);
     toolbar.appendChild(ungroupBtn);
     toolbar.appendChild(this.fileIndicatorContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
+    toolbar.appendChild(helpBtn);
 
     leftPanel.appendChild(toolbar);
 
@@ -430,6 +472,7 @@ export class TimelineEditor {
 
     // Right side: Property Inspector
     const inspectorContainer = document.createElement('div');
+    this.inspectorContainer = inspectorContainer;
     this.container.appendChild(inspectorContainer);
 
     let presetOptions = ['random'];
@@ -445,7 +488,12 @@ export class TimelineEditor {
           this.renderTracks();
         }
       },
-      presetOptions
+      presetOptions,
+      () => {
+        if (this.tourGuide) {
+          this.tourGuide.startInspectorTour();
+        }
+      }
     );
 
     document.body.appendChild(this.container);
@@ -609,6 +657,16 @@ export class TimelineEditor {
         'alt+arrowright',
         () => {
           this.seekToNextBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'f1',
+        () => {
+          if (this.tourGuide) {
+            this.tourGuide.startTour();
+          }
         }
       );
     }
@@ -939,6 +997,9 @@ export class TimelineEditor {
         this.visible ? 'timeline' : 'global'
       );
     }
+    if (this.visible && this.tourGuide) {
+      this.tourGuide.promptFirstTimeTour();
+    }
     globalEventBus.emit('timeline:toggle', this.visible);
   }
 
@@ -1204,6 +1265,8 @@ export class TimelineEditor {
 
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
+      block.className = `timeline-event-block timeline-block-${seq.type}`;
+      block.dataset.eventType = seq.type;
       const startX = seq.time * this.pixelsPerSecond;
       const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
       const width = Math.max(visualDurationVal * this.pixelsPerSecond, this.minBlockWidth);
@@ -1296,6 +1359,56 @@ export class TimelineEditor {
       }
       block.appendChild(textSpan);
 
+      // Render audio waveform behind the text label
+      if (seq.type === 'audio') {
+        textSpan.style.position = 'relative';
+        textSpan.style.zIndex = '2';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.position = 'absolute';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.opacity = '0.55';
+        canvas.style.zIndex = '1';
+        block.appendChild(canvas);
+
+        const renderWave = (peaks) => {
+          WaveformGenerator.renderWaveform(
+            canvas,
+            peaks,
+            {
+              width,
+              height: this.rowHeight,
+              color: 'rgba(255, 255, 255, 0.75)'
+            }
+          );
+        };
+
+        if (seq._waveformPeaks) {
+          renderWave(seq._waveformPeaks);
+        } else {
+          const audioSrc = seq._blobUrl ||
+            seq._file ||
+            (seq.url ? (seq.url.startsWith('/') || seq.url.startsWith('http') ? seq.url : `/${seq.url}`) : null);
+
+          if (audioSrc && !seq._waveformPromise) {
+            seq._waveformPromise = WaveformGenerator.getPeaks(audioSrc)
+              .then((peaks) => {
+                seq._waveformPeaks = peaks;
+                delete seq._waveformPromise;
+                this.renderTracks();
+              })
+              .catch((err) => {
+                delete seq._waveformPromise;
+                console.warn('Could not generate waveform:', err);
+              });
+          }
+        }
+      }
+
       // Render yellow dots for beats if it's an audio block
       if (seq.type === 'audio' && seq.beats) {
         seq.beats.forEach((beatTime) => {
@@ -1312,6 +1425,7 @@ export class TimelineEditor {
             dot.style.backgroundColor = '#ffd700';
             dot.style.border = '1px solid rgba(0,0,0,0.5)';
             dot.style.cursor = 'pointer';
+            dot.style.zIndex = '3';
             dot.title = `Beat: ${beatTime.toFixed(2)}s (Double click to delete)`;
 
             dot.addEventListener(
@@ -1554,12 +1668,56 @@ export class TimelineEditor {
     try {
       const fileData = await fileStorage.openFileDialog();
       if (fileData) {
-        const { filePath, content, filename } = fileData;
+        const {
+          filePath,
+          content,
+          filename,
+          companionAudios
+        } = fileData;
         const data = JSON.parse(content);
-        if (!Array.isArray(data)) throw new Error(t('editor.filePanel.alertInvalidJson'));
+        if (!Array.isArray(data)) {
+          throw new Error(t('editor.filePanel.alertInvalidJson'));
+        }
 
-        if (this.sequences.length > 0 && !confirm(t('editor.timelinePanel.importConfirm'))) {
+        if (
+          this.sequences.length > 0 &&
+          !confirm(t('editor.timelinePanel.importConfirm'))
+        ) {
           return;
+        }
+
+        if (companionAudios) {
+          const blobUrlCache = {};
+          const attachAudio = (list) => {
+            list.forEach((item) => {
+              if (item.type === 'audio') {
+                const audioName = (item.url || item.name || '').split(/[\\/]/).pop();
+                const match = companionAudios[audioName] ||
+                  companionAudios[item.url] ||
+                  companionAudios[item.name];
+                if (match && match.buffer) {
+                  const cacheKey = audioName || item.url || item.name;
+                  if (!blobUrlCache[cacheKey]) {
+                    const blob = new Blob(
+                      [match.buffer],
+                      {
+                        type: match.mimeType || 'audio/mpeg'
+                      }
+                    );
+                    blobUrlCache[cacheKey] = URL.createObjectURL(blob);
+                  }
+                  item._blobUrl = blobUrlCache[cacheKey];
+                }
+              }
+              if (
+                item.type === 'group' &&
+                Array.isArray(item.children)
+              ) {
+                attachAudio(item.children);
+              }
+            });
+          };
+          attachAudio(data);
         }
 
         this.sequences = data;
@@ -1636,7 +1794,16 @@ export class TimelineEditor {
   }
 
   cleanSequence(s) {
-    const { _trackRow, _deleted, _blobUrl, initialTime, ...cleanObj } = s;
+    const {
+      _trackRow,
+      _deleted,
+      _blobUrl,
+      _waveformPeaks,
+      _waveformLoading,
+      _waveformPromise,
+      initialTime,
+      ...cleanObj
+    } = s;
     if (cleanObj.type === 'group' && cleanObj.children) {
       cleanObj.children = cleanObj.children.map((child) => {
         return this.cleanSequence(child);

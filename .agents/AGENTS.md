@@ -54,4 +54,10 @@
 ## Git Operations & Source Control Rules
 - **No Automatic Git Operations**: Absolutely NEVER execute `git add`, `git commit`, `git push`, or create git tags automatically. Only execute git staging and commit operations when the user EXPLICITLY commands it in their message (such as explicitly requesting `/ds-commit` or "hãy commit"). Never commit autonomously after completing edits, running tests, or after receiving casual confirmations like "ok" or "tiếp tục".
 
+## Code Integrity & Regression Prevention
+- **Preserve Existing Features & Subsystems**: When modifying, optimizing, or refactoring code (such as adjusting particle effects, smoke dynamics, timeline controls, or audio triggers), NEVER arbitrarily delete, disable, or comment out existing capabilities, lifecycle events, or subsystem quotas (such as launch smoke, barge exhaust, independent quotas, or physics properties) unless the user explicitly commands their removal.
+- **Surgical & Scoped Modifications**: Always isolate code edits strictly to the requested behavior. Avoid blanket overrides or broad-brush suppression that accidentally silences adjacent pipelines or shared subsystem mechanisms.
+- **Diff Inspection Before Completion**: Always review modified files using git diff to confirm that no unrelated functions, event listeners, or established quotas were inadvertently omitted, commented out, or overwritten.
+- **Regression Protection via Tests**: Maintain and run comprehensive test suites to ensure both newly added behavior and pre-existing subsystem capabilities continue to function as intended without silent regressions.
+
 

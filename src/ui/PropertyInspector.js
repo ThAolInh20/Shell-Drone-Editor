@@ -12,6 +12,7 @@ import {
 import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
 import { CustomSelect } from './CustomSelect.js';
 import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
+import { globalEventBus } from '../core/EventBus.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -82,10 +83,16 @@ export const AVAILABLE_EFFECT_TAGS = [
 ];
 
 export class PropertyInspector {
-  constructor(container, onUpdate, presetOptions = ['random']) {
+  constructor(
+    container,
+    onUpdate,
+    presetOptions = ['random'],
+    onHelpClick = null
+  ) {
     this.container = container;
     this.onUpdate = onUpdate;
     this.presetOptions = presetOptions;
+    this.onHelpClick = onHelpClick;
     this.selectedEvent = null;
     this.activeStageIndex = 0;
     this.collapsedGroups = {}; // Keep track of open/closed states
@@ -122,6 +129,10 @@ export class PropertyInspector {
   hide() {
     this.selectedEvent = null;
     this.container.style.display = 'none';
+  }
+
+  setHelpHandler(handler) {
+    this.onHelpClick = handler;
   }
 
   triggerUpdate(action) {
@@ -390,7 +401,60 @@ export class PropertyInspector {
   }
 
   render() {
-    this.container.innerHTML = `<h3 class="inspector-title">${t('editor.inspector.title')}</h3>`;
+    this.container.innerHTML = '';
+
+    const headerWrapper = document.createElement('div');
+    headerWrapper.className = 'inspector-header';
+    headerWrapper.style.display = 'flex';
+    headerWrapper.style.justifyContent = 'space-between';
+    headerWrapper.style.alignItems = 'center';
+    headerWrapper.style.marginBottom = '12px';
+    headerWrapper.style.paddingBottom = '8px';
+    headerWrapper.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+
+    const titleEl = document.createElement('h3');
+    titleEl.className = 'inspector-title';
+    titleEl.textContent = t('editor.inspector.title') || 'Thuộc tính';
+    titleEl.style.margin = '0';
+    titleEl.style.fontSize = '14px';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.color = '#00e5ff';
+
+    const helpBtn = document.createElement('button');
+    helpBtn.className = 'inspector-help-btn';
+    helpBtn.textContent = t('editor.inspectorTour.helpBtn') || 'Hướng dẫn';
+    helpBtn.title = t('editor.inspectorTour.helpBtnTooltip') || 'Xem hướng dẫn bảng thuộc tính';
+    helpBtn.style.background = 'rgba(0, 229, 255, 0.12)';
+    helpBtn.style.border = '1px solid rgba(0, 229, 255, 0.4)';
+    helpBtn.style.color = '#00e5ff';
+    helpBtn.style.padding = '3px 8px';
+    helpBtn.style.borderRadius = '3px';
+    helpBtn.style.cursor = 'pointer';
+    helpBtn.style.fontSize = '11px';
+    helpBtn.style.fontFamily = 'inherit';
+    helpBtn.style.transition = 'all 0.15s ease';
+
+    helpBtn.addEventListener('mouseenter', () => {
+      helpBtn.style.background = 'rgba(0, 229, 255, 0.25)';
+      helpBtn.style.borderColor = '#00e5ff';
+    });
+    helpBtn.addEventListener('mouseleave', () => {
+      helpBtn.style.background = 'rgba(0, 229, 255, 0.12)';
+      helpBtn.style.borderColor = 'rgba(0, 229, 255, 0.4)';
+    });
+    helpBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof this.onHelpClick === 'function') {
+        this.onHelpClick();
+      } else {
+        globalEventBus.emit('timeline:request-inspector-tour');
+      }
+    });
+
+    headerWrapper.appendChild(titleEl);
+    headerWrapper.appendChild(helpBtn);
+    this.container.appendChild(headerWrapper);
+
     if (!this.selectedEvent) {
       const emptyMsg = document.createElement('div');
       emptyMsg.className = 'inspector-empty';
@@ -459,7 +523,8 @@ export class PropertyInspector {
       }
 
       const accordion = document.createElement('div');
-      accordion.className = 'inspector-accordion';
+      accordion.className = `inspector-accordion inspector-group-${group.groupKey}`;
+      accordion.dataset.groupKey = group.groupKey;
 
       const header = document.createElement('div');
       const isCollapsed = this.collapsedGroups[group.groupKey] === true;

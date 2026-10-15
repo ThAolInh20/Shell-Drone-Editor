@@ -157,3 +157,22 @@ Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ n
 ### Strobe / Glitter (Nhấp nháy / Kim tuyến)
 - Trong code: Hiệu ứng `strobe`, `white-strobe`, `glitter-strobe` trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js).
 
+### Trail (Vệt sinh ra từ hạt chính)
+- Định nghĩa: Chuỗi vi hạt phát sáng được giải phóng liên tục đằng sau quỹ đạo di chuyển của các hạt pháo chính (stars) hoặc rocket trong pha phóng, tạo thành vệt đuôi lấp lánh (sparkling trailing tail) và mờ dần theo thời gian.
+- Đặc tính:
+  - Có thể bật hoặc tắt linh hoạt thông qua thẻ hiệu ứng `no-trail` trên từng sự kiện pháo hoa.
+  - Hỗ trợ kết hợp các hiệu ứng phụ trợ trên vệt như nhấp nháy (`strobe`), kim tuyến (`glitter`), hoặc nổ vi hạt lách tách (`crackle`).
+- Trong code: Quản lý chuyên trách bởi lớp `TrailSystem` trong [src/systems/TrailSystem.js](./src/systems/TrailSystem.js), kết nối với luồng cập nhật hạt trong [src/systems/FireworkSystem.js](./src/systems/FireworkSystem.js) và [src/systems/CometSystem.js](./src/systems/CometSystem.js).
+
+---
+
+## 7. Thuật ngữ Mô phỏng Khói và Môi trường (Smoke & Environmental Simulation Terms)
+
+### Quá trình gom hạt khói (Progressive Particle Coalescence)
+- Định nghĩa: Cơ chế mô phỏng vật lý và quang học trong đó các cụm hạt khói nhỏ (hạt vệ tinh) mới sinh ra tự động hãm tốc, mờ dần sớm và sáp nhập thể tích vào hạt trung tâm (hạt nhân) để nở to thành một khối khói lớn đồng nhất, sau đó chuyển sinh thành màn sương mờ nền (ambient haze) trôi dạt êm dịu trên bầu trời.
+- Cơ chế thành phần:
+  - Hạt nhân (Nucleus Puff): Hạt trung tâm mang cờ `isNucleus: true`, nở phồng dần theo hàm `smoothstep` với hệ số `nucleusBoost` và chuyển sinh thành sương mờ nền khi đạt ngưỡng bàn giao (`handoverRatio ~ 30%`).
+  - Hạt vệ tinh (Satellite Puff): Các hạt xung quanh mang cờ `isNucleus: false`, hãm tốc nhẹ về phía tâm và tiêu biến sớm ở mốc ~37.5% vòng đời để nhường thể tích cho hạt nhân.
+  - Sương mờ nền (Ambient Haze): Trạng thái chuyển sinh mang cờ `isHaze: true`, duy trì thể tích lớn, độ mờ nhẹ và trôi dạt theo trường gió khí quyển với thời gian sống kéo dài (10s - 18s).
+- Trong code: Triển khai trong [src/systems/SmokeSystem.js](./src/systems/SmokeSystem.js) (các thuộc tính `isNucleus`, `isHazePromoter`, `isHaze`, `nucleusBoost`) và cấu hình tại `FIREWORK_CONFIG.SMOKE` trong [src/config/fireworks.js](./src/config/fireworks.js).
+
