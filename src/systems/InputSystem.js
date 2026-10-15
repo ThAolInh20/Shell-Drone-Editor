@@ -136,17 +136,7 @@ export class InputSystem {
     document.body.appendChild(crosshair);
 
     this.instructions = document.createElement('div');
-    this.instructions.style.position = 'absolute';
-    this.instructions.style.top = '50%';
-    this.instructions.style.width = '100%';
-    this.instructions.style.textAlign = 'center';
-    this.instructions.style.color = '#fff';
-    this.instructions.style.fontFamily = 'monospace';
-    this.instructions.style.fontSize = '18px';
-    this.instructions.style.pointerEvents = 'none';
-    this.instructions.innerHTML = 'Click to Look Around<br/><br/>W A S D to Move (Shift+W/S to fly up/down)<br/><br/>Click while locked to launch the selected firework<br/><br/>Press ESC for the firework menu<br/><br/>Press ENTER to play Demo Show';
-    this.instructions.style.textShadow = '0px 0px 5px rgba(0,0,0,1)';
-    document.body.appendChild(this.instructions);
+    this.instructions.style.display = 'none';
 
     this.statusOverlay = document.createElement('div');
     this.statusOverlay.style.position = 'absolute';

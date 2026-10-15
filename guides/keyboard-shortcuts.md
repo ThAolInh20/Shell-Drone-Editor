@@ -40,6 +40,7 @@ Tài liệu này tổng hợp toàn bộ phím tắt thao tác nhanh trong phầ
 | `Ctrl + V` | Dán khối đã sao chép vào vị trí kim neo Anchor Head (màu xanh lam) |
 | `Delete` / `Backspace` | Xóa toàn bộ các khối sự kiện đang được chọn |
 | `Ctrl` / `Shift` + Click | Chọn bổ sung nhiều khối sự kiện (Multi-select) |
+| `F1` | Mở hướng dẫn tương tác thao tác cơ bản trên Timeline |
 
 ---
 

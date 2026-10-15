@@ -7,6 +7,7 @@ import { fileStorage } from '../core/FileStorageAdapter.js';
 import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
 import { showToast } from '../utils/Toast.js';
 import { WaveformGenerator } from '../utils/WaveformGenerator.js';
+import { TimelineTourGuide } from './TimelineTourGuide.js';
 
 
 export class TimelineEditor {
@@ -17,7 +18,7 @@ export class TimelineEditor {
     this.pixelsPerSecond = 50;
     this.rowHeight = 30;
     this.minBlockWidth = 20;
-    this.visible = false;
+    this.visible = true;
     this.dragOffsetX = 0;
     this.isResizing = false;
     this.resizedEvent = null;
@@ -36,7 +37,21 @@ export class TimelineEditor {
     this.autoSaveTimer = null;
 
     this.initDOM();
+    this.tourGuide = new TimelineTourGuide(this);
     this.renderTracks();
+
+    if (this.visible) {
+      if (
+        this.hotkeyManager &&
+        typeof this.hotkeyManager.setActiveContext === 'function'
+      ) {
+        this.hotkeyManager.setActiveContext('timeline');
+      }
+      globalEventBus.emit('timeline:toggle', true);
+      if (this.tourGuide) {
+        this.tourGuide.promptFirstTimeTour();
+      }
+    }
 
     // Update playhead on animation frame
     this.updateLoop = this.updatePlayhead.bind(this);
@@ -60,7 +75,7 @@ export class TimelineEditor {
     this.container.style.background = 'rgba(10, 15, 20, 0.85)';
     this.container.style.backdropFilter = 'blur(10px)';
     this.container.style.borderTop = '1px solid #444';
-    this.container.style.display = 'none';
+    this.container.style.display = this.visible ? 'flex' : 'none';
     this.container.style.flexDirection = 'row';
     this.container.style.zIndex = '1000';
     this.container.style.color = 'white';
@@ -287,16 +302,42 @@ export class TimelineEditor {
       }
     );
 
+    this.toolbar = toolbar;
+
+    const helpBtn = document.createElement('button');
+    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Hướng dẫn';
+    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') || 'Xem hướng dẫn thao tác cơ bản trên Timeline';
+    helpBtn.style.background = '#273544';
+    helpBtn.style.color = '#00e5ff';
+    helpBtn.style.border = '1px solid #486581';
+    helpBtn.style.borderRadius = '4px';
+    helpBtn.style.cursor = 'pointer';
+    helpBtn.style.marginLeft = 'auto';
+    helpBtn.addEventListener(
+      'click',
+      () => {
+        this.tourGuide.startTour();
+      }
+    );
+
+    const dataActionsGroup = document.createElement('div');
+    dataActionsGroup.style.display = 'inline-flex';
+    dataActionsGroup.style.alignItems = 'center';
+    dataActionsGroup.style.gap = '10px';
+    dataActionsGroup.appendChild(addBtn);
+    dataActionsGroup.appendChild(importBtn);
+    dataActionsGroup.appendChild(addFileDropdownContainer);
+    this.dataActionsGroup = dataActionsGroup;
+
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
-    toolbar.appendChild(addBtn);
-    toolbar.appendChild(importBtn);
-    toolbar.appendChild(addFileDropdownContainer);
+    toolbar.appendChild(dataActionsGroup);
     toolbar.appendChild(groupBtn);
     toolbar.appendChild(ungroupBtn);
     toolbar.appendChild(this.fileIndicatorContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
+    toolbar.appendChild(helpBtn);
 
     leftPanel.appendChild(toolbar);
 
@@ -431,6 +472,7 @@ export class TimelineEditor {
 
     // Right side: Property Inspector
     const inspectorContainer = document.createElement('div');
+    this.inspectorContainer = inspectorContainer;
     this.container.appendChild(inspectorContainer);
 
     let presetOptions = ['random'];
@@ -610,6 +652,16 @@ export class TimelineEditor {
         'alt+arrowright',
         () => {
           this.seekToNextBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'f1',
+        () => {
+          if (this.tourGuide) {
+            this.tourGuide.startTour();
+          }
         }
       );
     }
@@ -940,6 +992,9 @@ export class TimelineEditor {
         this.visible ? 'timeline' : 'global'
       );
     }
+    if (this.visible && this.tourGuide) {
+      this.tourGuide.promptFirstTimeTour();
+    }
     globalEventBus.emit('timeline:toggle', this.visible);
   }
 
@@ -1205,6 +1260,8 @@ export class TimelineEditor {
 
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
+      block.className = `timeline-event-block timeline-block-${seq.type}`;
+      block.dataset.eventType = seq.type;
       const startX = seq.time * this.pixelsPerSecond;
       const visualDurationVal = seq.uiDuration !== undefined ? seq.uiDuration : (seq.duration || 0);
       const width = Math.max(visualDurationVal * this.pixelsPerSecond, this.minBlockWidth);
