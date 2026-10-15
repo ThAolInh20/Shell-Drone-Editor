@@ -346,3 +346,152 @@ export function customChoicePrompt(title, options) {
     }
   });
 }
+
+export function customConfirm(
+  message,
+  title = ''
+) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0, 0, 0, 0.6)';
+    overlay.style.backdropFilter = 'blur(5px)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '99999';
+    overlay.style.transition = 'opacity 0.2s ease';
+    overlay.style.opacity = '0';
+
+    overlay.addEventListener(
+      'pointerdown',
+      (e) => e.stopPropagation()
+    );
+    overlay.addEventListener(
+      'mousedown',
+      (e) => e.stopPropagation()
+    );
+    overlay.addEventListener(
+      'pointerup',
+      (e) => e.stopPropagation()
+    );
+    overlay.addEventListener(
+      'mouseup',
+      (e) => e.stopPropagation()
+    );
+    overlay.addEventListener(
+      'click',
+      (e) => e.stopPropagation()
+    );
+
+    const modal = document.createElement('div');
+    modal.style.background = '#1e1e1e';
+    modal.style.border = '1px solid #333';
+    modal.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+    modal.style.borderRadius = '8px';
+    modal.style.padding = '20px';
+    modal.style.width = '340px';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '15px';
+
+    if (title) {
+      const titleEl = document.createElement('div');
+      titleEl.textContent = title;
+      titleEl.style.color = '#fff';
+      titleEl.style.fontWeight = 'bold';
+      titleEl.style.fontSize = '14px';
+      modal.appendChild(titleEl);
+    }
+
+    const msgEl = document.createElement('div');
+    msgEl.textContent = message;
+    msgEl.style.color = '#ccc';
+    msgEl.style.fontSize = '13px';
+    msgEl.style.lineHeight = '1.5';
+    modal.appendChild(msgEl);
+
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.justifyContent = 'flex-end';
+    btns.style.gap = '10px';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = t('editor.cancelBtn') || 'Cancel';
+    cancelBtn.style.background = '#333';
+    cancelBtn.style.border = '1px solid #555';
+    cancelBtn.style.color = '#ccc';
+    cancelBtn.style.padding = '6px 14px';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '12px';
+
+    const okBtn = document.createElement('button');
+    okBtn.textContent = t('editor.okBtn') || 'OK';
+    okBtn.style.background = '#3a86ff';
+    okBtn.style.border = 'none';
+    okBtn.style.color = '#fff';
+    okBtn.style.padding = '6px 14px';
+    okBtn.style.borderRadius = '4px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.fontSize = '12px';
+    okBtn.style.fontWeight = 'bold';
+
+    const dismiss = (result) => {
+      window.removeEventListener(
+        'keydown',
+        handleKey,
+        true
+      );
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          document.body.removeChild(overlay);
+        }
+        resolve(result);
+      }, 200);
+    };
+
+    cancelBtn.addEventListener(
+      'click',
+      () => dismiss(false)
+    );
+    okBtn.addEventListener(
+      'click',
+      () => dismiss(true)
+    );
+
+    btns.appendChild(cancelBtn);
+    btns.appendChild(okBtn);
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      cancelBtn.focus();
+    }, 50);
+
+    const handleKey = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss(false);
+      }
+    };
+    window.addEventListener(
+      'keydown',
+      handleKey,
+      true
+    );
+  });
+}
+

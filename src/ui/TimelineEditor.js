@@ -4,7 +4,10 @@ import demoShow from '../config/sequences/demoShow.json';
 import { t } from '../config/lang/i18n.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
-import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
+import {
+  customChoicePrompt,
+  customConfirm
+} from '../editor/ui/utils/Modal.js';
 import { showToast } from '../utils/Toast.js';
 import { WaveformGenerator } from '../utils/WaveformGenerator.js';
 import { TimelineTourGuide } from './TimelineTourGuide.js';
@@ -147,6 +150,18 @@ export class TimelineEditor {
       this.followBtn.style.background = this.autoScrollEnabled ? '#4CAF50' : '#f44336';
     });
 
+
+    const newBtn = document.createElement('button');
+    newBtn.textContent = t('editor.timelinePanel.newBtn') || 'New';
+    newBtn.title = t('editor.timelinePanel.newBtnTooltip') || 'New blank script Ctrl+Alt+N';
+    newBtn.style.background = '#2e7d32';
+    newBtn.style.color = 'white';
+    newBtn.addEventListener(
+      'click',
+      () => {
+        this.createNewScript();
+      }
+    );
 
     const addBtn = document.createElement('button');
     addBtn.textContent = t('editor.timelinePanel.addSequence');
@@ -324,6 +339,7 @@ export class TimelineEditor {
     dataActionsGroup.style.display = 'inline-flex';
     dataActionsGroup.style.alignItems = 'center';
     dataActionsGroup.style.gap = '10px';
+    dataActionsGroup.appendChild(newBtn);
     dataActionsGroup.appendChild(addBtn);
     dataActionsGroup.appendChild(importBtn);
     dataActionsGroup.appendChild(addFileDropdownContainer);
@@ -505,6 +521,24 @@ export class TimelineEditor {
         'ctrl+t',
         () => {
           this.toggle();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'global',
+        'ctrl+alt+n',
+        () => {
+          if (this.visible) {
+            this.createNewScript();
+          }
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+alt+n',
+        () => {
+          this.createNewScript();
         }
       );
 
@@ -1754,6 +1788,62 @@ export class TimelineEditor {
         isAutoSave: true
       });
     }, 2500);
+  }
+
+  async createNewScript() {
+    if (this.sequences && this.sequences.length > 0) {
+      const confirmed = await customConfirm(
+        t('editor.timelinePanel.newScriptConfirm') ||
+          'Tạo kịch bản mới sẽ làm mới timeline. Mọi block và audio chưa lưu sẽ bị xóa. Bạn có chắc chắn muốn tiếp tục?',
+        t('editor.timelinePanel.newScriptTitle') ||
+          'Tạo kịch bản mới'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.saveHistoryState();
+
+    if (this.showDirector && this.showDirector.isPlaying) {
+      this.togglePlay();
+    }
+
+    this.isDragging = false;
+    this.draggedEvent = null;
+    this.isResizing = false;
+    this.resizedEvent = null;
+
+    this.sequences = [];
+    this.selectedEvents = [];
+    this.currentFilePath = null;
+    this.filename = 'untitled.json';
+    this.updateFileIndicator();
+    this.setSaveStatus('saved');
+
+    if (this.inspector) {
+      this.inspector.hide();
+    }
+
+    this.anchorTime = 0;
+    if (this.anchorHead) {
+      this.anchorHead.style.left = '0px';
+    }
+
+    if (this.showDirector) {
+      this.showDirector.loadScript([]);
+      this.showDirector.seek(0);
+    }
+
+    if (this.playhead) {
+      this.playhead.style.left = '0px';
+    }
+
+    this.renderTracks();
+    showToast(
+      t('editor.timelinePanel.newScriptCreated') ||
+        'Đã tạo kịch bản mới rỗng'
+    );
   }
 
   async saveDirectly() {
