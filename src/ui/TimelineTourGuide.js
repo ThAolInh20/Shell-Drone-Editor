@@ -41,29 +41,29 @@ export class TimelineTourGuide {
         getTarget: () => this.timelineEditor.toolbar
       },
       {
-        id: 'ruler',
-        title: t('editor.timelineTour.step2Title') || 'Thước Ruler và Kim mốc',
-        desc: t('editor.timelineTour.step2Desc') ||
-          'Nhấp chuột vào Ruler để đặt kim neo Anchor Head làm mốc chèn khối. Vạch Playhead biểu thị vị trí thời gian đang phát.',
-        shortcut: t('editor.timelineTour.step2Shortcut') || 'Phím tắt: Nhấp chuột trên Ruler để dời Anchor Head',
-        getTarget: () => this.timelineEditor.ruler
-      },
-      {
         id: 'dataActions',
-        title: t('editor.timelineTour.step3Title') || 'Thêm và Nhập dữ liệu',
-        desc: t('editor.timelineTour.step3Desc') ||
+        title: t('editor.timelineTour.step2Title') || 'Thêm và Nhập dữ liệu',
+        desc: t('editor.timelineTour.step2Desc') ||
           'Cụm 3 nút giúp bạn chèn sự kiện pháo hoa mới tại Anchor Head, mở kịch bản từ tệp JSON dự án hoặc nạp tệp nhạc nền MP3 và dữ liệu drone.',
-        shortcut: t('editor.timelineTour.step3Shortcut') ||
+        shortcut: t('editor.timelineTour.step2Shortcut') ||
           'Gợi ý: Dùng nút Thêm Drone Audio để nạp nhạc nền hoặc dữ liệu bay',
         getTarget: () => this.timelineEditor.dataActionsGroup || this.timelineEditor.toolbar
       },
       {
         id: 'tracks',
-        title: t('editor.timelineTour.step4Title') || 'Khu vực đường track',
-        desc: t('editor.timelineTour.step4Desc') ||
+        title: t('editor.timelineTour.step3Title') || 'Khu vực đường track',
+        desc: t('editor.timelineTour.step3Desc') ||
           'Nơi sắp xếp Audio Sequence, Drone Show Sequence và Effect Sequence. Kéo chuột để dời mốc thời gian hoặc kéo mép để đổi thời lượng.',
-        shortcut: t('editor.timelineTour.step4Shortcut') || 'Phím tắt: Giữ chuột và kéo để di chuyển khối sự kiện',
+        shortcut: t('editor.timelineTour.step3Shortcut') || 'Phím tắt: Giữ chuột và kéo để di chuyển khối sự kiện',
         getTarget: () => this.timelineEditor.trackContainer || this.timelineEditor.tracksArea
+      },
+      {
+        id: 'ruler',
+        title: t('editor.timelineTour.step4Title') || 'Thước Ruler và Kim mốc',
+        desc: t('editor.timelineTour.step4Desc') ||
+          'Nhấp chuột vào Ruler để đặt kim neo Anchor Head làm mốc chèn khối. Vạch Playhead biểu thị vị trí thời gian đang phát.',
+        shortcut: t('editor.timelineTour.step4Shortcut') || 'Phím tắt: Nhấp chuột trên Ruler để dời Anchor Head',
+        getTarget: () => this.timelineEditor.ruler
       },
       {
         id: 'beat',

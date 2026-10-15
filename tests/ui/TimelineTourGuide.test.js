@@ -127,9 +127,9 @@ describe('TimelineTourGuide Component', () => {
     const steps = tourGuide.getSteps();
     expect(steps.length).toBe(6);
     expect(steps[0].id).toBe('toolbar');
-    expect(steps[1].id).toBe('ruler');
-    expect(steps[2].id).toBe('dataActions');
-    expect(steps[3].id).toBe('tracks');
+    expect(steps[1].id).toBe('dataActions');
+    expect(steps[2].id).toBe('tracks');
+    expect(steps[3].id).toBe('ruler');
     expect(steps[4].id).toBe('beat');
     expect(steps[5].id).toBe('block');
 
