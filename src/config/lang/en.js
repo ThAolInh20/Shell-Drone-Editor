@@ -183,6 +183,14 @@ export default {
       groupBtn: "Group",
       ungroupBtn: "Ungroup",
       groupBlockName: "Event Group",
+      playBtnTooltip: "Play or pause script Space",
+      followTooltip: "Toggle auto scroll following Playhead",
+      addSequenceTooltip: "Add sequence event at Anchor Head time",
+      importBtnTooltip: "Import show script from JSON file",
+      exportBtnTooltip: "Export all sequences to JSON file",
+      addDroneAudioTooltip: "Add Drone JSON or Audio MP3 WAV file to script",
+      groupBtnTooltip: "Group selected blocks into a single group",
+      ungroupBtnTooltip: "Ungroup selected group block into separate blocks",
       groupBlock: "{name} ({count} events)"
     },
     timelineTour: {

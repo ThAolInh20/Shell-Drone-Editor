@@ -172,7 +172,18 @@ export default {
       eventBlock: "{preset} ({count})",
       playLabel: "播放",
       pauseLabel: "暂停",
-      addStepBtn: "添加步骤 +"
+      addStepBtn: "添加步骤 +",
+      groupBtn: "编组",
+      ungroupBtn: "解散编组",
+      groupBlockName: "事件编组",
+      playBtnTooltip: "播放或暂停剧本 Space",
+      followTooltip: "切换时间轴自动跟随播放头",
+      addSequenceTooltip: "在时间锚点处添加新序列事件",
+      importBtnTooltip: "从 JSON 文件导入剧本",
+      exportBtnTooltip: "导出全部剧本序列为 JSON 文件",
+      addDroneAudioTooltip: "添加无人机 JSON 或 MP3 WAV 音频文件到剧本",
+      groupBtnTooltip: "将选中的区块组合为一个编组",
+      ungroupBtnTooltip: "将选中的编组解散为独立区块"
     },
     timelineTour: {
       helpBtn: "新手引导",

@@ -11,6 +11,7 @@ import {
 import { showToast } from '../utils/Toast.js';
 import { WaveformGenerator } from '../utils/WaveformGenerator.js';
 import { TimelineTourGuide } from './TimelineTourGuide.js';
+import { TimelineContextMenu } from './TimelineContextMenu.js';
 
 
 export class TimelineEditor {
@@ -39,6 +40,7 @@ export class TimelineEditor {
     this.autoSaveEnabled = localStorage.getItem('settings_auto_save_enabled') !== 'false';
     this.autoSaveTimer = null;
 
+    this.contextMenu = new TimelineContextMenu(this);
     this.initDOM();
     this.tourGuide = new TimelineTourGuide(this);
     this.renderTracks();
@@ -138,10 +140,14 @@ export class TimelineEditor {
 
     const playBtn = document.createElement('button');
     playBtn.textContent = t('editor.timelinePanel.playBtn');
+    playBtn.title = t('editor.timelinePanel.playBtnTooltip') ||
+      'Play or pause script Space';
     playBtn.addEventListener('click', () => this.togglePlay());
 
     this.followBtn = document.createElement('button');
     this.followBtn.textContent = t('editor.timelinePanel.followOn');
+    this.followBtn.title = t('editor.timelinePanel.followTooltip') ||
+      'Toggle auto scroll following Playhead';
     this.followBtn.style.background = '#4CAF50';
     this.followBtn.style.color = 'white';
     this.followBtn.addEventListener('click', () => {
@@ -165,10 +171,14 @@ export class TimelineEditor {
 
     const addBtn = document.createElement('button');
     addBtn.textContent = t('editor.timelinePanel.addSequence');
+    addBtn.title = t('editor.timelinePanel.addSequenceTooltip') ||
+      'Add sequence event at Anchor Head time';
     addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
 
     const importBtn = document.createElement('button');
     importBtn.textContent = t('editor.timelinePanel.importBtn');
+    importBtn.title = t('editor.timelinePanel.importBtnTooltip') ||
+      'Import show script from JSON file';
 
     importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
@@ -179,6 +189,19 @@ export class TimelineEditor {
         this.fileInput.click();
       }
     });
+
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = t('editor.timelinePanel.exportBtn') || 'Export';
+    exportBtn.title = t('editor.timelinePanel.exportBtnTooltip') ||
+      'Export all sequences to JSON file';
+    exportBtn.style.background = '#0288d1';
+    exportBtn.style.color = 'white';
+    exportBtn.addEventListener(
+      'click',
+      () => {
+        this.exportSequence(false);
+      }
+    );
 
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
@@ -210,6 +233,8 @@ export class TimelineEditor {
 
     const addFileBtn = document.createElement('button');
     addFileBtn.textContent = t('editor.timelinePanel.addDroneAudio') + ' ▾';
+    addFileBtn.title = t('editor.timelinePanel.addDroneAudioTooltip') ||
+      'Add Drone JSON or Audio MP3 WAV file to script';
     addFileBtn.style.background = '#e65100';
     addFileBtn.style.color = 'white';
 
@@ -301,6 +326,8 @@ export class TimelineEditor {
 
     const groupBtn = document.createElement('button');
     groupBtn.textContent = t('editor.timelinePanel.groupBtn') || 'Group';
+    groupBtn.title = t('editor.timelinePanel.groupBtnTooltip') ||
+      'Group selected blocks into a single group';
     groupBtn.addEventListener(
       'click',
       () => {
@@ -310,6 +337,8 @@ export class TimelineEditor {
 
     const ungroupBtn = document.createElement('button');
     ungroupBtn.textContent = t('editor.timelinePanel.ungroupBtn') || 'Ungroup';
+    ungroupBtn.title = t('editor.timelinePanel.ungroupBtnTooltip') ||
+      'Ungroup selected group block into separate blocks';
     ungroupBtn.addEventListener(
       'click',
       () => {
@@ -320,8 +349,9 @@ export class TimelineEditor {
     this.toolbar = toolbar;
 
     const helpBtn = document.createElement('button');
-    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Hướng dẫn';
-    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') || 'Xem hướng dẫn thao tác cơ bản trên Timeline';
+    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Guide';
+    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') ||
+      'View basic Timeline guide';
     helpBtn.style.background = '#273544';
     helpBtn.style.color = '#00e5ff';
     helpBtn.style.border = '1px solid #486581';
@@ -342,6 +372,7 @@ export class TimelineEditor {
     dataActionsGroup.appendChild(newBtn);
     dataActionsGroup.appendChild(addBtn);
     dataActionsGroup.appendChild(importBtn);
+    dataActionsGroup.appendChild(exportBtn);
     dataActionsGroup.appendChild(addFileDropdownContainer);
     this.dataActionsGroup = dataActionsGroup;
 
@@ -1494,6 +1525,7 @@ export class TimelineEditor {
 
 
       block.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
         e.stopPropagation();
         this.saveHistoryState();
 
@@ -1567,6 +1599,28 @@ export class TimelineEditor {
       });
 
       block.appendChild(resizeHandle);
+
+      block.addEventListener(
+        'contextmenu',
+        (e) => {
+          if (
+            this.selectedEvents &&
+            this.selectedEvents.includes(seq)
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.contextMenu.show(
+              e.clientX,
+              e.clientY,
+              {
+                targetEvent: seq,
+                selectedEvents: this.selectedEvents,
+                timelineEditor: this
+              }
+            );
+          }
+        }
+      );
 
       this.tracksArea.appendChild(block);
     });

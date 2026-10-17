@@ -183,6 +183,14 @@ export default {
       groupBtn: "Gom nhóm",
       ungroupBtn: "Hủy nhóm",
       groupBlockName: "Nhóm sự kiện",
+      playBtnTooltip: "Phát hoặc tạm dừng kịch bản Space",
+      followTooltip: "Bật hoặc tắt tự động cuộn theo Playhead",
+      addSequenceTooltip: "Thêm chuỗi sự kiện mới tại vị trí Anchor Head",
+      importBtnTooltip: "Nhập kịch bản trình diễn từ file JSON",
+      exportBtnTooltip: "Xuất toàn bộ kịch bản ra file JSON",
+      addDroneAudioTooltip: "Thêm file Drone JSON hoặc file âm thanh MP3 WAV vào kịch bản",
+      groupBtnTooltip: "Gộp các block đang chọn thành một nhóm",
+      ungroupBtnTooltip: "Rã nhóm block đang chọn thành các block riêng lẻ",
       groupBlock: "{name} ({count} sự kiện)"
     },
     timelineTour: {

@@ -172,7 +172,18 @@ export default {
       eventBlock: "{preset} ({count})",
       playLabel: "再生",
       pauseLabel: "一時停止",
-      addStepBtn: "ステップ追加 +"
+      addStepBtn: "ステップ追加 +",
+      groupBtn: "グループ化",
+      ungroupBtn: "グループ解除",
+      groupBlockName: "イベントグループ",
+      playBtnTooltip: "再生または一時停止 Space",
+      followTooltip: "再生ヘッドへの自動追従を切り替え",
+      addSequenceTooltip: "アンカーヘッドの位置に新しいシーケンスイベントを追加",
+      importBtnTooltip: "JSON ファイルからショーシナリオをインポート",
+      exportBtnTooltip: "全シーケンスを JSON ファイルとして書き出し",
+      addDroneAudioTooltip: "ドローン JSON または音声 MP3 WAV ファイルをシナリオに追加",
+      groupBtnTooltip: "選択したブロックをひとつのグループにまとめる",
+      ungroupBtnTooltip: "選択したグループを個別のブロックに解除"
     },
     timelineTour: {
       helpBtn: "ガイド",
