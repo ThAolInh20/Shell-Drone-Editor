@@ -85,6 +85,74 @@ export class TimelineContextMenu {
 
   registerDefaultActions() {
     this.registerAction({
+      id: 'group',
+      label: () => {
+        return t('editor.timelinePanel.groupBtn') || 'Group';
+      },
+      shortcut: 'Ctrl+G',
+      isVisible: (context) => {
+        return Boolean(
+          context &&
+          context.selectedEvents &&
+          context.selectedEvents.length >= 2
+        );
+      },
+      isEnabled: (context) => {
+        return Boolean(
+          context &&
+          context.selectedEvents &&
+          context.selectedEvents.length >= 2
+        );
+      },
+      execute: (context) => {
+        if (context.timelineEditor) {
+          context.timelineEditor.groupSelected();
+        }
+      }
+    });
+
+    this.registerAction({
+      id: 'ungroup',
+      label: () => {
+        return t('editor.timelinePanel.ungroupBtn') || 'Ungroup';
+      },
+      shortcut: 'Ctrl+Shift+G',
+      isVisible: (context) => {
+        return Boolean(
+          context &&
+          context.selectedEvents &&
+          context.selectedEvents.some((s) => s.type === 'group')
+        );
+      },
+      isEnabled: (context) => {
+        return Boolean(
+          context &&
+          context.selectedEvents &&
+          context.selectedEvents.some((s) => s.type === 'group')
+        );
+      },
+      execute: (context) => {
+        if (context.timelineEditor) {
+          context.timelineEditor.ungroupSelected();
+        }
+      }
+    });
+
+    this.registerAction({
+      isSeparator: true,
+      isVisible: (context) => {
+        return Boolean(
+          context &&
+          context.selectedEvents &&
+          (
+            context.selectedEvents.length >= 2 ||
+            context.selectedEvents.some((s) => s.type === 'group')
+          )
+        );
+      }
+    });
+
+    this.registerAction({
       id: 'export-selected',
       label: () => {
         return t('editor.timelinePanel.exportSelected') ||

@@ -324,28 +324,6 @@ export class TimelineEditor {
     this.updateFileIndicator();
     this.setSaveStatus('saved');
 
-    const groupBtn = document.createElement('button');
-    groupBtn.textContent = t('editor.timelinePanel.groupBtn') || 'Group';
-    groupBtn.title = t('editor.timelinePanel.groupBtnTooltip') ||
-      'Group selected blocks into a single group';
-    groupBtn.addEventListener(
-      'click',
-      () => {
-        this.groupSelected();
-      }
-    );
-
-    const ungroupBtn = document.createElement('button');
-    ungroupBtn.textContent = t('editor.timelinePanel.ungroupBtn') || 'Ungroup';
-    ungroupBtn.title = t('editor.timelinePanel.ungroupBtnTooltip') ||
-      'Ungroup selected group block into separate blocks';
-    ungroupBtn.addEventListener(
-      'click',
-      () => {
-        this.ungroupSelected();
-      }
-    );
-
     this.toolbar = toolbar;
 
     const helpBtn = document.createElement('button');
@@ -379,8 +357,6 @@ export class TimelineEditor {
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(dataActionsGroup);
-    toolbar.appendChild(groupBtn);
-    toolbar.appendChild(ungroupBtn);
     toolbar.appendChild(this.fileIndicatorContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
@@ -674,6 +650,32 @@ export class TimelineEditor {
         'b',
         () => {
           this.tapBeat();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+g',
+        () => {
+          if (
+            this.selectedEvents &&
+            this.selectedEvents.some((s) => s.type === 'group')
+          ) {
+            this.ungroupSelected();
+          } else if (
+            this.selectedEvents &&
+            this.selectedEvents.length >= 2
+          ) {
+            this.groupSelected();
+          }
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+shift+g',
+        () => {
+          this.ungroupSelected();
         }
       );
 

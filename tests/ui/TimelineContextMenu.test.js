@@ -132,7 +132,9 @@ describe('TimelineContextMenu', () => {
     };
 
     mockTimelineEditor = {
-      exportSequence: vi.fn()
+      exportSequence: vi.fn(),
+      groupSelected: vi.fn(),
+      ungroupSelected: vi.fn()
     };
     contextMenu = new TimelineContextMenu(mockTimelineEditor);
   });
@@ -240,4 +242,42 @@ describe('TimelineContextMenu', () => {
 
     expect(contextMenu.isVisible).toBe(false);
   });
+
+  it('should have group action registered and trigger groupSelected on click', () => {
+    const groupAction = contextMenu.actions.find((a) => a.id === 'group');
+    expect(groupAction).toBeDefined();
+
+    const singleContext = { selectedEvents: [{ id: 'evt-1' }] };
+    expect(groupAction.isVisible(singleContext)).toBe(false);
+
+    const multiContext = {
+      selectedEvents: [
+        { id: 'evt-1' },
+        { id: 'evt-2' }
+      ],
+      timelineEditor: mockTimelineEditor
+    };
+    expect(groupAction.isVisible(multiContext)).toBe(true);
+
+    groupAction.execute(multiContext);
+    expect(mockTimelineEditor.groupSelected).toHaveBeenCalled();
+  });
+
+  it('should have ungroup action registered and trigger ungroupSelected on click', () => {
+    const ungroupAction = contextMenu.actions.find((a) => a.id === 'ungroup');
+    expect(ungroupAction).toBeDefined();
+
+    const nonGroupContext = { selectedEvents: [{ id: 'evt-1', type: 'sequence' }] };
+    expect(ungroupAction.isVisible(nonGroupContext)).toBe(false);
+
+    const groupContext = {
+      selectedEvents: [{ id: 'evt-g', type: 'group' }],
+      timelineEditor: mockTimelineEditor
+    };
+    expect(ungroupAction.isVisible(groupContext)).toBe(true);
+
+    ungroupAction.execute(groupContext);
+    expect(mockTimelineEditor.ungroupSelected).toHaveBeenCalled();
+  });
 });
+
