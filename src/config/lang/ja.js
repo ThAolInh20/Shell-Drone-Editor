@@ -484,6 +484,7 @@ export default {
         noTrail: "トレイルなし",
         noBurst: "無音即時爆発",
         tadpoleFlurry: "タドポールアロー噴射",
+        erraticDart: "乱舞ダート",
         activeEffects: "有効エフェクト",
         ratioX: "比率 X",
         ratioY: "比率 Y",

@@ -348,8 +348,13 @@ describe('Comet Cluster Firework Star Head Rendering', () => {
     );
 
     expect(fireworkSystem.burstParticles.length).toBeGreaterThan(0);
-    const sampleParticle = fireworkSystem.burstParticles.find((p) => p.hasTadpoleFlurry)
-      || fireworkSystem.burstParticles[0];
+    const tadpoleParticles = fireworkSystem.burstParticles.filter((p) => p.hasTadpoleFlurry);
+    expect(tadpoleParticles.length).toBeGreaterThan(0);
+    const tadpoleRatio = tadpoleParticles.length / fireworkSystem.burstParticles.length;
+    expect(tadpoleRatio).toBeGreaterThanOrEqual(0.18);
+    expect(tadpoleRatio).toBeLessThanOrEqual(0.55);
+
+    const sampleParticle = tadpoleParticles[0];
     expect(sampleParticle.hasTadpoleFlurry).toBe(true);
 
     // Fast forward particle age to 35% of maxLife to enter arrow sparks window

@@ -492,6 +492,7 @@ export default {
         noBurst: "无声即时爆炸",
         crossette: "十字分裂 Crossette",
         tadpoleFlurry: "蝌蚪箭羽喷射",
+        erraticDart: "乱窜飞箭",
         activeEffects: "已启用效果",
         ratioX: "比例 X",
         ratioY: "比例 Y",

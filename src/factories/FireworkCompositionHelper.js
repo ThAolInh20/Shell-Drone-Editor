@@ -65,7 +65,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'no-burst',
   'crossette',
   'sparkle-apex',
-  'tadpole-flurry'
+  'tadpole-flurry',
+  'erratic-dart'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -494,6 +495,18 @@ export const PRESET_TEMPLATES = {
     dynamics: 'sparkling-branch-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['sparkle-apex']
+  },
+  sphere_erratic_dart: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['erratic-dart']
+  },
+  sphereErraticDart: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['erratic-dart']
   }
 };
 
@@ -562,6 +575,9 @@ export function resolveFireworkComposition(eventOrPreset) {
     if (eventOrPreset.noTrail && !effects.includes('no-trail')) effects.push('no-trail');
     if ((eventOrPreset.tadpoleFlurry || eventOrPreset.isTadpole) && !effects.includes('tadpole-flurry')) {
       effects.push('tadpole-flurry');
+    }
+    if ((eventOrPreset.erraticDart || eventOrPreset.hasErraticDart) && !effects.includes('erratic-dart')) {
+      effects.push('erratic-dart');
     }
   }
 

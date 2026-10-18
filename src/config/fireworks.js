@@ -265,7 +265,39 @@ export const FIREWORK_CONFIG = {
       burstSpeedMax: 68.0,
       childStarLife: 2.2,
       gravityScale: 0.45
-    }
+    },
+    // Tỷ lệ hạt kích hoạt hiệu ứng tia xù nòng nọc trên pháo thông thường (30% - 40%)
+    burstActivationRatio: 0.35
+  },
+
+  // Cấu hình hiệu ứng hạt nổ tăng tốc đổi hướng bất ngờ vẽ vệt sáng (Erratic Darting / Swimming Stars)
+  ERRATIC_DART: {
+    // Tỷ lệ hạt kích hoạt hiệu ứng (~40% số hạt)
+    activationRatio: 0.40,
+    // Ngưỡng phần trăm vòng đời bắt đầu kích hoạt pha vút
+    triggerRatioMin: 0.70,
+    triggerRatioMax: 0.76,
+    // Tốc độ xung lực vút tốc mới cực đại (m/s)
+    dartSpeedMin: 36.0,
+    dartSpeedMax: 54.0,
+    // Biên độ lắc uốn lượn tự nhiên của hạt khi vút (m/s^2)
+    wobbleAmp: 26.0,
+    // Tần số lắc lượn ngoằn ngoèo (rad/s)
+    wobbleFreq: 22.0,
+    // Hệ số ma sát không khí sau khi vút (thấp hơn để hạt lướt nhanh và xa)
+    dragAfterDart: 0.12,
+    // Thời gian sống kéo dài thêm cho pha vút vẽ vệt (giây)
+    boostLifeDuration: 0.85,
+    // Độ sáng bừng lên tức thì khi bắt đầu vút (multiplier)
+    flashBrightnessMultiplier: 3.8,
+    // Hệ số tăng cường độ sáng và độ nét của các hạt điểm sáng rời rạc (multiplier)
+    streakBrightnessMultiplier: 4.0,
+    // Chu kỳ nhả hạt vệt sáng dãn cách tạo độ rời rạc tự nhiên (giảm số lượng hạt sinh ra)
+    trailInterval: 0.032,
+    // Thời gian sống kéo dài của từng điểm sáng rời rạc để lưu giữ đường bay (giây)
+    trailParticleLife: 0.95,
+    // Tỷ lệ lệch góc
+    deflectionJitter: 0.85
   },
 
   // Cấu hình quỹ đạo bay lên dạng xoắn ốc (spiral) tần suất cao và vệt sáng đậm

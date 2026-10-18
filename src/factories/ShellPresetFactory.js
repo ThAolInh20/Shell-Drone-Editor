@@ -139,7 +139,8 @@ export class ShellPresetFactory {
       { key: 'galaxy', label: 'Spiral Galaxy' },
       { key: 'ghost_kamuro', label: 'Ghost Kamuro' },
       { key: 'double_helix', label: 'Double Helix' },
-      { key: 'crossette', label: 'Crossette' }
+      { key: 'crossette', label: 'Crossette' },
+      { key: 'sphere_erratic_dart', label: 'Sphere Erratic Dart' }
     ];
 
     // Registry for dynamic preset strategies (OCP compliance)
@@ -224,6 +225,7 @@ export class ShellPresetFactory {
     registerWithAlias('ghost_kamuro', 'ghostKamuro', (size) => this.ghostKamuroShell(size));
     registerWithAlias('double_helix', 'doubleHelix', (size) => this.doubleHelixShell(size));
     registerWithAlias('crossette', 'crossette', (size) => this.crossetteShell(size));
+    registerWithAlias('sphere_erratic_dart', 'sphereErraticDart', (size) => this.sphereErraticDartShell(size));
   }
 
   randomPreset() {
@@ -1287,6 +1289,24 @@ export class ShellPresetFactory {
       starLife: 2600 + size * 300,
       pistil: false,
       launchTrail: true
+    };
+  }
+
+  sphereErraticDartShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sphere_erratic_dart',
+      shapeType: 'sphere',
+      dynamicsType: 'standard',
+      effectType: 'erratic-dart',
+      effects: ['erratic-dart'],
+      erraticDart: true,
+      color: this.randomColor({ limitWhite: true }),
+      particleCountMultiplier: 1.05,
+      starLife: 2600 + size * 300,
+      pistil: false,
+      launchTrail: true,
+      burstSmoke: false
     };
   }
 }

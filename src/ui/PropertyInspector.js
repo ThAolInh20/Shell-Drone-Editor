@@ -49,6 +49,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'crossette'
   },
   {
+    key: 'erratic-dart',
+    labelKey: 'erraticDart'
+  },
+  {
     key: 'flow',
     labelKey: 'flow'
   },

@@ -341,6 +341,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Apex Flash', 'Sparkle Flash'],
     summary: 'Bright synchronized sparkling flash at the apex and decay point of stars.'
   },
+  'erratic-dart': {
+    name: 'Erratic Darting',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/erratic-dart.mp4',
+    tags: ['Sudden Deflection', 'Bright Streak'],
+    summary: 'Stars suddenly accelerate and dart erratically near burnout drawing luminous streaks.'
+  },
 
   // Preset Shell Templates
   'sparkling-comet-branches': {
@@ -356,6 +363,13 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/comet-tadpole-burst.mp4',
     tags: ['Tadpole Swim', 'Apex Flurry Burst'],
     summary: 'Bulbous star with short thick trail swims upward in a widening corkscrew spiral and erupts into a flurry of sparks near apex.'
+  },
+  'sphere_erratic_dart': {
+    name: 'Sphere Erratic Dart',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere-erratic-dart.mp4',
+    tags: ['Sphere Burst', 'Erratic Darting'],
+    summary: 'Symmetrical spherical burst whose stars suddenly deflect erratically in random directions drawing vivid streak lines near burnout.'
   },
 
   // Sequence Firing Patterns

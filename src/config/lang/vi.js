@@ -503,6 +503,7 @@ export default {
         noBurst: "Nổ tức thì không tiếng",
         crossette: "Sao tách chữ thập Crossette",
         tadpoleFlurry: "Tia xù nòng nọc",
+        erraticDart: "Tia vút loạn xạ",
         activeEffects: "Hiệu ứng kích hoạt",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",

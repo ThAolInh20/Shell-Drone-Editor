@@ -503,6 +503,7 @@ export default {
         noBurst: "No Burst Silent",
         crossette: "Crossette Cross Split",
         tadpoleFlurry: "Tadpole Arrow Flurry",
+        erraticDart: "Erratic Darting",
         activeEffects: "Active Effects",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",

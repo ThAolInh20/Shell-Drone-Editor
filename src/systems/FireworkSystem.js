@@ -1221,6 +1221,46 @@ export class FireworkSystem {
     }
   }
 
+  spawnErraticDartStreak(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+    const baseBrightness = (p.erraticDartFlash ?? 2.8) * parentFade;
+    const streakMultiplier = dartCfg.streakBrightnessMultiplier ?? 4.0;
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    const streakVel = p.velocity
+      ? p.velocity.clone().multiplyScalar(0.015)
+      : new THREE.Vector3(0, 0, 0);
+
+    const whiteCore = new THREE.Color(0xffffff);
+    const streakColor = p.baseColor.clone()
+      .lerp(whiteCore, 0.32)
+      .multiplyScalar(baseBrightness * streakMultiplier);
+
+    const streakLife = (dartCfg.trailParticleLife ?? 0.95) * (0.85 + Math.random() * 0.30);
+
+    this.trailSystem.spawnTrailParticle(
+      p.position,
+      streakColor,
+      1.0,
+      false,
+      streakLife,
+      1.0,
+      isStrobe,
+      streakVel,
+      0.03,
+      0.98,
+      false,
+      null,
+      true
+    );
+
+    if (p.crackle && Math.random() < 0.15 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
   getDefaultNestedStages(baseColor = null) {
     const primaryHex = (baseColor && baseColor.getHexString)
       ? '#' + baseColor.getHexString()
@@ -1651,6 +1691,15 @@ export class FireworkSystem {
       || normalizedEffect === 'tadpole-flurry'
     );
 
+    const isErraticDartShell = Boolean(
+      preset?.erraticDart
+      || preset?.hasErraticDart
+      || effectsList.includes('erratic-dart')
+      || effectsList.includes('erratic_dart')
+      || (Array.isArray(preset?.effects) && (preset.effects.includes('erratic-dart') || preset.effects.includes('erratic_dart')))
+      || normalizedEffect === 'erratic-dart'
+    );
+
     const crossetteSplitMap = new Map();
     if (isCrossetteShell && burstParticleCount > 0) {
       const outerIndices = [];
@@ -1935,10 +1984,42 @@ export class FireworkSystem {
           && crossetteSplitMap.has(i),
         crossetteSplitTime: particleMaxLife * (crossetteSplitMap.get(i) ?? 0.5),
         crossetteSplitDone: false,
-        hasTadpoleFlurry: isTadpoleFlurryShell && !isDyingEmber,
+        hasTadpoleFlurry: isTadpoleFlurryShell
+          && !isDyingEmber
+          && (Math.random() < (FIREWORK_CONFIG.COMET_TADPOLE?.burstActivationRatio ?? 0.35)),
         tadpoleArrowTimer: Math.random() * 0.065,
-        hasFlurried: false
+        hasFlurried: false,
+        hasErraticDart: isErraticDartShell
+          && !isDyingEmber
+          && (Math.random() < (FIREWORK_CONFIG.ERRATIC_DART?.activationRatio ?? 0.40)),
+        erraticDartTriggerRatio: (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          + Math.random() * (
+            (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMax ?? 0.76)
+            - (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          ),
+        erraticDartTriggered: false,
+        erraticDartTrailTimer: Math.random() * (FIREWORK_CONFIG.ERRATIC_DART?.trailInterval ?? 0.032),
+        erraticDartFlash: 1.0,
+        erraticDartWigglePhase: Math.random() * Math.PI * 2,
+        erraticDartWiggleFreq: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleFreq ?? 22.0)
+          * (0.85 + Math.random() * 0.30),
+        erraticDartWiggleAmp: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleAmp ?? 26.0)
+          * (0.85 + Math.random() * 0.30)
       });
+    }
+
+    if (isTadpoleFlurryShell && newParticles.length > 0 && !newParticles.some((p) => p.hasTadpoleFlurry)) {
+      const candidate = newParticles.find((p) => !p.isDyingEmber) || newParticles[0];
+      if (candidate) {
+        candidate.hasTadpoleFlurry = true;
+      }
+    }
+
+    if (isErraticDartShell && newParticles.length > 0 && !newParticles.some((p) => p.hasErraticDart)) {
+      const candidate = newParticles.find((p) => !p.isDyingEmber) || newParticles[0];
+      if (candidate) {
+        candidate.hasErraticDart = true;
+      }
     }
 
     for (const p of newParticles) {
@@ -2704,7 +2785,68 @@ export class FireworkSystem {
       }
 
       const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
+
+      if (
+        p.hasErraticDart &&
+        !p.erraticDartTriggered &&
+        lifeRatio >= (p.erraticDartTriggerRatio ?? 0.72)
+      ) {
+        p.erraticDartTriggered = true;
+        const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+        const minSpeed = dartCfg.dartSpeedMin ?? 36.0;
+        const maxSpeed = dartCfg.dartSpeedMax ?? 54.0;
+        const newSpeed = minSpeed + Math.random() * (maxSpeed - minSpeed);
+
+        const randTheta = Math.random() * Math.PI * 2;
+        const randPhi = Math.acos(Math.random() * 2 - 1);
+        const randDir = new THREE.Vector3(
+          Math.sin(randPhi) * Math.cos(randTheta),
+          Math.sin(randPhi) * Math.sin(randTheta),
+          Math.cos(randPhi)
+        );
+
+        const curSpeed = p.velocity.length();
+        if (curSpeed > 0.1) {
+          const forward = p.velocity.clone().normalize();
+          randDir.addScaledVector(forward, 0.20).normalize();
+        }
+
+        p.velocity.copy(randDir.multiplyScalar(newSpeed));
+        p.dragCoefficient = dartCfg.dragAfterDart ?? 0.12;
+        const boostDuration = dartCfg.boostLifeDuration ?? 0.85;
+        p.maxLife = p.age + boostDuration;
+        p.erraticDartFlash = dartCfg.flashBrightnessMultiplier ?? 3.8;
+      }
+
       let finalGravityScale = gravityScale;
+      if (p.erraticDartTriggered) {
+        finalGravityScale = 0.08;
+        if (p.erraticDartFlash && p.erraticDartFlash > 1.0) {
+          p.erraticDartFlash = Math.max(1.0, p.erraticDartFlash - deltaTime * 1.8);
+        }
+
+        // Tăng độ lắc uốn lượn tự nhiên của hạt khi vút (erratic flutter & wobble)
+        const curSpeed = p.velocity.length();
+        if (curSpeed > 1.0) {
+          const dir = p.velocity.clone().normalize();
+          const upVec = Math.abs(dir.y) > 0.88
+            ? new THREE.Vector3(1, 0, 0)
+            : new THREE.Vector3(0, 1, 0);
+          const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+          const normalVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+          p.erraticDartWigglePhase = (p.erraticDartWigglePhase || 0)
+            + deltaTime * (p.erraticDartWiggleFreq ?? 22.0);
+          const amp = (p.erraticDartWiggleAmp ?? 26.0)
+            * Math.min(1.8, p.erraticDartFlash ?? 1.2);
+
+          const lateralX = Math.cos(p.erraticDartWigglePhase) * amp;
+          const lateralZ = Math.sin(p.erraticDartWigglePhase * 1.35) * amp;
+
+          p.velocity.addScaledVector(rightVec, lateralX * deltaTime);
+          p.velocity.addScaledVector(normalVec, lateralZ * deltaTime);
+        }
+      }
       const profile = p.dynamicsProfile ?? FIREWORK_CONFIG.DYNAMICS_PROFILES?.standard;
       const currentDrag = (effectDragOverride !== undefined)
         ? effectDragOverride
@@ -2960,6 +3102,21 @@ export class FireworkSystem {
         if (lifeRatio >= 0.85 && !p.hasFlurried) {
           p.hasFlurried = true;
           this.spawnBurstParticleFlurry(p, parentFade);
+        }
+      }
+
+      // Erratic dart bright streak trail
+      if (
+        p.hasErraticDart &&
+        p.erraticDartTriggered &&
+        p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01
+      ) {
+        p.erraticDartTrailTimer = (p.erraticDartTrailTimer || 0) + deltaTime;
+        const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+        const trailInt = dartCfg.trailInterval ?? 0.032;
+        if (p.erraticDartTrailTimer >= trailInt) {
+          p.erraticDartTrailTimer = 0;
+          this.spawnErraticDartStreak(p, parentFade);
         }
       }
 

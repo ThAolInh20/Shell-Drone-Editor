@@ -86,6 +86,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 6 | `ghost-flare.mp4` | Ghost Flare | Loe sang cuc dai truoc khi tat | [ ] Chua quay |
 | 7 | `pistil.mp4` | Pistil Inner Core | Loi phu nho ben trong vo cau lon | [ ] Chua quay |
 | 8 | `sparkle-apex.mp4` | Sparkle Apex | Chop sang ruc ro tai dinh tan | [ ] Chua quay |
+| 9 | `erratic-dart.mp4` | Erratic Darting | Tang toc doi huong bat ngo ve vet sang o cuoi | [ ] Chua quay |
 
 ---
 
@@ -105,6 +106,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 8 | `kamuro_ghost.mp4` | Kamuro Ghost | Tan rong doi mau am anh | [ ] Chua quay |
 | 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
 | 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
+| 11 | `sphere-erratic-dart.mp4` | Sphere Erratic Dart | Hinh cau bung deu roi dot ngot vut loan xa ve vet sang sac net | [ ] Chua quay |
 
 ---
 
