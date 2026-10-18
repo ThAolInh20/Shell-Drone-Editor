@@ -809,7 +809,14 @@ export class TimelineEditor {
     this.renderTracks();
     this.inspector.show(groupBlock);
 
+    const currentTime = this.showDirector ? this.showDirector.elapsedTime : 0;
     this.showDirector.loadScript(this.getFlattenedSequences());
+    if (this.showDirector) {
+      this.showDirector.seek(currentTime);
+    }
+    if (this.playhead) {
+      this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    }
   }
 
   ungroupSelected() {
@@ -861,7 +868,14 @@ export class TimelineEditor {
       this.inspector.hide();
     }
 
+    const currentTime = this.showDirector ? this.showDirector.elapsedTime : 0;
     this.showDirector.loadScript(this.getFlattenedSequences());
+    if (this.showDirector) {
+      this.showDirector.seek(currentTime);
+    }
+    if (this.playhead) {
+      this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    }
   }
 
   changeZoom() {
@@ -1454,8 +1468,31 @@ export class TimelineEditor {
           );
         };
 
+        let normalizedPeaks = null;
         if (seq._waveformPeaks) {
-          renderWave(seq._waveformPeaks);
+          if (
+            seq._waveformPeaks instanceof Float32Array ||
+            Array.isArray(seq._waveformPeaks)
+          ) {
+            normalizedPeaks = seq._waveformPeaks;
+          } else if (typeof seq._waveformPeaks === 'object') {
+            const keys = Object.keys(seq._waveformPeaks);
+            if (keys.length > 0 && !isNaN(Number(keys[0]))) {
+              const len = keys.length;
+              const arr = new Float32Array(len);
+              for (let i = 0; i < len; i++) {
+                arr[i] = seq._waveformPeaks[i] !== undefined
+                  ? seq._waveformPeaks[i]
+                  : (seq._waveformPeaks[String(i)] || 0);
+              }
+              seq._waveformPeaks = arr;
+              normalizedPeaks = arr;
+            }
+          }
+        }
+
+        if (normalizedPeaks && normalizedPeaks.length > 0) {
+          renderWave(normalizedPeaks);
         } else {
           const audioSrc = seq._blobUrl ||
             seq._file ||
@@ -1466,6 +1503,9 @@ export class TimelineEditor {
               .then((peaks) => {
                 seq._waveformPeaks = peaks;
                 delete seq._waveformPromise;
+                if (typeof this.updateAudioStateCache === 'function') {
+                  this.updateAudioStateCache();
+                }
                 this.renderTracks();
               })
               .catch((err) => {
@@ -1740,8 +1780,8 @@ export class TimelineEditor {
       const x = time * this.pixelsPerSecond;
       this.playhead.style.left = x + 'px';
 
-      // Auto-scroll
-      if (this.autoScrollEnabled) {
+      // Auto-scroll only during playback
+      if (this.autoScrollEnabled && this.showDirector.isPlaying) {
         const containerRect = this.trackContainer.getBoundingClientRect();
         const scrollLeft = this.trackContainer.scrollLeft;
         if (x > scrollLeft + containerRect.width - 100) {
@@ -1810,13 +1850,35 @@ export class TimelineEditor {
           attachAudio(data);
         }
 
+        const savedScrollLeft = this.trackContainer
+          ? this.trackContainer.scrollLeft
+          : 0;
+        const savedAnchorTime = this.anchorTime || 0;
+        const savedTime = this.showDirector
+          ? this.showDirector.elapsedTime
+          : 0;
+
         this.sequences = data;
         this.filename = filename;
         this.currentFilePath = filePath;
+        this.selectedEvents = [];
+        if (this.inspector) {
+          this.inspector.hide();
+        }
         this.updateFileIndicator();
         this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
+        if (this.showDirector) {
+          this.showDirector.seek(savedTime);
+        }
+        if (this.trackContainer) {
+          this.trackContainer.scrollLeft = savedScrollLeft;
+        }
+        this.anchorTime = savedAnchorTime;
+        if (this.anchorHead) {
+          this.anchorHead.style.left = (savedAnchorTime * this.pixelsPerSecond) + 'px';
+        }
         alert(t('editor.timelinePanel.importSuccess', { filename }));
       }
 
@@ -1924,13 +1986,35 @@ export class TimelineEditor {
         const data = JSON.parse(event.target.result);
         if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
 
+        const savedScrollLeft = this.trackContainer
+          ? this.trackContainer.scrollLeft
+          : 0;
+        const savedAnchorTime = this.anchorTime || 0;
+        const savedTime = this.showDirector
+          ? this.showDirector.elapsedTime
+          : 0;
+
         this.sequences = data;
         this.filename = file.name;
+        this.selectedEvents = [];
+        if (this.inspector) {
+          this.inspector.hide();
+        }
         this.updateFileIndicator();
         this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
-        alert("Import thành công!");
+        if (this.showDirector) {
+          this.showDirector.seek(savedTime);
+        }
+        if (this.trackContainer) {
+          this.trackContainer.scrollLeft = savedScrollLeft;
+        }
+        this.anchorTime = savedAnchorTime;
+        if (this.anchorHead) {
+          this.anchorHead.style.left = (savedAnchorTime * this.pixelsPerSecond) + 'px';
+        }
+        alert(t('editor.timelinePanel.importSuccess', { filename: file.name }) || "Import thành công!");
       } catch (err) {
         alert("Lỗi khi đọc file JSON: " + err.message);
       }
@@ -2114,10 +2198,65 @@ export class TimelineEditor {
     }
   }
 
+  updateAudioStateCache() {
+    if (!this.audioStateCache) {
+      this.audioStateCache = new Map();
+    }
+    const checkAudio = (list) => {
+      list.forEach((item) => {
+        if (item.type === 'audio') {
+          const key = item.url || item.name;
+          if (key) {
+            const existing = this.audioStateCache.get(key) || {};
+            this.audioStateCache.set(key, {
+              blobUrl: item._blobUrl || existing.blobUrl,
+              file: item._file || existing.file,
+              peaks: (item._waveformPeaks instanceof Float32Array || Array.isArray(item._waveformPeaks))
+                ? item._waveformPeaks
+                : existing.peaks
+            });
+          }
+        }
+        if (item.type === 'group' && Array.isArray(item.children)) {
+          checkAudio(item.children);
+        }
+      });
+    };
+    if (Array.isArray(this.sequences)) {
+      checkAudio(this.sequences);
+    }
+  }
+
+  restoreAudioStateCache() {
+    if (!this.audioStateCache || this.audioStateCache.size === 0) return;
+    const restoreAudio = (list) => {
+      list.forEach((item) => {
+        if (item.type === 'audio') {
+          const key = item.url || item.name;
+          if (key && this.audioStateCache.has(key)) {
+            const cached = this.audioStateCache.get(key);
+            if (!item._blobUrl && cached.blobUrl) item._blobUrl = cached.blobUrl;
+            if (!item._file && cached.file) item._file = cached.file;
+            if (cached.peaks && (!item._waveformPeaks || !(item._waveformPeaks instanceof Float32Array || Array.isArray(item._waveformPeaks)))) {
+              item._waveformPeaks = cached.peaks;
+            }
+          }
+        }
+        if (item.type === 'group' && Array.isArray(item.children)) {
+          restoreAudio(item.children);
+        }
+      });
+    };
+    if (Array.isArray(this.sequences)) {
+      restoreAudio(this.sequences);
+    }
+  }
+
   saveHistoryState() {
     if (this.undoStack.length >= 50) {
       this.undoStack.shift();
     }
+    this.updateAudioStateCache();
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.redoStack = [];
     this.setSaveStatus('unsaved');
@@ -2127,8 +2266,10 @@ export class TimelineEditor {
   undo() {
     if (!this.undoStack || this.undoStack.length === 0) return;
 
+    this.updateAudioStateCache();
     this.redoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.undoStack.pop();
+    this.restoreAudioStateCache();
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
@@ -2152,8 +2293,10 @@ export class TimelineEditor {
   redo() {
     if (!this.redoStack || this.redoStack.length === 0) return;
 
+    this.updateAudioStateCache();
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.redoStack.pop();
+    this.restoreAudioStateCache();
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();

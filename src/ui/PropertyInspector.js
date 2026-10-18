@@ -121,12 +121,36 @@ export class PropertyInspector {
   }
 
   show(event) {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = event;
     this.container.style.display = 'block';
     this.render();
   }
 
   hide() {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = null;
     this.container.style.display = 'none';
   }
@@ -633,6 +657,9 @@ export class PropertyInspector {
   }
 
   renderStandardInput(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
@@ -647,36 +674,51 @@ export class PropertyInspector {
 
       if (val === '' || val === undefined) {
         if (field.name === 'sectorId') {
-          this.selectedEvent[field.name] = '';
+          targetEvent[field.name] = '';
         } else {
-          delete this.selectedEvent[field.name];
+          delete targetEvent[field.name];
         }
       } else {
-        this.selectedEvent[field.name] = val;
+        targetEvent[field.name] = val;
       }
 
       if (field.name === 'preset') {
         if (val !== 'multiNested' && val !== 'multi_nested') {
-          delete this.selectedEvent.multiNested;
-          delete this.selectedEvent.stages;
-          delete this.selectedEvent.nestingMode;
-          delete this.selectedEvent._selectedTemplateKey;
+          delete targetEvent.multiNested;
+          delete targetEvent.stages;
+          delete targetEvent.nestingMode;
+          delete targetEvent._selectedTemplateKey;
         } else {
-          this.selectedEvent.multiNested = true;
+          targetEvent.multiNested = true;
         }
+
+        // Clean up all optical effect flags from previous preset
+        AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+          delete targetEvent[eff.key];
+        });
+        delete targetEvent.strobe;
+        delete targetEvent.crackle;
+        delete targetEvent.ghost;
+        delete targetEvent.ghostFlare;
+        delete targetEvent.flow;
+        delete targetEvent.noTrail;
+        delete targetEvent.noBurst;
+        delete targetEvent.crossette;
+
         if (val) {
           const template = getTemplateForPreset(val);
           if (template) {
-            this.selectedEvent.shapeType = template.shape;
-            this.selectedEvent.dynamicsType = template.dynamics;
-            this.selectedEvent.pistil = template.modifiers.pistil;
-            this.selectedEvent.instantBurst = template.modifiers.instantBurst;
-            this.selectedEvent.effects = [...template.effects];
+            targetEvent.shapeType = template.shape;
+            targetEvent.dynamicsType = template.dynamics;
+            targetEvent.pistil = template.modifiers.pistil;
+            targetEvent.instantBurst = template.modifiers.instantBurst;
+            targetEvent.effects = [...template.effects];
             this.triggerUpdate();
             this.render();
             return;
           }
         }
+        targetEvent.effects = [];
       }
 
       this.triggerUpdate();
@@ -737,7 +779,7 @@ export class PropertyInspector {
 
       const customSelect = new CustomSelect({
         options: optionsList,
-        value: this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '',
+        value: targetEvent[field.name] !== undefined ? targetEvent[field.name] : '',
         category: previewCategory,
         fieldName: field.name,
         onChange: (val) => handleValueChange(val)
@@ -757,7 +799,7 @@ export class PropertyInspector {
       input.dataset.fieldName = field.name;
       input.type = field.type;
       if (field.step) input.step = field.step;
-      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+      input.value = targetEvent[field.name] !== undefined ? targetEvent[field.name] : '';
 
       input.addEventListener('focus', () => {
         this.isEditing = true;
@@ -778,6 +820,9 @@ export class PropertyInspector {
   }
 
   renderCheckbox(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const container = document.createElement('label');
     container.className = 'inspector-checkbox-container';
 
@@ -785,19 +830,19 @@ export class PropertyInspector {
     input.className = 'inspector-checkbox';
     input.type = 'checkbox';
     input.dataset.fieldName = field.name;
-    input.checked = !!this.selectedEvent[field.name];
+    input.checked = !!targetEvent[field.name];
 
     input.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
       if (e.target.checked) {
-        this.selectedEvent[field.name] = true;
-        if (field.name === 'useAngle' && this.selectedEvent.angle === undefined) {
-          this.selectedEvent.angle = 0;
+        targetEvent[field.name] = true;
+        if (field.name === 'useAngle' && targetEvent.angle === undefined) {
+          targetEvent.angle = 0;
         }
       } else {
-        delete this.selectedEvent[field.name];
+        delete targetEvent[field.name];
         if (field.name === 'useAngle') {
-          delete this.selectedEvent.angle;
+          delete targetEvent.angle;
         }
       }
       this.onUpdate();
@@ -817,6 +862,9 @@ export class PropertyInspector {
   }
 
   renderEffectChips(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
@@ -837,12 +885,12 @@ export class PropertyInspector {
     chipsWrapper.style.minHeight = '24px';
     chipsWrapper.style.alignItems = 'center';
 
-    const currentEffectsList = Array.isArray(this.selectedEvent.effects)
-      ? this.selectedEvent.effects
+    const currentEffectsList = Array.isArray(targetEvent.effects)
+      ? targetEvent.effects
       : [];
 
     const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!this.selectedEvent[eff.key] || currentEffectsList.includes(eff.key);
+      return !!targetEvent[eff.key] || currentEffectsList.includes(eff.key);
     });
 
     if (activeEffects.length === 0) {
@@ -886,9 +934,9 @@ export class PropertyInspector {
         removeBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.triggerUpdate('beforeChange');
-          delete this.selectedEvent[eff.key];
-          if (Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = this.selectedEvent.effects.filter((k) => k !== eff.key);
+          delete targetEvent[eff.key];
+          if (Array.isArray(targetEvent.effects)) {
+            targetEvent.effects = targetEvent.effects.filter((k) => k !== eff.key);
           }
           this.triggerUpdate();
           this.render();
@@ -901,7 +949,7 @@ export class PropertyInspector {
 
     // 2. Add Effect Dropdown Selector
     const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !this.selectedEvent[eff.key] && !currentEffectsList.includes(eff.key);
+      return !targetEvent[eff.key] && !currentEffectsList.includes(eff.key);
     });
 
     const addWrapper = document.createElement('div');
@@ -953,12 +1001,12 @@ export class PropertyInspector {
         onChange: (selectedKey) => {
           if (!selectedKey) return;
           this.triggerUpdate('beforeChange');
-          this.selectedEvent[selectedKey] = true;
-          if (!Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = [];
+          targetEvent[selectedKey] = true;
+          if (!Array.isArray(targetEvent.effects)) {
+            targetEvent.effects = [];
           }
-          if (!this.selectedEvent.effects.includes(selectedKey)) {
-            this.selectedEvent.effects.push(selectedKey);
+          if (!targetEvent.effects.includes(selectedKey)) {
+            targetEvent.effects.push(selectedKey);
           }
           this.triggerUpdate();
           this.render();
@@ -976,6 +1024,9 @@ export class PropertyInspector {
   }
 
   renderColorBadges(parent) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t('editor.inspector.fields.color');
@@ -987,7 +1038,7 @@ export class PropertyInspector {
     container.className = 'color-badge-container';
 
     let activeKey = null;
-    const currentColor = this.selectedEvent.color;
+    const currentColor = targetEvent.color;
     if (currentColor) {
       const cLower = currentColor.toLowerCase();
       activeKey = Object.keys(COLOR_MAP).find(k => k === cLower || COLOR_MAP[k] === cLower);
@@ -1002,7 +1053,7 @@ export class PropertyInspector {
 
       badge.addEventListener('click', () => {
         this.onUpdate('beforeChange');
-        this.selectedEvent.color = key;
+        targetEvent.color = key;
         this.onUpdate();
         this.render(); // Redraw selection outline
       });
@@ -1040,10 +1091,10 @@ export class PropertyInspector {
       this.onUpdate('beforeChange');
       if (e.target.checked) {
         customInput.disabled = false;
-        this.selectedEvent.color = customInput.value;
+        targetEvent.color = customInput.value;
       } else {
         customInput.disabled = true;
-        delete this.selectedEvent.color;
+        delete targetEvent.color;
       }
       this.onUpdate();
       this.render();
@@ -1052,7 +1103,7 @@ export class PropertyInspector {
     customInput.addEventListener('input', (e) => {
       if (customCb.checked) {
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.color = e.target.value;
+        targetEvent.color = e.target.value;
         this.triggerUpdate();
       }
     });
@@ -1077,6 +1128,9 @@ export class PropertyInspector {
   }
 
   renderAngleDial(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
@@ -1105,7 +1159,7 @@ export class PropertyInspector {
     angleInput.min = '10';
     angleInput.max = '170';
 
-    const rad = this.selectedEvent.angle;
+    const rad = targetEvent.angle;
     // Map radian to degree input: 90 - (rad * 180 / PI)
     const currentDegVal = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : 90;
     angleInput.value = currentDegVal;
@@ -1131,7 +1185,7 @@ export class PropertyInspector {
         deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
 
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.angle = deflectionRad;
+        targetEvent.angle = deflectionRad;
         this.triggerUpdate();
 
         dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
@@ -1166,7 +1220,7 @@ export class PropertyInspector {
       const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
       const deflectionRad = (offsetDeg * Math.PI) / 180;
 
-      this.selectedEvent.angle = deflectionRad;
+      targetEvent.angle = deflectionRad;
       dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
       this.triggerUpdate();
     });
