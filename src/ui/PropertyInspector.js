@@ -418,6 +418,58 @@ export class PropertyInspector {
           ]
         },
         {
+          groupKey: 'soundSettings',
+          fields: [
+            {
+              name: 'launchSound',
+              labelKey: 'launchSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'burstSound',
+              labelKey: 'burstSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'crisp',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'crackleSound',
+              labelKey: 'crackleSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'dense',
+                'soft',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'soundVolume',
+              labelKey: 'soundVolume',
+              type: 'number',
+              step: '0.1',
+              span: 2
+            }
+          ]
+        },
+        {
           groupKey: 'geometryOffsets',
           fields: [
             { name: 'ratioX', labelKey: 'ratioX', type: 'number', step: '0.05' },
@@ -668,9 +720,18 @@ export class PropertyInspector {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
+    let currentEventValue = targetEvent[field.name];
+    if (currentEventValue === undefined && targetEvent.sound) {
+      if (field.name === 'launchSound') currentEventValue = targetEvent.sound.launch;
+      else if (field.name === 'burstSound') currentEventValue = targetEvent.sound.burst;
+      else if (field.name === 'crackleSound') currentEventValue = targetEvent.sound.crackle;
+      else if (field.name === 'soundVolume') currentEventValue = targetEvent.sound.volumeMultiplier;
+    }
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    parent.appendChild(label);
 
     const handleValueChange = (rawVal) => {
       let val = rawVal;
@@ -688,6 +749,51 @@ export class PropertyInspector {
         }
       } else {
         targetEvent[field.name] = val;
+      }
+
+      if (
+        field.name === 'launchSound' ||
+        field.name === 'burstSound' ||
+        field.name === 'crackleSound' ||
+        field.name === 'soundVolume'
+      ) {
+        if (!targetEvent.sound) targetEvent.sound = {};
+        if (field.name === 'launchSound') {
+          if (val) {
+            targetEvent.sound.launch = val;
+            targetEvent.launchSound = val;
+          } else {
+            delete targetEvent.sound.launch;
+            delete targetEvent.launchSound;
+          }
+        } else if (field.name === 'burstSound') {
+          if (val) {
+            targetEvent.sound.burst = val;
+            targetEvent.burstSound = val;
+          } else {
+            delete targetEvent.sound.burst;
+            delete targetEvent.burstSound;
+          }
+        } else if (field.name === 'crackleSound') {
+          if (val) {
+            targetEvent.sound.crackle = val;
+            targetEvent.crackleSound = val;
+          } else {
+            delete targetEvent.sound.crackle;
+            delete targetEvent.crackleSound;
+          }
+        } else if (field.name === 'soundVolume') {
+          if (val !== undefined && !isNaN(val)) {
+            targetEvent.sound.volumeMultiplier = val;
+            targetEvent.soundVolume = val;
+          } else {
+            delete targetEvent.sound.volumeMultiplier;
+            delete targetEvent.soundVolume;
+          }
+        }
+        if (Object.keys(targetEvent.sound).length === 0) {
+          delete targetEvent.sound;
+        }
       }
 
       if (field.name === 'preset') {
@@ -787,7 +893,7 @@ export class PropertyInspector {
 
       const customSelect = new CustomSelect({
         options: optionsList,
-        value: targetEvent[field.name] !== undefined ? targetEvent[field.name] : '',
+        value: currentEventValue !== undefined ? currentEventValue : '',
         category: previewCategory,
         fieldName: field.name,
         onChange: (val) => handleValueChange(val)
@@ -807,7 +913,11 @@ export class PropertyInspector {
       input.dataset.fieldName = field.name;
       input.type = field.type;
       if (field.step) input.step = field.step;
-      input.value = targetEvent[field.name] !== undefined ? targetEvent[field.name] : '';
+      input.value = currentEventValue !== undefined ? currentEventValue : '';
+
+      if (field.name === 'soundVolume') {
+        input.placeholder = '1.0';
+      }
 
       input.addEventListener('focus', () => {
         this.isEditing = true;
@@ -823,7 +933,35 @@ export class PropertyInspector {
       });
     }
 
-    parent.appendChild(label);
+    if (
+      field.name === 'launchSound' ||
+      field.name === 'burstSound' ||
+      field.name === 'crackleSound'
+    ) {
+      const inputGroup = document.createElement('div');
+      inputGroup.className = 'inspector-input-group';
+      inputGroup.appendChild(input);
+
+      const testBtn = document.createElement('button');
+      testBtn.type = 'button';
+      testBtn.className = 'inspector-sound-test-btn';
+      testBtn.textContent = t('editor.inspector.auditionSoundBtn') || 'Test';
+      testBtn.title = t('editor.inspector.auditionSoundTooltip') || 'Play sound preview';
+      testBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const stage = field.name.replace('Sound', '');
+        const profile = currentEventValue || 'standard';
+        globalEventBus.emit('audio:preview', {
+          stage,
+          profile
+        });
+      });
+      inputGroup.appendChild(testBtn);
+      parent.appendChild(inputGroup);
+      return;
+    }
+
     parent.appendChild(input);
   }
 

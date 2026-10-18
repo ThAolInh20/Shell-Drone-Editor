@@ -439,6 +439,8 @@ export default {
       noActiveEffects: "有効なエフェクトはありません",
       allEffectsAdded: "すべてのエフェクトが追加されました",
       removeEffect: "エフェクトを削除",
+      auditionSoundTooltip: "サウンド試聴",
+      auditionSoundBtn: "試聴",
       groups: {
         audioSettings: "音声設定",
         coreSettings: "コア設定",
@@ -446,6 +448,7 @@ export default {
         cometConfig: "Comet 設定",
         angleConfig: "発射角度",
         visualEffects: "ライトエフェクト",
+        soundSettings: "ステージサウンド設定",
         nestedStages: "多重ネスト花火設定",
         geometryOffsets: "座標とオフセット",
         beatSettings: "Beat Editor"
@@ -486,6 +489,10 @@ export default {
         tadpoleFlurry: "タドポールアロー噴射",
         erraticDart: "乱舞ダート",
         activeEffects: "有効エフェクト",
+        launchSound: "発射サウンド",
+        burstSound: "炸裂サウンド",
+        crackleSound: "パチパチ音",
+        soundVolume: "音量スケール",
         ratioX: "比率 X",
         ratioY: "比率 Y",
         x1: "X1",
@@ -708,6 +715,28 @@ export default {
           star: "星",
           flow: "遊泳",
           sparking: "火花"
+        },
+        launchSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準発射",
+          heavy: "重砲発射",
+          soft: "ソフト発射",
+          silent: "ミュート"
+        },
+        burstSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準爆発",
+          heavy: "重砲炸裂",
+          soft: "ソフトポップ",
+          crisp: "クリスプ爆発",
+          silent: "ミュート"
+        },
+        crackleSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準パチパチ",
+          dense: "密集パチパチ",
+          soft: "ソフトパチパチ",
+          silent: "ミュート"
         }
       },
       colors: {

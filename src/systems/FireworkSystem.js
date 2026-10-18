@@ -311,6 +311,7 @@ export class FireworkSystem {
           effectType: shellPreset.effectType ?? 'standard',
           colorHex: finalColor.getHex(),
           hasCustomColor: isCustomColor,
+          sound: shellPreset.sound || null,
           position: {
             x: position.x,
             y: position.y,
@@ -381,6 +382,7 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
           effects: shellPreset.effects,
+          sound: shellPreset.sound || null,
           noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
           position: {
@@ -423,6 +425,7 @@ export class FireworkSystem {
         effectType: shellPreset.effectType ?? 'standard',
         colorHex: finalColor.getHex(),
         hasCustomColor: isCustomColor,
+        sound: shellPreset.sound || null,
         position: {
           x: position.x,
           y: position.y,
@@ -2602,6 +2605,7 @@ export class FireworkSystem {
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
       effects: item.preset?.effects,
+      sound: item.preset?.sound || null,
       hasBurstSmoke,
       burstSmoke: hasBurstSmoke,
       hasCustomColor: Boolean(item.preset?.hasCustomColor),
@@ -2689,6 +2693,7 @@ export class FireworkSystem {
           this.emitFireworkEvent(
             'firework:crackle',
             {
+              sound: p.preset?.sound || null,
               position: {
                 x: originPos.x,
                 y: originPos.y,
@@ -3510,6 +3515,7 @@ export class FireworkSystem {
       this.emitFireworkEvent(
         'firework:crackle',
         {
+          sound: firstBurst.preset?.sound || null,
           position: {
             x: firstBurst.position.x,
             y: firstBurst.position.y,

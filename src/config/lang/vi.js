@@ -447,6 +447,8 @@ export default {
       noActiveEffects: "Chưa kích hoạt hiệu ứng nào",
       allEffectsAdded: "Đã thêm tất cả hiệu ứng",
       removeEffect: "Gỡ bỏ hiệu ứng",
+      auditionSoundTooltip: "Nghe thử âm thanh",
+      auditionSoundBtn: "Thử",
       groups: {
         audioSettings: "Cấu hình âm thanh",
         coreSettings: "Cấu hình cốt lõi",
@@ -454,6 +456,7 @@ export default {
         cometConfig: "Cấu hình Comet",
         angleConfig: "Góc phóng",
         visualEffects: "Hiệu ứng ánh sáng",
+        soundSettings: "Hồ sơ âm thanh từng giai đoạn",
         geometryOffsets: "Tọa độ & Căn lề",
         beatSettings: "Biên tập nhịp Beat",
         groupSettings: "Cấu hình nhóm",
@@ -505,6 +508,10 @@ export default {
         tadpoleFlurry: "Tia xù nòng nọc",
         erraticDart: "Tia vút loạn xạ",
         activeEffects: "Hiệu ứng kích hoạt",
+        launchSound: "Âm thanh phóng",
+        burstSound: "Âm thanh nổ bung",
+        crackleSound: "Âm thanh nổ lách tách",
+        soundVolume: "Tỷ lệ âm lượng",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",
         x1: "X1",
@@ -719,6 +726,28 @@ export default {
           star: "Ngôi sao",
           flow: "Bơi lội",
           sparking: "Tia lửa"
+        },
+        launchSound: {
+          empty: "Mặc định Preset",
+          standard: "Phóng tiêu chuẩn",
+          heavy: "Phóng đại bác trầm",
+          soft: "Phóng êm dịu",
+          silent: "Tắt tiếng"
+        },
+        burstSound: {
+          empty: "Mặc định Preset",
+          standard: "Nổ vang tiêu chuẩn",
+          heavy: "Nổ đại bác trầm",
+          soft: "Nổ nhỏ êm",
+          crisp: "Nổ đanh gọn",
+          silent: "Tắt tiếng"
+        },
+        crackleSound: {
+          empty: "Mặc định Preset",
+          standard: "Lách tách tiêu chuẩn",
+          dense: "Lách tách dày đặc",
+          soft: "Lách tách êm",
+          silent: "Tắt tiếng"
         }
       },
       colors: {

@@ -314,6 +314,7 @@ export class CometSystem {
         shapeType: 'comet',
         effectType: 'comet',
         colorHex: clusterColor.getHex(),
+        sound: preset?.sound || null,
         position: {
           x: basePosition.x,
           y: basePosition.y,

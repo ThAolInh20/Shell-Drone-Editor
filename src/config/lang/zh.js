@@ -439,6 +439,8 @@ export default {
       noActiveEffects: "未启用任何效果",
       allEffectsAdded: "已添加全部效果",
       removeEffect: "移除效果",
+      auditionSoundTooltip: "试听音效",
+      auditionSoundBtn: "试听",
       groups: {
         audioSettings: "音频设置",
         coreSettings: "核心设置",
@@ -446,6 +448,7 @@ export default {
         cometConfig: "Comet 配置",
         angleConfig: "发射角度",
         visualEffects: "灯光效果",
+        soundSettings: "阶段音效配置",
         geometryOffsets: "坐标与偏移",
         beatSettings: "Beat Editor",
         nestedStages: "多层嵌套烟花配置"
@@ -494,6 +497,10 @@ export default {
         tadpoleFlurry: "蝌蚪箭羽喷射",
         erraticDart: "乱窜飞箭",
         activeEffects: "已启用效果",
+        launchSound: "发射音效",
+        burstSound: "爆炸音效",
+        crackleSound: "噼啪音效",
+        soundVolume: "音量比例",
         ratioX: "比例 X",
         ratioY: "比例 Y",
         x1: "X1",
@@ -707,6 +714,28 @@ export default {
           star: "星星",
           flow: "游动",
           sparking: "火花"
+        },
+        launchSound: {
+          empty: "默认预设",
+          standard: "标准升空",
+          heavy: "重型迫击",
+          soft: "轻柔发射",
+          silent: "静音"
+        },
+        burstSound: {
+          empty: "默认预设",
+          standard: "标准轰鸣",
+          heavy: "重型礼炮",
+          soft: "轻柔爆鸣",
+          crisp: "清脆爆裂",
+          silent: "静音"
+        },
+        crackleSound: {
+          empty: "默认预设",
+          standard: "标准噼啪",
+          dense: "密集噼啪",
+          soft: "轻柔噼啪",
+          silent: "静音"
         }
       },
       colors: {

@@ -107,4 +107,108 @@ describe('AudioSystem', () => {
     });
     expect(playSpy).not.toHaveBeenCalled();
   });
+
+  it('should play specific stage sound profiles when sound config is present', () => {
+    const profileSpy = vi.spyOn(audioSystem, 'playSoundProfile');
+
+    // Mock buffers for stage profiles
+    audioSystem.stages.launch.heavy.buffers = [{}];
+    audioSystem.stages.burst.heavy.buffers = [{}];
+    audioSystem.stages.crackle.dense.buffers = [{}];
+
+    // Trigger launch with heavy sound
+    mockEventBus.emit('firework:launch', {
+      position: new THREE.Vector3(0, 0, -10),
+      sound: {
+        launch: 'heavy',
+        volumeMultiplier: 1.2,
+        pitchMultiplier: 0.9
+      }
+    });
+    expect(profileSpy).toHaveBeenCalledWith(
+      'launch',
+      'heavy',
+      1.2,
+      0.9,
+      0,
+      expect.any(Object)
+    );
+
+    // Trigger burst with heavy salute sound
+    mockEventBus.emit('firework:burst', {
+      position: new THREE.Vector3(0, 0, -10),
+      intensity: 0.5,
+      sound: {
+        burst: 'heavy',
+        volumeMultiplier: 1.5,
+        pitchMultiplier: 0.85
+      }
+    });
+    expect(profileSpy).toHaveBeenCalledWith(
+      'burst',
+      'heavy',
+      1.5,
+      expect.any(Number),
+      0,
+      expect.any(Object)
+    );
+
+    // Trigger crackle with dense sound
+    mockEventBus.emit('firework:crackle', {
+      position: new THREE.Vector3(0, 0, -10),
+      sound: {
+        crackle: 'dense',
+        volumeMultiplier: 1.1
+      }
+    });
+    expect(profileSpy).toHaveBeenCalledWith(
+      'crackle',
+      'dense',
+      expect.closeTo(0.88, 2),
+      1,
+      0,
+      expect.any(Object)
+    );
+  });
+
+  it('should not play sound if silent profile is specified', () => {
+    const baseSpy = vi.spyOn(audioSystem, 'playSoundBase');
+    const profileSpy = vi.spyOn(audioSystem, 'playSoundProfile');
+
+    mockEventBus.emit('firework:launch', {
+      position: new THREE.Vector3(0, 0, -10),
+      sound: {
+        launch: 'silent'
+      }
+    });
+    expect(baseSpy).not.toHaveBeenCalled();
+    expect(profileSpy).not.toHaveBeenCalled();
+
+    mockEventBus.emit('firework:burst', {
+      position: new THREE.Vector3(0, 0, -10),
+      sound: {
+        burst: 'silent'
+      }
+    });
+    expect(baseSpy).not.toHaveBeenCalled();
+    expect(profileSpy).not.toHaveBeenCalled();
+
+    mockEventBus.emit('firework:crackle', {
+      position: new THREE.Vector3(0, 0, -10),
+      sound: {
+        crackle: 'silent'
+      }
+    });
+    expect(baseSpy).not.toHaveBeenCalled();
+    expect(profileSpy).not.toHaveBeenCalled();
+  });
+
+  it('should handle audio:preview event for auditioning sound', () => {
+    const previewSpy = vi.spyOn(audioSystem, 'previewSound');
+    mockEventBus.emit('audio:preview', {
+      stage: 'burst',
+      profile: 'heavy'
+    });
+    expect(previewSpy).toHaveBeenCalledWith('burst', 'heavy');
+  });
 });

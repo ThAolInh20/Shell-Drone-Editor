@@ -417,6 +417,17 @@ export class FireworkSequencer {
         if (config.stages !== undefined) overrides.stages = config.stages;
         if (config.nestingMode !== undefined) overrides.nestingMode = config.nestingMode;
         if (config.multiNested !== undefined) overrides.multiNested = config.multiNested;
+        if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: config.sound?.launch || config.launchSound || undefined,
+            burst: config.sound?.burst || config.burstSound || undefined,
+            crackle: config.sound?.crackle || config.crackleSound || undefined,
+            volumeMultiplier: config.sound?.volumeMultiplier !== undefined
+              ? config.sound.volumeMultiplier
+              : (config.soundVolume !== undefined ? config.soundVolume : undefined),
+            pitchMultiplier: config.sound?.pitchMultiplier
+          };
+        }
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
@@ -847,6 +858,17 @@ export class FireworkSequencer {
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
         if (config.flow !== undefined) overrides.flow = config.flow;
+        if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: config.sound?.launch || config.launchSound || undefined,
+            burst: config.sound?.burst || config.burstSound || undefined,
+            crackle: config.sound?.crackle || config.crackleSound || undefined,
+            volumeMultiplier: config.sound?.volumeMultiplier !== undefined
+              ? config.sound.volumeMultiplier
+              : (config.soundVolume !== undefined ? config.soundVolume : undefined),
+            pitchMultiplier: config.sound?.pitchMultiplier
+          };
+        }
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;

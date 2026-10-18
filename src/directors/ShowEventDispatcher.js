@@ -105,6 +105,17 @@ export class ShowEventDispatcher {
         }
         if (evt.ascentSubShellType !== undefined) overrides.ascentSubShellType = evt.ascentSubShellType;
         if (evt.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(evt.ascentBurstCount, 10);
+        if (evt.sound || evt.launchSound || evt.burstSound || evt.crackleSound || evt.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: evt.sound?.launch || evt.launchSound || undefined,
+            burst: evt.sound?.burst || evt.burstSound || undefined,
+            crackle: evt.sound?.crackle || evt.crackleSound || undefined,
+            volumeMultiplier: evt.sound?.volumeMultiplier !== undefined
+              ? evt.sound.volumeMultiplier
+              : (evt.soundVolume !== undefined ? evt.soundVolume : undefined),
+            pitchMultiplier: evt.sound?.pitchMultiplier
+          };
+        }
       }
 
       const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet' || evt.preset.type?.startsWith('comet'))) 

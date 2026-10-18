@@ -447,6 +447,8 @@ export default {
       noActiveEffects: "No active effects",
       allEffectsAdded: "All effects added",
       removeEffect: "Remove effect",
+      auditionSoundTooltip: "Play sound preview",
+      auditionSoundBtn: "Test",
       groups: {
         audioSettings: "Audio Settings",
         coreSettings: "Core Settings",
@@ -454,6 +456,7 @@ export default {
         cometConfig: "Comet Config",
         angleConfig: "Launch Angle",
         visualEffects: "Visual Effects",
+        soundSettings: "Stage Sound Profiles",
         geometryOffsets: "Offsets",
         beatSettings: "Beat Editor",
         groupSettings: "Group Settings",
@@ -505,6 +508,10 @@ export default {
         tadpoleFlurry: "Tadpole Arrow Flurry",
         erraticDart: "Erratic Darting",
         activeEffects: "Active Effects",
+        launchSound: "Launch Sound",
+        burstSound: "Burst Sound",
+        crackleSound: "Crackle Sound",
+        soundVolume: "Sound Volume Scale",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",
         x1: "X1",
@@ -719,6 +726,28 @@ export default {
           star: "Star",
           flow: "Flow",
           sparking: "Sparking"
+        },
+        launchSound: {
+          empty: "Default Preset",
+          standard: "Standard Lift",
+          heavy: "Heavy Mortar",
+          soft: "Soft Launch",
+          silent: "Silent Mute"
+        },
+        burstSound: {
+          empty: "Default Preset",
+          standard: "Standard Boom",
+          heavy: "Heavy Salute",
+          soft: "Soft Pop",
+          crisp: "Crisp Crack",
+          silent: "Silent Mute"
+        },
+        crackleSound: {
+          empty: "Default Preset",
+          standard: "Standard Crackle",
+          dense: "Dense Crackle",
+          soft: "Soft Crackle",
+          silent: "Silent Mute"
         }
       },
       colors: {
