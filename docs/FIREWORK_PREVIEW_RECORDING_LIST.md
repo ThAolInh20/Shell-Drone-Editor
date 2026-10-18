@@ -44,6 +44,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 20 | `double-helix.mp4` | Double Helix | Xoan kep ADN 3D | [ ] Chua quay |
 | 21 | `flow.mp4` | Flow | Dong chay hat lien tuc | [ ] Chua quay |
 | 22 | `sparkle-trail.mp4` | Sparkle Trail | Duong bay tia sao choi vet mong thanh manh | [ ] Chua quay |
+| 23 | `tadpole-spiral.mp4` | Tadpole Spiral | Sao choi boi ngoan ngoeo lech xoan oc bung toa o dinh | [ ] Chua quay |
 
 ---
 
@@ -103,6 +104,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 7 | `bouquet_cluster.mp4` | Bouquet Cluster | Chum sao choi phong len dong loat | [ ] Chua quay |
 | 8 | `kamuro_ghost.mp4` | Kamuro Ghost | Tan rong doi mau am anh | [ ] Chua quay |
 | 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
+| 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
 
 ---
 

@@ -77,6 +77,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'strobe'
   },
   {
+    key: 'tadpole-flurry',
+    labelKey: 'tadpoleFlurry'
+  },
+  {
     key: 'white-strobe',
     labelKey: 'whiteStrobe'
   }

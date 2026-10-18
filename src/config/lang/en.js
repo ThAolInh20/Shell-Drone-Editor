@@ -502,6 +502,7 @@ export default {
         noTrail: "No Trail",
         noBurst: "No Burst Silent",
         crossette: "Crossette Cross Split",
+        tadpoleFlurry: "Tadpole Arrow Flurry",
         activeEffects: "Active Effects",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",
@@ -571,7 +572,8 @@ export default {
           "double-helix": "Double Helix Orbit",
           crossette: "Crossette Cross Split",
           "sparkle-trail": "Sparkle Trail",
-          "sparkling-branch-comet": "Sparkling Branch Comet"
+          "sparkling-branch-comet": "Sparkling Branch Comet",
+          "tadpole-spiral": "Tadpole Swimming Spiral"
         },
         pattern: {
           random: "Random",
@@ -630,6 +632,7 @@ export default {
           comet_cluster_cascade: "Comet Cluster Cascade",
           comet_single: "Single Comet Beam",
           comet_single_beam: "Single Comet Beam",
+          comet_tadpole_burst: "Comet Tadpole Burst",
           sparkling_comet: "Sparkling Comet Apex Spark",
           sparkling_comet_branches: "Sparkling Comet Multi Branch",
           crysanthemum: "Chrysanthemum",
@@ -639,6 +642,7 @@ export default {
           crysanthemum_spiral_v2: "Chrysanthemum Spiral V2",
           crysanthemum_cc: "Chrysanthemum Color Change",
           crysanthemum_nested: "Chrysanthemum Nested",
+          chrysanthemum_tadpole_burst: "Chrysanthemum Tadpole Burst",
           multi_nested: "★ Multi Nested Shell",
           strobe: "Strobe",
           strobe_dying_embers: "Strobe Embers",

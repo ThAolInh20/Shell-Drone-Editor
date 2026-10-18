@@ -63,7 +63,9 @@ export class CometSystem {
 
     this.graphicsQualityMultiplier = 1.0;
     this.setGraphicsQuality(
-      localStorage.getItem('graphics_quality') || 'medium'
+      (typeof localStorage !== 'undefined' && localStorage?.getItem)
+        ? localStorage.getItem('graphics_quality') || 'medium'
+        : 'medium'
     );
     this.eventSubscriptions.push(
       globalEventBus.on(
@@ -73,6 +75,10 @@ export class CometSystem {
       globalEventBus.on(
         'firework:clear',
         () => this.clear()
+      ),
+      globalEventBus.on(
+        'comet:spawn',
+        (detail) => this.spawnComet(detail)
       )
     );
   }
@@ -100,6 +106,28 @@ export class CometSystem {
 
   emitFireworkEvent(type, detail) {
     globalEventBus.emit(type, detail);
+  }
+
+  spawnComet({ position, velocity, color, preset = null }) {
+    if (!position || !velocity) return null;
+    const cometColor = (color instanceof THREE.Color)
+      ? color.clone()
+      : new THREE.Color(color ?? 0xffffff);
+
+    const comet = new CometEntity({
+      position: position.clone(),
+      velocity: velocity.clone(),
+      color: cometColor,
+      preset
+    });
+
+    comet.mesh.traverse((child) => {
+      child.layers.enable(LAYER_REFLECTION);
+    });
+
+    this.scene.add(comet.mesh);
+    this.activeComets.push(comet);
+    return comet;
   }
 
   launchRandom(preset = null, options = {}) {
@@ -431,6 +459,200 @@ export class CometSystem {
     this.trailSystem.spawnMicroCrackle(position.clone(), color);
   }
 
+  spawnTadpoleArrowSparks(
+    position,
+    color,
+    velocity,
+    isStrobe = false,
+    hasCrackle = false
+  ) {
+    const dir = velocity && velocity.lengthSq() > 0.01
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    const upVec = Math.abs(dir.y) > 0.88
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const minSparks = tadpoleCfg.arrowSparksMin ?? 4;
+    const maxSparks = tadpoleCfg.arrowSparksMax ?? 7;
+    const count = minSparks + Math.floor(Math.random() * (maxSparks - minSparks + 1));
+    const brightness = tadpoleCfg.sparkBrightnessMultiplier ?? 2.2;
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      // Góc xòe hình mũi tên: 35 đến 60 độ xòe về phía sau ngược vector vận tốc dir
+      const coneAngle = 0.55 + Math.random() * 0.35;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const speed = 14.0 + Math.random() * 12.0;
+      const sparkVel = ejectDir.multiplyScalar(speed);
+      if (velocity) {
+        sparkVel.addScaledVector(velocity, 0.28);
+      }
+
+      // Tăng sáng rực rỡ và phát quang (bloom) cho hạt tia xù
+      const sparkColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        0.10,
+        0.22 + Math.random() * 0.15
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.75) * (0.85 + Math.random() * 0.35);
+
+      if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+        this.trailSystem.spawnTrailParticle(
+          position,
+          sparkColor,
+          1.0,
+          false,
+          sparkLife,
+          1.0,
+          isStrobe,
+          sparkVel,
+          0.20,
+          0.85,
+          false,
+          null,
+          true
+        );
+      }
+    }
+
+    if (
+      (hasCrackle || Math.random() < 0.30)
+      && this.trailSystem
+      && typeof this.trailSystem.spawnMicroCrackle === 'function'
+    ) {
+      const cracklePos = position.clone().add(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * 2.5,
+          -Math.random() * 3.0,
+          (Math.random() - 0.5) * 2.5
+        )
+      );
+      this.trailSystem.spawnMicroCrackle(cracklePos, color);
+    }
+  }
+
+  spawnTadpoleFlurry(
+    position,
+    color,
+    velocity,
+    isStrobe = false,
+    hasCrackle = false
+  ) {
+    const dir = velocity && velocity.lengthSq() > 0.01
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    const upVec = Math.abs(dir.y) > 0.88
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const flurryCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const flurryCount = flurryCfg.flurryCount || 32;
+    const speedMin = flurryCfg.arrowSpeedMin || 15.0;
+    const speedMax = flurryCfg.arrowSpeedMax || 26.0;
+    const starLife = flurryCfg.flurryStarLife || 0.85;
+    const brightness = flurryCfg.sparkBrightnessMultiplier ?? 2.2;
+
+    for (let i = 0; i < flurryCount; i++) {
+      const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+      // Góc xòe bung tỏa chúc về phía sau theo chiều bay của hạt
+      const coneAngle = 0.55 + Math.random() * 0.40;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
+      const subVel = ejectDir.multiplyScalar(speed);
+      if (velocity) {
+        subVel.addScaledVector(velocity, 0.22);
+      }
+
+      // Tăng sáng rực rỡ và phát quang (bloom) cho chùm xù bung tại đỉnh
+      const subColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.06,
+        0.10,
+        0.24 + Math.random() * 0.16
+      ).multiplyScalar(brightness);
+
+      const sparkLife = starLife * (0.85 + Math.random() * 0.4);
+
+      if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+        this.trailSystem.spawnTrailParticle(
+          position,
+          subColor,
+          1.0,
+          false,
+          sparkLife,
+          1.0,
+          isStrobe,
+          subVel,
+          0.24,
+          0.88,
+          false,
+          null,
+          true
+        );
+      }
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnEffectSpark === 'function') {
+      for (let s = 0; s < 14; s++) {
+        const sparkPos = position.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 2.5,
+            -Math.random() * 3.0,
+            (Math.random() - 0.5) * 2.5
+          )
+        );
+        this.trailSystem.spawnEffectSpark(
+          sparkPos,
+          color,
+          true,
+          null,
+          Math.random() * 1000,
+          0.40 + Math.random() * 0.25,
+          false
+        );
+      }
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      for (let c = 0; c < 6; c++) {
+        const cracklePos = position.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 3.5,
+            -Math.random() * 3.5,
+            (Math.random() - 0.5) * 3.5
+          )
+        );
+        this.trailSystem.spawnMicroCrackle(cracklePos, color);
+      }
+    }
+  }
+
   update(deltaTime) {
     let activeCount = 0;
 
@@ -473,6 +695,68 @@ export class CometSystem {
           comet.color,
           comet.velocity
         );
+      }
+
+      // Bắt đầu xù hạt chúc xuống dưới tạo hình mũi tên từ tầm thấp (progress >= 0.28)
+      const flurryStartProgress = FIREWORK_CONFIG.COMET_TADPOLE?.arrowFlurryStartProgress ?? 0.28;
+      if (
+        comet.isTadpole &&
+        comet.state === CometEntity.STATE.LAUNCHING &&
+        comet.tadpoleProgress !== undefined &&
+        comet.tadpoleProgress >= flurryStartProgress
+      ) {
+        comet.tadpoleArrowTimer = (comet.tadpoleArrowTimer || 0) + deltaTime;
+        const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
+        if (comet.tadpoleArrowTimer >= arrowInterval) {
+          comet.tadpoleArrowTimer = 0;
+          this.spawnTadpoleArrowSparks(
+            comet.mesh.position,
+            comet.color,
+            comet.velocity,
+            Boolean(comet.hasStrobe),
+            Boolean(comet.hasCrackle)
+          );
+        }
+      }
+
+      // Tadpole flurry burst near apex ("khi gần tới điểm cao nhất thì sẽ xù tỏa nhiều hạt ra xung quanh")
+      const isApex = comet.state === CometEntity.STATE.DECAYING ||
+        (comet.tadpoleProgress !== undefined && comet.tadpoleProgress >= 0.88) ||
+        (comet.initialVy > 15.0 && comet.velocity.y <= 6.0);
+      if (
+        comet.isTadpole &&
+        !comet.hasFlurried &&
+        isApex
+      ) {
+        comet.hasFlurried = true;
+        this.spawnTadpoleFlurry(
+          comet.mesh.position,
+          comet.color,
+          comet.velocity,
+          Boolean(comet.hasStrobe),
+          Boolean(comet.hasCrackle)
+        );
+      }
+
+      // Crackle at apex
+      if (
+        comet.hasCrackle &&
+        !comet.hasCrackled &&
+        (comet.state === CometEntity.STATE.DECAYING || comet.velocity.y <= 0)
+      ) {
+        comet.hasCrackled = true;
+        if (this.trailSystem && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+          for (let c = 0; c < 6; c++) {
+            const cracklePos = comet.mesh.position.clone().add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 4.5,
+                (Math.random() - 0.5) * 4.5,
+                (Math.random() - 0.5) * 4.5
+              )
+            );
+            this.trailSystem.spawnMicroCrackle(cracklePos, comet.color);
+          }
+        }
       }
 
       // Thicker trails for comets during launch (before reaching strobe threshold or if not dimmed/ghost-dark/ghost-hidden)
@@ -603,9 +887,11 @@ export class CometSystem {
                 || comet.preset?.cometTrail === 'detached-trail'
                 || comet.preset?.shellType === 'comet_cluster_detached';
 
-              const minDistSq = comet.preset?.thickTrail
-                ? 0.36
-                : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64);
+              const minDistSq = comet.isTadpole
+                ? 1.44
+                : (comet.preset?.thickTrail
+                  ? 0.36
+                  : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64));
 
               if (comet.shouldSpawnTrail(minDistSq)) {
                 let spawnPos = comet.mesh.position;
@@ -619,7 +905,19 @@ export class CometSystem {
                   spawnPos = comet.mesh.position.clone().addScaledVector(velDir, -gapDistance);
                 }
 
-                if (isDetached) {
+                if (comet.isTadpole) {
+                  // Kéo dãn vệt: Tăng thời gian sống của hạt và giảm tỷ lệ sinh để không bị vón cục
+                  const tadpoleLife = Math.max(0.75, customLife * 0.90);
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
+                    comet.color,
+                    1.4,
+                    false,
+                    tadpoleLife,
+                    0.80,
+                    false
+                  );
+                } else if (isDetached) {
                   const particleColor = comet.color.clone().offsetHSL(0, -0.15, -0.12);
                   this.trailSystem.spawnTrailParticle(
                     spawnPos,

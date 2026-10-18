@@ -483,6 +483,7 @@ export default {
         crossette: "クロセット十字分裂",
         noTrail: "トレイルなし",
         noBurst: "無音即時爆発",
+        tadpoleFlurry: "タドポールアロー噴射",
         activeEffects: "有効エフェクト",
         ratioX: "比率 X",
         ratioY: "比率 Y",
@@ -560,7 +561,8 @@ export default {
           "double-helix": "二重螺旋旋回 Double Helix",
           crossette: "クロセット十字分裂",
           "sparkle-trail": "スパークルトレイル",
-          "sparkling-branch-comet": "多方向分岐スパークル彗星"
+          "sparkling-branch-comet": "多方向分岐スパークル彗星",
+          "tadpole-spiral": "オタマジャクシ螺旋遊泳"
         },
         pattern: {
           random: "ランダム",
@@ -619,6 +621,7 @@ export default {
           comet_cluster_cascade: "カスケード階層彗星群",
           comet_single: "単発超高輝度彗星ビーム",
           comet_single_beam: "単発超高輝度彗星ビーム",
+          comet_tadpole_burst: "オタマジャクシ彗星",
           sparkling_comet: "頂点スパークル彗星",
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
@@ -628,6 +631,7 @@ export default {
           crysanthemum_spiral_v2: "スパイラル菊花 V2",
           crysanthemum_cc: "変色菊花",
           crysanthemum_nested: "多重ネスト菊花",
+          chrysanthemum_tadpole_burst: "菊咲きオタマジャクシ彗星",
           multi_nested: "★ 多重ネスト花火",
           strobe: "ストロボ",
           strobe_dying_embers: "残火ストロボ",

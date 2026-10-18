@@ -221,6 +221,53 @@ export const FIREWORK_CONFIG = {
     }
   },
 
+  // Cấu hình pháo Comet dạng Nòng Nọc / Mũi Tên (Comet Tadpole Burst)
+  COMET_TADPOLE: {
+    // Độ phóng to của đầu hạt nổ chính
+    headScale: 1.6,
+    // Độ chói sáng của nhân trắng bên trong đầu nòng nọc
+    headBrightness: 11.0,
+    // Hệ số thời gian sống của đuôi (tăng lên để kéo dãn không bị vón cục)
+    trailLifeMultiplier: 0.90,
+    // Hệ số độ to bề ngang của vệt đuôi
+    trailWidthMultiplier: 1.4,
+    // Khoảng cách bình phương tối thiểu giữa các lần sinh hạt để dãn vệt
+    trailMinDistSq: 1.44,
+    // Biên độ lắc lư nhẹ nhàng cơ bản (mét, không xoáy tròn mạnh)
+    swayAmpBase: 0.30,
+    // Biên độ lắc lư cực đại
+    swayAmpMax: 0.70,
+    // Tần số lắc lư nhẹ nhàng êm ái (Hz)
+    swayFreq: 1.85,
+    // Ngưỡng bắt đầu xù hạt chúc xuống dưới hình mũi tên (hạ xuống tầm thấp 28% độ cao)
+    arrowFlurryStartProgress: 0.28,
+    // Chu kỳ bắn đợt hạt xù hình mũi tên (giây, ngắn hơn để xù đều và dày dặn hơn)
+    arrowInterval: 0.065,
+    // Số hạt xù bắn ra trong mỗi đợt
+    arrowSparksMin: 4,
+    arrowSparksMax: 7,
+    // Vận tốc hạt xù bắn chúc ngược xuống dưới (m/s)
+    arrowSpeedMin: 14.0,
+    arrowSpeedMax: 24.0,
+    // Thời gian sống của hạt tia xù hình mũi tên (giây)
+    arrowStarLife: 0.75,
+    // Số hạt bung chùm chúc xuống tại đỉnh (tăng mật độ để nổi bật rõ nét)
+    flurryCount: 32,
+    // Thời gian sống của hạt bung chùm tại đỉnh (giây)
+    flurryStarLife: 0.85,
+    // Hệ số tăng sáng và bloom cho các hạt tia xù
+    sparkBrightnessMultiplier: 2.2,
+    // Cấu hình pháo hoa mẹ khi nổ bung tỏa ra chùm nòng nọc xù (chrysanthemum_tadpole_burst)
+    burstShell: {
+      clusterCountMin: 18,
+      clusterCountMax: 26,
+      burstSpeedMin: 45.0,
+      burstSpeedMax: 68.0,
+      childStarLife: 2.2,
+      gravityScale: 0.45
+    }
+  },
+
   // Cấu hình quỹ đạo bay lên dạng xoắn ốc (spiral) tần suất cao và vệt sáng đậm
   ASCENT: {
     // Bật hiệu ứng xoắn ốc tự nhiên khi pháo bay lên

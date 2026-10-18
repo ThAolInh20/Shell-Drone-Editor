@@ -35,6 +35,7 @@
   - **Visual Effects** (stackable optical modifiers): E.g. `strobe`, `white-strobe`, `glitter-strobe`, `crackle`, `ghost`.
   - **Presets as Templates**: New presets must be registered as Composition Templates in `FireworkCompositionHelper.js` and `ShellPresetFactory.js`.
 - **Centralized Taxonomy**: Whenever adding a new Shape, Dynamics, Modifier, or Visual Effect tag, you MUST register it in `./src/factories/FireworkCompositionHelper.js` and provide translations in all language files (`./src/config/lang/{en,vi,zh,ja}.js`).
+- **Active Effects Universality**: Any effect tag classified under "Active Effects" (e.g. `strobe`, `crackle`, `ghost`, `crossette`, `tadpole-flurry`, `burst-smoke`) MUST be implemented as a universal modifier capable of running on ANY firework shell type, shape, or particle stream. It must not be tightly coupled or restricted to a single preset, and must seamlessly compose with other active effects (inheriting dynamic colors, fade lifecycle, physics, and companion modifiers).
 
 ## Preset & Shell Naming Conventions
 - **Lowercase snake_case Format**: All preset keys, shell types, and composition identifiers MUST be written in lowercase `snake_case`.

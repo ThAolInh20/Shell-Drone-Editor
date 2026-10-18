@@ -189,7 +189,9 @@ export class FireworkSystem {
 
     this.eventSubscriptions = [];
     this.setGraphicsQuality(
-      localStorage.getItem('graphics_quality') || 'medium'
+      (typeof localStorage !== 'undefined' && localStorage?.getItem)
+        ? localStorage.getItem('graphics_quality') || 'medium'
+        : 'medium'
     );
     this.eventSubscriptions.push(
       globalEventBus.on(
@@ -997,6 +999,228 @@ export class FireworkSystem {
     }
   }
 
+  triggerTadpoleBurstShell(
+    burstPosition,
+    color,
+    preset,
+    shellId,
+    burstDirection = null,
+    parentVelocity = null
+  ) {
+    const burstCfg = FIREWORK_CONFIG.COMET_TADPOLE?.burstShell || {};
+    const countMin = burstCfg.clusterCountMin || 18;
+    const countMax = burstCfg.clusterCountMax || 26;
+    const clusterCount = preset?.clusterCount
+      ?? (countMin + Math.floor(Math.random() * (countMax - countMin + 1)));
+    const speedMin = burstCfg.burstSpeedMin || 45.0;
+    const speedMax = burstCfg.burstSpeedMax || 68.0;
+    const childStarLife = burstCfg.childStarLife || 2.2;
+    const gravityScale = burstCfg.gravityScale || 0.45;
+
+    for (let i = 0; i < clusterCount; i++) {
+      // Fibonacci sphere distribution for uniform 3D spherical dispersion
+      const t = (i + 0.5) / clusterCount;
+      const phi = Math.acos(1 - 2 * t);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+      let outwardDir = new THREE.Vector3(
+        Math.cos(theta) * Math.sin(phi),
+        Math.cos(phi),
+        Math.sin(theta) * Math.sin(phi)
+      ).normalize();
+
+      // Tránh để tia phóng thẳng xuống đất
+      if (outwardDir.y < -0.32) {
+        outwardDir.y = -0.32;
+        outwardDir.normalize();
+      }
+
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
+      const childVel = outwardDir.multiplyScalar(speed);
+      if (parentVelocity) {
+        childVel.addScaledVector(parentVelocity, 0.15);
+      }
+
+      const childColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.06,
+        0.05,
+        0.08
+      );
+
+      const childPreset = {
+        shellType: 'comet_tadpole_burst',
+        dynamicsType: 'tadpole-spiral',
+        isTadpole: true,
+        maxDecayTime: childStarLife * (0.85 + Math.random() * 0.3),
+        gravityScale,
+        thickTrail: false,
+        thinTrail: true,
+        launchTrail: true,
+        burstSmoke: false,
+        noSmoke: true,
+        launchSmoke: false
+      };
+
+      globalEventBus.emit(
+        'comet:spawn',
+        {
+          position: burstPosition.clone(),
+          velocity: childVel,
+          color: childColor,
+          preset: childPreset
+        }
+      );
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnEffectSpark === 'function') {
+      for (let s = 0; s < 36; s++) {
+        const sparkPos = burstPosition.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 4.5,
+            (Math.random() - 0.5) * 4.5,
+            (Math.random() - 0.5) * 4.5
+          )
+        );
+        this.trailSystem.spawnEffectSpark(
+          sparkPos,
+          color,
+          true,
+          null,
+          Math.random() * 1000,
+          0.60 + Math.random() * 0.35,
+          false
+        );
+      }
+    }
+  }
+
+  spawnBurstParticleArrowSparks(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const v = p.velocity;
+    const speed = v.length();
+    if (speed < 0.8) return;
+
+    const dir = v.clone().normalize();
+    const upVec = Math.abs(dir.y) > 0.88 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
+    const count = 1 + (Math.random() < 0.40 ? 1 : 0);
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const coneAngle = 0.55 + Math.random() * 0.35;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const ejectSpeed = 10.0 + Math.random() * 8.0;
+      const sparkVel = ejectDir.multiplyScalar(ejectSpeed);
+      sparkVel.addScaledVector(v, 0.20);
+
+      const sparkColor = p.baseColor.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        0.08,
+        0.18 + Math.random() * 0.12
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.70) * (0.8 + Math.random() * 0.35);
+
+      this.trailSystem.spawnTrailParticle(
+        p.position,
+        sparkColor,
+        1.0,
+        false,
+        sparkLife,
+        1.0,
+        isStrobe,
+        sparkVel,
+        0.20,
+        0.85,
+        false,
+        null,
+        true
+      );
+    }
+
+    if (p.crackle && Math.random() < 0.10 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
+  spawnBurstParticleFlurry(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const v = p.velocity;
+    const dir = v && v.lengthSq() > 0.01 ? v.clone().normalize() : new THREE.Vector3(0, 1, 0);
+    const upVec = Math.abs(dir.y) > 0.88 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
+    const flurryCount = 4 + Math.floor(Math.random() * 3);
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    for (let i = 0; i < flurryCount; i++) {
+      const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+      const coneAngle = 0.55 + Math.random() * 0.40;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const ejectSpeed = 12.0 + Math.random() * 10.0;
+      const subVel = ejectDir.multiplyScalar(ejectSpeed);
+      if (v) {
+        subVel.addScaledVector(v, 0.18);
+      }
+
+      const subColor = p.baseColor.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.05,
+        0.08,
+        0.20 + Math.random() * 0.14
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.flurryStarLife ?? 0.80) * (0.8 + Math.random() * 0.35);
+
+      this.trailSystem.spawnTrailParticle(
+        p.position,
+        subColor,
+        1.0,
+        false,
+        sparkLife,
+        1.0,
+        isStrobe,
+        subVel,
+        0.24,
+        0.88,
+        false,
+        null,
+        true
+      );
+    }
+
+    if (p.crackle && Math.random() < 0.20 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
   getDefaultNestedStages(baseColor = null) {
     const primaryHex = (baseColor && baseColor.getHexString)
       ? '#' + baseColor.getHexString()
@@ -1418,6 +1642,15 @@ export class FireworkSystem {
       || effectsList.includes('crossette')
       || normalizedEffect === 'crossette';
 
+    const isTadpoleFlurryShell = Boolean(
+      preset?.isTadpoleShell
+      || preset?.tadpoleFlurry
+      || effectsList.includes('tadpole-flurry')
+      || effectsList.includes('tadpole_flurry')
+      || (Array.isArray(preset?.effects) && (preset.effects.includes('tadpole-flurry') || preset.effects.includes('tadpole_flurry')))
+      || normalizedEffect === 'tadpole-flurry'
+    );
+
     const crossetteSplitMap = new Map();
     if (isCrossetteShell && burstParticleCount > 0) {
       const outerIndices = [];
@@ -1701,7 +1934,10 @@ export class FireworkSystem {
           && !isDyingEmber
           && crossetteSplitMap.has(i),
         crossetteSplitTime: particleMaxLife * (crossetteSplitMap.get(i) ?? 0.5),
-        crossetteSplitDone: false
+        crossetteSplitDone: false,
+        hasTadpoleFlurry: isTadpoleFlurryShell && !isDyingEmber,
+        tadpoleArrowTimer: Math.random() * 0.065,
+        hasFlurried: false
       });
     }
 
@@ -2097,6 +2333,64 @@ export class FireworkSystem {
     }
 
     const burstPosition = item.mesh.position.clone();
+
+    const isTadpolePrimary = Boolean(
+      item.preset?.isTadpoleShell
+      || item.preset?.shellType === 'chrysanthemum_tadpole_burst'
+      || item.shellType === 'chrysanthemum_tadpole_burst'
+    );
+    const hasTadpoleFlurryEffect = Boolean(
+      (Array.isArray(item.preset?.effects) && (item.preset.effects.includes('tadpole-flurry') || item.preset.effects.includes('tadpole_flurry')))
+      || (Array.isArray(item.effects) && (item.effects.includes('tadpole-flurry') || item.effects.includes('tadpole_flurry')))
+    );
+
+    if (isTadpolePrimary) {
+      const parentVel = item.velocity ? item.velocity.clone() : null;
+      const burstDir = parentVel && parentVel.lengthSq() > 0.001
+        ? parentVel.clone().normalize()
+        : new THREE.Vector3(0, 1, 0);
+
+      this.triggerTadpoleBurstShell(
+        burstPosition,
+        item.color,
+        item.preset,
+        item.shellId,
+        burstDir,
+        parentVel
+      );
+
+      item.markBursted?.();
+      finished.push(item);
+      this.diagnostics.bursted += 1;
+      this.emitDiagnostics();
+
+      const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+      const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
+
+      this.emitFireworkEvent(
+        'firework:burst',
+        {
+          shellId: item.shellId,
+          shellType: 'chrysanthemum_tadpole_burst',
+          shapeType: item.shapeType ?? 'sphere',
+          effectType: 'tadpole-flurry',
+          effects: ['tadpole-flurry'],
+          hasBurstSmoke: false,
+          burstSmoke: false,
+          hasCustomColor: Boolean(item.preset?.hasCustomColor),
+          noBurstSound: false,
+          colorHex: item.color.getHex(),
+          position: {
+            x: burstPosition.x,
+            y: burstPosition.y,
+            z: burstPosition.z
+          },
+          intensity: 1.4,
+          duration: 2.5 + normalizedEnergy * 1.2
+        }
+      );
+      return;
+    }
 
     if (this.isBouquetShell(item) || this.isBouquetShell(item.preset)) {
       const parentVel = item.velocity ? item.velocity.clone() : null;
@@ -2645,6 +2939,27 @@ export class FireworkSystem {
             trailGrav,
             trailDrag
           );
+        }
+      }
+
+      // Tadpole arrow sparks and flurry when tadpole-flurry active effect is on burst particle
+      if (
+        p.hasTadpoleFlurry
+        && !isGhostInvisible
+        && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
+      ) {
+        if (lifeRatio >= 0.18 && lifeRatio <= 0.85) {
+          p.tadpoleArrowTimer = (p.tadpoleArrowTimer || 0) + deltaTime;
+          const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
+          if (p.tadpoleArrowTimer >= arrowInterval) {
+            p.tadpoleArrowTimer = 0;
+            this.spawnBurstParticleArrowSparks(p, parentFade);
+          }
+        }
+
+        if (lifeRatio >= 0.85 && !p.hasFlurried) {
+          p.hasFlurried = true;
+          this.spawnBurstParticleFlurry(p, parentFade);
         }
       }
 

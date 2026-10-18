@@ -43,7 +43,8 @@ export const AVAILABLE_DYNAMICS = [
   'double-helix',
   'crossette',
   'sparkle-trail',
-  'sparkling-branch-comet'
+  'sparkling-branch-comet',
+  'tadpole-spiral'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -63,7 +64,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'no-trail',
   'no-burst',
   'crossette',
-  'sparkle-apex'
+  'sparkle-apex',
+  'tadpole-flurry'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -83,7 +85,7 @@ export const PRESET_TEMPLATES = {
     shape: 'sphere',
     dynamics: 'standard',
     modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    effects: ['no-trail']
   },
   comet_cluster_cc: {
     shape: 'sphere',
@@ -101,7 +103,7 @@ export const PRESET_TEMPLATES = {
     shape: 'sphere',
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    effects: ['no-trail']
   },
   comet_cluster_cascade: {
     shape: 'sphere',
@@ -120,6 +122,30 @@ export const PRESET_TEMPLATES = {
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
+  },
+  comet_tadpole_burst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  cometTadpoleBurst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  chrysanthemum_tadpole_burst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['tadpole-flurry']
+  },
+  chrysanthemumTadpoleBurst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['tadpole-flurry']
   },
   crysanthemum: {
     shape: 'sphere',
@@ -534,6 +560,9 @@ export function resolveFireworkComposition(eventOrPreset) {
     if (eventOrPreset.ghostFlare && !effects.includes('ghost-flare')) effects.push('ghost-flare');
     if (eventOrPreset.flow && !effects.includes('flow')) effects.push('flow');
     if (eventOrPreset.noTrail && !effects.includes('no-trail')) effects.push('no-trail');
+    if ((eventOrPreset.tadpoleFlurry || eventOrPreset.isTadpole) && !effects.includes('tadpole-flurry')) {
+      effects.push('tadpole-flurry');
+    }
   }
 
   return {

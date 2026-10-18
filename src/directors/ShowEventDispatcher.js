@@ -45,9 +45,18 @@ export class ShowEventDispatcher {
         if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
         if (evt.effects !== undefined) overrides.effects = evt.effects;
         if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
+        if (evt['white-strobe'] !== undefined) overrides['white-strobe'] = evt['white-strobe'];
+        if (evt['glitter-strobe'] !== undefined) overrides['glitter-strobe'] = evt['glitter-strobe'];
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
+        if (evt.ghost !== undefined) overrides.ghost = evt.ghost;
+        if (evt['ghost-flare'] !== undefined) overrides['ghost-flare'] = evt['ghost-flare'];
         if (evt.flow !== undefined) overrides.flow = evt.flow;
         if (evt.noTrail !== undefined) overrides.noTrail = evt.noTrail;
+        if (evt['no-trail'] !== undefined) overrides.noTrail = evt['no-trail'];
+        if (evt['no-burst'] !== undefined) overrides.noBurst = evt['no-burst'];
+        if (evt.crossette !== undefined) overrides.crossette = evt.crossette;
+        if (evt['sparkle-apex'] !== undefined) overrides['sparkle-apex'] = evt['sparkle-apex'];
+        if (evt['burst-smoke'] !== undefined) overrides['burst-smoke'] = evt['burst-smoke'];
         if (evt.stages !== undefined) overrides.stages = evt.stages;
         if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
         if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;

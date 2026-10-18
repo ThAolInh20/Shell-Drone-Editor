@@ -52,6 +52,7 @@ export class BurstEffectProcessor {
       normDynamics === 'comet-ring' ||
       normDynamics === 'sparkling-branches' ||
       normDynamics === 'sparkling-branch-comet' ||
+      normDynamics === 'tadpole-spiral' ||
       normDynamics === 'half-flash' ||
       normDynamics === 'split-flash'
     ) {
@@ -116,7 +117,8 @@ export class BurstEffectProcessor {
     'crossette',
     'sparkle-trail',
     'sparkle-apex',
-    'sparkling-branch-comet'
+    'sparkling-branch-comet',
+    'tadpole-spiral'
   ]);
 
   static effectsRegistry = new Map();

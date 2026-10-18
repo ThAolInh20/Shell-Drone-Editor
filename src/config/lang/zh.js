@@ -491,6 +491,7 @@ export default {
         noTrail: "无尾迹",
         noBurst: "无声即时爆炸",
         crossette: "十字分裂 Crossette",
+        tadpoleFlurry: "蝌蚪箭羽喷射",
         activeEffects: "已启用效果",
         ratioX: "比例 X",
         ratioY: "比例 Y",
@@ -559,7 +560,8 @@ export default {
           "double-helix": "双螺旋公转 Double Helix",
           crossette: "十字分裂 Crossette",
           "sparkle-trail": "闪耀彗尾",
-          "sparkling-branch-comet": "多分支闪耀彗星"
+          "sparkling-branch-comet": "多分支闪耀彗星",
+          "tadpole-spiral": "蝌蚪螺旋游动"
         },
         pattern: {
           random: "随机",
@@ -618,6 +620,7 @@ export default {
           comet_cluster_cascade: "级联阶梯彗星集群",
           comet_single: "单发极亮彗星光束",
           comet_single_beam: "单发极亮彗星光束",
+          comet_tadpole_burst: "蝌蚪旋光彗星",
           sparkling_comet: "顶点闪耀彗星",
           sparkling_comet_branches: "多分支闪耀彗星花火",
           crysanthemum: "菊花",
@@ -627,6 +630,7 @@ export default {
           crysanthemum_spiral_v2: "螺旋菊花 V2",
           crysanthemum_cc: "变色菊花",
           crysanthemum_nested: "多层嵌套菊花",
+          chrysanthemum_tadpole_burst: "菊花散裂蝌蚪彗星",
           multi_nested: "★ 多层嵌套烟花",
           strobe: "闪烁",
           strobe_dying_embers: "渐熄余烬闪烁",

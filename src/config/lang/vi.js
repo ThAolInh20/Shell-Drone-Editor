@@ -502,6 +502,7 @@ export default {
         noTrail: "Không vệt đuôi",
         noBurst: "Nổ tức thì không tiếng",
         crossette: "Sao tách chữ thập Crossette",
+        tadpoleFlurry: "Tia xù nòng nọc",
         activeEffects: "Hiệu ứng kích hoạt",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",
@@ -571,7 +572,8 @@ export default {
           "double-helix": "Xoắn kép xoay Double Helix",
           crossette: "Sao tách chữ thập Crossette",
           "sparkle-trail": "Đuôi sao chổi lấp lánh",
-          "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh"
+          "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh",
+          "tadpole-spiral": "Nòng nọc bơi xoắn ốc"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -630,6 +632,7 @@ export default {
           comet_cluster_cascade: "Cụm sao chổi dải tầng",
           comet_single: "Sao chổi đơn siêu sáng",
           comet_single_beam: "Sao chổi đơn siêu sáng",
+          comet_tadpole_burst: "Pháo Comet Nòng Nọc Tung Tỏa",
           sparkling_comet: "Sao chổi nổ đỉnh lấp lánh",
           sparkling_comet_branches: "Sao chổi đa nhánh lấp lánh",
           crysanthemum: "Hoa cúc",
@@ -639,6 +642,7 @@ export default {
           crysanthemum_spiral_v2: "Hoa cúc xoắn ốc V2",
           crysanthemum_cc: "Hoa cúc đổi màu",
           crysanthemum_nested: "Hoa cúc lồng nhau",
+          chrysanthemum_tadpole_burst: "Hoa cúc bung pháo nòng nọc xù",
           multi_nested: "★ Pháo hoa đa tầng lồng nhau",
           strobe: "Nhấp nháy",
           strobe_dying_embers: "Tàn lửa nhấp nháy",
