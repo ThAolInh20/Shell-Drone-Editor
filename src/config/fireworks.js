@@ -467,8 +467,8 @@ export const FIREWORK_CONFIG = {
 
   // Cấu hình pháo nổ phụ thứ cấp (Second Burst)
   SECOND_BURST: {
-    minParticlesPerChild: 8,
-    maxParticlesPerChild: 16,
+    minParticlesPerChild: 10,
+    maxParticlesPerChild: 48,
     defaultScale: 0.35,
     minScale: 0.15,
     maxScale: 0.8,

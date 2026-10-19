@@ -71,7 +71,7 @@ export class FireworkSystem {
     this.instancedShellRenderer = new InstancedShellRenderer(scene);
 
     // Global Burst Particle System (Option 2)
-    this.allocatedMaxBurstParticles = 10000; // Pre-allocate for High quality limit
+    this.allocatedMaxBurstParticles = 50000; // Pre-allocate for high particle limits
     this.maxBurstParticles = 6000;
     this.graphicsQualityMultiplier = 1.0;
     this.burstParticles = [];
@@ -2134,7 +2134,7 @@ export class FireworkSystem {
     );
 
     const pistilCount = hasPistil
-      ? Math.max(4, Math.min(8, Math.round(childParticleCount * 0.4)))
+      ? Math.max(4, Math.min(18, Math.round(childParticleCount * 0.4)))
       : 0;
 
     const totalToSpawn = childParticleCount + pistilCount;
@@ -3671,7 +3671,8 @@ export class FireworkSystem {
 
     const count = Math.min(
       this.burstParticles.length,
-      this.maxBurstParticles
+      this.maxBurstParticles,
+      this.allocatedMaxBurstParticles
     );
 
     // 4. Fill Geometry Buffers
