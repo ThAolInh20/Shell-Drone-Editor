@@ -151,7 +151,8 @@ export class BurstParticleFactory {
       erraticDartFlash = 1.0,
       erraticDartWigglePhase = 0,
       erraticDartWiggleFreq = 22.0,
-      erraticDartWiggleAmp = 26.0
+      erraticDartWiggleAmp = 26.0,
+      isSecondBurstChild = false
     } = options;
 
     const resolvedBaseColor = baseColor
@@ -207,7 +208,8 @@ export class BurstParticleFactory {
       erraticDartFlash,
       erraticDartWigglePhase,
       erraticDartWiggleFreq,
-      erraticDartWiggleAmp
+      erraticDartWiggleAmp,
+      isSecondBurstChild: Boolean(isSecondBurstChild)
     };
   }
 

@@ -134,7 +134,7 @@ describe('BurstEffectProcessor', () => {
     expect(ccLate.r).toBe(0);
     expect(ccLate.b).toBe(1);
 
-    // 3. Thermal cooling
+    // 3. Thermal cooling standard shell: flash towards white
     const standardParticle = {
       baseColor: new THREE.Color(0.8, 0.2, 0.2),
       effectType: 'standard'
@@ -144,7 +144,24 @@ describe('BurstEffectProcessor', () => {
       0.05,
       { profile: { thermalCooling: true } }
     );
-    expect(flashColor.r).toBeGreaterThanOrEqual(0.8);
+    // Standard particle r, g, b are bleached towards white (> 1.0)
+    expect(flashColor.r).toBeGreaterThan(1.0);
+    expect(flashColor.b).toBeGreaterThan(0.5);
+
+    // 4. Second burst child particle: suppresses white flash to preserve saturated color
+    const childParticle = {
+      baseColor: new THREE.Color(0.8, 0.2, 0.2),
+      effectType: 'standard',
+      isSecondBurstChild: true
+    };
+    const childFlashColor = BurstEffectProcessor.resolveParticleColor(
+      childParticle,
+      0.05,
+      { profile: { thermalCooling: true } }
+    );
+    // Blue channel should remain dark (no white bleaching)
+    expect(childFlashColor.b).toBeCloseTo(0.2 * (1.0 + (1.0 - 0.05 / 0.12) * 0.15));
+    expect(childFlashColor.r).toBeLessThan(1.0);
   });
 });
 

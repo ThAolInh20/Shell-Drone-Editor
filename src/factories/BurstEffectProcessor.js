@@ -570,22 +570,45 @@ export class BurstEffectProcessor {
         b = particle.baseColor.b * (1.0 - blendT) + particle.color2.b * blendT;
       }
     } else if (profile?.thermalCooling !== false) {
-      if (lifeRatio < 0.12) {
-        const flashT = 1.0 - (lifeRatio / 0.12);
-        r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
-        g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
-        b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
-      } else if (lifeRatio > 0.62) {
-        if (lifeRatio < 0.88) {
-          const coolT = (lifeRatio - 0.62) / 0.26;
-          r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
-          g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
-          b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
-        } else {
-          const emberT = (lifeRatio - 0.88) / 0.12;
-          r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
-          g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
-          b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
+      if (particle.isSecondBurstChild) {
+        // Second burst child particles: suppress white incandescent flash resonance
+        // Preserve rich chromatic saturation instead of bleaching to white
+        if (lifeRatio < 0.12) {
+          const flashT = 1.0 - (lifeRatio / 0.12);
+          r = r * (1.0 + flashT * 0.15);
+          g = g * (1.0 + flashT * 0.15);
+          b = b * (1.0 + flashT * 0.15);
+        } else if (lifeRatio > 0.65) {
+          if (lifeRatio < 0.90) {
+            const coolT = (lifeRatio - 0.65) / 0.25;
+            r = THREE.MathUtils.lerp(r, r * 0.75, coolT);
+            g = THREE.MathUtils.lerp(g, g * 0.75, coolT);
+            b = THREE.MathUtils.lerp(b, b * 0.75, coolT);
+          } else {
+            const emberT = (lifeRatio - 0.90) / 0.10;
+            r = THREE.MathUtils.lerp(r * 0.75, r * 0.45, emberT);
+            g = THREE.MathUtils.lerp(g * 0.75, g * 0.45, emberT);
+            b = THREE.MathUtils.lerp(b * 0.75, b * 0.45, emberT);
+          }
+        }
+      } else {
+        if (lifeRatio < 0.12) {
+          const flashT = 1.0 - (lifeRatio / 0.12);
+          r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
+          g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
+          b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
+        } else if (lifeRatio > 0.62) {
+          if (lifeRatio < 0.88) {
+            const coolT = (lifeRatio - 0.62) / 0.26;
+            r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
+            g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
+            b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
+          } else {
+            const emberT = (lifeRatio - 0.88) / 0.12;
+            r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
+            g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
+            b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
+          }
         }
       }
     }

@@ -34,6 +34,7 @@ describe('BurstParticleFactory', () => {
       expect(p.erraticDartTriggered).toBe(false);
       expect(p.hasTadpoleFlurry).toBe(false);
       expect(p.renderOpacity).toBe(1.0);
+      expect(p.isSecondBurstChild).toBe(false);
     });
 
     it('clones position, velocity and colors to prevent shared mutation', () => {

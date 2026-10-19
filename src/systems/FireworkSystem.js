@@ -2269,7 +2269,8 @@ export class FireworkSystem {
         crossetteSplitTime: childLife * (crossetteSplitMap.get(k) ?? 0.5),
         crossetteSplitDone: false,
         renderSize: Math.max(16, (p.renderSize || BASE_BURST_POINT_SIZE) * childScale * 1.35),
-        renderOpacity: 1.0,
+        renderOpacity: 0.85,
+        isSecondBurstChild: true,
         dynamicsProfile,
         dragCoefficient: dynamicsProfile?.baseDrag ?? BURST_BASE_DRAG,
         hasTadpoleFlurry: hasParticleTadpole,
@@ -2348,7 +2349,8 @@ export class FireworkSystem {
           totalParticleCount: pistilCount,
           shellId: p.shellId,
           renderSize: Math.max(14, (p.renderSize || BASE_BURST_POINT_SIZE) * childScale * 1.15),
-          renderOpacity: 1.0,
+          renderOpacity: 0.85,
+          isSecondBurstChild: true,
           dragCoefficient: BURST_BASE_DRAG
         });
 
@@ -3546,6 +3548,9 @@ export class FireworkSystem {
         1.15
       );
       let baseOpacity = brightnessOpacityScale;
+      if (p.isSecondBurstChild) {
+        baseOpacity *= 0.85;
+      }
 
       if (lifeRatio > BURST_DISSOLVE_START) {
         const dissolveT = THREE.MathUtils.clamp(
