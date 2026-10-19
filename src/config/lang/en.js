@@ -461,7 +461,8 @@ export default {
         beatSettings: "Beat Editor",
         groupSettings: "Group Settings",
         groupChildren: "Grouped Events",
-        nestedStages: "Multi Nested Stages"
+        nestedStages: "Multi Nested Stages",
+        secondBurst: "Second Burst"
       },
       fields: {
         time: "Start Time s",
@@ -476,6 +477,16 @@ export default {
         delay: "Burst Delay",
         stageScale: "Scale Multiplier",
         nestingMode: "Nesting Pattern",
+        secondBurst: "Second Burst",
+        secondBurstEnabled: "Second Burst",
+        secondBurstRatio: "Particle Ratio",
+        secondBurstTiming: "Trigger Timing",
+        secondBurstMode: "Distribution Mode",
+        secondBurstHint: "Keep ratio between 20% and 35% for optimal density and 60 FPS performance",
+        childShell: "Child Shell",
+        addChildShell: "Add Child Shell",
+        removeChildShell: "Remove Child Shell",
+        childShellScale: "Child Scale",
         type: "Type",
         pattern: "Pattern",
         preset: "Preset",
@@ -697,6 +708,11 @@ export default {
         nestingMode: {
           concentric: "Concentric Time Cascade",
           satellite: "Satellite Dispersion"
+        },
+        distributionMode: {
+          random: "Random",
+          sequential: "Sequential",
+          simultaneous: "Simultaneous"
         },
         templates: {
           custom: "Custom",

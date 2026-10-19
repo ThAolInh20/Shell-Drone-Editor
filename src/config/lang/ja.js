@@ -450,6 +450,7 @@ export default {
         visualEffects: "ライトエフェクト",
         soundSettings: "ステージサウンド設定",
         nestedStages: "多重ネスト花火設定",
+        secondBurst: "二次炸裂 Second Burst",
         geometryOffsets: "座標とオフセット",
         beatSettings: "Beat Editor"
       },
@@ -515,7 +516,17 @@ export default {
         templates: "プリセットテンプレート",
         delay: "爆発遅延",
         stageScale: "スケール倍率",
-        nestingMode: "ネストモード"
+        nestingMode: "ネストモード",
+        secondBurst: "二次炸裂 Second Burst",
+        secondBurstEnabled: "二次炸裂 Second Burst",
+        secondBurstRatio: "粒子変換比率",
+        secondBurstTiming: "炸裂タイミング",
+        secondBurstMode: "炸裂分散モード",
+        secondBurstHint: "華麗な演出と 60 FPS の安定性を保つため比率は 20% から 35% を推奨します",
+        childShell: "子花火タイプ",
+        addChildShell: "子花火を追加",
+        removeChildShell: "この子花火を削除",
+        childShellScale: "子花火スケール"
       },
       options: {
         type: {
@@ -686,6 +697,11 @@ export default {
         nestingMode: {
           concentric: "同心円時系列爆発 Time Cascade",
           satellite: "衛星分散爆発 Satellite Dispersion"
+        },
+        distributionMode: {
+          random: "ランダムジッター",
+          sequential: "順次ウェーブ",
+          simultaneous: "同時炸裂"
         },
         templates: {
           custom: "カスタム設定",

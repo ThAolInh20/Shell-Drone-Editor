@@ -50,9 +50,9 @@ export class AudioSystem {
       },
       crackleSmall: {
         volume: AUDIO_CONFIG.volumes.crackleSmall,
-        playbackRateMin: 1,
-        playbackRateMax: 1,
-        fileNames: ['crackle-sm-1.mp3']
+        playbackRateMin: 0.95,
+        playbackRateMax: 1.1,
+        fileNames: ['crackle-sm-1.mp3', 'crackle-sm-2.mp3']
       }
     };
 
@@ -448,6 +448,25 @@ export class AudioSystem {
       1.5
     ) * pitchMult;
 
+    const isSmallBurst = Boolean(
+      detail.isSubBurst ||
+      detail.isSecondBurst ||
+      soundConfig.isSubBurst ||
+      profile === 'burstSmall' ||
+      profile === 'small'
+    );
+
+    if (isSmallBurst) {
+      this.playSoundBase(
+        'burstSmall',
+        scale,
+        playbackRateScale,
+        delay,
+        position
+      );
+      return;
+    }
+
     if (profile !== 'standard' && this.stages?.burst?.[profile]) {
       this.playSoundProfile(
         'burst',
@@ -509,6 +528,26 @@ export class AudioSystem {
       position,
       0.8 * volMult
     );
+
+    const isSmallCrackle = Boolean(
+      detail?.isSubBurst ||
+      detail?.isSecondBurst ||
+      soundConfig?.isSubBurst ||
+      profile === 'crackleSmall' ||
+      profile === 'small' ||
+      detail?.source === 'burst-particle'
+    );
+
+    if (isSmallCrackle) {
+      this.playSoundBase(
+        'crackleSmall',
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+      return;
+    }
 
     if (profile !== 'standard' && this.stages?.crackle?.[profile]) {
       this.playSoundProfile(

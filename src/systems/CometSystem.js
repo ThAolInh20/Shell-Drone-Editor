@@ -888,11 +888,16 @@ export class CometSystem {
                 || comet.preset?.cometTrail === 'detached-trail'
                 || comet.preset?.shellType === 'comet_cluster_detached';
 
+              const isCascade = Boolean(comet.preset?.isCascade)
+                || comet.preset?.shellType === 'comet_cluster_cascade';
+
               const minDistSq = comet.isTadpole
                 ? 1.44
-                : (comet.preset?.thickTrail
-                  ? 0.36
-                  : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64));
+                : (isCascade
+                  ? 0.90
+                  : (comet.preset?.thickTrail
+                    ? 0.36
+                    : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64)));
 
               if (comet.shouldSpawnTrail(minDistSq)) {
                 let spawnPos = comet.mesh.position;
@@ -929,6 +934,16 @@ export class CometSystem {
                     0.38,
                     false
                   );
+                } else if (isCascade) {
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
+                    comet.color,
+                    1.4,
+                    false,
+                    Math.min(1.5, customLife * 0.70),
+                    0.85,
+                    false
+                  );
                 } else if (comet.preset?.thickTrail) {
                   this.trailSystem.spawnTrailParticle(
                     comet.mesh.position,
@@ -962,7 +977,8 @@ export class CometSystem {
                 }
               }
 
-              if (Math.random() < 0.08 && !comet.preset?.sparkleAtEnd && !isDetached) {
+              const sparkChance = isCascade ? 0.015 : 0.08;
+              if (Math.random() < sparkChance && !comet.preset?.sparkleAtEnd && !isDetached) {
                 this.trailSystem.spawnEffectSpark(
                   comet.mesh.position,
                   comet.color,

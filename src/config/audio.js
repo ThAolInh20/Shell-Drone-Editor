@@ -4,9 +4,9 @@ export const AUDIO_CONFIG = {
     master: 1.0,
     lift: 0.8,
     burst: 0.9,
-    burstSmall: 0.4,
+    burstSmall: 0.65,
     crackle: 0.3,
-    crackleSmall: 0.4
+    crackleSmall: 0.45
   },
   physics: {
     speedOfSound: 343

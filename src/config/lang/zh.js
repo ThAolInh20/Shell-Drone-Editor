@@ -451,7 +451,8 @@ export default {
         soundSettings: "阶段音效配置",
         geometryOffsets: "坐标与偏移",
         beatSettings: "Beat Editor",
-        nestedStages: "多层嵌套烟花配置"
+        nestedStages: "多层嵌套烟花配置",
+        secondBurst: "二次爆炸 Second Burst"
       },
       fields: {
         time: "开始时间",
@@ -463,6 +464,16 @@ export default {
         delay: "爆炸延迟",
         stageScale: "缩放比例",
         nestingMode: "嵌套模式",
+        secondBurst: "二次爆炸 Second Burst",
+        secondBurstEnabled: "二次爆炸 Second Burst",
+        secondBurstRatio: "粒子转化比例",
+        secondBurstTiming: "引爆时机",
+        secondBurstMode: "引爆分布模式",
+        secondBurstHint: "建议将比例保持在 20% 至 35% 之间以兼顾华丽效果与 60 FPS 流畅度",
+        childShell: "子烟花类型",
+        addChildShell: "添加子烟花",
+        removeChildShell: "删除此子烟花",
+        childShellScale: "子烟花缩放",
         volume: "音量",
         url: "文件路径",
         type: "类型",
@@ -685,6 +696,11 @@ export default {
         nestingMode: {
           concentric: "同心时序爆炸 Time Cascade",
           satellite: "卫星分散爆炸 Satellite Dispersion"
+        },
+        distributionMode: {
+          random: "随机抖动",
+          sequential: "时序依次",
+          simultaneous: "同步引爆"
         },
         templates: {
           custom: "自定义自由配置",

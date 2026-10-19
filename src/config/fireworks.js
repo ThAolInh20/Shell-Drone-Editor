@@ -463,5 +463,20 @@ export const FIREWORK_CONFIG = {
     // Hệ số kích thước và độ mờ cho khối khói lớn tự nhiên
     ambientBurstScaleMultiplier: 0.95,
     ambientBurstOpacityMultiplier: 0.75
+  },
+
+  // Cấu hình pháo nổ phụ thứ cấp (Second Burst)
+  SECOND_BURST: {
+    minParticlesPerChild: 8,
+    maxParticlesPerChild: 16,
+    defaultScale: 0.35,
+    minScale: 0.15,
+    maxScale: 0.8,
+    defaultLife: 0.9,
+    lifeJitter: 0.2,
+    baseSpeed: 38,
+    maxConcurrentChildParticles: 3500,
+    audioThrottleMs: 45,
+    maxAudioTriggersPerWindow: 3
   }
 };

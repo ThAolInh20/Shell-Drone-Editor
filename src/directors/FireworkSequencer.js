@@ -402,7 +402,9 @@ export class FireworkSequencer {
         || config.cometTrail !== undefined
         || config.stages !== undefined
         || config.nestingMode !== undefined
-        || config.multiNested !== undefined) 
+        || config.multiNested !== undefined
+        || config.secondBurst !== undefined
+        || config.secondBurstEnabled !== undefined) 
       {
         overrides = { ...(overrides || {}) };
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
@@ -417,6 +419,8 @@ export class FireworkSequencer {
         if (config.stages !== undefined) overrides.stages = config.stages;
         if (config.nestingMode !== undefined) overrides.nestingMode = config.nestingMode;
         if (config.multiNested !== undefined) overrides.multiNested = config.multiNested;
+        if (config.secondBurst !== undefined) overrides.secondBurst = config.secondBurst;
+        if (config.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = config.secondBurstEnabled;
         if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
           overrides.sound = {
             launch: config.sound?.launch || config.launchSound || undefined,
@@ -847,6 +851,8 @@ export class FireworkSequencer {
         || config.thickTrail !== undefined 
         || config.thinTrail !== undefined 
         || config.launchTrail !== undefined
+        || config.secondBurst !== undefined
+        || config.secondBurstEnabled !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
@@ -858,6 +864,8 @@ export class FireworkSequencer {
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
         if (config.flow !== undefined) overrides.flow = config.flow;
+        if (config.secondBurst !== undefined) overrides.secondBurst = config.secondBurst;
+        if (config.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = config.secondBurstEnabled;
         if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
           overrides.sound = {
             launch: config.sound?.launch || config.launchSound || undefined,

@@ -211,4 +211,38 @@ describe('AudioSystem', () => {
     });
     expect(previewSpy).toHaveBeenCalledWith('burst', 'heavy');
   });
+
+  it('should route sub-burst and second-burst events to burstSmall and crackleSmall', () => {
+    const playSpy = vi.spyOn(audioSystem, 'playSoundBase');
+    audioSystem.sources.burstSmall.buffers = [{}];
+    audioSystem.sources.crackleSmall.buffers = [{}];
+
+    // Trigger Second Burst detonation
+    mockEventBus.emit('firework:burst', {
+      position: new THREE.Vector3(0, 0, -10),
+      intensity: 0.25,
+      isSecondBurst: true
+    });
+    expect(playSpy).toHaveBeenCalledWith(
+      'burstSmall',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Object)
+    );
+
+    // Trigger sub-burst crackle
+    mockEventBus.emit('firework:crackle', {
+      position: new THREE.Vector3(0, 0, -10),
+      isSubBurst: true,
+      source: 'burst-particle'
+    });
+    expect(playSpy).toHaveBeenCalledWith(
+      'crackleSmall',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Object)
+    );
+  });
 });

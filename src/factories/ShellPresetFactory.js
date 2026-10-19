@@ -977,7 +977,7 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_cascade',
       shapeType: 'sphere',
       effectType: 'standard',
-      clusterCount: 42 + Math.floor(Math.random() * 12),
+      clusterCount: 18 + Math.floor(Math.random() * 5),
       particleCountMultiplier: 1.5,
       crackle: false,
       launchTrail: true,

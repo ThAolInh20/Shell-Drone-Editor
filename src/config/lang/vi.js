@@ -461,7 +461,8 @@ export default {
         beatSettings: "Biên tập nhịp Beat",
         groupSettings: "Cấu hình nhóm",
         groupChildren: "Danh sách sự kiện con",
-        nestedStages: "Cấu hình pháo lồng đa tầng"
+        nestedStages: "Cấu hình pháo lồng đa tầng",
+        secondBurst: "Cấu hình pháo nổ phụ Second Burst"
       },
       fields: {
         time: "Thời gian bắt đầu s",
@@ -476,6 +477,16 @@ export default {
         delay: "Độ trễ kích nổ",
         stageScale: "Tỉ lệ kích thước",
         nestingMode: "Kiểu pháo lồng",
+        secondBurst: "Pháo nổ phụ Second Burst",
+        secondBurstEnabled: "Pháo nổ phụ Second Burst",
+        secondBurstRatio: "Tỉ lệ hạt biến đổi",
+        secondBurstTiming: "Thời điểm nổ",
+        secondBurstMode: "Quy trình kích nổ",
+        secondBurstHint: "Nên giữ tỉ lệ hạt từ 20% đến 35% để hiệu ứng đẹp mắt và đảm bảo mượt mà 60 FPS",
+        childShell: "Loại pháo con",
+        addChildShell: "Thêm loại pháo",
+        removeChildShell: "Xóa loại này",
+        childShellScale: "Kích thước pháo con",
         type: "Loại",
         pattern: "Quy luật bắn",
         preset: "Preset",
@@ -697,6 +708,11 @@ export default {
         nestingMode: {
           concentric: "Đồng tâm nối tiếp Time Cascade",
           satellite: "Phân tán vệ tinh Satellite Dispersion"
+        },
+        distributionMode: {
+          random: "Ngẫu nhiên",
+          sequential: "Lần lượt",
+          simultaneous: "Đồng loạt"
         },
         templates: {
           custom: "Tùy chỉnh tự do",

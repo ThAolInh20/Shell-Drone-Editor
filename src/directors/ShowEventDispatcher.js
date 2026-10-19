@@ -36,6 +36,8 @@ export class ShowEventDispatcher {
         || evt.stages !== undefined
         || evt.nestingMode !== undefined
         || evt.multiNested !== undefined
+        || evt.secondBurst !== undefined
+        || evt.secondBurstEnabled !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
@@ -60,6 +62,8 @@ export class ShowEventDispatcher {
         if (evt.stages !== undefined) overrides.stages = evt.stages;
         if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
         if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;
+        if (evt.secondBurst !== undefined) overrides.secondBurst = evt.secondBurst;
+        if (evt.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = evt.secondBurstEnabled;
         if (evt.cometTrail !== undefined) {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;
