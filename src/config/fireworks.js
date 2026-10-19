@@ -8,7 +8,7 @@ export const FIREWORK_CONFIG = {
   // Các hằng số hệ thống liên quan đến hiển thị và hiệu năng
   SYSTEM: {
     // Giới hạn số lượng hạt nổ tối đa hiển thị đồng thời để tránh quá tải GPU
-    maxBurstParticles: 20000,
+    maxBurstParticles: 200000,
     // Giới hạn số lượng hạt đuôi (trail) tối đa hiển thị đồng thời
     maxTrailParticles: 150000,
     // Vận tốc mở rộng của đám mây hiệu ứng nổ crackle
@@ -475,7 +475,7 @@ export const FIREWORK_CONFIG = {
     defaultLife: 0.9,
     lifeJitter: 0.2,
     baseSpeed: 38,
-    maxConcurrentChildParticles: 3500,
+    maxConcurrentChildParticles: 35000,
     audioThrottleMs: 45,
     maxAudioTriggersPerWindow: 3
   }
