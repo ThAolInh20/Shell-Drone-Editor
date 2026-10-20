@@ -502,6 +502,7 @@ export default {
         color: "烟花颜色",
         customColor: "自定义颜色",
         shellSize: "烟花大小",
+        starLifeMultiplier: "燃烧时长",
         pistil: "花芯 Pistil",
         instantBurst: "即时爆炸",
         burstSmoke: "爆炸烟雾",

@@ -76,10 +76,6 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'glitterStrobe'
   },
   {
-    key: 'long-burn',
-    labelKey: 'longBurn'
-  },
-  {
     key: 'no-burst',
     labelKey: 'noBurst'
   },
@@ -100,6 +96,8 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'whiteStrobe'
   }
 ];
+
+export const ACTIVE_EFFECT_TAGS = AVAILABLE_EFFECT_TAGS;
 
 export class PropertyInspector {
   constructor(
@@ -402,13 +400,30 @@ export class PropertyInspector {
             {
               name: 'color',
               labelKey: 'color',
-              type: 'color-badges'
+              type: 'color-badges',
+              span: 2
             },
             {
               name: 'shellSize',
               labelKey: 'shellSize',
-              type: 'number',
-              step: '0.1'
+              type: 'slider',
+              min: '0.2',
+              max: '2.5',
+              step: '0.1',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(1)}x`,
+              span: 2
+            },
+            {
+              name: 'starLifeMultiplier',
+              labelKey: 'starLifeMultiplier',
+              type: 'slider',
+              min: '0.4',
+              max: '2.5',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
             },
             {
               name: 'cometTrail',
@@ -422,7 +437,8 @@ export class PropertyInspector {
                 'smoke',
                 'none',
                 'ascent-bursts'
-              ]
+              ],
+              span: 2
             },
             {
               name: 'ascentSubShellType',
@@ -454,6 +470,17 @@ export class PropertyInspector {
         {
           groupKey: 'soundSettings',
           fields: [
+            {
+              name: 'soundVolume',
+              labelKey: 'soundVolume',
+              type: 'slider',
+              min: '0.0',
+              max: '2.0',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
+            },
             {
               name: 'launchSound',
               labelKey: 'launchSound',
@@ -492,13 +519,6 @@ export class PropertyInspector {
                 'soft',
                 'silent'
               ],
-              span: 2
-            },
-            {
-              name: 'soundVolume',
-              labelKey: 'soundVolume',
-              type: 'number',
-              step: '0.1',
               span: 2
             }
           ]
@@ -727,6 +747,8 @@ export class PropertyInspector {
               this.renderCheckbox(fieldWrapper, field);
             } else if (field.type === 'effect-chips') {
               this.renderEffectChips(fieldWrapper, field);
+            } else if (field.type === 'slider') {
+              this.renderSlider(fieldWrapper, field);
             } else {
               this.renderStandardInput(fieldWrapper, field);
             }
@@ -1069,6 +1091,77 @@ export class PropertyInspector {
     }
 
     parent.appendChild(container);
+  }
+
+  renderSlider(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    const defVal = field.defaultValue !== undefined
+      ? field.defaultValue
+      : (parseFloat(field.min) || 0);
+    let rawVal = targetEvent[field.name];
+    if (rawVal === undefined && field.name === 'soundVolume' && targetEvent.sound) {
+      rawVal = targetEvent.sound.volumeMultiplier;
+    }
+    const currentVal = (rawVal !== undefined && !isNaN(Number(rawVal)))
+      ? Number(rawVal)
+      : defVal;
+
+    const header = document.createElement('div');
+    header.className = 'inspector-slider-header';
+
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    header.appendChild(label);
+
+    const valueBadge = document.createElement('span');
+    valueBadge.className = 'inspector-slider-value';
+    const formatFn = typeof field.formatValue === 'function'
+      ? field.formatValue
+      : (v) => String(Number(v).toFixed(1));
+    valueBadge.textContent = formatFn(currentVal);
+    header.appendChild(valueBadge);
+
+    parent.appendChild(header);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'inspector-slider';
+    slider.dataset.fieldName = field.name;
+    slider.min = field.min || '0';
+    slider.max = field.max || '100';
+    slider.step = field.step || '1';
+    slider.value = String(currentVal);
+
+    slider.addEventListener('pointerdown', () => {
+      this.triggerUpdate('beforeChange');
+    });
+
+    const applySliderValue = (val) => {
+      targetEvent[field.name] = val;
+      if (field.name === 'soundVolume') {
+        if (!targetEvent.sound) targetEvent.sound = {};
+        targetEvent.sound.volumeMultiplier = val;
+        targetEvent.soundVolume = val;
+      }
+    };
+
+    slider.addEventListener('input', (e) => {
+      const liveVal = parseFloat(e.target.value);
+      valueBadge.textContent = formatFn(liveVal);
+      applySliderValue(liveVal);
+      this.triggerUpdate();
+    });
+
+    slider.addEventListener('change', (e) => {
+      const finalVal = parseFloat(e.target.value);
+      applySliderValue(finalVal);
+      this.triggerUpdate();
+    });
+
+    parent.appendChild(slider);
   }
 
   renderEffectChips(parent, field) {
@@ -1483,6 +1576,28 @@ export class PropertyInspector {
         dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI / 2}rad)`;
       }
     }
+
+    // Cập nhật các sliders
+    const sliders = this.container.querySelectorAll('.inspector-slider');
+    sliders.forEach(slider => {
+      const fieldName = slider.dataset.fieldName;
+      if (fieldName) {
+        let currentVal = this.selectedEvent[fieldName];
+        if (currentVal === undefined && fieldName === 'soundVolume' && this.selectedEvent.sound) {
+          currentVal = this.selectedEvent.sound.volumeMultiplier;
+        }
+        if (currentVal !== undefined && slider.value != currentVal && document.activeElement !== slider) {
+          slider.value = currentVal;
+          const parentWrapper = slider.closest('.inspector-field-span-2') || slider.parentElement;
+          const badge = parentWrapper?.querySelector('.inspector-slider-value');
+          if (badge) {
+            badge.textContent = fieldName === 'shellSize'
+              ? `${Number(currentVal).toFixed(1)}x`
+              : `${Number(currentVal).toFixed(2)}x`;
+          }
+        }
+      }
+    });
   }
 
   renderBeatSettings(parent) {

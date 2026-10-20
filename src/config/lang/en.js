@@ -513,6 +513,7 @@ export default {
         color: "Shell Color",
         customColor: "Custom Color",
         shellSize: "Shell Size",
+        starLifeMultiplier: "Star Lifetime",
         pistil: "Pistil",
         instantBurst: "Instant Burst",
         burstSmoke: "Burst Smoke",

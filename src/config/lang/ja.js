@@ -484,6 +484,7 @@ export default {
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
+        starLifeMultiplier: "燃焼時間",
         pistil: "芯付 Pistil",
         instantBurst: "即時爆発",
         burstSmoke: "バーストスモーク",

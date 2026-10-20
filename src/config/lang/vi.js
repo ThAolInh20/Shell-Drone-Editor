@@ -513,6 +513,7 @@ export default {
         color: "Màu sắc pháo",
         customColor: "Màu tùy chỉnh",
         shellSize: "Kích thước shell",
+        starLifeMultiplier: "Thời Gian Cháy",
         pistil: "Nhị pháo Pistil",
         instantBurst: "Nổ tức thì",
         burstSmoke: "Khói khi nổ Burst Smoke",

@@ -1706,6 +1706,11 @@ export class FireworkSystem {
       dynamicsType: normalizedEffect
     });
 
+    const baseLifeMul = (preset?.starLifeMultiplier !== undefined && !isNaN(Number(preset.starLifeMultiplier)))
+      ? Math.max(0.2, Number(preset.starLifeMultiplier))
+      : (isLongBurn ? (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2) : 1.0);
+    const isEffectiveLongBurn = isLongBurn || baseLifeMul >= 1.5;
+
     const crossetteSplitMap = new Map();
     if (isCrossetteShell && burstParticleCount > 0) {
       const outerIndices = [];
@@ -2012,11 +2017,10 @@ export class FireworkSystem {
         const lifeJitter = dynamicsProfile?.lifeJitter ?? BURST_LIFE_JITTER;
         const lifeJitterScale = 1.0 + (Math.random() - 0.5) * (lifeJitter * 2);
         const baseMaxLife = BURST_LIFE * lifeJitterScale;
-        const longBurnMul = FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2;
         const apexLifeMul = isApexHang ? 1.35 : 1.0;
-        const lifeMultiplier = isLongBurn
-          ? longBurnMul
-          : (isDyingEmber ? 2.0 : apexLifeMul);
+        const lifeMultiplier = isEffectiveLongBurn
+          ? baseLifeMul
+          : (isDyingEmber ? 2.0 * baseLifeMul : apexLifeMul * baseLifeMul);
         particleMaxLife = baseMaxLife * lifeMultiplier;
       }
 
@@ -2046,7 +2050,7 @@ export class FireworkSystem {
         color2: color2Scaled,
         age: 0,
         maxLife: particleMaxLife,
-        isLongBurn,
+        isLongBurn: isEffectiveLongBurn,
         isApexHang,
         effectType: isGhostEffect
           ? 'ghost'
@@ -2188,6 +2192,10 @@ export class FireworkSystem {
       dynamicsType: childDynamics
     });
 
+    const childLifeMul = (cfg?.starLifeMultiplier !== undefined && !isNaN(Number(cfg.starLifeMultiplier)))
+      ? Math.max(0.2, Number(cfg.starLifeMultiplier))
+      : (isContourLongBurn ? (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2) : 1.0);
+
     let childColor2 = null;
     if (cfg.secondColor && cfg.secondColor !== cfg.color) {
       childColor2 = new THREE.Color(cfg.secondColor);
@@ -2272,8 +2280,8 @@ export class FireworkSystem {
         age: 0,
         maxLife: isContourLongBurn
           ? childLife * (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2)
-          : (isContourApexHang ? childLife * 1.35 : childLife),
-        isLongBurn: isContourLongBurn,
+          : childLife * childLifeMul * (isContourApexHang ? 1.35 : 1.0),
+        isLongBurn: isContourLongBurn || childLifeMul >= 1.5,
         isApexHang: isContourApexHang,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
         crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),

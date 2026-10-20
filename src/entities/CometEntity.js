@@ -62,8 +62,11 @@ export class CometEntity {
       effects.includes('long-burn') ||
       effectType === 'long-burn'
     );
-    if (this.hasLongBurn) {
-      this.maxDecayTime *= 2.0;
+    const cometLifeMul = (preset?.starLifeMultiplier !== undefined && !isNaN(Number(preset.starLifeMultiplier)))
+      ? Math.max(0.2, Number(preset.starLifeMultiplier))
+      : (this.hasLongBurn ? 2.0 : 1.0);
+    if (cometLifeMul !== 1.0) {
+      this.maxDecayTime *= cometLifeMul;
       this.totalLifetime = this.synchronizedLifetime ?? (this.timeToApex + this.maxDecayTime);
       this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
     }
