@@ -449,6 +449,15 @@ export default {
       removeEffect: "Remove effect",
       auditionSoundTooltip: "Play sound preview",
       auditionSoundBtn: "Test",
+      waveCurve: {
+        addPoint: "+ Add Peak",
+        deletePoint: "- Delete Peak",
+        arch: "Arch",
+        doublePeak: "Double Peak",
+        wave: "Wave",
+        slope: "Slope",
+        hint: "Drag point to adjust position and height, drag handle to set angle. Click point to select, use buttons to add or delete."
+      },
       groups: {
         audioSettings: "Audio Settings",
         coreSettings: "Core Settings",
@@ -462,7 +471,8 @@ export default {
         groupSettings: "Group Settings",
         groupChildren: "Grouped Events",
         nestedStages: "Multi Nested Stages",
-        secondBurst: "Second Burst"
+        secondBurst: "Second Burst",
+        waveCurveSettings: "Wave Curve Editor"
       },
       fields: {
         time: "Start Time s",
@@ -613,6 +623,8 @@ export default {
           diverge: "Diverge",
           zigzag: "Zigzag",
           continuous: "Continuous",
+          "sweep-custom-curve": "* Sweep Custom Curve",
+          "sweep-wave": "Sweep Wave",
           "sweep-left": "Sweep Left",
           "sweep-right": "Sweep Right",
           "sweep-random-tilt-left": "Sweep Left Random Tilt",

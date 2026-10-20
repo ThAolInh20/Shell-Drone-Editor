@@ -449,6 +449,15 @@ export default {
       removeEffect: "Gỡ bỏ hiệu ứng",
       auditionSoundTooltip: "Nghe thử âm thanh",
       auditionSoundBtn: "Thử",
+      waveCurve: {
+        addPoint: "+ Thêm đỉnh",
+        deletePoint: "- Xóa đỉnh",
+        arch: "Vòm cung",
+        doublePeak: "Hai đỉnh",
+        wave: "Sóng lượn",
+        slope: "Dáng dốc",
+        hint: "Kéo chấm để đổi vị trí và độ cao, kéo cần gạt để đổi góc bắn. Bấm chọn điểm và dùng nút Thêm/Xóa đỉnh."
+      },
       groups: {
         audioSettings: "Cấu hình âm thanh",
         coreSettings: "Cấu hình cốt lõi",
@@ -462,7 +471,8 @@ export default {
         groupSettings: "Cấu hình nhóm",
         groupChildren: "Danh sách sự kiện con",
         nestedStages: "Cấu hình pháo lồng đa tầng",
-        secondBurst: "Cấu hình pháo nổ phụ Second Burst"
+        secondBurst: "Cấu hình pháo nổ phụ Second Burst",
+        waveCurveSettings: "Biên tập đường cong sóng"
       },
       fields: {
         time: "Thời gian bắt đầu s",
@@ -613,6 +623,8 @@ export default {
           diverge: "Phân kỳ",
           zigzag: "Zic-zac",
           continuous: "Liên tục",
+          "sweep-custom-curve": "★ Quét đường cong tùy biến",
+          "sweep-wave": "Quét sóng uốn lượn",
           "sweep-left": "Quét sang trái",
           "sweep-right": "Quét sang phải",
           "sweep-random-tilt-left": "Quét trái nghiêng ngẫu nhiên",

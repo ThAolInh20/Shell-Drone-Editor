@@ -14,6 +14,8 @@ import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
 import { CustomSelect } from './CustomSelect.js';
 import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { WaveCurveEditor } from './WaveCurveEditor.js';
+import { DEFAULT_WAVE_POINTS } from '../utils/SplineMath.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -267,6 +269,7 @@ export class PropertyInspector {
               options: [
                 'random',
                 'sweep',
+                'sweep-custom-curve',
                 'sweep-arc',
                 'sweep-arc-out',
                 'cascade-slope',
@@ -346,6 +349,14 @@ export class PropertyInspector {
           visibleIf: (event) => Boolean(
             event?.secondBurst?.enabled
             || event?.secondBurstEnabled
+          ),
+          customRender: true
+        },
+        {
+          groupKey: 'waveCurveSettings',
+          visibleIf: (event) => (
+            event?.pattern === 'sweep-custom-curve'
+            || event?.pattern === 'sweep-wave'
           ),
           customRender: true
         },
@@ -686,6 +697,8 @@ export class PropertyInspector {
             this.renderNestedStages(content);
           } else if (group.groupKey === 'secondBurst') {
             this.renderSecondBurst(content);
+          } else if (group.groupKey === 'waveCurveSettings') {
+            this.renderWaveCurveEditor(content);
           }
         } else if (group.fields) {
           group.fields.forEach(field => {
@@ -2636,6 +2649,34 @@ export class PropertyInspector {
       container.appendChild(card);
     }
 
+    parent.appendChild(container);
+  }
+
+  renderWaveCurveEditor(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!Array.isArray(event.wavePoints) || event.wavePoints.length === 0) {
+      event.wavePoints = DEFAULT_WAVE_POINTS.map(p => ({ ...p }));
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+
+    const editor = new WaveCurveEditor({
+      points: event.wavePoints,
+      shellCount: Number(event.count) || 12,
+      onChange: (newPoints) => {
+        this.triggerUpdate('beforeChange');
+        event.wavePoints = newPoints;
+        this.triggerUpdate();
+      }
+    });
+
+    container.appendChild(editor.getElement());
     parent.appendChild(container);
   }
 

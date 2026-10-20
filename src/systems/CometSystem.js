@@ -466,19 +466,24 @@ export class CometSystem {
   }
 
   resolveBurstHeight(preset = null, ratioY) {
-    if (ratioY !== undefined) {
-      // Độ cao tối đa của comet bằng 1/2 pháo hoa (ratioY 0 -> 1 tương ứng 0 -> 0.5 của pháo hoa)
-      return THREE.MathUtils.lerp(
-        this.launchZone.minBurstY,
-        this.launchZone.maxBurstY,
-        ratioY * 0.5
-      );
-    }
-    // Mặc định comets bay ở khoảng tầm thấp/trung (0.35 - 0.55 của comet, tương ứng 0.175 - 0.275 của pháo hoa)
-    return THREE.MathUtils.lerp(
+    const minCometY = 30;
+    const maxCometY = THREE.MathUtils.lerp(
       this.launchZone.minBurstY,
       this.launchZone.maxBurstY,
-      (0.35 + Math.random() * 0.2) * 0.5
+      0.65
+    );
+    if (ratioY !== undefined) {
+      return THREE.MathUtils.lerp(
+        minCometY,
+        maxCometY,
+        ratioY
+      );
+    }
+    // Default low to mid height range for comets
+    return THREE.MathUtils.lerp(
+      minCometY,
+      maxCometY,
+      0.35 + Math.random() * 0.2
     );
   }
 
@@ -497,8 +502,14 @@ export class CometSystem {
 
     // vy luôn đảm bảo đạt đủ độ cao
     const vy = requiredVy;
-    // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle)
-    const tiltRight = requiredVy * Math.tan(angleOffset);
+    // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle) với ngưỡng an toàn tối đa 85 độ
+    const maxTiltRad = 85 * (Math.PI / 180);
+    const safeAngle = THREE.MathUtils.clamp(
+      angleOffset,
+      -maxTiltRad,
+      maxTiltRad
+    );
+    const tiltRight = requiredVy * Math.tan(safeAngle);
 
     const vx = forwardSpeed * Math.cos(baseAngle) + tiltRight * Math.sin(baseAngle);
     const vz = -forwardSpeed * Math.sin(baseAngle) + tiltRight * Math.cos(baseAngle);

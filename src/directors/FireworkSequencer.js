@@ -1,3 +1,5 @@
+import { evaluateWaveCurve } from '../utils/SplineMath.js';
+
 export class FireworkSequencer {
   constructor(fireworkSystem, cometSystem) {
     this.fireworkSystem = fireworkSystem;
@@ -63,6 +65,18 @@ export class FireworkSequencer {
       let angleOffset = (Math.random() - 0.5) * 2 * 0.28;
 
       switch (pattern) {
+        case 'sweep-custom-curve':
+        case 'sweep-wave': {
+          const defaultX1 = 0.0;
+          const defaultX2 = 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const evaluated = evaluateWaveCurve(config.wavePoints, progress);
+          ratioX = startX + evaluated.x * (endX - startX);
+          ratioY = evaluated.y;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : evaluated.angle;
+          break;
+        }
         case 'sweep':
         case 'sweep-right':
         case 'sweep-left': {
@@ -344,7 +358,9 @@ export class FireworkSequencer {
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
+        if (pattern === 'sweep-custom-curve' || pattern === 'sweep-wave') {
+          // Keep custom curve height
+        } else if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);
@@ -605,6 +621,18 @@ export class FireworkSequencer {
           angleOffset = Math.cos(angleRad) * maxAngleOffset * 0.6 * progress;
           break;
         }
+        case 'sweep-custom-curve':
+        case 'sweep-wave': {
+          const defaultX1 = 0.0;
+          const defaultX2 = 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const evaluated = evaluateWaveCurve(config.wavePoints, progress);
+          ratioX = startX + evaluated.x * (endX - startX);
+          ratioY = evaluated.y;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : evaluated.angle;
+          break;
+        }
         case 'sweep':
         case 'sweep-right':
         case 'sweep-left': {
@@ -793,7 +821,9 @@ export class FireworkSequencer {
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
+        if (pattern === 'sweep-custom-curve' || pattern === 'sweep-wave') {
+          // Keep custom curve height
+        } else if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);

@@ -441,6 +441,15 @@ export default {
       removeEffect: "移除效果",
       auditionSoundTooltip: "试听音效",
       auditionSoundBtn: "试听",
+      waveCurve: {
+        addPoint: "+ 添加顶点",
+        deletePoint: "- 删除顶点",
+        arch: "拱形",
+        doublePeak: "双峰",
+        wave: "波浪",
+        slope: "斜坡",
+        hint: "拖动圆点调整位置和高度，拖动手柄调整角度。点击选择顶点并使用按钮添加或删除。"
+      },
       groups: {
         audioSettings: "音频设置",
         coreSettings: "核心设置",
@@ -452,7 +461,8 @@ export default {
         geometryOffsets: "坐标与偏移",
         beatSettings: "Beat Editor",
         nestedStages: "多层嵌套烟花配置",
-        secondBurst: "二次爆炸 Second Burst"
+        secondBurst: "二次爆炸 Second Burst",
+        waveCurveSettings: "波浪曲线编辑器"
       },
       fields: {
         time: "开始时间",
@@ -601,6 +611,8 @@ export default {
           diverge: "向外发散",
           zigzag: "之字形",
           continuous: "连续",
+          "sweep-custom-curve": "* 自定义曲线扫描",
+          "sweep-wave": "波浪起伏扫描",
           "sweep-left": "向左扫描",
           "sweep-right": "向右扫描",
           "sweep-random-tilt-left": "向左扫描 随机倾斜",

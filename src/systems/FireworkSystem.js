@@ -527,8 +527,14 @@ export class FireworkSystem {
     const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
     const forwardSpeed = 20;
 
-    // Vận tốc tạt nghiêng theo angleOffset (tính bằng tan(angleOffset))
-    const tiltLateral = launchSpeedY * Math.tan(angleOffset);
+    // Vận tốc tạt nghiêng theo angleOffset (tính bằng tan(angleOffset) với ngưỡng an toàn tối đa 85 độ)
+    const maxTiltRad = 85 * (Math.PI / 180);
+    const safeAngle = THREE.MathUtils.clamp(
+      angleOffset,
+      -maxTiltRad,
+      maxTiltRad
+    );
+    const tiltLateral = launchSpeedY * Math.tan(safeAngle);
 
     const vx = forwardSpeed * Math.cos(baseAngle) +
       tiltLateral * Math.sin(baseAngle) +

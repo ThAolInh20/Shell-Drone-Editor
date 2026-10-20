@@ -441,6 +441,15 @@ export default {
       removeEffect: "エフェクトを削除",
       auditionSoundTooltip: "サウンド試聴",
       auditionSoundBtn: "試聴",
+      waveCurve: {
+        addPoint: "+ 頂点を追加",
+        deletePoint: "- 頂点を削除",
+        arch: "アーチ",
+        doublePeak: "ダブルピーク",
+        wave: "ウェーブ",
+        slope: "スロープ",
+        hint: "ポイントをドラッグして位置と高さを調整し、ハンドルで発射角度を変更します。ボタンで頂点の追加や削除が可能です。"
+      },
       groups: {
         audioSettings: "音声設定",
         coreSettings: "コア設定",
@@ -452,7 +461,8 @@ export default {
         nestedStages: "多重ネスト花火設定",
         secondBurst: "二次炸裂 Second Burst",
         geometryOffsets: "座標とオフセット",
-        beatSettings: "Beat Editor"
+        beatSettings: "Beat Editor",
+        waveCurveSettings: "ウェーブ曲線エディター"
       },
       fields: {
         time: "開始時間",
@@ -602,6 +612,8 @@ export default {
           diverge: "発散",
           zigzag: "ジグザグ",
           continuous: "連続",
+          "sweep-custom-curve": "* カスタム曲線スイープ",
+          "sweep-wave": "ウェーブ波形スイープ",
           "sweep-left": "左スイープ",
           "sweep-right": "右スイープ",
           "sweep-random-tilt-left": "左スイープ ランダム傾斜",
