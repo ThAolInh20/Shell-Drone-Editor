@@ -499,6 +499,7 @@ export default {
         noBurst: "無音即時爆発",
         tadpoleFlurry: "タドポールアロー噴射",
         erraticDart: "乱舞ダート",
+        longBurn: "ロングバーン",
         activeEffects: "有効エフェクト",
         launchSound: "発射サウンド",
         burstSound: "炸裂サウンド",

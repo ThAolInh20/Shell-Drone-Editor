@@ -1696,7 +1696,8 @@ export class FireworkSystem {
       isCrossetteShell,
       isTadpoleFlurryShell,
       isErraticDartShell,
-      hasBurstSmoke: isBurstSmokeActive
+      hasBurstSmoke: isBurstSmokeActive,
+      isLongBurn
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset,
       effects: effectsList,
@@ -2005,9 +2006,9 @@ export class FireworkSystem {
         const lifeJitter = dynamicsProfile?.lifeJitter ?? BURST_LIFE_JITTER;
         const lifeJitterScale = 1.0 + (Math.random() - 0.5) * (lifeJitter * 2);
         const baseMaxLife = BURST_LIFE * lifeJitterScale;
-        particleMaxLife = isDyingEmber
-          ? baseMaxLife * 2.0
-          : baseMaxLife;
+        const longBurnMul = FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2;
+        const lifeMultiplier = isLongBurn ? longBurnMul : (isDyingEmber ? 2.0 : 1.0);
+        particleMaxLife = baseMaxLife * lifeMultiplier;
       }
 
       const baseParticleDrag = (preset?.drag !== undefined)
@@ -2036,6 +2037,7 @@ export class FireworkSystem {
         color2: color2Scaled,
         age: 0,
         maxLife: particleMaxLife,
+        isLongBurn,
         effectType: isGhostEffect
           ? 'ghost'
           : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
@@ -2167,7 +2169,8 @@ export class FireworkSystem {
       isErraticDartShell,
       hasBurstSmoke: isBurstSmokeActive,
       isGhostEffect,
-      isCCEffect
+      isCCEffect,
+      isLongBurn: isContourLongBurn
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset: cfg,
       effects: childEffects,
@@ -2251,7 +2254,10 @@ export class FireworkSystem {
         baseColor: childColor,
         color2: childColor2,
         age: 0,
-        maxLife: childLife,
+        maxLife: isContourLongBurn
+          ? childLife * (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2)
+          : childLife,
+        isLongBurn: isContourLongBurn,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
         crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
         phase: (childEffectState.phase && childEffectState.phase[k] !== undefined)
@@ -3155,9 +3161,12 @@ export class FireworkSystem {
       p.velocity.y *= dragFactor;
       p.velocity.z *= dragFactor;
 
-      if (p.isDyingEmber) {
-        finalGravityScale = gravityScale * 1.3;
-        p.velocity.multiplyScalar(0.994);
+      if (p.isLongBurn || p.isDyingEmber) {
+        const gravScale = p.isLongBurn
+          ? (FIREWORK_CONFIG.BURST?.longBurnGravityScale ?? 0.85)
+          : 1.3;
+        finalGravityScale = gravityScale * gravScale;
+        p.velocity.multiplyScalar(p.isLongBurn ? 0.995 : 0.994);
       }
 
       // Environmental Wind Coupling: Hat tan phao va willow troi theo huong gio he thong
@@ -3165,14 +3174,15 @@ export class FireworkSystem {
         || atmosphereManager.currentWind;
 
       if (wind) {
-        const isFloatingEffect = p.isDyingEmber
+        const isFloatingEffect = p.isLongBurn
+          || p.isDyingEmber
           || p.effectType === 'willow'
           || p.effectType === 'willow-arch'
           || p.effectType === 'falling-leaves'
           || p.effectType === 'kamuro';
 
         if (isFloatingEffect) {
-          const windInfluence = p.isDyingEmber ? 0.85 : 0.45;
+          const windInfluence = p.isLongBurn ? 0.65 : (p.isDyingEmber ? 0.85 : 0.45);
           p.velocity.x = THREE.MathUtils.lerp(
             p.velocity.x,
             wind.x,
@@ -3558,9 +3568,12 @@ export class FireworkSystem {
         baseOpacity *= 0.85;
       }
 
-      if (lifeRatio > BURST_DISSOLVE_START) {
+      const dissolveThreshold = p.isLongBurn
+        ? (FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : BURST_DISSOLVE_START;
+      if (lifeRatio > dissolveThreshold) {
         const dissolveT = THREE.MathUtils.clamp(
-          (lifeRatio - BURST_DISSOLVE_START) / (1 - BURST_DISSOLVE_START),
+          (lifeRatio - dissolveThreshold) / (1 - dissolveThreshold),
           0,
           1
         );

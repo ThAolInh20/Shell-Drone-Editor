@@ -72,6 +72,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'glitterStrobe'
   },
   {
+    key: 'long-burn',
+    labelKey: 'longBurn'
+  },
+  {
     key: 'no-burst',
     labelKey: 'noBurst'
   },

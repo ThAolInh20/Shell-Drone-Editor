@@ -57,6 +57,17 @@ export class CometEntity {
     const effects = Array.isArray(preset?.effects) ? preset.effects : [];
     const effectType = preset?.effectType || '';
 
+    this.hasLongBurn = Boolean(
+      preset?.longBurn ||
+      effects.includes('long-burn') ||
+      effectType === 'long-burn'
+    );
+    if (this.hasLongBurn) {
+      this.maxDecayTime *= 2.0;
+      this.totalLifetime = this.synchronizedLifetime ?? (this.timeToApex + this.maxDecayTime);
+      this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
+    }
+
     this.hasCrackle = Boolean(preset?.crackle || effects.includes('crackle') || effectType === 'crackle');
     this.hasCrossette = Boolean(preset?.crossette || effects.includes('crossette') || effectType === 'crossette');
     this.hasFlow = Boolean(preset?.flow || effects.includes('flow') || effectType === 'flow');

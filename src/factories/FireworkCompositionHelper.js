@@ -66,7 +66,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'crossette',
   'sparkle-apex',
   'tadpole-flurry',
-  'erratic-dart'
+  'erratic-dart',
+  'long-burn'
 ];
 
 export const PRESET_TEMPLATES = {

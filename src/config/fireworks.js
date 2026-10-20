@@ -53,7 +53,13 @@ export const FIREWORK_CONFIG = {
     // Số hạt nổ tối thiểu cho phép
     minParticles: 60,
     // Số hạt nổ tối đa cho phép để bảo vệ FPS
-    maxParticles: 220
+    maxParticles: 220,
+    // Hệ số kéo dài thời gian sống cho hiệu ứng long-burn
+    longBurnMultiplier: 2.2,
+    // Ngưỡng tan biến muộn cho hiệu ứng long-burn để giữ hạt sáng lâu
+    longBurnDissolveStart: 0.72,
+    // Trọng lực giảm nhẹ giúp hạt long-burn trôi lơ lửng trên không
+    longBurnGravityScale: 0.85
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)

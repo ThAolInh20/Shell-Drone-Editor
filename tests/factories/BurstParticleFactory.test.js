@@ -88,6 +88,18 @@ describe('BurstParticleFactory', () => {
         effects: ['crysanthemum-cc']
       });
       expect(ccFlags.isCCEffect).toBe(true);
+
+      const longBurnFlags = BurstParticleFactory.resolveActiveEffectFlags({
+        preset: {},
+        effects: ['long-burn']
+      });
+      expect(longBurnFlags.isLongBurn).toBe(true);
+
+      const presetLongBurnFlags = BurstParticleFactory.resolveActiveEffectFlags({
+        preset: { longBurn: true },
+        effects: []
+      });
+      expect(presetLongBurnFlags.isLongBurn).toBe(true);
     });
   });
 

@@ -517,6 +517,7 @@ export default {
         crossette: "十字分裂 Crossette",
         tadpoleFlurry: "蝌蚪箭羽喷射",
         erraticDart: "乱窜飞箭",
+        longBurn: "长效滞空燃烧",
         activeEffects: "已启用效果",
         launchSound: "发射音效",
         burstSound: "爆炸音效",

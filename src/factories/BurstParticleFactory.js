@@ -90,6 +90,14 @@ export class BurstParticleFactory {
       || preset?.shellType === 'crysanthemumCC'
     );
 
+    const isLongBurn = Boolean(
+      preset?.longBurn
+      || effectsList.includes('long-burn')
+      || (Array.isArray(preset?.effects) && preset.effects.includes('long-burn'))
+      || normDynamics === 'long-burn'
+      || preset?.effectType === 'long-burn'
+    );
+
     return {
       isCrossetteShell,
       isTadpoleFlurryShell,
@@ -97,6 +105,7 @@ export class BurstParticleFactory {
       hasBurstSmoke,
       isGhostEffect,
       isCCEffect,
+      isLongBurn,
       effectsList
     };
   }
@@ -152,7 +161,8 @@ export class BurstParticleFactory {
       erraticDartWigglePhase = 0,
       erraticDartWiggleFreq = 22.0,
       erraticDartWiggleAmp = 26.0,
-      isSecondBurstChild = false
+      isSecondBurstChild = false,
+      isLongBurn = false
     } = options;
 
     const resolvedBaseColor = baseColor
@@ -181,6 +191,7 @@ export class BurstParticleFactory {
       totalParticleCount,
       shellId: shellId ?? Math.floor(Math.random() * 100000000),
       isDyingEmber: Boolean(isDyingEmber),
+      isLongBurn: Boolean(isLongBurn),
       isNestedTrigger: Boolean(isNestedTrigger),
       effects: Array.isArray(effects) ? [...effects] : [],
       hasBurstSmoke: Boolean(hasBurstSmoke),

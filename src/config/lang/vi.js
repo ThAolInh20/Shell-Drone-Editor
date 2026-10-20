@@ -528,6 +528,7 @@ export default {
         crossette: "Sao tách chữ thập Crossette",
         tadpoleFlurry: "Tia xù nòng nọc",
         erraticDart: "Tia vút loạn xạ",
+        longBurn: "Cháy lâu",
         activeEffects: "Hiệu ứng kích hoạt",
         launchSound: "Âm thanh phóng",
         burstSound: "Âm thanh nổ bung",

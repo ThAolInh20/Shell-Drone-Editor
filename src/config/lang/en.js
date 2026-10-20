@@ -528,6 +528,7 @@ export default {
         crossette: "Crossette Cross Split",
         tadpoleFlurry: "Tadpole Arrow Flurry",
         erraticDart: "Erratic Darting",
+        longBurn: "Long Burn",
         activeEffects: "Active Effects",
         launchSound: "Launch Sound",
         burstSound: "Burst Sound",

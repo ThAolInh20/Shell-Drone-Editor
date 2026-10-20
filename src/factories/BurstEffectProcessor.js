@@ -118,7 +118,8 @@ export class BurstEffectProcessor {
     'sparkle-trail',
     'sparkle-apex',
     'sparkling-branch-comet',
-    'tadpole-spiral'
+    'tadpole-spiral',
+    'long-burn'
   ]);
 
   static effectsRegistry = new Map();
