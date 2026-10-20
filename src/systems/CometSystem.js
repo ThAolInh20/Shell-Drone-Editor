@@ -57,6 +57,8 @@ export class CometSystem {
     this.trailSystem = trailSystem;
     this.smokeSystem = smokeSystem;
     this.activeComets = [];
+    this.pendingDetachedLaunches = [];
+    this.simulationTime = 0;
     this.launchZone = LAUNCH_ZONE_CONFIG;
     this.shellPresetFactory = new ShellPresetFactory();
     this.eventSubscriptions = [];
@@ -108,7 +110,7 @@ export class CometSystem {
     globalEventBus.emit(type, detail);
   }
 
-  spawnComet({ position, velocity, color, preset = null }) {
+  spawnComet({ position, velocity, color, preset = null, spiral = null, lifetime = null }) {
     if (!position || !velocity) return null;
     const cometColor = (color instanceof THREE.Color)
       ? color.clone()
@@ -118,7 +120,9 @@ export class CometSystem {
       position: position.clone(),
       velocity: velocity.clone(),
       color: cometColor,
-      preset
+      preset,
+      spiral,
+      lifetime
     });
 
     comet.mesh.traverse((child) => {
@@ -206,6 +210,65 @@ export class CometSystem {
       ? CASCADE_PALETTES[Math.floor(Math.random() * CASCADE_PALETTES.length)]
       : null;
 
+    const isDetachedCluster = !isCascade && clusterCount > 1 && Boolean(
+      finalPreset?.shellType === 'comet_cluster_detached' ||
+      finalPreset?.detachedTrail ||
+      ['detached', 'detached-trail'].includes(finalPreset?.cometTrail)
+    );
+    const detachedTargetHeight = isDetachedCluster ? this.resolveBurstHeight(finalPreset, ratioY) : null;
+    const detachedBaseVelocity = isDetachedCluster
+      ? this.resolveLaunchVelocity(detachedTargetHeight, angleOffset || 0)
+      : null;
+    const detachedDirections = [];
+    let detachedRanks = null;
+    if (isDetachedCluster) {
+      const direction = detachedBaseVelocity.clone().normalize();
+      const reference = Math.abs(direction.y) > 0.9
+        ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(direction, reference).normalize();
+      const up = new THREE.Vector3().crossVectors(direction, right).normalize();
+      // Independent strata fill the column length and its disk, without a
+      // launch-order speed ramp or a visible ring of equal-radius stars.
+      const shuffle = values => {
+        for (let i = values.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [values[i], values[j]] = [values[j], values[i]];
+        }
+        return values;
+      };
+      const nominalSpeed = detachedBaseVelocity.length();
+      const speeds = shuffle(Array.from({ length: clusterCount }, (_, i) => {
+        const u = (i + Math.random()) / clusterCount;
+        // Non-linear curve spanning from low base (~0.22) to high apex (~1.16)
+        const shaped = 0.22 + 0.94 * (0.35 * u + 0.65 * Math.pow(u, 0.9));
+        const jitter = (Math.random() - 0.5) * 0.04;
+        return Math.max(0.20, shaped + jitter);
+      }));
+      const radii = shuffle(Array.from({ length: clusterCount }, (_, i) =>
+        5 * Math.sqrt((i + Math.random()) / clusterCount)));
+      const azimuths = shuffle(Array.from({ length: clusterCount }, (_, i) =>
+        Math.PI * 2 * (i + Math.random()) / clusterCount));
+      for (let i = 0; i < clusterCount; i++) {
+        const angle = azimuths[i];
+        // Scale maximum allowable radial offset to preserve tight column beam coherence
+        const axialSpeed = speeds[i];
+        const maxOffset = Math.min(5, Math.max(1.5, axialSpeed * nominalSpeed * Math.tan(0.14)));
+        const radiusJitter = 0.85 + Math.random() * 0.30;
+        const clampedRadius = Math.min(radii[i] * radiusJitter, maxOffset);
+        const offset = right.clone().multiplyScalar(Math.cos(angle))
+          .addScaledVector(up, Math.sin(angle)).multiplyScalar(clampedRadius);
+        detachedDirections.push(detachedBaseVelocity.clone()
+          .multiplyScalar(speeds[i]).add(offset));
+      }
+      const heightOrder = detachedDirections
+        .map((velocity, index) => ({ vy: velocity.y, index }))
+        .sort((a, b) => a.vy - b.vy);
+      detachedRanks = new Array(clusterCount);
+      for (let r = 0; r < heightOrder.length; r++) {
+        detachedRanks[heightOrder[r].index] = clusterCount > 1 ? r / (clusterCount - 1) : 0;
+      }
+    }
+
     for (let i = 0; i < clusterCount; i++) {
       let targetHeight;
       let velocity;
@@ -259,12 +322,16 @@ export class CometSystem {
         );
       } else {
         // Độ cao tính toán trực tiếp từ resolveBurstHeight theo ratioY, dao động nhẹ (+/- 3%)
-        targetHeight = this.resolveBurstHeight(preset, ratioY) *
-          (0.97 + Math.random() * 0.06);
-        velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
+        if (isDetachedCluster) {
+          velocity = detachedDirections[i];
+        } else {
+          targetHeight = this.resolveBurstHeight(preset, ratioY) *
+            (0.97 + Math.random() * 0.06);
+          velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
+        }
 
         // Spread the cluster laterally only when shooting multiple comets
-        if (clusterCount > 1) {
+        if (clusterCount > 1 && !isDetachedCluster) {
           velocity.x += (Math.random() - 0.5) * 5;
           velocity.z += (Math.random() - 0.5) * 5;
           velocity.y *= (0.95 + Math.random() * 0.1);
@@ -280,27 +347,62 @@ export class CometSystem {
           : clusterColor.clone();
       }
 
-      const cometPreset = hasStrobeTag
-        ? { ...finalPreset, isStrobeStar: (i < strobeCount) }
-        : finalPreset;
+      const baseHeadScale = Number.isFinite(finalPreset?.detachedHeadScale) && finalPreset.detachedHeadScale > 0
+        ? finalPreset.detachedHeadScale
+        : 0.42;
+      const starHeadScale = isDetachedCluster
+        ? baseHeadScale * (0.80 + Math.random() * 0.40)
+        : baseHeadScale;
 
-      const comet = new CometEntity({
+      const cometPreset = {
+        ...(hasStrobeTag ? { ...finalPreset, isStrobeStar: (i < strobeCount) } : finalPreset),
+        ...(isDetachedCluster ? { detachedHeadScale: starHeadScale } : {})
+      };
+
+      const immediateCount = Math.ceil(clusterCount * 0.25);
+      const launchDelay = isDetachedCluster && i >= immediateCount
+        ? 0.12 * (i - immediateCount + Math.random()) / (clusterCount - immediateCount)
+        : 0;
+      const clusterLifetime = Number.isFinite(finalPreset?.detachedLifetime) && finalPreset.detachedLifetime > 0
+        ? finalPreset.detachedLifetime : 2.5;
+      const sweepDuration = Number.isFinite(finalPreset?.detachedSweepDuration) && finalPreset.detachedSweepDuration > 0
+        ? finalPreset.detachedSweepDuration
+        : 0.12;
+      const baseLifetime = clusterLifetime - 0.04;
+      const rankOffset = (isDetachedCluster && detachedRanks)
+        ? detachedRanks[i] * sweepDuration
+        : 0;
+      const launch = {
         position: basePosition.clone(),
         velocity,
         color: cometColor,
         preset: cometPreset,
-        spiral: resolvedSpiral
-      });
-
-      comet.mesh.traverse((child) => {
-        child.layers.enable(LAYER_REFLECTION);
-      });
-      this.scene.add(comet.mesh);
-      this.activeComets.push(comet);
+        spiral: resolvedSpiral,
+        // Extinguish sequentially from bottom to top at rapid speed
+        lifetime: isDetachedCluster
+          ? Math.max(0.1, baseLifetime + rankOffset - launchDelay)
+          : null
+      };
+      if (isDetachedCluster && i >= immediateCount) {
+        // Capture launch data now: later launches must not depend on caller mutations.
+        const snapshot = (value) => {
+          if (value === null || typeof value !== 'object') return value;
+          if (typeof value.clone === 'function') return value.clone();
+          if (Array.isArray(value)) return value.map(snapshot);
+          return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, snapshot(item)]));
+        };
+        this.pendingDetachedLaunches.push({
+          time: this.simulationTime + launchDelay,
+          launch: snapshot(launch)
+        });
+      } else {
+        this.spawnComet(launch);
+      }
     }
+    this.pendingDetachedLaunches.sort((a, b) => a.time - b.time);
 
-    const baseTargetHeight = this.resolveBurstHeight(preset, ratioY);
-    const baseVelocity = this.resolveLaunchVelocity(baseTargetHeight, angleOffset || 0);
+    const baseTargetHeight = detachedTargetHeight ?? this.resolveBurstHeight(preset, ratioY);
+    const baseVelocity = detachedBaseVelocity || this.resolveLaunchVelocity(baseTargetHeight, angleOffset || 0);
     const launchDir = baseVelocity.lengthSq() > 0.001
       ? baseVelocity.clone().normalize()
       : new THREE.Vector3(0, 1, 0);
@@ -314,7 +416,7 @@ export class CometSystem {
         shapeType: 'comet',
         effectType: 'comet',
         colorHex: clusterColor.getHex(),
-        sound: preset?.sound || null,
+        sound: (isDetachedCluster ? finalPreset?.sound : preset?.sound) || null,
         position: {
           x: basePosition.x,
           y: basePosition.y,
@@ -405,6 +507,7 @@ export class CometSystem {
   }
 
   clear() {
+    this.pendingDetachedLaunches.length = 0;
     for (let i = 0; i < this.activeComets.length; i++) {
       const comet = this.activeComets[i];
       if (comet) {
@@ -654,11 +757,25 @@ export class CometSystem {
     }
   }
 
-  update(deltaTime) {
+  update(frameDeltaTime) {
+    const frameEnd = this.simulationTime + frameDeltaTime;
+    while (this.pendingDetachedLaunches.length && this.pendingDetachedLaunches[0].time <= frameEnd + 1e-10) {
+      const pending = this.pendingDetachedLaunches.shift();
+      const comet = this.spawnComet(pending.launch);
+      comet._launchFrameDeltaTime = Math.max(0, frameEnd - pending.time);
+    }
+    this.simulationTime = frameEnd;
     let activeCount = 0;
 
     for (let i = 0; i < this.activeComets.length; i++) {
       const comet = this.activeComets[i];
+      const isNewLaunch = comet._launchFrameDeltaTime !== undefined;
+      const deltaTime = comet._launchFrameDeltaTime ?? frameDeltaTime;
+      delete comet._launchFrameDeltaTime;
+      if (isNewLaunch && deltaTime === 0) {
+        this.activeComets[activeCount++] = comet;
+        continue;
+      }
       let isDead = comet.update(deltaTime);
 
       const H_max = comet.initialVy ? (comet.initialVy * comet.initialVy) / 60 : 0;

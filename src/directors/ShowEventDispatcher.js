@@ -29,6 +29,7 @@ export class ShowEventDispatcher {
         || evt.pistil !== undefined
         || evt.effects !== undefined
         || evt.strobe !== undefined
+        || evt['ghost-flare'] !== undefined
         || evt.crackle !== undefined
         || evt.flow !== undefined
         || evt.noTrail !== undefined

@@ -21,7 +21,8 @@ export class CometEntity {
     velocity,
     color,
     preset = null,
-    spiral = null
+    spiral = null,
+    lifetime = null
   }) {
     this.type = 'comet';
     this.velocity = velocity;
@@ -44,6 +45,12 @@ export class CometEntity {
     this.timeToApex = this.initialVy / 30;
     const fadeStartRatio = 0.65 + Math.random() * 0.3;
     this.fadeStartTime = this.timeToApex * fadeStartRatio;
+    this.synchronizedLifetime = Number.isFinite(lifetime) && lifetime > 0 ? lifetime : null;
+    if (this.synchronizedLifetime !== null) {
+      this.maxDecayTime = Math.min(1.1, this.synchronizedLifetime * 0.6);
+      this.fadeStartTime = this.synchronizedLifetime - this.maxDecayTime;
+    }
+    this.totalLifetime = this.synchronizedLifetime ?? (this.timeToApex + this.maxDecayTime);
     this.isFading = false;
 
     // Visual Effect Tags normalization
@@ -56,9 +63,11 @@ export class CometEntity {
     this.hasGhost = Boolean(preset?.ghost || effects.includes('ghost') || effectType === 'ghost');
     this.hasGhostFlare = Boolean(
       preset?.ghostFlare ||
+      preset?.['ghost-flare'] ||
       effects.includes('ghost-flare') ||
       effectType === 'ghost-kamuro'
     );
+    this.isGhostFlare = this.hasGhostFlare;
     this.hasNoTrail = Boolean(
       preset?.noTrail ||
       effects.includes('no-trail') ||
@@ -128,12 +137,8 @@ export class CometEntity {
     if (this.isGhostFlare) {
       this.ghostFlare = {
         stage: 'ascent', // 'ascent' -> 'dark' -> 'flare' -> 'decayed'
-        darkStartTime: this.timeToApex * (0.50 + Math.random() * 0.12),
-        flareDuration: 0.30 + Math.random() * 0.08,
-        flareTimer: 0,
-        flarePeakEmission: 16.0 + Math.random() * 4.0,
-        flarePeakScale: 3.4 + Math.random() * 0.6,
-        flareColor: new THREE.Color(0xfffaed),
+        flarePeakScale: 0.78, // Sáng lại nhưng kích thước nhỏ hơn ban đầu (78%)
+        flareMaxOpacity: 0.65, // Đỉnh sáng lại yếu hơn ban đầu (65% so với 100% ban đầu)
         tempColor: new THREE.Color()
       };
     }
@@ -154,6 +159,14 @@ export class CometEntity {
       );
     }
 
+    const isDetached = Boolean(this.preset?.detachedTrail)
+      || this.preset?.cometTrail === 'detached'
+      || this.preset?.cometTrail === 'detached-trail'
+      || this.preset?.shellType === 'comet_cluster_detached';
+    const detachedHeadScale = isDetached
+      ? (Number.isFinite(preset?.detachedHeadScale) && preset.detachedHeadScale > 0
+        ? preset.detachedHeadScale : 0.42)
+      : 1;
     if (this.preset?.shellType === 'comet_cluster_notrail' || this.hasNoTrail) {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute(
@@ -173,7 +186,7 @@ export class CometEntity {
       );
 
       const material = new THREE.PointsMaterial({
-        size: 34,
+        size: 34 * detachedHeadScale,
         vertexColors: true,
         transparent: true,
         opacity: 0.95,
@@ -189,27 +202,36 @@ export class CometEntity {
           `
           #include <color_fragment>
           
-          vec2 coord = gl_PointCoord - vec2(0.5);
-          float dist = length(coord) * 2.0;
+          vec2 p = gl_PointCoord - vec2(0.5, 0.38);
+          float aspect = 1.85;
+          float px = p.x * aspect;
+          float py = p.y;
+          float taper = py > 0.0 ? (1.0 + py * 1.5) : 1.0;
+          float dist = length(vec2(px * taper, py * 1.25)) * 2.0;
           if (dist > 1.0) discard;
           
-          vec4 stop0 = vec4(3.0, 3.0, 3.0, 1.0);
-          vec4 stop1 = vec4(diffuseColor.rgb * 1.5, 0.45);
-          vec4 stop2 = vec4(diffuseColor.rgb * 0.8, 0.20);
-          vec4 stop3 = vec4(diffuseColor.rgb * 0.0, 0.0);
+          vec2 coreP = gl_PointCoord - vec2(0.5, 0.34);
+          float coreDist = length(vec2(coreP.x * 2.2, coreP.y * 1.8)) * 2.0;
+          
+          vec4 stop0 = vec4(4.0, 4.0, 4.0, 1.0);
+          vec4 stop1 = vec4(diffuseColor.rgb * 2.0 + vec3(0.4), 0.90);
+          vec4 stop2 = vec4(diffuseColor.rgb * 1.2, 0.45);
+          vec4 stop3 = vec4(diffuseColor.rgb * 0.4, 0.12);
+          vec4 stop4 = vec4(0.0, 0.0, 0.0, 0.0);
           
           vec4 gradientColor;
-          if (dist < 0.035) {
-              gradientColor = stop0;
-          } else if (dist < 0.14) {
-              float t = (dist - 0.035) / (0.14 - 0.035);
-              gradientColor = mix(stop0, stop1, t);
-          } else if (dist < 0.35) {
-              float t = (dist - 0.14) / (0.35 - 0.14);
-              gradientColor = mix(stop1, stop2, t);
-          } else {
-              float t = (dist - 0.35) / (1.0 - 0.35);
+          if (coreDist < 0.08) {
+              float ct = coreDist / 0.08;
+              gradientColor = mix(stop0, stop1, ct);
+          } else if (dist < 0.28) {
+              float t = (dist - 0.08) / (0.28 - 0.08);
+              gradientColor = mix(stop1, stop2, clamp(t, 0.0, 1.0));
+          } else if (dist < 0.65) {
+              float t = (dist - 0.28) / (0.65 - 0.28);
               gradientColor = mix(stop2, stop3, t);
+          } else {
+              float t = (dist - 0.65) / (1.0 - 0.65);
+              gradientColor = mix(stop3, stop4, t);
           }
           
           diffuseColor = vec4(gradientColor.rgb, gradientColor.a * diffuseColor.a);
@@ -222,10 +244,6 @@ export class CometEntity {
     } else {
       // Use a slightly vertically elongated core for motion blur feel
       const isTadpole = Boolean(this.isTadpole);
-      const isDetached = Boolean(this.preset?.detachedTrail)
-        || this.preset?.cometTrail === 'detached'
-        || this.preset?.cometTrail === 'detached-trail'
-        || this.preset?.shellType === 'comet_cluster_detached';
       const isSuperBright = isDetached
         || Boolean(this.preset?.isSingleComet)
         || Boolean(this.preset?.superBrightHead)
@@ -242,9 +260,9 @@ export class CometEntity {
         this.coreColor = color.clone().offsetHSL(0, 0.04, 0.15).multiplyScalar(4.5);
       }
 
-      const coreSize = isTadpole
+      const coreSize = (isTadpole
         ? COMET_CORE_SIZE * 1.6
-        : (isSuperBright ? COMET_CORE_SIZE * 1.6 : COMET_CORE_SIZE);
+        : (isSuperBright ? COMET_CORE_SIZE * 1.6 : COMET_CORE_SIZE)) * detachedHeadScale;
       const coreGeometry = new THREE.SphereGeometry(coreSize, 8, 8);
       const coreMaterial = new THREE.MeshBasicMaterial({
         color: this.coreColor,
@@ -296,6 +314,8 @@ export class CometEntity {
     this.updateRotation();
 
     this.state = CometEntity.STATE.LAUNCHING;
+    this.initialCoreOpacity = this.coreMesh.material.opacity;
+    this.initialPointSize = this.coreMesh.isPoints ? this.coreMesh.material.size : null;
   }
 
   get isGhostDarkPhase() {
@@ -465,12 +485,13 @@ export class CometEntity {
       // Check if it reached the apex (velocity.y <= 0)
       if (this.velocity.y <= 0) {
         this.state = CometEntity.STATE.DECAYING;
-        if (this.isGhostFlare && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
+        if (this.isGhostFlare && this.synchronizedLifetime === null && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
           this.ghostFlare.stage = 'flare';
           this.ghostFlare.flareTimer = 0;
         }
       }
     } else if (this.state === CometEntity.STATE.DECAYING) {
+      if (this.synchronizedLifetime !== null || this.isGhostFlare) this.age += deltaTime;
       this.prevPosition.copy(this.mesh.position);
       // Triệt tiêu dần vận tốc để comet đứng im tại điểm cao nhất (apex), không bị rơi xuống do trọng lực
       this.velocity.multiplyScalar(Math.max(0, 1.0 - 8.0 * deltaTime));
@@ -479,7 +500,7 @@ export class CometEntity {
       if (this.velocity.lengthSq() > 0.01) {
         this.updateRotation();
       }
-      if (this.isGhostFlare && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
+      if (this.isGhostFlare && this.synchronizedLifetime === null && (this.ghostFlare.stage === 'dark' || this.ghostFlare.stage === 'ascent')) {
         this.ghostFlare.stage = 'flare';
         this.ghostFlare.flareTimer = 0;
       }
@@ -489,23 +510,40 @@ export class CometEntity {
     if (!this.isGhostFlare) {
       if (
         !this.isFading &&
-        (this.age >= this.fadeStartTime || this.state === CometEntity.STATE.DECAYING)
+        (this.age >= this.fadeStartTime ||
+          (this.synchronizedLifetime === null && this.state === CometEntity.STATE.DECAYING))
       ) {
         this.isFading = true;
       }
 
       if (this.isFading) {
-        this.decayTime += deltaTime;
+        this.decayTime = this.synchronizedLifetime !== null
+          ? Math.max(0, this.age - this.fadeStartTime)
+          : this.decayTime + deltaTime;
         const decayRatio = Math.min(1.0, this.decayTime / this.maxDecayTime);
 
         if (decayRatio >= 1.0) {
+          if (this.synchronizedLifetime !== null) {
+            this.coreMesh.material.opacity = 0;
+            if (this.innerMesh) this.innerMesh.material.opacity = 0;
+          }
           this.state = CometEntity.STATE.DEAD;
         } else {
-          const fadeRatio = Math.pow(decayRatio, 2.2);
+          const synchronized = this.synchronizedLifetime !== null;
+          const fadeRatio = synchronized
+            ? decayRatio * decayRatio * (3 - 2 * decayRatio)
+            : Math.pow(decayRatio, 2.2);
+          const opacity = synchronized
+            ? this.initialCoreOpacity * Math.pow(1 - fadeRatio, 2)
+            : 1.0 - fadeRatio;
           // Fade out opacity
-          this.coreMesh.material.opacity = 1.0 - fadeRatio;
+          this.coreMesh.material.opacity = opacity;
           if (this.innerMesh && this.innerMesh.material) {
-            this.innerMesh.material.opacity = 1.0 - fadeRatio;
+            this.innerMesh.material.opacity = opacity;
+          }
+          // Points sprites ignore object scale when calculating pixel size.
+          if (synchronized && this.initialPointSize !== null) {
+            this.coreMesh.material.size = this.initialPointSize * (0.3 + 0.7 * (1 - fadeRatio));
           }
           // Shrink core
           const scale = 1.0 - fadeRatio * 0.8;
@@ -557,6 +595,7 @@ export class CometEntity {
       !this.isGhostFlare;
 
     const isDimmingNonStrobe = hasStrobeTag &&
+      this.synchronizedLifetime === null &&
       !this.isStrobeStar &&
       this.state === CometEntity.STATE.LAUNCHING &&
       this.age >= this.dimStartTime &&
@@ -703,110 +742,85 @@ export class CometEntity {
         );
       }
     } else if (this.isGhostFlare) {
-      // Ghost 3-Stage Flare State Machine
-      if (this.ghostFlare.stage === 'ascent') {
-        this.coreMesh.visible = true;
-        if (this.coreMesh.material) {
-          this.coreMesh.material.opacity = 1.0;
-          if (this.coreMesh.material.color) {
-            this.coreMesh.material.color.copy(this.coreColor);
-          }
-        }
-        if (this.preset?.shellType !== 'comet_cluster_notrail') {
-          const isSuperBright = Boolean(this.preset?.detachedTrail)
-            || this.preset?.cometTrail === 'detached'
-            || this.preset?.cometTrail === 'detached-trail'
-            || this.preset?.shellType === 'comet_cluster_detached'
-            || Boolean(this.preset?.isSingleComet)
-            || Boolean(this.preset?.superBrightHead)
-            || this.preset?.shellType === 'comet_single';
-          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : (isSuperBright ? 0.85 : 0.65);
-          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : (isSuperBright ? 1.7 : 1.65);
-          this.coreMesh.scale.set(
-            baseScaleX,
-            baseScaleY,
-            baseScaleX
-          );
-        }
-      } else if (this.ghostFlare.stage === 'dark') {
-        const darkElapsed = this.age - this.ghostFlare.darkStartTime;
-        const darkTransition = Math.min(1.0, Math.max(0.0, darkElapsed / 0.16));
-        const darkOpacity = THREE.MathUtils.lerp(1.0, 0.06, darkTransition);
-        const darkScale = THREE.MathUtils.lerp(1.0, 0.35, darkTransition);
+      // 4-Phase Ghost Flare Lifecycle (synchronized to lifeRatio, matching firework optics)
+      const totalLifetime = this.totalLifetime || this.synchronizedLifetime || (this.timeToApex + this.maxDecayTime);
+      const lifeRatio = totalLifetime > 0 ? Math.min(1.0, this.age / totalLifetime) : 1.0;
 
-        this.coreMesh.visible = true;
-        if (this.coreMesh.material) {
-          this.coreMesh.material.opacity = darkOpacity;
-          if (this.coreMesh.material.color) {
-            this.coreMesh.material.color.copy(this.coreColor).multiplyScalar(
-              Math.max(0.15, 1.0 - darkTransition * 0.75)
-            );
-          }
-        }
-        if (this.preset?.shellType !== 'comet_cluster_notrail') {
-          const isSuperBright = Boolean(this.preset?.detachedTrail)
-            || this.preset?.cometTrail === 'detached'
-            || this.preset?.cometTrail === 'detached-trail'
-            || this.preset?.shellType === 'comet_cluster_detached'
-            || Boolean(this.preset?.isSingleComet)
-            || Boolean(this.preset?.superBrightHead)
-            || this.preset?.shellType === 'comet_single';
-          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : (isSuperBright ? 0.85 : 0.65);
-          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : (isSuperBright ? 1.7 : 1.65);
-          this.coreMesh.scale.set(
-            baseScaleX * darkScale,
-            baseScaleY * darkScale,
-            baseScaleX * darkScale
-          );
-        }
-      } else if (this.ghostFlare.stage === 'flare') {
-        this.ghostFlare.flareTimer += deltaTime;
-        const flareProgress = Math.min(
-          1.0,
-          this.ghostFlare.flareTimer / this.ghostFlare.flareDuration
-        );
-        let flareIntensity = 0;
-        if (flareProgress < 0.20) {
-          flareIntensity = Math.sin((flareProgress / 0.20) * (Math.PI * 0.5));
-        } else {
-          flareIntensity = Math.cos(((flareProgress - 0.20) / 0.80) * (Math.PI * 0.5));
-        }
-
-        this.coreMesh.visible = true;
-        if (this.coreMesh.material) {
-          this.coreMesh.material.opacity = Math.min(1.0, 0.2 + flareIntensity * 0.8);
-          if (this.coreMesh.material.color) {
-            this.ghostFlare.tempColor.copy(this.coreColor)
-              .lerp(this.ghostFlare.flareColor, flareIntensity * 0.75)
-              .multiplyScalar(1.0 + flareIntensity * this.ghostFlare.flarePeakEmission);
-            this.coreMesh.material.color.copy(this.ghostFlare.tempColor);
-          }
-        }
-
-        if (this.preset?.shellType !== 'comet_cluster_notrail') {
-          const flareScale = 1.0 + flareIntensity * (this.ghostFlare.flarePeakScale - 1.0);
-          const isSuperBright = Boolean(this.preset?.detachedTrail)
-            || this.preset?.cometTrail === 'detached'
-            || this.preset?.cometTrail === 'detached-trail'
-            || this.preset?.shellType === 'comet_cluster_detached'
-            || Boolean(this.preset?.isSingleComet)
-            || Boolean(this.preset?.superBrightHead)
-            || this.preset?.shellType === 'comet_single';
-          const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : (isSuperBright ? 0.85 : 0.65);
-          const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : (isSuperBright ? 1.7 : 1.65);
-          this.coreMesh.scale.set(
-            baseScaleX * flareScale,
-            baseScaleY * flareScale,
-            baseScaleX * flareScale
-          );
-        }
-
-        if (flareProgress >= 1.0) {
-          this.ghostFlare.stage = 'decayed';
-          this.state = CometEntity.STATE.DEAD;
-        }
-      } else {
+      if (lifeRatio >= 1.0) {
+        this.ghostFlare.stage = 'decayed';
+        this.coreMesh.material.opacity = 0;
+        if (this.innerMesh && this.innerMesh.material) this.innerMesh.material.opacity = 0;
         this.state = CometEntity.STATE.DEAD;
+        return true;
+      }
+
+      let currentOpacity = 0.0;
+      let currentScale = 1.0;
+      let currentBrightness = 1.0;
+
+      if (lifeRatio < 0.35) {
+        // Pha 1: Sáng ban đầu (Ascent phase)
+        this.ghostFlare.stage = 'ascent';
+        currentOpacity = this.initialCoreOpacity;
+        currentScale = 1.0;
+        currentBrightness = 1.0;
+      } else if (lifeRatio < 0.60) {
+        // Pha 2: Tối đi (Dark smolder phase)
+        this.ghostFlare.stage = 'dark';
+        const darkTransition = Math.min(1.0, (lifeRatio - 0.35) / 0.15);
+        const smoothDark = darkTransition * darkTransition * (3 - 2 * darkTransition);
+        currentOpacity = THREE.MathUtils.lerp(this.initialCoreOpacity, 0.06, smoothDark);
+        currentScale = THREE.MathUtils.lerp(1.0, 0.35, smoothDark);
+        currentBrightness = Math.max(0.15, 1.0 - smoothDark * 0.75);
+      } else if (lifeRatio < 0.76) {
+        // Pha 3: Sáng lại - nhưng yếu hơn ban đầu (Re-ignition phase)
+        this.ghostFlare.stage = 'flare';
+        const t = (lifeRatio - 0.60) / 0.16;
+        const smoothReignite = t * t * (3 - 2 * t);
+        const maxOpacity = this.ghostFlare.flareMaxOpacity ?? 0.65;
+        const peakScale = this.ghostFlare.flarePeakScale ?? 0.78;
+        currentOpacity = THREE.MathUtils.lerp(0.06, maxOpacity, smoothReignite);
+        currentScale = THREE.MathUtils.lerp(0.35, peakScale, smoothReignite);
+        currentBrightness = 0.25 + 0.45 * smoothReignite;
+      } else {
+        // Pha 4: Tối dần (Fade-out phase)
+        this.ghostFlare.stage = 'flare';
+        const t = Math.min(1.0, Math.max(0.0, (lifeRatio - 0.76) / 0.24));
+        const decayFactor = Math.pow(1.0 - t, 3.5);
+        const maxOpacity = this.ghostFlare.flareMaxOpacity ?? 0.65;
+        const peakScale = this.ghostFlare.flarePeakScale ?? 0.78;
+        currentOpacity = maxOpacity * decayFactor;
+        currentScale = peakScale * decayFactor;
+        currentBrightness = 0.70 * decayFactor;
+      }
+
+      this.coreMesh.visible = currentOpacity > 0.005;
+      if (this.coreMesh.material) {
+        this.coreMesh.material.opacity = currentOpacity;
+        if (this.initialPointSize !== null) {
+          this.coreMesh.material.size = this.initialPointSize * currentScale;
+        }
+        if (this.coreMesh.material.color) {
+          this.ghostFlare.tempColor.copy(this.coreColor).multiplyScalar(currentBrightness);
+          this.coreMesh.material.color.copy(this.ghostFlare.tempColor);
+        }
+      }
+
+      if (this.preset?.shellType !== 'comet_cluster_notrail') {
+        const isSuperBright = Boolean(this.preset?.detachedTrail)
+          || this.preset?.cometTrail === 'detached'
+          || this.preset?.cometTrail === 'detached-trail'
+          || this.preset?.shellType === 'comet_cluster_detached'
+          || Boolean(this.preset?.isSingleComet)
+          || Boolean(this.preset?.superBrightHead)
+          || this.preset?.shellType === 'comet_single';
+        const baseScaleX = this.preset?.sparkleAtEnd ? 0.4 : (isSuperBright ? 0.85 : 0.65);
+        const baseScaleY = this.preset?.sparkleAtEnd ? 1.2 : (isSuperBright ? 1.7 : 1.65);
+        this.coreMesh.scale.set(
+          baseScaleX * currentScale,
+          baseScaleY * currentScale,
+          baseScaleX * currentScale
+        );
       }
 
       if (this.innerMesh) {
