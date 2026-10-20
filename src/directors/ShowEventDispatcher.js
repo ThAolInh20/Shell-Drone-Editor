@@ -60,6 +60,8 @@ export class ShowEventDispatcher {
         if (evt.crossette !== undefined) overrides.crossette = evt.crossette;
         if (evt['sparkle-apex'] !== undefined) overrides['sparkle-apex'] = evt['sparkle-apex'];
         if (evt['burst-smoke'] !== undefined) overrides['burst-smoke'] = evt['burst-smoke'];
+        if (evt['apex-hang'] !== undefined) overrides['apex-hang'] = evt['apex-hang'];
+        if (evt.apexHang !== undefined) overrides['apex-hang'] = evt.apexHang;
         if (evt.stages !== undefined) overrides.stages = evt.stages;
         if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
         if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;

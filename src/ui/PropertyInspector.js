@@ -40,6 +40,10 @@ function getEnglishOptionLabel(fieldName, opt) {
 
 export const AVAILABLE_EFFECT_TAGS = [
   {
+    key: 'apex-hang',
+    labelKey: 'apexHang'
+  },
+  {
     key: 'burst-smoke',
     labelKey: 'burstSmoke'
   },

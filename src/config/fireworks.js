@@ -59,7 +59,13 @@ export const FIREWORK_CONFIG = {
     // Ngưỡng tan biến muộn cho hiệu ứng long-burn để giữ hạt sáng lâu
     longBurnDissolveStart: 0.72,
     // Trọng lực giảm nhẹ giúp hạt long-burn trôi lơ lửng trên không
-    longBurnGravityScale: 0.85
+    longBurnGravityScale: 0.85,
+    // Ngưỡng bắt đầu hãm phanh cho hiệu ứng apex-hang
+    apexHangStart: 0.28,
+    // Ngưỡng kết thúc pha dừng cho hiệu ứng apex-hang
+    apexHangEnd: 0.48,
+    // Hệ số hãm phanh mượt mà đưa vận tốc về trạng thái đứng yên
+    apexHangBrakeRate: 9.5
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)

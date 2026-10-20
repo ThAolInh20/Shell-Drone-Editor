@@ -1697,7 +1697,8 @@ export class FireworkSystem {
       isTadpoleFlurryShell,
       isErraticDartShell,
       hasBurstSmoke: isBurstSmokeActive,
-      isLongBurn
+      isLongBurn,
+      isApexHang
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset,
       effects: effectsList,
@@ -2038,6 +2039,7 @@ export class FireworkSystem {
         age: 0,
         maxLife: particleMaxLife,
         isLongBurn,
+        isApexHang,
         effectType: isGhostEffect
           ? 'ghost'
           : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
@@ -2170,7 +2172,8 @@ export class FireworkSystem {
       hasBurstSmoke: isBurstSmokeActive,
       isGhostEffect,
       isCCEffect,
-      isLongBurn: isContourLongBurn
+      isLongBurn: isContourLongBurn,
+      isApexHang: isContourApexHang
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset: cfg,
       effects: childEffects,
@@ -2258,6 +2261,7 @@ export class FireworkSystem {
           ? childLife * (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2)
           : childLife,
         isLongBurn: isContourLongBurn,
+        isApexHang: isContourApexHang,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
         crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
         phase: (childEffectState.phase && childEffectState.phase[k] !== undefined)
@@ -2343,6 +2347,7 @@ export class FireworkSystem {
           color2: null,
           age: 0,
           maxLife: childLife * 0.85,
+          isApexHang: isContourApexHang,
           effectType: 'standard',
           crackle: false,
           crackleTriggered: false,
@@ -3167,6 +3172,33 @@ export class FireworkSystem {
           : 1.3;
         finalGravityScale = gravityScale * gravScale;
         p.velocity.multiplyScalar(p.isLongBurn ? 0.995 : 0.994);
+      }
+
+      if (p.isApexHang) {
+        const hangStart = FIREWORK_CONFIG.BURST?.apexHangStart ?? 0.28;
+        const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+        const brakeRate = FIREWORK_CONFIG.BURST?.apexHangBrakeRate ?? 9.5;
+
+        if (lifeRatio >= hangStart && lifeRatio <= hangEnd) {
+          const brakeFactor = Math.exp(-brakeRate * deltaTime);
+          p.velocity.x *= brakeFactor;
+          p.velocity.y *= brakeFactor;
+          p.velocity.z *= brakeFactor;
+          finalGravityScale = 0.0;
+        } else if (lifeRatio > hangEnd) {
+          const releaseProgress = Math.min(
+            1.0,
+            (lifeRatio - hangEnd) / 0.18
+          );
+          const releaseGravity = THREE.MathUtils.smoothstep(
+            releaseProgress,
+            0.0,
+            1.0
+          );
+          finalGravityScale *= releaseGravity;
+        } else {
+          finalGravityScale = 0.0;
+        }
       }
 
       // Environmental Wind Coupling: Hat tan phao va willow troi theo huong gio he thong

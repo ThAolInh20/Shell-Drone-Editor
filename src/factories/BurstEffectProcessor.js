@@ -119,7 +119,8 @@ export class BurstEffectProcessor {
     'sparkle-apex',
     'sparkling-branch-comet',
     'tadpole-spiral',
-    'long-burn'
+    'long-burn',
+    'apex-hang'
   ]);
 
   static effectsRegistry = new Map();
@@ -1072,6 +1073,43 @@ BurstEffectProcessor.registerEffect('sparkling-branch-comet', {
       trailLife: 0.22,
       trailIntensity: 0.18,
       spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('apex-hang', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const lifeRatio = maxLife > 0
+      ? age / maxLife
+      : 1;
+    const hangStart = FIREWORK_CONFIG.BURST?.apexHangStart ?? 0.28;
+    const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+    const brakeRate = FIREWORK_CONFIG.BURST?.apexHangBrakeRate ?? 9.5;
+
+    if (lifeRatio >= hangStart && lifeRatio <= hangEnd) {
+      const brakeFactor = Math.exp(-brakeRate * deltaTime);
+      velocity.multiplyScalar(brakeFactor);
+      return {
+        gravityScale: 0.0,
+        spawnTrail: false
+      };
+    } else if (lifeRatio > hangEnd) {
+      const releaseProgress = Math.min(
+        1.0,
+        (lifeRatio - hangEnd) / 0.18
+      );
+      const releaseGravity = THREE.MathUtils.smoothstep(
+        releaseProgress,
+        0.0,
+        1.0
+      );
+      return {
+        gravityScale: releaseGravity
+      };
+    }
+
+    return {
+      gravityScale: 0.0
     };
   }
 });

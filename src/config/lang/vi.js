@@ -529,6 +529,7 @@ export default {
         tadpoleFlurry: "Tia xù nòng nọc",
         erraticDart: "Tia vút loạn xạ",
         longBurn: "Cháy lâu",
+        apexHang: "Dừng không trung",
         activeEffects: "Hiệu ứng kích hoạt",
         launchSound: "Âm thanh phóng",
         burstSound: "Âm thanh nổ bung",

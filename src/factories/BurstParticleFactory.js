@@ -98,6 +98,14 @@ export class BurstParticleFactory {
       || preset?.effectType === 'long-burn'
     );
 
+    const isApexHang = Boolean(
+      preset?.apexHang
+      || effectsList.includes('apex-hang')
+      || (Array.isArray(preset?.effects) && preset.effects.includes('apex-hang'))
+      || normDynamics === 'apex-hang'
+      || preset?.effectType === 'apex-hang'
+    );
+
     return {
       isCrossetteShell,
       isTadpoleFlurryShell,
@@ -106,6 +114,7 @@ export class BurstParticleFactory {
       isGhostEffect,
       isCCEffect,
       isLongBurn,
+      isApexHang,
       effectsList
     };
   }
@@ -162,7 +171,8 @@ export class BurstParticleFactory {
       erraticDartWiggleFreq = 22.0,
       erraticDartWiggleAmp = 26.0,
       isSecondBurstChild = false,
-      isLongBurn = false
+      isLongBurn = false,
+      isApexHang = false
     } = options;
 
     const resolvedBaseColor = baseColor
@@ -192,6 +202,7 @@ export class BurstParticleFactory {
       shellId: shellId ?? Math.floor(Math.random() * 100000000),
       isDyingEmber: Boolean(isDyingEmber),
       isLongBurn: Boolean(isLongBurn),
+      isApexHang: Boolean(isApexHang),
       isNestedTrigger: Boolean(isNestedTrigger),
       effects: Array.isArray(effects) ? [...effects] : [],
       hasBurstSmoke: Boolean(hasBurstSmoke),

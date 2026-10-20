@@ -500,6 +500,7 @@ export default {
         tadpoleFlurry: "タドポールアロー噴射",
         erraticDart: "乱舞ダート",
         longBurn: "ロングバーン",
+        apexHang: "エイペックスハング",
         activeEffects: "有効エフェクト",
         launchSound: "発射サウンド",
         burstSound: "炸裂サウンド",

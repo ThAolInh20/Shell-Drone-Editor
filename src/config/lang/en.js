@@ -529,6 +529,7 @@ export default {
         tadpoleFlurry: "Tadpole Arrow Flurry",
         erraticDart: "Erratic Darting",
         longBurn: "Long Burn",
+        apexHang: "Apex Hang",
         activeEffects: "Active Effects",
         launchSound: "Launch Sound",
         burstSound: "Burst Sound",

@@ -67,7 +67,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'sparkle-apex',
   'tadpole-flurry',
   'erratic-dart',
-  'long-burn'
+  'long-burn',
+  'apex-hang'
 ];
 
 export const PRESET_TEMPLATES = {

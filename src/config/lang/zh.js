@@ -518,6 +518,7 @@ export default {
         tadpoleFlurry: "蝌蚪箭羽喷射",
         erraticDart: "乱窜飞箭",
         longBurn: "长效滞空燃烧",
+        apexHang: "滞空定格",
         activeEffects: "已启用效果",
         launchSound: "发射音效",
         burstSound: "爆炸音效",

@@ -68,6 +68,17 @@ export class CometEntity {
       this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
     }
 
+    this.hasApexHang = Boolean(
+      preset?.apexHang ||
+      effects.includes('apex-hang') ||
+      effectType === 'apex-hang'
+    );
+    if (this.hasApexHang) {
+      this.maxDecayTime = Math.max(this.maxDecayTime, 1.8);
+      this.totalLifetime = this.synchronizedLifetime ?? (this.timeToApex + this.maxDecayTime);
+      this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
+    }
+
     this.hasCrackle = Boolean(preset?.crackle || effects.includes('crackle') || effectType === 'crackle');
     this.hasCrossette = Boolean(preset?.crossette || effects.includes('crossette') || effectType === 'crossette');
     this.hasFlow = Boolean(preset?.flow || effects.includes('flow') || effectType === 'flow');
