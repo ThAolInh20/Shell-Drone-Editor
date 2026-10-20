@@ -6,6 +6,7 @@ import {
   AVAILABLE_DYNAMICS,
   AVAILABLE_MODIFIERS,
   PRESET_TEMPLATES,
+  AVAILABLE_CHILD_PRESETS,
   getTemplateForPreset,
   resolveFireworkComposition
 } from '../factories/FireworkCompositionHelper.js';
@@ -13,6 +14,8 @@ import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
 import { CustomSelect } from './CustomSelect.js';
 import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { WaveCurveEditor } from './WaveCurveEditor.js';
+import { DEFAULT_WAVE_POINTS } from '../utils/SplineMath.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -37,6 +40,10 @@ function getEnglishOptionLabel(fieldName, opt) {
 
 export const AVAILABLE_EFFECT_TAGS = [
   {
+    key: 'apex-hang',
+    labelKey: 'apexHang'
+  },
+  {
     key: 'burst-smoke',
     labelKey: 'burstSmoke'
   },
@@ -47,6 +54,10 @@ export const AVAILABLE_EFFECT_TAGS = [
   {
     key: 'crossette',
     labelKey: 'crossette'
+  },
+  {
+    key: 'erratic-dart',
+    labelKey: 'erraticDart'
   },
   {
     key: 'flow',
@@ -77,10 +88,16 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'strobe'
   },
   {
+    key: 'tadpole-flurry',
+    labelKey: 'tadpoleFlurry'
+  },
+  {
     key: 'white-strobe',
     labelKey: 'whiteStrobe'
   }
 ];
+
+export const ACTIVE_EFFECT_TAGS = AVAILABLE_EFFECT_TAGS;
 
 export class PropertyInspector {
   constructor(
@@ -121,12 +138,36 @@ export class PropertyInspector {
   }
 
   show(event) {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = event;
     this.container.style.display = 'block';
     this.render();
   }
 
   hide() {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = null;
     this.container.style.display = 'none';
   }
@@ -234,6 +275,7 @@ export class PropertyInspector {
               options: [
                 'random',
                 'sweep',
+                'sweep-custom-curve',
                 'sweep-arc',
                 'sweep-arc-out',
                 'cascade-slope',
@@ -299,8 +341,30 @@ export class PropertyInspector {
               labelKey: 'activeEffects',
               type: 'effect-chips',
               span: 2
+            },
+            {
+              name: 'secondBurstEnabled',
+              labelKey: 'secondBurstEnabled',
+              type: 'checkbox',
+              span: 2
             }
           ]
+        },
+        {
+          groupKey: 'secondBurst',
+          visibleIf: (event) => Boolean(
+            event?.secondBurst?.enabled
+            || event?.secondBurstEnabled
+          ),
+          customRender: true
+        },
+        {
+          groupKey: 'waveCurveSettings',
+          visibleIf: (event) => (
+            event?.pattern === 'sweep-custom-curve'
+            || event?.pattern === 'sweep-wave'
+          ),
+          customRender: true
         },
         {
           groupKey: 'nestedStages',
@@ -336,13 +400,30 @@ export class PropertyInspector {
             {
               name: 'color',
               labelKey: 'color',
-              type: 'color-badges'
+              type: 'color-badges',
+              span: 2
             },
             {
               name: 'shellSize',
               labelKey: 'shellSize',
-              type: 'number',
-              step: '0.1'
+              type: 'slider',
+              min: '0.2',
+              max: '2.5',
+              step: '0.1',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(1)}x`,
+              span: 2
+            },
+            {
+              name: 'starLifeMultiplier',
+              labelKey: 'starLifeMultiplier',
+              type: 'slider',
+              min: '0.4',
+              max: '2.5',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
             },
             {
               name: 'cometTrail',
@@ -356,7 +437,8 @@ export class PropertyInspector {
                 'smoke',
                 'none',
                 'ascent-bursts'
-              ]
+              ],
+              span: 2
             },
             {
               name: 'ascentSubShellType',
@@ -382,6 +464,62 @@ export class PropertyInspector {
               type: 'number',
               step: '1',
               visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
+            }
+          ]
+        },
+        {
+          groupKey: 'soundSettings',
+          fields: [
+            {
+              name: 'soundVolume',
+              labelKey: 'soundVolume',
+              type: 'slider',
+              min: '0.0',
+              max: '2.0',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
+            },
+            {
+              name: 'launchSound',
+              labelKey: 'launchSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'burstSound',
+              labelKey: 'burstSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'crisp',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'crackleSound',
+              labelKey: 'crackleSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'dense',
+                'soft',
+                'silent'
+              ],
+              span: 2
             }
           ]
         },
@@ -585,6 +723,10 @@ export class PropertyInspector {
             this.renderBeatSettings(content);
           } else if (group.groupKey === 'nestedStages') {
             this.renderNestedStages(content);
+          } else if (group.groupKey === 'secondBurst') {
+            this.renderSecondBurst(content);
+          } else if (group.groupKey === 'waveCurveSettings') {
+            this.renderWaveCurveEditor(content);
           }
         } else if (group.fields) {
           group.fields.forEach(field => {
@@ -605,6 +747,8 @@ export class PropertyInspector {
               this.renderCheckbox(fieldWrapper, field);
             } else if (field.type === 'effect-chips') {
               this.renderEffectChips(fieldWrapper, field);
+            } else if (field.type === 'slider') {
+              this.renderSlider(fieldWrapper, field);
             } else {
               this.renderStandardInput(fieldWrapper, field);
             }
@@ -633,9 +777,21 @@ export class PropertyInspector {
   }
 
   renderStandardInput(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    let currentEventValue = targetEvent[field.name];
+    if (currentEventValue === undefined && targetEvent.sound) {
+      if (field.name === 'launchSound') currentEventValue = targetEvent.sound.launch;
+      else if (field.name === 'burstSound') currentEventValue = targetEvent.sound.burst;
+      else if (field.name === 'crackleSound') currentEventValue = targetEvent.sound.crackle;
+      else if (field.name === 'soundVolume') currentEventValue = targetEvent.sound.volumeMultiplier;
+    }
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    parent.appendChild(label);
 
     const handleValueChange = (rawVal) => {
       let val = rawVal;
@@ -647,36 +803,96 @@ export class PropertyInspector {
 
       if (val === '' || val === undefined) {
         if (field.name === 'sectorId') {
-          this.selectedEvent[field.name] = '';
+          targetEvent[field.name] = '';
         } else {
-          delete this.selectedEvent[field.name];
+          delete targetEvent[field.name];
         }
       } else {
-        this.selectedEvent[field.name] = val;
+        targetEvent[field.name] = val;
+      }
+
+      if (
+        field.name === 'launchSound' ||
+        field.name === 'burstSound' ||
+        field.name === 'crackleSound' ||
+        field.name === 'soundVolume'
+      ) {
+        if (!targetEvent.sound) targetEvent.sound = {};
+        if (field.name === 'launchSound') {
+          if (val) {
+            targetEvent.sound.launch = val;
+            targetEvent.launchSound = val;
+          } else {
+            delete targetEvent.sound.launch;
+            delete targetEvent.launchSound;
+          }
+        } else if (field.name === 'burstSound') {
+          if (val) {
+            targetEvent.sound.burst = val;
+            targetEvent.burstSound = val;
+          } else {
+            delete targetEvent.sound.burst;
+            delete targetEvent.burstSound;
+          }
+        } else if (field.name === 'crackleSound') {
+          if (val) {
+            targetEvent.sound.crackle = val;
+            targetEvent.crackleSound = val;
+          } else {
+            delete targetEvent.sound.crackle;
+            delete targetEvent.crackleSound;
+          }
+        } else if (field.name === 'soundVolume') {
+          if (val !== undefined && !isNaN(val)) {
+            targetEvent.sound.volumeMultiplier = val;
+            targetEvent.soundVolume = val;
+          } else {
+            delete targetEvent.sound.volumeMultiplier;
+            delete targetEvent.soundVolume;
+          }
+        }
+        if (Object.keys(targetEvent.sound).length === 0) {
+          delete targetEvent.sound;
+        }
       }
 
       if (field.name === 'preset') {
         if (val !== 'multiNested' && val !== 'multi_nested') {
-          delete this.selectedEvent.multiNested;
-          delete this.selectedEvent.stages;
-          delete this.selectedEvent.nestingMode;
-          delete this.selectedEvent._selectedTemplateKey;
+          delete targetEvent.multiNested;
+          delete targetEvent.stages;
+          delete targetEvent.nestingMode;
+          delete targetEvent._selectedTemplateKey;
         } else {
-          this.selectedEvent.multiNested = true;
+          targetEvent.multiNested = true;
         }
+
+        // Clean up all optical effect flags from previous preset
+        AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+          delete targetEvent[eff.key];
+        });
+        delete targetEvent.strobe;
+        delete targetEvent.crackle;
+        delete targetEvent.ghost;
+        delete targetEvent.ghostFlare;
+        delete targetEvent.flow;
+        delete targetEvent.noTrail;
+        delete targetEvent.noBurst;
+        delete targetEvent.crossette;
+
         if (val) {
           const template = getTemplateForPreset(val);
           if (template) {
-            this.selectedEvent.shapeType = template.shape;
-            this.selectedEvent.dynamicsType = template.dynamics;
-            this.selectedEvent.pistil = template.modifiers.pistil;
-            this.selectedEvent.instantBurst = template.modifiers.instantBurst;
-            this.selectedEvent.effects = [...template.effects];
+            targetEvent.shapeType = template.shape;
+            targetEvent.dynamicsType = template.dynamics;
+            targetEvent.pistil = template.modifiers.pistil;
+            targetEvent.instantBurst = template.modifiers.instantBurst;
+            targetEvent.effects = [...template.effects];
             this.triggerUpdate();
             this.render();
             return;
           }
         }
+        targetEvent.effects = [];
       }
 
       this.triggerUpdate();
@@ -737,7 +953,7 @@ export class PropertyInspector {
 
       const customSelect = new CustomSelect({
         options: optionsList,
-        value: this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '',
+        value: currentEventValue !== undefined ? currentEventValue : '',
         category: previewCategory,
         fieldName: field.name,
         onChange: (val) => handleValueChange(val)
@@ -757,7 +973,11 @@ export class PropertyInspector {
       input.dataset.fieldName = field.name;
       input.type = field.type;
       if (field.step) input.step = field.step;
-      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+      input.value = currentEventValue !== undefined ? currentEventValue : '';
+
+      if (field.name === 'soundVolume') {
+        input.placeholder = '1.0';
+      }
 
       input.addEventListener('focus', () => {
         this.isEditing = true;
@@ -773,11 +993,42 @@ export class PropertyInspector {
       });
     }
 
-    parent.appendChild(label);
+    if (
+      field.name === 'launchSound' ||
+      field.name === 'burstSound' ||
+      field.name === 'crackleSound'
+    ) {
+      const inputGroup = document.createElement('div');
+      inputGroup.className = 'inspector-input-group';
+      inputGroup.appendChild(input);
+
+      const testBtn = document.createElement('button');
+      testBtn.type = 'button';
+      testBtn.className = 'inspector-sound-test-btn';
+      testBtn.textContent = t('editor.inspector.auditionSoundBtn') || 'Test';
+      testBtn.title = t('editor.inspector.auditionSoundTooltip') || 'Play sound preview';
+      testBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const stage = field.name.replace('Sound', '');
+        const profile = currentEventValue || 'standard';
+        globalEventBus.emit('audio:preview', {
+          stage,
+          profile
+        });
+      });
+      inputGroup.appendChild(testBtn);
+      parent.appendChild(inputGroup);
+      return;
+    }
+
     parent.appendChild(input);
   }
 
   renderCheckbox(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const container = document.createElement('label');
     container.className = 'inspector-checkbox-container';
 
@@ -785,19 +1036,45 @@ export class PropertyInspector {
     input.className = 'inspector-checkbox';
     input.type = 'checkbox';
     input.dataset.fieldName = field.name;
-    input.checked = !!this.selectedEvent[field.name];
+    input.checked = !!targetEvent[field.name];
 
     input.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
       if (e.target.checked) {
-        this.selectedEvent[field.name] = true;
-        if (field.name === 'useAngle' && this.selectedEvent.angle === undefined) {
-          this.selectedEvent.angle = 0;
+        targetEvent[field.name] = true;
+        if (field.name === 'useAngle' && targetEvent.angle === undefined) {
+          targetEvent.angle = 0;
+        }
+        if (field.name === 'secondBurstEnabled') {
+          if (!targetEvent.secondBurst) {
+            targetEvent.secondBurst = {
+              enabled: true,
+              childShells: [
+                {
+                  ratio: 0.20,
+                  triggerTiming: 0.50,
+                  distributionMode: 'random',
+                  shapeType: 'sphere',
+                  dynamicsType: 'standard',
+                  color: '#ffd700',
+                  scale: 0.35,
+                  effects: ['strobe']
+                }
+              ]
+            };
+          } else {
+            targetEvent.secondBurst.enabled = true;
+          }
         }
       } else {
-        delete this.selectedEvent[field.name];
+        delete targetEvent[field.name];
         if (field.name === 'useAngle') {
-          delete this.selectedEvent.angle;
+          delete targetEvent.angle;
+        }
+        if (field.name === 'secondBurstEnabled') {
+          if (targetEvent.secondBurst) {
+            targetEvent.secondBurst.enabled = false;
+          }
         }
       }
       this.onUpdate();
@@ -816,7 +1093,81 @@ export class PropertyInspector {
     parent.appendChild(container);
   }
 
+  renderSlider(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    const defVal = field.defaultValue !== undefined
+      ? field.defaultValue
+      : (parseFloat(field.min) || 0);
+    let rawVal = targetEvent[field.name];
+    if (rawVal === undefined && field.name === 'soundVolume' && targetEvent.sound) {
+      rawVal = targetEvent.sound.volumeMultiplier;
+    }
+    const currentVal = (rawVal !== undefined && !isNaN(Number(rawVal)))
+      ? Number(rawVal)
+      : defVal;
+
+    const header = document.createElement('div');
+    header.className = 'inspector-slider-header';
+
+    const label = document.createElement('label');
+    label.className = 'inspector-label';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    header.appendChild(label);
+
+    const valueBadge = document.createElement('span');
+    valueBadge.className = 'inspector-slider-value';
+    const formatFn = typeof field.formatValue === 'function'
+      ? field.formatValue
+      : (v) => String(Number(v).toFixed(1));
+    valueBadge.textContent = formatFn(currentVal);
+    header.appendChild(valueBadge);
+
+    parent.appendChild(header);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'inspector-slider';
+    slider.dataset.fieldName = field.name;
+    slider.min = field.min || '0';
+    slider.max = field.max || '100';
+    slider.step = field.step || '1';
+    slider.value = String(currentVal);
+
+    slider.addEventListener('pointerdown', () => {
+      this.triggerUpdate('beforeChange');
+    });
+
+    const applySliderValue = (val) => {
+      targetEvent[field.name] = val;
+      if (field.name === 'soundVolume') {
+        if (!targetEvent.sound) targetEvent.sound = {};
+        targetEvent.sound.volumeMultiplier = val;
+        targetEvent.soundVolume = val;
+      }
+    };
+
+    slider.addEventListener('input', (e) => {
+      const liveVal = parseFloat(e.target.value);
+      valueBadge.textContent = formatFn(liveVal);
+      applySliderValue(liveVal);
+      this.triggerUpdate();
+    });
+
+    slider.addEventListener('change', (e) => {
+      const finalVal = parseFloat(e.target.value);
+      applySliderValue(finalVal);
+      this.triggerUpdate();
+    });
+
+    parent.appendChild(slider);
+  }
+
   renderEffectChips(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
@@ -837,12 +1188,12 @@ export class PropertyInspector {
     chipsWrapper.style.minHeight = '24px';
     chipsWrapper.style.alignItems = 'center';
 
-    const currentEffectsList = Array.isArray(this.selectedEvent.effects)
-      ? this.selectedEvent.effects
+    const currentEffectsList = Array.isArray(targetEvent.effects)
+      ? targetEvent.effects
       : [];
 
     const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!this.selectedEvent[eff.key] || currentEffectsList.includes(eff.key);
+      return !!targetEvent[eff.key] || currentEffectsList.includes(eff.key);
     });
 
     if (activeEffects.length === 0) {
@@ -886,9 +1237,9 @@ export class PropertyInspector {
         removeBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.triggerUpdate('beforeChange');
-          delete this.selectedEvent[eff.key];
-          if (Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = this.selectedEvent.effects.filter((k) => k !== eff.key);
+          delete targetEvent[eff.key];
+          if (Array.isArray(targetEvent.effects)) {
+            targetEvent.effects = targetEvent.effects.filter((k) => k !== eff.key);
           }
           this.triggerUpdate();
           this.render();
@@ -901,7 +1252,7 @@ export class PropertyInspector {
 
     // 2. Add Effect Dropdown Selector
     const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !this.selectedEvent[eff.key] && !currentEffectsList.includes(eff.key);
+      return !targetEvent[eff.key] && !currentEffectsList.includes(eff.key);
     });
 
     const addWrapper = document.createElement('div');
@@ -953,12 +1304,12 @@ export class PropertyInspector {
         onChange: (selectedKey) => {
           if (!selectedKey) return;
           this.triggerUpdate('beforeChange');
-          this.selectedEvent[selectedKey] = true;
-          if (!Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = [];
+          targetEvent[selectedKey] = true;
+          if (!Array.isArray(targetEvent.effects)) {
+            targetEvent.effects = [];
           }
-          if (!this.selectedEvent.effects.includes(selectedKey)) {
-            this.selectedEvent.effects.push(selectedKey);
+          if (!targetEvent.effects.includes(selectedKey)) {
+            targetEvent.effects.push(selectedKey);
           }
           this.triggerUpdate();
           this.render();
@@ -976,6 +1327,9 @@ export class PropertyInspector {
   }
 
   renderColorBadges(parent) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t('editor.inspector.fields.color');
@@ -987,7 +1341,7 @@ export class PropertyInspector {
     container.className = 'color-badge-container';
 
     let activeKey = null;
-    const currentColor = this.selectedEvent.color;
+    const currentColor = targetEvent.color;
     if (currentColor) {
       const cLower = currentColor.toLowerCase();
       activeKey = Object.keys(COLOR_MAP).find(k => k === cLower || COLOR_MAP[k] === cLower);
@@ -1002,7 +1356,7 @@ export class PropertyInspector {
 
       badge.addEventListener('click', () => {
         this.onUpdate('beforeChange');
-        this.selectedEvent.color = key;
+        targetEvent.color = key;
         this.onUpdate();
         this.render(); // Redraw selection outline
       });
@@ -1040,10 +1394,10 @@ export class PropertyInspector {
       this.onUpdate('beforeChange');
       if (e.target.checked) {
         customInput.disabled = false;
-        this.selectedEvent.color = customInput.value;
+        targetEvent.color = customInput.value;
       } else {
         customInput.disabled = true;
-        delete this.selectedEvent.color;
+        delete targetEvent.color;
       }
       this.onUpdate();
       this.render();
@@ -1052,7 +1406,7 @@ export class PropertyInspector {
     customInput.addEventListener('input', (e) => {
       if (customCb.checked) {
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.color = e.target.value;
+        targetEvent.color = e.target.value;
         this.triggerUpdate();
       }
     });
@@ -1077,6 +1431,9 @@ export class PropertyInspector {
   }
 
   renderAngleDial(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
@@ -1105,7 +1462,7 @@ export class PropertyInspector {
     angleInput.min = '10';
     angleInput.max = '170';
 
-    const rad = this.selectedEvent.angle;
+    const rad = targetEvent.angle;
     // Map radian to degree input: 90 - (rad * 180 / PI)
     const currentDegVal = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : 90;
     angleInput.value = currentDegVal;
@@ -1131,7 +1488,7 @@ export class PropertyInspector {
         deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
 
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.angle = deflectionRad;
+        targetEvent.angle = deflectionRad;
         this.triggerUpdate();
 
         dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
@@ -1166,7 +1523,7 @@ export class PropertyInspector {
       const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
       const deflectionRad = (offsetDeg * Math.PI) / 180;
 
-      this.selectedEvent.angle = deflectionRad;
+      targetEvent.angle = deflectionRad;
       dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
       this.triggerUpdate();
     });
@@ -1219,6 +1576,28 @@ export class PropertyInspector {
         dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI / 2}rad)`;
       }
     }
+
+    // Cập nhật các sliders
+    const sliders = this.container.querySelectorAll('.inspector-slider');
+    sliders.forEach(slider => {
+      const fieldName = slider.dataset.fieldName;
+      if (fieldName) {
+        let currentVal = this.selectedEvent[fieldName];
+        if (currentVal === undefined && fieldName === 'soundVolume' && this.selectedEvent.sound) {
+          currentVal = this.selectedEvent.sound.volumeMultiplier;
+        }
+        if (currentVal !== undefined && slider.value != currentVal && document.activeElement !== slider) {
+          slider.value = currentVal;
+          const parentWrapper = slider.closest('.inspector-field-span-2') || slider.parentElement;
+          const badge = parentWrapper?.querySelector('.inspector-slider-value');
+          if (badge) {
+            badge.textContent = fieldName === 'shellSize'
+              ? `${Number(currentVal).toFixed(1)}x`
+              : `${Number(currentVal).toFixed(2)}x`;
+          }
+        }
+      }
+    });
   }
 
   renderBeatSettings(parent) {
@@ -2383,6 +2762,829 @@ export class PropertyInspector {
           }
         );
 
+        chipsWrapper.appendChild(chip);
+      });
+
+      effectsWrapper.appendChild(effLbl);
+      effectsWrapper.appendChild(chipsWrapper);
+      card.appendChild(effectsWrapper);
+
+      container.appendChild(card);
+    }
+
+    parent.appendChild(container);
+  }
+
+  renderWaveCurveEditor(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!Array.isArray(event.wavePoints) || event.wavePoints.length === 0) {
+      event.wavePoints = DEFAULT_WAVE_POINTS.map(p => ({ ...p }));
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+
+    const editor = new WaveCurveEditor({
+      points: event.wavePoints,
+      shellCount: Number(event.count) || 12,
+      onChange: (newPoints) => {
+        this.triggerUpdate('beforeChange');
+        event.wavePoints = newPoints;
+        this.triggerUpdate();
+      }
+    });
+
+    container.appendChild(editor.getElement());
+    parent.appendChild(container);
+  }
+
+  renderSecondBurst(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!event.secondBurst || typeof event.secondBurst !== 'object') {
+      event.secondBurst = {
+        enabled: true,
+        childShells: [
+          {
+            ratio: 0.20,
+            triggerTiming: 0.50,
+            distributionMode: 'random',
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ffd700',
+            scale: 0.35,
+            effects: ['strobe']
+          }
+        ]
+      };
+    }
+
+    const sb = event.secondBurst;
+    if (!Array.isArray(sb.childShells) || sb.childShells.length === 0) {
+      sb.childShells = [
+        {
+          ratio: 0.20,
+          triggerTiming: 0.50,
+          distributionMode: 'random',
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: '#ffd700',
+          scale: 0.35,
+          effects: ['strobe']
+        }
+      ];
+    }
+
+    const childShells = sb.childShells;
+    if (typeof this.activeChildShellIndex !== 'number' || this.activeChildShellIndex >= childShells.length) {
+      this.activeChildShellIndex = 0;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '10px';
+
+    // Summary header: Total conversion ratio
+    const totalAllocated = childShells.reduce((sum, c) => {
+      return sum + (typeof c.ratio === 'number' ? c.ratio : 0.20);
+    }, 0);
+
+    const summaryRow = document.createElement('div');
+    summaryRow.style.display = 'flex';
+    summaryRow.style.justifyContent = 'space-between';
+    summaryRow.style.alignItems = 'center';
+    summaryRow.style.padding = '4px 6px';
+    summaryRow.style.background = 'rgba(255, 255, 255, 0.04)';
+    summaryRow.style.borderRadius = '4px';
+
+    const summaryLabel = document.createElement('span');
+    summaryLabel.style.fontSize = '11px';
+    summaryLabel.style.fontWeight = 'bold';
+    summaryLabel.style.color = '#ffffff';
+    const localizedBurstTitle = t('editor.inspector.fields.secondBurst');
+    summaryLabel.textContent =
+      localizedBurstTitle && localizedBurstTitle !== 'editor.inspector.fields.secondBurst'
+        ? localizedBurstTitle
+        : (t('editor.inspector.groups.secondBurst') || 'Second Burst');
+
+    const summaryPercent = document.createElement('span');
+    summaryPercent.style.fontSize = '11px';
+    summaryPercent.style.color = totalAllocated > 0.6 ? '#f39c12' : '#3498db';
+    summaryPercent.style.whiteSpace = 'nowrap';
+    summaryPercent.style.marginLeft = '8px';
+    summaryPercent.textContent = `${Math.round(totalAllocated * 100)}% Total Active`;
+
+    summaryRow.appendChild(summaryLabel);
+    summaryRow.appendChild(summaryPercent);
+    container.appendChild(summaryRow);
+
+    // Performance guidance note
+    const hintText = document.createElement('div');
+    hintText.style.fontSize = '10px';
+    hintText.style.lineHeight = '1.3';
+    hintText.style.color = totalAllocated > 0.6 ? '#f39c12' : '#7f8c8d';
+    hintText.style.padding = '3px 6px';
+    hintText.style.background = 'rgba(255, 255, 255, 0.02)';
+    hintText.style.borderRadius = '3px';
+    hintText.style.border = '1px dashed rgba(255, 255, 255, 0.08)';
+    hintText.textContent = t('editor.inspector.fields.secondBurstHint') ||
+      'Keep ratio between 20% and 35% for optimal density and 60 FPS performance';
+    container.appendChild(hintText);
+
+    // 1. Child Shells Tabs Bar
+    const tabsWrapper = document.createElement('div');
+    tabsWrapper.style.display = 'flex';
+    tabsWrapper.style.gap = '4px';
+    tabsWrapper.style.alignItems = 'center';
+    tabsWrapper.style.overflowX = 'auto';
+    tabsWrapper.style.paddingBottom = '4px';
+    tabsWrapper.style.marginTop = '4px';
+
+    childShells.forEach((child, idx) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      const isSelected = idx === this.activeChildShellIndex;
+      tabBtn.style.display = 'flex';
+      tabBtn.style.alignItems = 'center';
+      tabBtn.style.gap = '5px';
+      tabBtn.style.padding = '5px 8px';
+      tabBtn.style.fontSize = '11px';
+      tabBtn.style.borderRadius = '4px';
+      tabBtn.style.cursor = 'pointer';
+      tabBtn.style.border = isSelected
+        ? '1px solid #3498db'
+        : '1px solid rgba(255, 255, 255, 0.12)';
+      tabBtn.style.background = isSelected
+        ? 'rgba(52, 152, 219, 0.3)'
+        : 'rgba(255, 255, 255, 0.04)';
+      tabBtn.style.color = isSelected ? '#ffffff' : '#8a9ba8';
+      tabBtn.style.fontWeight = isSelected ? 'bold' : 'normal';
+
+      const dot = document.createElement('span');
+      dot.style.width = '7px';
+      dot.style.height = '7px';
+      dot.style.borderRadius = '50%';
+      dot.style.background = child.color || '#ffd700';
+      dot.style.flexShrink = '0';
+      tabBtn.appendChild(dot);
+
+      const childRatio = typeof child.ratio === 'number' ? child.ratio : 0.20;
+      const tabText = document.createElement('span');
+      tabText.textContent = `${t('editor.inspector.fields.childShell') || 'Type'} ${idx + 1}: ${Math.round(childRatio * 100)}%`;
+      tabBtn.appendChild(tabText);
+
+      tabBtn.addEventListener('click', () => {
+        this.activeChildShellIndex = idx;
+        this.render();
+      });
+      tabsWrapper.appendChild(tabBtn);
+    });
+
+    if (childShells.length < 5) {
+      const addTabBtn = document.createElement('button');
+      addTabBtn.type = 'button';
+      addTabBtn.style.padding = '5px 8px';
+      addTabBtn.style.fontSize = '11px';
+      addTabBtn.style.borderRadius = '4px';
+      addTabBtn.style.cursor = 'pointer';
+      addTabBtn.style.border = '1px dashed rgba(255, 255, 255, 0.25)';
+      addTabBtn.style.background = 'rgba(255, 255, 255, 0.04)';
+      addTabBtn.style.color = '#3498db';
+      addTabBtn.textContent = '+ ' + (t('editor.inspector.fields.addChildShell') || 'Add Type');
+
+      addTabBtn.addEventListener('click', () => {
+        this.triggerUpdate('beforeChange');
+        const fallbackColors = ['#ffd700', '#00e5ff', '#ff3366', '#ffffff', '#a855f7'];
+        childShells.push({
+          ratio: 0.20,
+          triggerTiming: 0.50,
+          distributionMode: 'random',
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: fallbackColors[childShells.length % fallbackColors.length],
+          scale: 0.35,
+          effects: ['strobe']
+        });
+        this.activeChildShellIndex = childShells.length - 1;
+        this.triggerUpdate();
+        this.render();
+      });
+      tabsWrapper.appendChild(addTabBtn);
+    }
+
+    container.appendChild(tabsWrapper);
+
+    // 2. Active Child Shell Editor Card
+    const currentIdx = this.activeChildShellIndex;
+    const activeChild = childShells[currentIdx];
+
+    if (activeChild) {
+      const card = document.createElement('div');
+      card.style.background = 'rgba(255, 255, 255, 0.03)';
+      card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '10px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '8px';
+
+      // Card Header
+      const cardHeader = document.createElement('div');
+      cardHeader.style.display = 'flex';
+      cardHeader.style.justifyContent = 'space-between';
+      cardHeader.style.alignItems = 'center';
+
+      const titleGroup = document.createElement('div');
+      titleGroup.style.display = 'flex';
+      titleGroup.style.alignItems = 'center';
+      titleGroup.style.gap = '6px';
+
+      const colorSwatch = document.createElement('div');
+      colorSwatch.style.width = '10px';
+      colorSwatch.style.height = '10px';
+      colorSwatch.style.borderRadius = '50%';
+      colorSwatch.style.background = activeChild.color || '#ffd700';
+
+      const title = document.createElement('span');
+      title.style.fontWeight = 'bold';
+      title.style.fontSize = '12px';
+      title.style.color = '#ffffff';
+      title.textContent = `${t('editor.inspector.fields.childShell') || 'Child Shell'} ${currentIdx + 1} / ${childShells.length}`;
+
+      titleGroup.appendChild(colorSwatch);
+      titleGroup.appendChild(title);
+      cardHeader.appendChild(titleGroup);
+
+      if (childShells.length > 1) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.style.background = 'rgba(231, 76, 60, 0.15)';
+        delBtn.style.border = '1px solid rgba(231, 76, 60, 0.3)';
+        delBtn.style.color = '#ff6b6b';
+        delBtn.style.borderRadius = '3px';
+        delBtn.style.padding = '2px 6px';
+        delBtn.style.fontSize = '10px';
+        delBtn.style.cursor = 'pointer';
+        delBtn.textContent = t('editor.inspector.fields.removeChildShell') || 'Delete';
+
+        delBtn.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          childShells.splice(currentIdx, 1);
+          this.activeChildShellIndex = Math.max(0, currentIdx - 1);
+          this.triggerUpdate();
+          this.render();
+        });
+        cardHeader.appendChild(delBtn);
+      }
+
+      card.appendChild(cardHeader);
+
+      // Section A: Activation Parameters (Ratio, Timing, Mode)
+      // 1. Particle Ratio Slider for this child
+      const ratioWrapper = document.createElement('div');
+      ratioWrapper.style.display = 'flex';
+      ratioWrapper.style.flexDirection = 'column';
+      ratioWrapper.style.gap = '2px';
+
+      const ratioHeader = document.createElement('div');
+      ratioHeader.style.display = 'flex';
+      ratioHeader.style.justifyContent = 'space-between';
+
+      const ratioLbl = document.createElement('label');
+      ratioLbl.className = 'inspector-label';
+      ratioLbl.style.fontSize = '10px';
+      ratioLbl.textContent = t('editor.inspector.fields.secondBurstRatio') || 'Particle Ratio';
+
+      const currentRatio = typeof activeChild.ratio === 'number' ? activeChild.ratio : 0.20;
+      const ratioValText = document.createElement('span');
+      ratioValText.style.fontSize = '11px';
+      ratioValText.style.color = '#3498db';
+      ratioValText.textContent = `${Math.round(currentRatio * 100)}%`;
+
+      ratioHeader.appendChild(ratioLbl);
+      ratioHeader.appendChild(ratioValText);
+      ratioWrapper.appendChild(ratioHeader);
+
+      const ratioSlider = document.createElement('input');
+      ratioSlider.type = 'range';
+      ratioSlider.min = '0.05';
+      ratioSlider.max = '0.80';
+      ratioSlider.step = '0.05';
+      ratioSlider.value = currentRatio;
+      ratioSlider.style.width = '100%';
+
+      ratioSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.20;
+        activeChild.ratio = val;
+        ratioValText.textContent = `${Math.round(val * 100)}%`;
+        this.triggerUpdate();
+      });
+
+      ratioSlider.addEventListener('change', () => {
+        this.render();
+      });
+
+      ratioWrapper.appendChild(ratioSlider);
+      card.appendChild(ratioWrapper);
+
+      // 2. Trigger Timing Slider for this child
+      const timingWrapper = document.createElement('div');
+      timingWrapper.style.display = 'flex';
+      timingWrapper.style.flexDirection = 'column';
+      timingWrapper.style.gap = '2px';
+
+      const timingHeader = document.createElement('div');
+      timingHeader.style.display = 'flex';
+      timingHeader.style.justifyContent = 'space-between';
+
+      const timingLbl = document.createElement('label');
+      timingLbl.className = 'inspector-label';
+      timingLbl.style.fontSize = '10px';
+      timingLbl.textContent = t('editor.inspector.fields.secondBurstTiming') || 'Trigger Timing';
+
+      const currentTiming = typeof activeChild.triggerTiming === 'number' ? activeChild.triggerTiming : 0.50;
+      const timingValText = document.createElement('span');
+      timingValText.style.fontSize = '11px';
+      timingValText.style.color = '#3498db';
+      timingValText.textContent = `${Math.round(currentTiming * 100)}%`;
+
+      timingHeader.appendChild(timingLbl);
+      timingHeader.appendChild(timingValText);
+      timingWrapper.appendChild(timingHeader);
+
+      const timingSlider = document.createElement('input');
+      timingSlider.type = 'range';
+      timingSlider.min = '0.15';
+      timingSlider.max = '0.85';
+      timingSlider.step = '0.05';
+      timingSlider.value = currentTiming;
+      timingSlider.style.width = '100%';
+
+      timingSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.50;
+        activeChild.triggerTiming = val;
+        timingValText.textContent = `${Math.round(val * 100)}%`;
+        this.triggerUpdate();
+      });
+
+      timingWrapper.appendChild(timingSlider);
+      card.appendChild(timingWrapper);
+
+      // 3. Distribution Mode Segmented Buttons for this child
+      const modeWrapper = document.createElement('div');
+      modeWrapper.style.display = 'flex';
+      modeWrapper.style.flexDirection = 'column';
+      modeWrapper.style.gap = '4px';
+
+      const modeLabel = document.createElement('label');
+      modeLabel.className = 'inspector-label';
+      modeLabel.style.fontSize = '10px';
+      modeLabel.textContent = t('editor.inspector.fields.secondBurstMode') || 'Distribution Mode';
+
+      const modeButtonGroup = document.createElement('div');
+      modeButtonGroup.style.display = 'grid';
+      modeButtonGroup.style.gridTemplateColumns = '1fr 1fr 1fr';
+      modeButtonGroup.style.gap = '4px';
+
+      const currentDistMode = activeChild.distributionMode || 'random';
+      const distModes = [
+        {
+          key: 'random',
+          label: t('editor.inspector.options.distributionMode.random') || 'Random'
+        },
+        {
+          key: 'sequential',
+          label: t('editor.inspector.options.distributionMode.sequential') || 'Sequential'
+        },
+        {
+          key: 'simultaneous',
+          label: t('editor.inspector.options.distributionMode.simultaneous') || 'Simultaneous'
+        }
+      ];
+
+      distModes.forEach((m) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isActive = currentDistMode === m.key;
+        btn.style.padding = '5px 3px';
+        btn.style.fontSize = '10px';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.style.border = isActive
+          ? '1px solid #3498db'
+          : '1px solid rgba(255, 255, 255, 0.12)';
+        btn.style.background = isActive
+          ? 'rgba(52, 152, 219, 0.25)'
+          : 'rgba(255, 255, 255, 0.04)';
+        btn.style.color = isActive ? '#ffffff' : '#8a9ba8';
+        btn.style.fontWeight = isActive ? 'bold' : 'normal';
+        btn.textContent = m.label;
+
+        btn.addEventListener('click', () => {
+          if (activeChild.distributionMode !== m.key) {
+            this.triggerUpdate('beforeChange');
+            activeChild.distributionMode = m.key;
+            this.triggerUpdate();
+            this.render();
+          }
+        });
+        modeButtonGroup.appendChild(btn);
+      });
+
+      modeWrapper.appendChild(modeLabel);
+      modeWrapper.appendChild(modeButtonGroup);
+      card.appendChild(modeWrapper);
+
+      // Section B: Composition Details (Template, Shape, Dynamics, Modifiers, Color, Scale, Sound, Effects)
+      // 1. Preset Template Selector
+      const templateWrapper = document.createElement('div');
+      templateWrapper.style.display = 'flex';
+      templateWrapper.style.flexDirection = 'column';
+      templateWrapper.style.gap = '2px';
+
+      const templateLbl = document.createElement('label');
+      templateLbl.className = 'inspector-label';
+      templateLbl.style.fontSize = '10px';
+      templateLbl.textContent = t('editor.inspector.fields.templates') || 'Preset Template';
+
+      const templateCustom = new CustomSelect({
+        options: AVAILABLE_CHILD_PRESETS.map((presetKey) => ({
+          value: presetKey,
+          label: presetKey === 'custom'
+            ? (t('editor.inspector.options.templates.custom') || 'Custom')
+            : (t(`editor.inspector.options.preset.${presetKey}`) || formatOptionLabelFallback(presetKey))
+        })),
+        value: activeChild.preset || 'custom',
+        category: PREVIEW_CATEGORIES.PRESET,
+        fieldName: 'preset',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.preset = val;
+          if (val !== 'custom') {
+            const tmpl = getTemplateForPreset(val);
+            if (tmpl) {
+              activeChild.shapeType = tmpl.shape;
+              activeChild.dynamicsType = tmpl.dynamics;
+              activeChild.pistil = tmpl.modifiers.pistil;
+              activeChild.instantBurst = tmpl.modifiers.instantBurst;
+              activeChild.effects = [...tmpl.effects];
+            }
+          }
+          this.triggerUpdate();
+          this.render();
+        }
+      });
+
+      templateWrapper.appendChild(templateLbl);
+      templateWrapper.appendChild(templateCustom.element);
+      card.appendChild(templateWrapper);
+
+      // 2. Row: Shape & Dynamics
+      const row1 = document.createElement('div');
+      row1.style.display = 'grid';
+      row1.style.gridTemplateColumns = '1fr 1fr';
+      row1.style.gap = '6px';
+
+      // Shape
+      const shapeCol = document.createElement('div');
+      const shapeLbl = document.createElement('label');
+      shapeLbl.className = 'inspector-label';
+      shapeLbl.style.fontSize = '10px';
+      shapeLbl.textContent = t('editor.inspector.fields.shapeType') || 'Shape';
+
+      const sortedShapes = [...AVAILABLE_SHAPES].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('shapeType', a);
+        const labelB = getEnglishOptionLabel('shapeType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      const shapeCustom = new CustomSelect({
+        options: sortedShapes.map((sh) => ({
+          value: sh,
+          label: t(`editor.inspector.options.shapeType.${sh}`) || sh
+        })),
+        value: activeChild.shapeType || 'sphere',
+        category: PREVIEW_CATEGORIES.SHAPE,
+        fieldName: 'shapeType',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.shapeType = val;
+          this.triggerUpdate();
+        }
+      });
+
+      shapeCol.appendChild(shapeLbl);
+      shapeCol.appendChild(shapeCustom.element);
+
+      // Dynamics
+      const dynCol = document.createElement('div');
+      const dynLbl = document.createElement('label');
+      dynLbl.className = 'inspector-label';
+      dynLbl.style.fontSize = '10px';
+      dynLbl.textContent = t('editor.inspector.fields.dynamicsType') || 'Dynamics';
+
+      const sortedDynamics = [...AVAILABLE_DYNAMICS].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('dynamicsType', a);
+        const labelB = getEnglishOptionLabel('dynamicsType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      const dynCustom = new CustomSelect({
+        options: sortedDynamics.map((dyn) => ({
+          value: dyn,
+          label: t(`editor.inspector.options.dynamicsType.${dyn}`) || dyn
+        })),
+        value: activeChild.dynamicsType || 'standard',
+        category: PREVIEW_CATEGORIES.DYNAMICS,
+        fieldName: 'dynamicsType',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.dynamicsType = val;
+          this.triggerUpdate();
+        }
+      });
+
+      dynCol.appendChild(dynLbl);
+      dynCol.appendChild(dynCustom.element);
+
+      row1.appendChild(shapeCol);
+      row1.appendChild(dynCol);
+      card.appendChild(row1);
+
+      // 3. Row: Structural Modifiers (Pistil & Instant Burst)
+      const modRow = document.createElement('div');
+      modRow.style.display = 'flex';
+      modRow.style.gap = '14px';
+      modRow.style.alignItems = 'center';
+      modRow.style.padding = '2px 0';
+
+      // Pistil
+      const pistilLabel = document.createElement('label');
+      pistilLabel.className = 'inspector-checkbox-container';
+      pistilLabel.style.fontSize = '10px';
+      pistilLabel.style.cursor = 'pointer';
+
+      const pistilInput = document.createElement('input');
+      pistilInput.className = 'inspector-checkbox';
+      pistilInput.type = 'checkbox';
+      pistilInput.checked = Boolean(activeChild.pistil);
+      pistilInput.addEventListener('change', (e) => {
+        this.triggerUpdate('beforeChange');
+        activeChild.pistil = e.target.checked;
+        this.triggerUpdate();
+        this.render();
+      });
+
+      const pistilText = document.createElement('span');
+      pistilText.textContent = t('editor.inspector.fields.pistil') || 'Pistil';
+
+      pistilLabel.appendChild(pistilInput);
+      pistilLabel.appendChild(pistilText);
+      EffectPreviewTooltip.getInstance().bindElement(
+        pistilLabel,
+        'pistil',
+        PREVIEW_CATEGORIES.OPTICAL_EFFECT
+      );
+      modRow.appendChild(pistilLabel);
+
+      // Instant Burst
+      const instantLabel = document.createElement('label');
+      instantLabel.className = 'inspector-checkbox-container';
+      instantLabel.style.fontSize = '10px';
+      instantLabel.style.cursor = 'pointer';
+
+      const instantInput = document.createElement('input');
+      instantInput.className = 'inspector-checkbox';
+      instantInput.type = 'checkbox';
+      instantInput.checked = Boolean(activeChild.instantBurst);
+      instantInput.addEventListener('change', (e) => {
+        this.triggerUpdate('beforeChange');
+        activeChild.instantBurst = e.target.checked;
+        this.triggerUpdate();
+      });
+
+      const instantText = document.createElement('span');
+      instantText.textContent = t('editor.inspector.fields.instantBurst') || 'Instant Burst';
+
+      instantLabel.appendChild(instantInput);
+      instantLabel.appendChild(instantText);
+      modRow.appendChild(instantLabel);
+
+      card.appendChild(modRow);
+
+      // Row: Color Palette Swatches & Custom Picker
+      const colorWrapper = document.createElement('div');
+      colorWrapper.style.display = 'flex';
+      colorWrapper.style.flexDirection = 'column';
+      colorWrapper.style.gap = '4px';
+
+      const colorLbl = document.createElement('label');
+      colorLbl.className = 'inspector-label';
+      colorLbl.style.fontSize = '10px';
+      colorLbl.textContent = t('editor.inspector.fields.color') || 'Color';
+
+      const colorPaletteRow = document.createElement('div');
+      colorPaletteRow.style.display = 'flex';
+      colorPaletteRow.style.alignItems = 'center';
+      colorPaletteRow.style.flexWrap = 'wrap';
+      colorPaletteRow.style.gap = '5px';
+
+      const COLOR_PALETTE = [
+        { key: 'red', hex: '#ff3333' },
+        { key: 'gold', hex: '#ffd700' },
+        { key: 'white', hex: '#ffffff' },
+        { key: 'blue', hex: '#007aff' },
+        { key: 'green', hex: '#34c759' },
+        { key: 'purple', hex: '#af52de' },
+        { key: 'pink', hex: '#ff2d55' },
+        { key: 'aqua', hex: '#00e5ff' }
+      ];
+
+      COLOR_PALETTE.forEach((c) => {
+        const swatch = document.createElement('div');
+        const isActiveColor = (activeChild.color || '').toLowerCase() === c.hex.toLowerCase();
+        swatch.style.width = '18px';
+        swatch.style.height = '18px';
+        swatch.style.borderRadius = '50%';
+        swatch.style.background = c.hex;
+        swatch.style.cursor = 'pointer';
+        swatch.style.border = isActiveColor
+          ? '2px solid #ffffff'
+          : '1px solid rgba(0, 0, 0, 0.4)';
+        swatch.style.boxShadow = isActiveColor
+          ? '0 0 6px rgba(255, 255, 255, 0.8)'
+          : 'none';
+        swatch.title = c.key;
+
+        swatch.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          activeChild.color = c.hex;
+          this.triggerUpdate();
+          this.render();
+        });
+        colorPaletteRow.appendChild(swatch);
+      });
+
+      const customColorInput = document.createElement('input');
+      customColorInput.type = 'color';
+      customColorInput.value = activeChild.color || '#ffd700';
+      customColorInput.style.width = '20px';
+      customColorInput.style.height = '20px';
+      customColorInput.style.border = 'none';
+      customColorInput.style.borderRadius = '3px';
+      customColorInput.style.cursor = 'pointer';
+      customColorInput.style.background = 'transparent';
+
+      customColorInput.addEventListener('change', (e) => {
+        this.triggerUpdate('beforeChange');
+        activeChild.color = e.target.value;
+        this.triggerUpdate();
+        this.render();
+      });
+      colorPaletteRow.appendChild(customColorInput);
+
+      colorWrapper.appendChild(colorLbl);
+      colorWrapper.appendChild(colorPaletteRow);
+      card.appendChild(colorWrapper);
+
+      // Row: Scale Slider
+      const scaleWrapper = document.createElement('div');
+      scaleWrapper.style.display = 'flex';
+      scaleWrapper.style.flexDirection = 'column';
+      scaleWrapper.style.gap = '2px';
+
+      const scaleHeader = document.createElement('div');
+      scaleHeader.style.display = 'flex';
+      scaleHeader.style.justifyContent = 'space-between';
+
+      const scaleLbl = document.createElement('label');
+      scaleLbl.className = 'inspector-label';
+      scaleLbl.style.fontSize = '10px';
+      scaleLbl.textContent = t('editor.inspector.fields.childShellScale') || 'Scale';
+
+      const currentScale = typeof activeChild.scale === 'number' ? activeChild.scale : 0.35;
+      const scaleValText = document.createElement('span');
+      scaleValText.style.fontSize = '11px';
+      scaleValText.style.color = '#3498db';
+      scaleValText.textContent = `${currentScale.toFixed(2)}x`;
+
+      scaleHeader.appendChild(scaleLbl);
+      scaleHeader.appendChild(scaleValText);
+      scaleWrapper.appendChild(scaleHeader);
+
+      const scaleSlider = document.createElement('input');
+      scaleSlider.type = 'range';
+      scaleSlider.min = '0.15';
+      scaleSlider.max = '0.80';
+      scaleSlider.step = '0.05';
+      scaleSlider.value = currentScale;
+      scaleSlider.style.width = '100%';
+
+      scaleSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.35;
+        activeChild.scale = val;
+        scaleValText.textContent = `${val.toFixed(2)}x`;
+        this.triggerUpdate();
+      });
+
+      scaleWrapper.appendChild(scaleSlider);
+      card.appendChild(scaleWrapper);
+
+      // Row: Child Burst Sound
+      const soundWrapper = document.createElement('div');
+      soundWrapper.style.display = 'flex';
+      soundWrapper.style.flexDirection = 'column';
+      soundWrapper.style.gap = '2px';
+
+      const soundLbl = document.createElement('label');
+      soundLbl.className = 'inspector-label';
+      soundLbl.style.fontSize = '10px';
+      soundLbl.textContent = t('editor.inspector.fields.burstSound') || 'Burst Sound';
+
+      const SOUND_OPTIONS = ['standard', 'heavy', 'soft', 'silent'];
+      const soundCustom = new CustomSelect({
+        options: SOUND_OPTIONS.map((snd) => ({
+          value: snd,
+          label: t(`editor.inspector.options.burstSound.${snd}`) || formatOptionLabelFallback(snd)
+        })),
+        value: activeChild.burstSound || 'standard',
+        fieldName: 'burstSound',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.burstSound = val;
+          this.triggerUpdate();
+        }
+      });
+
+      soundWrapper.appendChild(soundLbl);
+      soundWrapper.appendChild(soundCustom.element);
+      card.appendChild(soundWrapper);
+
+      // Row: Active Effects Chips
+      const effectsWrapper = document.createElement('div');
+      effectsWrapper.style.display = 'flex';
+      effectsWrapper.style.flexDirection = 'column';
+      effectsWrapper.style.gap = '4px';
+
+      const effLbl = document.createElement('label');
+      effLbl.className = 'inspector-label';
+      effLbl.style.fontSize = '10px';
+      effLbl.textContent = t('editor.inspector.fields.activeEffects') || 'Active Effects';
+
+      const chipsWrapper = document.createElement('div');
+      chipsWrapper.style.display = 'flex';
+      chipsWrapper.style.flexWrap = 'wrap';
+      chipsWrapper.style.gap = '4px';
+
+      const currentChildEffects = Array.isArray(activeChild.effects) ? activeChild.effects : [];
+      AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+        const isEffectActive = currentChildEffects.includes(eff.key);
+        const chip = document.createElement('span');
+        chip.className = 'effect-chip';
+        chip.style.fontSize = '10px';
+        chip.style.padding = '3px 7px';
+        chip.style.cursor = 'pointer';
+        chip.style.borderRadius = '4px';
+        chip.style.userSelect = 'none';
+        chip.style.border = isEffectActive
+          ? '1px solid #3498db'
+          : '1px solid rgba(255, 255, 255, 0.15)';
+        chip.style.background = isEffectActive
+          ? 'rgba(52, 152, 219, 0.25)'
+          : 'rgba(255, 255, 255, 0.04)';
+        chip.style.color = isEffectActive ? '#ffffff' : '#8a9ba8';
+        chip.style.fontWeight = isEffectActive ? 'bold' : 'normal';
+        const labelKeyPath = `editor.inspector.fields.${eff.labelKey}`;
+        const translatedLabel = t(labelKeyPath);
+        chip.textContent =
+          translatedLabel && translatedLabel !== labelKeyPath
+            ? translatedLabel
+            : formatOptionLabelFallback(eff.key);
+
+        EffectPreviewTooltip.getInstance().bindElement(
+          chip,
+          eff.key,
+          PREVIEW_CATEGORIES.OPTICAL_EFFECT
+        );
+
+        chip.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          if (isEffectActive) {
+            activeChild.effects = currentChildEffects.filter((k) => k !== eff.key);
+          } else {
+            activeChild.effects = [...currentChildEffects, eff.key];
+          }
+          this.triggerUpdate();
+          this.render();
+        });
         chipsWrapper.appendChild(chip);
       });
 

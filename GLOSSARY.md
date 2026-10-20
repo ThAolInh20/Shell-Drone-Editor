@@ -125,6 +125,7 @@ Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ n
   - `flow`: Tạo chuyển động xoáy uốn lượn tự do cho từng hạt.
   - `no-trail`: Tắt vệt đuôi sáng để giữ điểm nổ gọn gàng, sắc nét.
   - `crossette`: Phân tách hạt pháo chính thành 4 tia vuông góc tại giữa vòng đời.
+  - `tadpole-flurry`: Hạt nổ phóng chùm tia xù ngược chiều vận tốc tạo hình mũi tên nòng nọc trong khi bay và bung tỏa loạt tia cuối ở gần tàn.
 - Trong code: Khai báo qua danh sách `AVAILABLE_EFFECT_TAGS` trong [src/factories/FireworkCompositionHelper.js](./src/factories/FireworkCompositionHelper.js) và quản lý trong mảng `effects` / `activeEffects` của sự kiện pháo hoa trên [src/ui/PropertyInspector.js](./src/ui/PropertyInspector.js).
 
 ### Dynamics (Động lực học hạt sau nổ)

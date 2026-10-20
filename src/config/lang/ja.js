@@ -439,6 +439,17 @@ export default {
       noActiveEffects: "有効なエフェクトはありません",
       allEffectsAdded: "すべてのエフェクトが追加されました",
       removeEffect: "エフェクトを削除",
+      auditionSoundTooltip: "サウンド試聴",
+      auditionSoundBtn: "試聴",
+      waveCurve: {
+        addPoint: "+ 頂点を追加",
+        deletePoint: "- 頂点を削除",
+        arch: "アーチ",
+        doublePeak: "ダブルピーク",
+        wave: "ウェーブ",
+        slope: "スロープ",
+        hint: "ポイントをドラッグして位置と高さを調整し、ハンドルで発射角度を変更します。ボタンで頂点の追加や削除が可能です。"
+      },
       groups: {
         audioSettings: "音声設定",
         coreSettings: "コア設定",
@@ -446,9 +457,12 @@ export default {
         cometConfig: "Comet 設定",
         angleConfig: "発射角度",
         visualEffects: "ライトエフェクト",
+        soundSettings: "ステージサウンド設定",
         nestedStages: "多重ネスト花火設定",
+        secondBurst: "二次炸裂 Second Burst",
         geometryOffsets: "座標とオフセット",
-        beatSettings: "Beat Editor"
+        beatSettings: "Beat Editor",
+        waveCurveSettings: "ウェーブ曲線エディター"
       },
       fields: {
         time: "開始時間",
@@ -470,6 +484,7 @@ export default {
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
+        starLifeMultiplier: "燃焼時間",
         pistil: "芯付 Pistil",
         instantBurst: "即時爆発",
         burstSmoke: "バーストスモーク",
@@ -483,7 +498,15 @@ export default {
         crossette: "クロセット十字分裂",
         noTrail: "トレイルなし",
         noBurst: "無音即時爆発",
+        tadpoleFlurry: "タドポールアロー噴射",
+        erraticDart: "乱舞ダート",
+        longBurn: "ロングバーン",
+        apexHang: "エイペックスハング",
         activeEffects: "有効エフェクト",
+        launchSound: "発射サウンド",
+        burstSound: "炸裂サウンド",
+        crackleSound: "パチパチ音",
+        soundVolume: "音量スケール",
         ratioX: "比率 X",
         ratioY: "比率 Y",
         x1: "X1",
@@ -506,7 +529,17 @@ export default {
         templates: "プリセットテンプレート",
         delay: "爆発遅延",
         stageScale: "スケール倍率",
-        nestingMode: "ネストモード"
+        nestingMode: "ネストモード",
+        secondBurst: "二次炸裂 Second Burst",
+        secondBurstEnabled: "二次炸裂 Second Burst",
+        secondBurstRatio: "粒子変換比率",
+        secondBurstTiming: "炸裂タイミング",
+        secondBurstMode: "炸裂分散モード",
+        secondBurstHint: "華麗な演出と 60 FPS の安定性を保つため比率は 20% から 35% を推奨します",
+        childShell: "子花火タイプ",
+        addChildShell: "子花火を追加",
+        removeChildShell: "この子花火を削除",
+        childShellScale: "子花火スケール"
       },
       options: {
         type: {
@@ -560,7 +593,8 @@ export default {
           "double-helix": "二重螺旋旋回 Double Helix",
           crossette: "クロセット十字分裂",
           "sparkle-trail": "スパークルトレイル",
-          "sparkling-branch-comet": "多方向分岐スパークル彗星"
+          "sparkling-branch-comet": "多方向分岐スパークル彗星",
+          "tadpole-spiral": "オタマジャクシ螺旋遊泳"
         },
         pattern: {
           random: "ランダム",
@@ -581,6 +615,8 @@ export default {
           diverge: "発散",
           zigzag: "ジグザグ",
           continuous: "連続",
+          "sweep-custom-curve": "* カスタム曲線スイープ",
+          "sweep-wave": "ウェーブ波形スイープ",
           "sweep-left": "左スイープ",
           "sweep-right": "右スイープ",
           "sweep-random-tilt-left": "左スイープ ランダム傾斜",
@@ -619,6 +655,7 @@ export default {
           comet_cluster_cascade: "カスケード階層彗星群",
           comet_single: "単発超高輝度彗星ビーム",
           comet_single_beam: "単発超高輝度彗星ビーム",
+          comet_tadpole_burst: "オタマジャクシ彗星",
           sparkling_comet: "頂点スパークル彗星",
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
@@ -628,6 +665,7 @@ export default {
           crysanthemum_spiral_v2: "スパイラル菊花 V2",
           crysanthemum_cc: "変色菊花",
           crysanthemum_nested: "多重ネスト菊花",
+          chrysanthemum_tadpole_burst: "菊咲きオタマジャクシ彗星",
           multi_nested: "★ 多重ネスト花火",
           strobe: "ストロボ",
           strobe_dying_embers: "残火ストロボ",
@@ -675,6 +713,11 @@ export default {
           concentric: "同心円時系列爆発 Time Cascade",
           satellite: "衛星分散爆発 Satellite Dispersion"
         },
+        distributionMode: {
+          random: "ランダムジッター",
+          sequential: "順次ウェーブ",
+          simultaneous: "同時炸裂"
+        },
         templates: {
           custom: "カスタム設定",
           chrysanthemumSimultaneous: "4層菊花同時炸裂カスケード",
@@ -703,6 +746,28 @@ export default {
           star: "星",
           flow: "遊泳",
           sparking: "火花"
+        },
+        launchSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準発射",
+          heavy: "重砲発射",
+          soft: "ソフト発射",
+          silent: "ミュート"
+        },
+        burstSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準爆発",
+          heavy: "重砲炸裂",
+          soft: "ソフトポップ",
+          crisp: "クリスプ爆発",
+          silent: "ミュート"
+        },
+        crackleSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準パチパチ",
+          dense: "密集パチパチ",
+          soft: "ソフトパチパチ",
+          silent: "ミュート"
         }
       },
       colors: {

@@ -75,7 +75,8 @@ export class ShellPresetFactory {
       'crossette',
       'sparkle-trail',
       'sparkle-apex',
-      'sparkling-branch-comet'
+      'sparkling-branch-comet',
+      'tadpole-spiral'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -87,6 +88,7 @@ export class ShellPresetFactory {
       { key: 'comet_cluster_detached', label: 'Comet Cluster Detached Beam' },
       { key: 'comet_cluster_cascade', label: 'Comet Cluster Cascade' },
       { key: 'comet_single', label: 'Single Comet Beam' },
+      { key: 'comet_tadpole_burst', label: 'Comet Tadpole Burst' },
       { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
       { key: 'crysanthemum_v2', label: 'Chrysanthemum V2' },
@@ -95,6 +97,7 @@ export class ShellPresetFactory {
       { key: 'crysanthemum_spiral_v2', label: 'Chrysanthemum Spiral V2' },
       { key: 'crysanthemum_cc', label: 'Chrysanthemum Color Change' },
       { key: 'crysanthemum_nested', label: 'Chrysanthemum Nested' },
+      { key: 'chrysanthemum_tadpole_burst', label: 'Chrysanthemum Tadpole Burst' },
       { key: 'strobe_dying_embers', label: 'Strobe Embers' },
       { key: 'sparking', label: 'Sparking Ember Decay' },
       { key: 'sparking_v2', label: 'Sparking V2 Instant Ember' },
@@ -136,7 +139,8 @@ export class ShellPresetFactory {
       { key: 'galaxy', label: 'Spiral Galaxy' },
       { key: 'ghost_kamuro', label: 'Ghost Kamuro' },
       { key: 'double_helix', label: 'Double Helix' },
-      { key: 'crossette', label: 'Crossette' }
+      { key: 'crossette', label: 'Crossette' },
+      { key: 'sphere_erratic_dart', label: 'Sphere Erratic Dart' }
     ];
 
     // Registry for dynamic preset strategies (OCP compliance)
@@ -213,12 +217,15 @@ export class ShellPresetFactory {
     registerWithAlias('comet_cluster_cascade', 'comet_cluster_cascade', (size) => this.cometClusterCascade(size));
     registerWithAlias('comet_single', 'comet_single', (size) => this.cometSingle(size));
     registerWithAlias('comet_single_beam', 'comet_single_beam', (size) => this.cometSingle(size));
+    registerWithAlias('comet_tadpole_burst', 'cometTadpoleBurst', (size) => this.cometTadpoleBurst(size));
+    registerWithAlias('chrysanthemum_tadpole_burst', 'chrysanthemumTadpoleBurst', (size) => this.chrysanthemumTadpoleBurst(size));
     registerWithAlias('sparkling_comet', 'sparkling_comet', (size) => this.sparklingComet(size));
     registerWithAlias('sparkling_comet_branches', 'sparklingCometBranches', (size) => this.sparklingCometBranchesShell(size));
     registerWithAlias('galaxy', 'galaxy', (size) => this.galaxyShell(size));
     registerWithAlias('ghost_kamuro', 'ghostKamuro', (size) => this.ghostKamuroShell(size));
     registerWithAlias('double_helix', 'doubleHelix', (size) => this.doubleHelixShell(size));
     registerWithAlias('crossette', 'crossette', (size) => this.crossetteShell(size));
+    registerWithAlias('sphere_erratic_dart', 'sphereErraticDart', (size) => this.sphereErraticDartShell(size));
   }
 
   randomPreset() {
@@ -907,6 +914,8 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_notrail',
       shapeType: 'sphere',
       effectType: 'standard',
+      effects: ['no-trail'],
+      noTrail: true,
       clusterCount: 8 + Math.floor(Math.random() * 4),
       particleCountMultiplier: 1.5,
       crackle: false,
@@ -921,6 +930,7 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_cc',
       shapeType: 'sphere',
       effectType: 'standard',
+      effects: [],
       clusterCount: 8 + Math.floor(Math.random() * 4),
       particleCountMultiplier: 1.5,
       crackle: false,
@@ -935,6 +945,7 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_thick',
       shapeType: 'sphere',
       effectType: 'standard',
+      effects: [],
       clusterCount: 8 + Math.floor(Math.random() * 4),
       particleCountMultiplier: 1.5,
       crackle: false,
@@ -949,7 +960,12 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_detached',
       shapeType: 'sphere',
       effectType: 'standard',
-      clusterCount: 8 + Math.floor(Math.random() * 4),
+      effects: ['no-trail'],
+      noTrail: true,
+      clusterCount: 36 + Math.floor(Math.random() * 9),
+      detachedHeadScale: 0.42,
+      detachedLifetime: 2.5,
+      detachedSweepDuration: 0.22,
       particleCountMultiplier: 1.5,
       crackle: false,
       launchTrail: true,
@@ -964,7 +980,7 @@ export class ShellPresetFactory {
       shellType: 'comet_cluster_cascade',
       shapeType: 'sphere',
       effectType: 'standard',
-      clusterCount: 42 + Math.floor(Math.random() * 12),
+      clusterCount: 18 + Math.floor(Math.random() * 5),
       particleCountMultiplier: 1.5,
       crackle: false,
       launchTrail: true,
@@ -986,6 +1002,45 @@ export class ShellPresetFactory {
       particleCountMultiplier: 1.0,
       crackle: false,
       launchTrail: true,
+      color: this.randomColor({ limitWhite: true }),
+      shellSize: size
+    };
+  }
+
+  cometTadpoleBurst(size = 1) {
+    return {
+      type: 'comet_cluster',
+      shellType: 'comet_tadpole_burst',
+      shapeType: 'sphere',
+      dynamicsType: 'tadpole-spiral',
+      effectType: 'standard',
+      effects: [],
+      clusterCount: 1,
+      isTadpole: true,
+      particleCountMultiplier: 1.2,
+      launchTrail: true,
+      burstSmoke: false,
+      noSmoke: true,
+      launchSmoke: false,
+      color: this.randomColor({ limitWhite: true }),
+      shellSize: size
+    };
+  }
+
+  chrysanthemumTadpoleBurst(size = 1) {
+    return {
+      type: 'shell',
+      shellType: 'chrysanthemum_tadpole_burst',
+      shapeType: 'sphere',
+      dynamicsType: 'tadpole-spiral',
+      effectType: 'tadpole-flurry',
+      effects: ['tadpole-flurry'],
+      isTadpoleShell: true,
+      clusterCount: 22,
+      particleCountMultiplier: 2.2,
+      burstSmoke: false,
+      noSmoke: true,
+      launchSmoke: false,
       color: this.randomColor({ limitWhite: true }),
       shellSize: size
     };
@@ -1237,6 +1292,24 @@ export class ShellPresetFactory {
       starLife: 2600 + size * 300,
       pistil: false,
       launchTrail: true
+    };
+  }
+
+  sphereErraticDartShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sphere_erratic_dart',
+      shapeType: 'sphere',
+      dynamicsType: 'standard',
+      effectType: 'erratic-dart',
+      effects: ['erratic-dart'],
+      erraticDart: true,
+      color: this.randomColor({ limitWhite: true }),
+      particleCountMultiplier: 1.05,
+      starLife: 2600 + size * 300,
+      pistil: false,
+      launchTrail: true,
+      burstSmoke: false
     };
   }
 }

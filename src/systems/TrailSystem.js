@@ -141,20 +141,23 @@ export class TrailSystem {
     gravityScale = 1.0,
     dragScale = 1.0,
     shimmer = false,
-    phase = null
+    phase = null,
+    exactColor = false
   ) {
     if (this.trailParticles.length >= this.maxTrailParticles) {
       return;
     }
 
     const useFireworkColor = Math.random() < 0.75;
-    const trailColor = useFireworkColor
-      ? color.clone().offsetHSL(
-        (Math.random() - 0.5) * 0.04,
-        (Math.random() - 0.5) * 0.08,
-        (Math.random() - 0.5) * 0.12
-      )
-      : DEFAULT_TRAIL_COLOR.clone();
+    const trailColor = exactColor
+      ? color.clone()
+      : (useFireworkColor
+        ? color.clone().offsetHSL(
+          (Math.random() - 0.5) * 0.04,
+          (Math.random() - 0.5) * 0.08,
+          (Math.random() - 0.5) * 0.12
+        )
+        : DEFAULT_TRAIL_COLOR.clone());
 
     const vx = customVelocity ? customVelocity.x : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
     const vy = customVelocity ? customVelocity.y : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
@@ -169,6 +172,7 @@ export class TrailSystem {
       opacity: opacityMultiplier,
       strobe: strobe,
       shimmer: shimmer,
+      exactColor: exactColor,
       phase: phase !== null ? phase : Math.random() * 1000,
       strobeFreq: 90 + Math.random() * 90,
       dutyRatio: 0.25 + Math.random() * 0.2,
@@ -290,17 +294,19 @@ export class TrailSystem {
         if (activeCount < this.maxTrailParticles) {
           // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
           const lifeRatio = particle.age / particle.life;
+          const alphaCurve = particle.exactColor ? 1.6 : 2.5;
+          const alphaBase = particle.exactColor ? 1.0 : 0.75;
           let alpha =
             Math.max(
               0,
-              Math.pow(1.0 - lifeRatio, 2.5)
-            ) * (particle.opacity ?? 0.65) * 0.75;
+              Math.pow(1.0 - lifeRatio, alphaCurve)
+            ) * (particle.opacity ?? 0.65) * alphaBase;
           let r = particle.color.r;
           let g = particle.color.g;
           let b = particle.color.b;
 
           // Vòng đời nhiệt sắc cho hạt vệt (Thermal Lifecycle) - giảm nhẹ độ chói chồng lấp
-          if (!particle.strobe && !particle.shimmer) {
+          if (!particle.strobe && !particle.shimmer && !particle.exactColor) {
             if (lifeRatio < 0.15) {
               const flashT = 1.0 - (lifeRatio / 0.15);
               r = THREE.MathUtils.lerp(r, Math.max(r, 1.05), flashT * 0.35);

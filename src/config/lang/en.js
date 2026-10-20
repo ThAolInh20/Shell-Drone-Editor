@@ -447,6 +447,17 @@ export default {
       noActiveEffects: "No active effects",
       allEffectsAdded: "All effects added",
       removeEffect: "Remove effect",
+      auditionSoundTooltip: "Play sound preview",
+      auditionSoundBtn: "Test",
+      waveCurve: {
+        addPoint: "+ Add Peak",
+        deletePoint: "- Delete Peak",
+        arch: "Arch",
+        doublePeak: "Double Peak",
+        wave: "Wave",
+        slope: "Slope",
+        hint: "Drag point to adjust position and height, drag handle to set angle. Click point to select, use buttons to add or delete."
+      },
       groups: {
         audioSettings: "Audio Settings",
         coreSettings: "Core Settings",
@@ -454,11 +465,14 @@ export default {
         cometConfig: "Comet Config",
         angleConfig: "Launch Angle",
         visualEffects: "Visual Effects",
+        soundSettings: "Stage Sound Profiles",
         geometryOffsets: "Offsets",
         beatSettings: "Beat Editor",
         groupSettings: "Group Settings",
         groupChildren: "Grouped Events",
-        nestedStages: "Multi Nested Stages"
+        nestedStages: "Multi Nested Stages",
+        secondBurst: "Second Burst",
+        waveCurveSettings: "Wave Curve Editor"
       },
       fields: {
         time: "Start Time s",
@@ -473,6 +487,16 @@ export default {
         delay: "Burst Delay",
         stageScale: "Scale Multiplier",
         nestingMode: "Nesting Pattern",
+        secondBurst: "Second Burst",
+        secondBurstEnabled: "Second Burst",
+        secondBurstRatio: "Particle Ratio",
+        secondBurstTiming: "Trigger Timing",
+        secondBurstMode: "Distribution Mode",
+        secondBurstHint: "Keep ratio between 20% and 35% for optimal density and 60 FPS performance",
+        childShell: "Child Shell",
+        addChildShell: "Add Child Shell",
+        removeChildShell: "Remove Child Shell",
+        childShellScale: "Child Scale",
         type: "Type",
         pattern: "Pattern",
         preset: "Preset",
@@ -489,6 +513,7 @@ export default {
         color: "Shell Color",
         customColor: "Custom Color",
         shellSize: "Shell Size",
+        starLifeMultiplier: "Star Lifetime",
         pistil: "Pistil",
         instantBurst: "Instant Burst",
         burstSmoke: "Burst Smoke",
@@ -502,7 +527,15 @@ export default {
         noTrail: "No Trail",
         noBurst: "No Burst Silent",
         crossette: "Crossette Cross Split",
+        tadpoleFlurry: "Tadpole Arrow Flurry",
+        erraticDart: "Erratic Darting",
+        longBurn: "Long Burn",
+        apexHang: "Apex Hang",
         activeEffects: "Active Effects",
+        launchSound: "Launch Sound",
+        burstSound: "Burst Sound",
+        crackleSound: "Crackle Sound",
+        soundVolume: "Sound Volume Scale",
         ratioX: "Ratio X",
         ratioY: "Ratio Y",
         x1: "X1",
@@ -571,7 +604,8 @@ export default {
           "double-helix": "Double Helix Orbit",
           crossette: "Crossette Cross Split",
           "sparkle-trail": "Sparkle Trail",
-          "sparkling-branch-comet": "Sparkling Branch Comet"
+          "sparkling-branch-comet": "Sparkling Branch Comet",
+          "tadpole-spiral": "Tadpole Swimming Spiral"
         },
         pattern: {
           random: "Random",
@@ -592,6 +626,8 @@ export default {
           diverge: "Diverge",
           zigzag: "Zigzag",
           continuous: "Continuous",
+          "sweep-custom-curve": "* Sweep Custom Curve",
+          "sweep-wave": "Sweep Wave",
           "sweep-left": "Sweep Left",
           "sweep-right": "Sweep Right",
           "sweep-random-tilt-left": "Sweep Left Random Tilt",
@@ -630,6 +666,7 @@ export default {
           comet_cluster_cascade: "Comet Cluster Cascade",
           comet_single: "Single Comet Beam",
           comet_single_beam: "Single Comet Beam",
+          comet_tadpole_burst: "Comet Tadpole Burst",
           sparkling_comet: "Sparkling Comet Apex Spark",
           sparkling_comet_branches: "Sparkling Comet Multi Branch",
           crysanthemum: "Chrysanthemum",
@@ -639,6 +676,7 @@ export default {
           crysanthemum_spiral_v2: "Chrysanthemum Spiral V2",
           crysanthemum_cc: "Chrysanthemum Color Change",
           crysanthemum_nested: "Chrysanthemum Nested",
+          chrysanthemum_tadpole_burst: "Chrysanthemum Tadpole Burst",
           multi_nested: "★ Multi Nested Shell",
           strobe: "Strobe",
           strobe_dying_embers: "Strobe Embers",
@@ -686,6 +724,11 @@ export default {
           concentric: "Concentric Time Cascade",
           satellite: "Satellite Dispersion"
         },
+        distributionMode: {
+          random: "Random",
+          sequential: "Sequential",
+          simultaneous: "Simultaneous"
+        },
         templates: {
           custom: "Custom",
           chrysanthemumSimultaneous: "4 Layer Simultaneous Chrysanthemum",
@@ -714,6 +757,28 @@ export default {
           star: "Star",
           flow: "Flow",
           sparking: "Sparking"
+        },
+        launchSound: {
+          empty: "Default Preset",
+          standard: "Standard Lift",
+          heavy: "Heavy Mortar",
+          soft: "Soft Launch",
+          silent: "Silent Mute"
+        },
+        burstSound: {
+          empty: "Default Preset",
+          standard: "Standard Boom",
+          heavy: "Heavy Salute",
+          soft: "Soft Pop",
+          crisp: "Crisp Crack",
+          silent: "Silent Mute"
+        },
+        crackleSound: {
+          empty: "Default Preset",
+          standard: "Standard Crackle",
+          dense: "Dense Crackle",
+          soft: "Soft Crackle",
+          silent: "Silent Mute"
         }
       },
       colors: {

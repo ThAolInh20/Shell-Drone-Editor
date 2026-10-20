@@ -439,6 +439,17 @@ export default {
       noActiveEffects: "未启用任何效果",
       allEffectsAdded: "已添加全部效果",
       removeEffect: "移除效果",
+      auditionSoundTooltip: "试听音效",
+      auditionSoundBtn: "试听",
+      waveCurve: {
+        addPoint: "+ 添加顶点",
+        deletePoint: "- 删除顶点",
+        arch: "拱形",
+        doublePeak: "双峰",
+        wave: "波浪",
+        slope: "斜坡",
+        hint: "拖动圆点调整位置和高度，拖动手柄调整角度。点击选择顶点并使用按钮添加或删除。"
+      },
       groups: {
         audioSettings: "音频设置",
         coreSettings: "核心设置",
@@ -446,9 +457,12 @@ export default {
         cometConfig: "Comet 配置",
         angleConfig: "发射角度",
         visualEffects: "灯光效果",
+        soundSettings: "阶段音效配置",
         geometryOffsets: "坐标与偏移",
         beatSettings: "Beat Editor",
-        nestedStages: "多层嵌套烟花配置"
+        nestedStages: "多层嵌套烟花配置",
+        secondBurst: "二次爆炸 Second Burst",
+        waveCurveSettings: "波浪曲线编辑器"
       },
       fields: {
         time: "开始时间",
@@ -460,6 +474,16 @@ export default {
         delay: "爆炸延迟",
         stageScale: "缩放比例",
         nestingMode: "嵌套模式",
+        secondBurst: "二次爆炸 Second Burst",
+        secondBurstEnabled: "二次爆炸 Second Burst",
+        secondBurstRatio: "粒子转化比例",
+        secondBurstTiming: "引爆时机",
+        secondBurstMode: "引爆分布模式",
+        secondBurstHint: "建议将比例保持在 20% 至 35% 之间以兼顾华丽效果与 60 FPS 流畅度",
+        childShell: "子烟花类型",
+        addChildShell: "添加子烟花",
+        removeChildShell: "删除此子烟花",
+        childShellScale: "子烟花缩放",
         volume: "音量",
         url: "文件路径",
         type: "类型",
@@ -478,6 +502,7 @@ export default {
         color: "烟花颜色",
         customColor: "自定义颜色",
         shellSize: "烟花大小",
+        starLifeMultiplier: "燃烧时长",
         pistil: "花芯 Pistil",
         instantBurst: "即时爆炸",
         burstSmoke: "爆炸烟雾",
@@ -491,7 +516,15 @@ export default {
         noTrail: "无尾迹",
         noBurst: "无声即时爆炸",
         crossette: "十字分裂 Crossette",
+        tadpoleFlurry: "蝌蚪箭羽喷射",
+        erraticDart: "乱窜飞箭",
+        longBurn: "长效滞空燃烧",
+        apexHang: "滞空定格",
         activeEffects: "已启用效果",
+        launchSound: "发射音效",
+        burstSound: "爆炸音效",
+        crackleSound: "噼啪音效",
+        soundVolume: "音量比例",
         ratioX: "比例 X",
         ratioY: "比例 Y",
         x1: "X1",
@@ -559,7 +592,8 @@ export default {
           "double-helix": "双螺旋公转 Double Helix",
           crossette: "十字分裂 Crossette",
           "sparkle-trail": "闪耀彗尾",
-          "sparkling-branch-comet": "多分支闪耀彗星"
+          "sparkling-branch-comet": "多分支闪耀彗星",
+          "tadpole-spiral": "蝌蚪螺旋游动"
         },
         pattern: {
           random: "随机",
@@ -580,6 +614,8 @@ export default {
           diverge: "向外发散",
           zigzag: "之字形",
           continuous: "连续",
+          "sweep-custom-curve": "* 自定义曲线扫描",
+          "sweep-wave": "波浪起伏扫描",
           "sweep-left": "向左扫描",
           "sweep-right": "向右扫描",
           "sweep-random-tilt-left": "向左扫描 随机倾斜",
@@ -618,6 +654,7 @@ export default {
           comet_cluster_cascade: "级联阶梯彗星集群",
           comet_single: "单发极亮彗星光束",
           comet_single_beam: "单发极亮彗星光束",
+          comet_tadpole_burst: "蝌蚪旋光彗星",
           sparkling_comet: "顶点闪耀彗星",
           sparkling_comet_branches: "多分支闪耀彗星花火",
           crysanthemum: "菊花",
@@ -627,6 +664,7 @@ export default {
           crysanthemum_spiral_v2: "螺旋菊花 V2",
           crysanthemum_cc: "变色菊花",
           crysanthemum_nested: "多层嵌套菊花",
+          chrysanthemum_tadpole_burst: "菊花散裂蝌蚪彗星",
           multi_nested: "★ 多层嵌套烟花",
           strobe: "闪烁",
           strobe_dying_embers: "渐熄余烬闪烁",
@@ -674,6 +712,11 @@ export default {
           concentric: "同心时序爆炸 Time Cascade",
           satellite: "卫星分散爆炸 Satellite Dispersion"
         },
+        distributionMode: {
+          random: "随机抖动",
+          sequential: "时序依次",
+          simultaneous: "同步引爆"
+        },
         templates: {
           custom: "自定义自由配置",
           chrysanthemumSimultaneous: "4层菊花同心同时绽放",
@@ -702,6 +745,28 @@ export default {
           star: "星星",
           flow: "游动",
           sparking: "火花"
+        },
+        launchSound: {
+          empty: "默认预设",
+          standard: "标准升空",
+          heavy: "重型迫击",
+          soft: "轻柔发射",
+          silent: "静音"
+        },
+        burstSound: {
+          empty: "默认预设",
+          standard: "标准轰鸣",
+          heavy: "重型礼炮",
+          soft: "轻柔爆鸣",
+          crisp: "清脆爆裂",
+          silent: "静音"
+        },
+        crackleSound: {
+          empty: "默认预设",
+          standard: "标准噼啪",
+          dense: "密集噼啪",
+          soft: "轻柔噼啪",
+          silent: "静音"
         }
       },
       colors: {

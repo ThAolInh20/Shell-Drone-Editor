@@ -52,6 +52,7 @@ export class BurstEffectProcessor {
       normDynamics === 'comet-ring' ||
       normDynamics === 'sparkling-branches' ||
       normDynamics === 'sparkling-branch-comet' ||
+      normDynamics === 'tadpole-spiral' ||
       normDynamics === 'half-flash' ||
       normDynamics === 'split-flash'
     ) {
@@ -116,7 +117,10 @@ export class BurstEffectProcessor {
     'crossette',
     'sparkle-trail',
     'sparkle-apex',
-    'sparkling-branch-comet'
+    'sparkling-branch-comet',
+    'tadpole-spiral',
+    'long-burn',
+    'apex-hang'
   ]);
 
   static effectsRegistry = new Map();
@@ -322,6 +326,375 @@ export class BurstEffectProcessor {
       smokeLife,
       smokeOpacity
     };
+  }
+
+  static processErraticDart(particle, deltaTime, lifeRatio, baseGravityScale) {
+    if (!particle.hasErraticDart) {
+      return baseGravityScale;
+    }
+
+    const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+
+    if (!particle.erraticDartTriggered && lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72)) {
+      particle.erraticDartTriggered = true;
+      const minSpeed = dartCfg.dartSpeedMin ?? 36.0;
+      const maxSpeed = dartCfg.dartSpeedMax ?? 54.0;
+      const newSpeed = minSpeed + Math.random() * (maxSpeed - minSpeed);
+
+      const randTheta = Math.random() * Math.PI * 2;
+      const randPhi = Math.acos(Math.random() * 2 - 1);
+      const randDir = new THREE.Vector3(
+        Math.sin(randPhi) * Math.cos(randTheta),
+        Math.sin(randPhi) * Math.sin(randTheta),
+        Math.cos(randPhi)
+      );
+
+      const curSpeed = particle.velocity.length();
+      if (curSpeed > 0.1) {
+        const forward = particle.velocity.clone().normalize();
+        randDir.addScaledVector(forward, 0.20).normalize();
+      }
+
+      particle.velocity.copy(randDir.multiplyScalar(newSpeed));
+      particle.dragCoefficient = dartCfg.dragAfterDart ?? 0.12;
+      const boostDuration = dartCfg.boostLifeDuration ?? 0.95;
+      particle.maxLife = particle.age + boostDuration;
+      particle.erraticDartFlash = dartCfg.flashBrightnessMultiplier ?? 3.8;
+
+      // Thiet lap toi da 1-2 nhip be goc gap khuc thay vi luon song lien tuc
+      const maxKinks = dartCfg.maxKinks ?? 2;
+      const totalKinks = (Math.random() < 0.60 && maxKinks >= 2) ? 2 : 1;
+      const t1 = 0.10 + Math.random() * 0.08;
+      particle.erraticDartKinkTimes = totalKinks === 2
+        ? [
+            t1,
+            t1 + 0.22 + Math.random() * 0.16
+          ]
+        : [
+            0.14 + Math.random() * 0.14
+          ];
+      particle.erraticDartKinkIndex = 0;
+      particle.erraticDartTimer = 0;
+    }
+
+    let finalGravityScale = baseGravityScale;
+    if (particle.erraticDartTriggered) {
+      finalGravityScale = 0.05;
+      if (particle.erraticDartFlash && particle.erraticDartFlash > 1.0) {
+        particle.erraticDartFlash = Math.max(
+          1.0,
+          particle.erraticDartFlash - deltaTime * 1.8
+        );
+      }
+
+      // Khoi tao luoi cac moc gap khuc neu hat da kich hoat tu truoc
+      if (!particle.erraticDartKinkTimes) {
+        const maxKinks = dartCfg.maxKinks ?? 2;
+        const totalKinks = (Math.random() < 0.60 && maxKinks >= 2) ? 2 : 1;
+        const t1 = 0.10 + Math.random() * 0.08;
+        particle.erraticDartKinkTimes = totalKinks === 2
+          ? [
+              t1,
+              t1 + 0.22 + Math.random() * 0.16
+            ]
+          : [
+              0.14 + Math.random() * 0.14
+            ];
+        particle.erraticDartKinkIndex = 0;
+        particle.erraticDartTimer = 0;
+      }
+
+      particle.erraticDartTimer = (particle.erraticDartTimer || 0) + deltaTime;
+
+      const curSpeed = particle.velocity.length();
+      if (curSpeed > 1.0 && particle.erraticDartKinkTimes) {
+        const kinkIdx = particle.erraticDartKinkIndex ?? 0;
+        if (
+          kinkIdx < particle.erraticDartKinkTimes.length &&
+          particle.erraticDartTimer >= particle.erraticDartKinkTimes[kinkIdx]
+        ) {
+          // Thuc hien cu be goc gap khuc dut khoat (sharp angular kink)
+          particle.erraticDartKinkIndex = kinkIdx + 1;
+
+          const dir = particle.velocity.clone().normalize();
+          const upVec = Math.abs(dir.y) > 0.88
+            ? new THREE.Vector3(1, 0, 0)
+            : new THREE.Vector3(0, 1, 0);
+          const rightVec = new THREE.Vector3()
+            .crossVectors(dir, upVec)
+            .normalize();
+          const normalVec = new THREE.Vector3()
+            .crossVectors(rightVec, dir)
+            .normalize();
+
+          // Vector vuong goc ngau nhien 360 do quanh truc bay 3D
+          const roll = Math.random() * Math.PI * 2;
+          const perpVec = new THREE.Vector3()
+            .addScaledVector(rightVec, Math.cos(roll))
+            .addScaledVector(normalVec, Math.sin(roll))
+            .normalize();
+
+          // Goc be gap khuc nhon (tao duong gap khuc dut khoat thay vi luon)
+          const angleMin = dartCfg.kinkAngleMin ?? 42.0;
+          const angleMax = dartCfg.kinkAngleMax ?? 68.0;
+          const kinkAngleDeg = angleMin + Math.random() * (angleMax - angleMin);
+          const kinkAngleRad = (kinkAngleDeg * Math.PI) / 180.0;
+
+          // Huong moi sau khi gap khuc, bao toan do lon van toc
+          const newDir = new THREE.Vector3()
+            .addScaledVector(dir, Math.cos(kinkAngleRad))
+            .addScaledVector(perpVec, Math.sin(kinkAngleRad))
+            .normalize();
+
+          particle.velocity.copy(newDir.multiplyScalar(curSpeed));
+
+          // Chop sang nhe tai dinh goc gap khuc
+          const kinkFlash = dartCfg.kinkFlashMultiplier ?? 2.6;
+          particle.erraticDartFlash = Math.max(
+            particle.erraticDartFlash || 1.0,
+            kinkFlash
+          );
+        }
+      }
+    }
+
+    return finalGravityScale;
+  }
+
+  static resolveParticleColor(particle, lifeRatio, options = {}) {
+    const {
+      strobeFreqMultiplier = 1.0,
+      isSpiralIgnited = true,
+      spiralFlashBonus = 1.0,
+      hasGhostFlare = false,
+      profile = null
+    } = options;
+
+    let r = particle.baseColor.r;
+    let g = particle.baseColor.g;
+    let b = particle.baseColor.b;
+
+    if (particle.hasErraticDart && particle.erraticDartTriggered) {
+      // Dau hat giu nguyen do sang va mau sac ban dau trong suot pha vut
+      const hasWhiteStrobe = particle.effectType === 'white-strobe'
+        || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))
+        || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('white-strobe'));
+      if (hasWhiteStrobe) {
+        const strobeT = (Math.sin(particle.age * 38.0 * strobeFreqMultiplier) + 1.0) * 0.5;
+        r = THREE.MathUtils.lerp(r, 2.2, strobeT);
+        g = THREE.MathUtils.lerp(g, 2.2, strobeT);
+        b = THREE.MathUtils.lerp(b, 2.2, strobeT);
+      }
+      return { r, g, b };
+    }
+
+    const hasWhiteStrobe = particle.effectType === 'white-strobe'
+      || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('white-strobe'));
+
+    const hasGlitterStrobe = particle.effectType === 'glitter-strobe'
+      || particle.effectType === 'falling-comets-glitter'
+      || (Array.isArray(particle.effects) && particle.effects.includes('glitter-strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('glitter-strobe'));
+
+    const hasStandardStrobe = (
+      particle.effectType === 'strobe'
+      || particle.preset?.strobe
+      || particle.effectState?.strobe
+      || (Array.isArray(particle.effects) && particle.effects.includes('strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('strobe'))
+    ) && particle.preset?.shellType !== 'crysanthemumNested';
+
+    const hasGhost = particle.effectType === 'ghost'
+      || (Array.isArray(particle.effects) && particle.effects.includes('ghost'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('ghost'))
+      || Boolean(particle.preset?.ghost)
+      || particle.preset?.shellType === 'ghost';
+
+    const hasCC = particle.effectType === 'crysanthemum-cc'
+      || (Array.isArray(particle.effects) && particle.effects.includes('crysanthemum-cc'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('crysanthemum-cc'))
+      || particle.preset?.shellType === 'crysanthemumCC';
+
+    if (particle.effectType === 'sparking') {
+      const randomOffset = ((particle.particleIndex * 7) % 11) * 0.01;
+      const transitionStart = 0.46 + randomOffset;
+      const transitionEnd = transitionStart + 0.08;
+
+      if (particle.particleIndex % 2 !== 0) {
+        if (lifeRatio > transitionEnd) {
+          r = 0; g = 0; b = 0;
+        } else if (lifeRatio > transitionStart) {
+          const fade = (transitionEnd - lifeRatio) / (transitionEnd - transitionStart);
+          r = particle.baseColor.r * fade;
+          g = particle.baseColor.g * fade;
+          b = particle.baseColor.b * fade;
+        }
+      }
+    } else if (hasWhiteStrobe) {
+      if (lifeRatio > 0.5) {
+        const timeMs = (particle.age + particle.phase) * 1000;
+        const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+        const blink = isBlinking ? 1.0 : 0.05;
+        r = blink;
+        g = blink;
+        b = blink;
+      }
+    } else if (hasGlitterStrobe) {
+      const timeMs = (particle.age + particle.phase) * 1000;
+      const strobeFreq = 90 * strobeFreqMultiplier;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
+      const blink = isBlinking ? 1.5 : 0.0;
+      r = blink;
+      g = blink;
+      b = blink;
+    } else if (
+      particle.isDyingEmber
+      || (particle.preset?.shellType === 'crysanthemumNestedChild' && particle.preset?.strobe)
+    ) {
+      const timeMs = (particle.age + particle.phase) * 1000;
+      const strobeFreq = 120 * strobeFreqMultiplier;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 7 === 0;
+      const blink = isBlinking ? 1.5 : 0.06;
+
+      const coolFactor = Math.pow(1.0 - lifeRatio, 0.85);
+
+      r = particle.baseColor.r * blink * coolFactor;
+      g = particle.baseColor.g * blink * coolFactor;
+      b = particle.baseColor.b * blink * coolFactor;
+    } else if (hasStandardStrobe) {
+      const timeMs = (particle.age + particle.phase) * 1000;
+      const strobeFreq = 150 * strobeFreqMultiplier;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+      const blink = isBlinking ? 1.0 : 0.0;
+
+      if (particle.preset?.shellType === 'strobe') {
+        r = blink;
+        g = blink;
+        b = blink;
+      } else {
+        r = particle.baseColor.r * blink;
+        g = particle.baseColor.g * blink;
+        b = particle.baseColor.b * blink;
+      }
+    } else if (hasGhost) {
+      let intensity = 0.0;
+      if (lifeRatio < 0.40) {
+        intensity = 0.0;
+      } else if (lifeRatio < 0.48) {
+        const t = (lifeRatio - 0.40) / 0.08;
+        intensity = THREE.MathUtils.lerp(0.0, 1.35, Math.sin(t * Math.PI * 0.5));
+      } else if (lifeRatio < 0.85) {
+        intensity = 1.0;
+      } else {
+        const t = (lifeRatio - 0.85) / 0.15;
+        intensity = Math.max(0.0, 1.0 - t);
+      }
+      r = particle.baseColor.r * intensity;
+      g = particle.baseColor.g * intensity;
+      b = particle.baseColor.b * intensity;
+    } else if (hasCC && particle.color2) {
+      if (lifeRatio < 0.40) {
+        r = particle.baseColor.r;
+        g = particle.baseColor.g;
+        b = particle.baseColor.b;
+      } else if (lifeRatio < 0.48) {
+        const t = (lifeRatio - 0.40) / 0.08;
+        const flashMultiplier = 1.0 + Math.sin(t * Math.PI) * 0.35;
+        r = THREE.MathUtils.lerp(particle.baseColor.r, particle.color2.r, t) * flashMultiplier;
+        g = THREE.MathUtils.lerp(particle.baseColor.g, particle.color2.g, t) * flashMultiplier;
+        b = THREE.MathUtils.lerp(particle.baseColor.b, particle.color2.b, t) * flashMultiplier;
+      } else if (lifeRatio < 0.85) {
+        r = particle.color2.r;
+        g = particle.color2.g;
+        b = particle.color2.b;
+      } else {
+        const t = (lifeRatio - 0.85) / 0.15;
+        const fade = Math.max(0.0, 1.0 - t);
+        r = particle.color2.r * fade;
+        g = particle.color2.g * fade;
+        b = particle.color2.b * fade;
+      }
+    } else if (particle.effectType === 'crysanthemum-spiral' || particle.effectType === 'crysanthemum-spiral-v2') {
+      if (!isSpiralIgnited) {
+        r = particle.baseColor.r * 0.02;
+        g = particle.baseColor.g * 0.02;
+        b = particle.baseColor.b * 0.02;
+      } else {
+        r = Math.min(2.0, particle.baseColor.r * spiralFlashBonus);
+        g = Math.min(2.0, particle.baseColor.g * spiralFlashBonus);
+        b = Math.min(2.0, particle.baseColor.b * spiralFlashBonus);
+      }
+    } else if (hasGhostFlare) {
+      if (lifeRatio < 0.32) {
+        r = particle.baseColor.r;
+        g = particle.baseColor.g;
+        b = particle.baseColor.b;
+      } else if (lifeRatio <= 0.60) {
+        r = particle.baseColor.r * 0.02;
+        g = particle.baseColor.g * 0.02;
+        b = particle.baseColor.b * 0.02;
+      } else {
+        const flashProgress = (lifeRatio - 0.60) / 0.40;
+        const reigniteIntensity = 1.6 * (1.0 - flashProgress * 0.4);
+        r = Math.min(2.0, particle.baseColor.r * reigniteIntensity);
+        g = Math.min(2.0, particle.baseColor.g * reigniteIntensity);
+        b = Math.min(2.0, particle.baseColor.b * reigniteIntensity);
+      }
+    } else if (particle.effectType === 'double-helix') {
+      if (particle.color2) {
+        const strandFactor = (particle.particleIndex % 2 === 0) ? 0.0 : 0.4;
+        const blendT = Math.min(1.0, lifeRatio * 0.7 + strandFactor);
+        r = particle.baseColor.r * (1.0 - blendT) + particle.color2.r * blendT;
+        g = particle.baseColor.g * (1.0 - blendT) + particle.color2.g * blendT;
+        b = particle.baseColor.b * (1.0 - blendT) + particle.color2.b * blendT;
+      }
+    } else if (profile?.thermalCooling !== false) {
+      if (particle.isSecondBurstChild) {
+        // Second burst child particles: suppress white incandescent flash resonance
+        // Preserve rich chromatic saturation instead of bleaching to white
+        if (lifeRatio < 0.12) {
+          const flashT = 1.0 - (lifeRatio / 0.12);
+          r = r * (1.0 + flashT * 0.15);
+          g = g * (1.0 + flashT * 0.15);
+          b = b * (1.0 + flashT * 0.15);
+        } else if (lifeRatio > 0.65) {
+          if (lifeRatio < 0.90) {
+            const coolT = (lifeRatio - 0.65) / 0.25;
+            r = THREE.MathUtils.lerp(r, r * 0.75, coolT);
+            g = THREE.MathUtils.lerp(g, g * 0.75, coolT);
+            b = THREE.MathUtils.lerp(b, b * 0.75, coolT);
+          } else {
+            const emberT = (lifeRatio - 0.90) / 0.10;
+            r = THREE.MathUtils.lerp(r * 0.75, r * 0.45, emberT);
+            g = THREE.MathUtils.lerp(g * 0.75, g * 0.45, emberT);
+            b = THREE.MathUtils.lerp(b * 0.75, b * 0.45, emberT);
+          }
+        }
+      } else {
+        if (lifeRatio < 0.12) {
+          const flashT = 1.0 - (lifeRatio / 0.12);
+          r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
+          g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
+          b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
+        } else if (lifeRatio > 0.62) {
+          if (lifeRatio < 0.88) {
+            const coolT = (lifeRatio - 0.62) / 0.26;
+            r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
+            g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
+            b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
+          } else {
+            const emberT = (lifeRatio - 0.88) / 0.12;
+            r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
+            g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
+            b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
+          }
+        }
+      }
+    }
+
+    return { r, g, b };
   }
 }
 
@@ -779,6 +1152,58 @@ BurstEffectProcessor.registerEffect('sparkling-branch-comet', {
       trailLife: 0.22,
       trailIntensity: 0.18,
       spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('apex-hang', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const apexDrag = FIREWORK_CONFIG.BURST?.apexExpansionDrag ?? 3.8;
+    const brakeFactor = Math.exp(-apexDrag * deltaTime);
+    velocity.multiplyScalar(brakeFactor);
+
+    const initialSpeed = effectState?.initialSpeeds?.[index] ?? 0;
+    const threshold = FIREWORK_CONFIG.BURST?.apexGravityThreshold ?? 0.18;
+
+    if (initialSpeed > 0.001) {
+      const currentSpeed = velocity.length();
+      const expRatio = currentSpeed / initialSpeed;
+      if (expRatio > threshold) {
+        return {
+          gravityScale: 0.0,
+          spawnTrail: false
+        };
+      }
+      const gravityBlend = 1.0 - (expRatio / threshold);
+      return {
+        gravityScale: THREE.MathUtils.smoothstep(
+          gravityBlend,
+          0.0,
+          1.0
+        ),
+        spawnTrail: false
+      };
+    }
+
+    const lifeRatio = maxLife > 0 ? age / maxLife : 1;
+    const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+    if (lifeRatio <= hangEnd) {
+      return {
+        gravityScale: 0.0,
+        spawnTrail: false
+      };
+    }
+    const releaseProgress = Math.min(
+      1.0,
+      (lifeRatio - hangEnd) / 0.18
+    );
+    return {
+      gravityScale: THREE.MathUtils.smoothstep(
+        releaseProgress,
+        0.0,
+        1.0
+      ),
+      spawnTrail: false
     };
   }
 });

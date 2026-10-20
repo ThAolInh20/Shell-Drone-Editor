@@ -169,6 +169,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Branch Comet', 'Apex Sparkle'],
     summary: 'Branching sub-comets streaming outwards with synchronized apex sparkling.'
   },
+  'tadpole-spiral': {
+    name: 'Tadpole Swimming Spiral',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/tadpole-spiral.mp4',
+    tags: ['Corkscrew Spiral', 'Accelerating Wiggle'],
+    summary: 'Comet star ascends with a widening corkscrew spiral and accelerates into erratic wriggles.'
+  },
 
   // 3D Spatial Burst Shapes
   'sphere': {
@@ -334,6 +341,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Apex Flash', 'Sparkle Flash'],
     summary: 'Bright synchronized sparkling flash at the apex and decay point of stars.'
   },
+  'erratic-dart': {
+    name: 'Erratic Darting',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/erratic-dart.mp4',
+    tags: ['Sudden Deflection', 'Bright Streak'],
+    summary: 'Stars suddenly accelerate and dart erratically near burnout drawing luminous streaks.'
+  },
 
   // Preset Shell Templates
   'sparkling-comet-branches': {
@@ -342,6 +356,20 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/sparkling-comet-branches.mp4',
     tags: ['Multi Branch', 'Apex Sparkle'],
     summary: 'Shell explodes into four to five sub-comet branches with sparkling flashes at the apex.'
+  },
+  'comet_tadpole_burst': {
+    name: 'Comet Tadpole Burst',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/comet-tadpole-burst.mp4',
+    tags: ['Tadpole Swim', 'Apex Flurry Burst'],
+    summary: 'Bulbous star with short thick trail swims upward in a widening corkscrew spiral and erupts into a flurry of sparks near apex.'
+  },
+  'sphere_erratic_dart': {
+    name: 'Sphere Erratic Dart',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere-erratic-dart.mp4',
+    tags: ['Sphere Burst', 'Erratic Darting'],
+    summary: 'Symmetrical spherical burst whose stars suddenly deflect erratically in random directions drawing vivid streak lines near burnout.'
   },
 
   // Sequence Firing Patterns

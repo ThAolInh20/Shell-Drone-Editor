@@ -447,6 +447,17 @@ export default {
       noActiveEffects: "Chưa kích hoạt hiệu ứng nào",
       allEffectsAdded: "Đã thêm tất cả hiệu ứng",
       removeEffect: "Gỡ bỏ hiệu ứng",
+      auditionSoundTooltip: "Nghe thử âm thanh",
+      auditionSoundBtn: "Thử",
+      waveCurve: {
+        addPoint: "+ Thêm đỉnh",
+        deletePoint: "- Xóa đỉnh",
+        arch: "Vòm cung",
+        doublePeak: "Hai đỉnh",
+        wave: "Sóng lượn",
+        slope: "Dáng dốc",
+        hint: "Kéo chấm để đổi vị trí và độ cao, kéo cần gạt để đổi góc bắn. Bấm chọn điểm và dùng nút Thêm/Xóa đỉnh."
+      },
       groups: {
         audioSettings: "Cấu hình âm thanh",
         coreSettings: "Cấu hình cốt lõi",
@@ -454,11 +465,14 @@ export default {
         cometConfig: "Cấu hình Comet",
         angleConfig: "Góc phóng",
         visualEffects: "Hiệu ứng ánh sáng",
+        soundSettings: "Hồ sơ âm thanh từng giai đoạn",
         geometryOffsets: "Tọa độ & Căn lề",
         beatSettings: "Biên tập nhịp Beat",
         groupSettings: "Cấu hình nhóm",
         groupChildren: "Danh sách sự kiện con",
-        nestedStages: "Cấu hình pháo lồng đa tầng"
+        nestedStages: "Cấu hình pháo lồng đa tầng",
+        secondBurst: "Cấu hình pháo nổ phụ Second Burst",
+        waveCurveSettings: "Biên tập đường cong sóng"
       },
       fields: {
         time: "Thời gian bắt đầu s",
@@ -473,6 +487,16 @@ export default {
         delay: "Độ trễ kích nổ",
         stageScale: "Tỉ lệ kích thước",
         nestingMode: "Kiểu pháo lồng",
+        secondBurst: "Pháo nổ phụ Second Burst",
+        secondBurstEnabled: "Pháo nổ phụ Second Burst",
+        secondBurstRatio: "Tỉ lệ hạt biến đổi",
+        secondBurstTiming: "Thời điểm nổ",
+        secondBurstMode: "Quy trình kích nổ",
+        secondBurstHint: "Nên giữ tỉ lệ hạt từ 20% đến 35% để hiệu ứng đẹp mắt và đảm bảo mượt mà 60 FPS",
+        childShell: "Loại pháo con",
+        addChildShell: "Thêm loại pháo",
+        removeChildShell: "Xóa loại này",
+        childShellScale: "Kích thước pháo con",
         type: "Loại",
         pattern: "Quy luật bắn",
         preset: "Preset",
@@ -489,6 +513,7 @@ export default {
         color: "Màu sắc pháo",
         customColor: "Màu tùy chỉnh",
         shellSize: "Kích thước shell",
+        starLifeMultiplier: "Thời Gian Cháy",
         pistil: "Nhị pháo Pistil",
         instantBurst: "Nổ tức thì",
         burstSmoke: "Khói khi nổ Burst Smoke",
@@ -502,7 +527,15 @@ export default {
         noTrail: "Không vệt đuôi",
         noBurst: "Nổ tức thì không tiếng",
         crossette: "Sao tách chữ thập Crossette",
+        tadpoleFlurry: "Tia xù nòng nọc",
+        erraticDart: "Tia vút loạn xạ",
+        longBurn: "Cháy lâu",
+        apexHang: "Dừng không trung",
         activeEffects: "Hiệu ứng kích hoạt",
+        launchSound: "Âm thanh phóng",
+        burstSound: "Âm thanh nổ bung",
+        crackleSound: "Âm thanh nổ lách tách",
+        soundVolume: "Tỷ lệ âm lượng",
         ratioX: "Tỉ lệ X",
         ratioY: "Tỉ lệ Y",
         x1: "X1",
@@ -571,7 +604,8 @@ export default {
           "double-helix": "Xoắn kép xoay Double Helix",
           crossette: "Sao tách chữ thập Crossette",
           "sparkle-trail": "Đuôi sao chổi lấp lánh",
-          "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh"
+          "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh",
+          "tadpole-spiral": "Nòng nọc bơi xoắn ốc"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -592,6 +626,8 @@ export default {
           diverge: "Phân kỳ",
           zigzag: "Zic-zac",
           continuous: "Liên tục",
+          "sweep-custom-curve": "★ Quét đường cong tùy biến",
+          "sweep-wave": "Quét sóng uốn lượn",
           "sweep-left": "Quét sang trái",
           "sweep-right": "Quét sang phải",
           "sweep-random-tilt-left": "Quét trái nghiêng ngẫu nhiên",
@@ -630,6 +666,7 @@ export default {
           comet_cluster_cascade: "Cụm sao chổi dải tầng",
           comet_single: "Sao chổi đơn siêu sáng",
           comet_single_beam: "Sao chổi đơn siêu sáng",
+          comet_tadpole_burst: "Pháo Comet Nòng Nọc Tung Tỏa",
           sparkling_comet: "Sao chổi nổ đỉnh lấp lánh",
           sparkling_comet_branches: "Sao chổi đa nhánh lấp lánh",
           crysanthemum: "Hoa cúc",
@@ -639,6 +676,7 @@ export default {
           crysanthemum_spiral_v2: "Hoa cúc xoắn ốc V2",
           crysanthemum_cc: "Hoa cúc đổi màu",
           crysanthemum_nested: "Hoa cúc lồng nhau",
+          chrysanthemum_tadpole_burst: "Hoa cúc bung pháo nòng nọc xù",
           multi_nested: "★ Pháo hoa đa tầng lồng nhau",
           strobe: "Nhấp nháy",
           strobe_dying_embers: "Tàn lửa nhấp nháy",
@@ -686,6 +724,11 @@ export default {
           concentric: "Đồng tâm nối tiếp Time Cascade",
           satellite: "Phân tán vệ tinh Satellite Dispersion"
         },
+        distributionMode: {
+          random: "Ngẫu nhiên",
+          sequential: "Lần lượt",
+          simultaneous: "Đồng loạt"
+        },
         templates: {
           custom: "Tùy chỉnh tự do",
           chrysanthemumSimultaneous: "4 Tầng hoa cúc nổ đồng thời",
@@ -714,6 +757,28 @@ export default {
           star: "Ngôi sao",
           flow: "Bơi lội",
           sparking: "Tia lửa"
+        },
+        launchSound: {
+          empty: "Mặc định Preset",
+          standard: "Phóng tiêu chuẩn",
+          heavy: "Phóng đại bác trầm",
+          soft: "Phóng êm dịu",
+          silent: "Tắt tiếng"
+        },
+        burstSound: {
+          empty: "Mặc định Preset",
+          standard: "Nổ vang tiêu chuẩn",
+          heavy: "Nổ đại bác trầm",
+          soft: "Nổ nhỏ êm",
+          crisp: "Nổ đanh gọn",
+          silent: "Tắt tiếng"
+        },
+        crackleSound: {
+          empty: "Mặc định Preset",
+          standard: "Lách tách tiêu chuẩn",
+          dense: "Lách tách dày đặc",
+          soft: "Lách tách êm",
+          silent: "Tắt tiếng"
         }
       },
       colors: {

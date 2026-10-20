@@ -8,7 +8,7 @@ export const FIREWORK_CONFIG = {
   // Các hằng số hệ thống liên quan đến hiển thị và hiệu năng
   SYSTEM: {
     // Giới hạn số lượng hạt nổ tối đa hiển thị đồng thời để tránh quá tải GPU
-    maxBurstParticles: 20000,
+    maxBurstParticles: 200000,
     // Giới hạn số lượng hạt đuôi (trail) tối đa hiển thị đồng thời
     maxTrailParticles: 150000,
     // Vận tốc mở rộng của đám mây hiệu ứng nổ crackle
@@ -53,7 +53,25 @@ export const FIREWORK_CONFIG = {
     // Số hạt nổ tối thiểu cho phép
     minParticles: 60,
     // Số hạt nổ tối đa cho phép để bảo vệ FPS
-    maxParticles: 220
+    maxParticles: 220,
+    // Hệ số kéo dài thời gian sống cho hiệu ứng long-burn
+    longBurnMultiplier: 2.2,
+    // Ngưỡng tan biến muộn cho hiệu ứng long-burn để giữ hạt sáng lâu
+    longBurnDissolveStart: 0.72,
+    // Trọng lực giảm nhẹ giúp hạt long-burn trôi lơ lửng trên không
+    longBurnGravityScale: 0.85,
+    // Ngưỡng bắt đầu hãm phanh cho hiệu ứng apex-hang
+    apexHangStart: 0.28,
+    // Ngưỡng kết thúc pha dừng cho hiệu ứng apex-hang
+    apexHangEnd: 0.48,
+    // Hệ số hãm phanh mượt mà đưa vận tốc về trạng thái đứng yên
+    apexHangBrakeRate: 9.5,
+    // Hệ số lực cản khí động học triệt tiêu vận tốc bung nở theo phương bắn (êm đềm, nở to)
+    apexExpansionDrag: 1.35,
+    // Ngưỡng tỉ lệ vận tốc bung nở bắt đầu chuyển giao sang trọng lực Trái Đất
+    apexGravityThreshold: 0.14,
+    // Hệ số nhân vận tốc bung nở ban đầu cho hiệu ứng apex-hang (nhịp nhàng)
+    apexSpeedMultiplier: 1.35
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
@@ -221,6 +239,98 @@ export const FIREWORK_CONFIG = {
     }
   },
 
+  // Cấu hình pháo Comet dạng Nòng Nọc / Mũi Tên (Comet Tadpole Burst)
+  COMET_TADPOLE: {
+    // Độ phóng to của đầu hạt nổ chính
+    headScale: 1.6,
+    // Độ chói sáng của nhân trắng bên trong đầu nòng nọc
+    headBrightness: 11.0,
+    // Hệ số thời gian sống của đuôi (tăng lên để kéo dãn không bị vón cục)
+    trailLifeMultiplier: 0.90,
+    // Hệ số độ to bề ngang của vệt đuôi
+    trailWidthMultiplier: 1.4,
+    // Khoảng cách bình phương tối thiểu giữa các lần sinh hạt để dãn vệt
+    trailMinDistSq: 1.44,
+    // Biên độ lắc lư nhẹ nhàng cơ bản (mét, không xoáy tròn mạnh)
+    swayAmpBase: 0.30,
+    // Biên độ lắc lư cực đại
+    swayAmpMax: 0.70,
+    // Tần số lắc lư nhẹ nhàng êm ái (Hz)
+    swayFreq: 1.85,
+    // Ngưỡng bắt đầu xù hạt chúc xuống dưới hình mũi tên (hạ xuống tầm thấp 28% độ cao)
+    arrowFlurryStartProgress: 0.28,
+    // Chu kỳ bắn đợt hạt xù hình mũi tên (giây, ngắn hơn để xù đều và dày dặn hơn)
+    arrowInterval: 0.065,
+    // Số hạt xù bắn ra trong mỗi đợt
+    arrowSparksMin: 4,
+    arrowSparksMax: 7,
+    // Vận tốc hạt xù bắn chúc ngược xuống dưới (m/s)
+    arrowSpeedMin: 14.0,
+    arrowSpeedMax: 24.0,
+    // Thời gian sống của hạt tia xù hình mũi tên (giây)
+    arrowStarLife: 0.75,
+    // Số hạt bung chùm chúc xuống tại đỉnh (tăng mật độ để nổi bật rõ nét)
+    flurryCount: 32,
+    // Thời gian sống của hạt bung chùm tại đỉnh (giây)
+    flurryStarLife: 0.85,
+    // Hệ số tăng sáng và bloom cho các hạt tia xù
+    sparkBrightnessMultiplier: 2.2,
+    // Cấu hình pháo hoa mẹ khi nổ bung tỏa ra chùm nòng nọc xù (chrysanthemum_tadpole_burst)
+    burstShell: {
+      clusterCountMin: 18,
+      clusterCountMax: 26,
+      burstSpeedMin: 45.0,
+      burstSpeedMax: 68.0,
+      childStarLife: 2.2,
+      gravityScale: 0.45
+    },
+    // Tỷ lệ hạt kích hoạt hiệu ứng tia xù nòng nọc trên pháo thông thường (30% - 40%)
+    burstActivationRatio: 0.35
+  },
+
+  // Cấu hình hiệu ứng hạt nổ tăng tốc đổi hướng bất ngờ vẽ vệt sáng (Erratic Darting / Swimming Stars)
+  ERRATIC_DART: {
+    // Tỷ lệ hạt kích hoạt hiệu ứng (~40% số hạt)
+    activationRatio: 0.40,
+    // Ngưỡng phần trăm vòng đời bắt đầu kích hoạt pha vút
+    triggerRatioMin: 0.70,
+    triggerRatioMax: 0.76,
+    // Tốc độ xung lực vút tốc mới cực đại (m/s)
+    dartSpeedMin: 36.0,
+    dartSpeedMax: 54.0,
+    // Số nhịp bẻ góc gấp khúc tối đa (chỉ từ 1 đến 2 nhịp)
+    maxKinks: 2,
+    // Góc bẻ gập khúc nhọn tối thiểu và tối đa (độ)
+    kinkAngleMin: 42.0,
+    kinkAngleMax: 68.0,
+    // Hệ số sáng lóe lên tại mỗi đỉnh góc gấp khúc
+    kinkFlashMultiplier: 2.0,
+    // Tốc độ bẻ lái góc tối đa (rad/s, giữ tương thích ngược)
+    turnRateMax: 6.8,
+    // Tần số uốn lượn hình chữ S và xoắn ốc (rad/s, giữ tương thích ngược)
+    turnFreq: 7.2,
+    // Biên độ lắc uốn lượn tự nhiên của hạt khi vút (m/s^2, giữ tương thích ngược)
+    wobbleAmp: 26.0,
+    // Tần số lắc lượn ngoằn ngoèo (rad/s, giữ tương thích ngược)
+    wobbleFreq: 22.0,
+    // Hệ số ma sát không khí sau khi vút (thấp hơn để hạt lướt nhanh và xa)
+    dragAfterDart: 0.12,
+    // Thời gian sống kéo dài thêm cho pha vút vẽ vệt (giây, giảm vừa phải để kết thúc gọn gàng)
+    boostLifeDuration: 0.95,
+    // Độ sáng bừng lên tức thì khi bắt đầu vút (multiplier)
+    flashBrightnessMultiplier: 2.2,
+    // Hệ số tăng cường độ sáng của vệt đuôi mờ dịu (tạo độ mờ thanh thoát thay vì chói)
+    streakBrightnessMultiplier: 1.35,
+    // Độ mờ đục của từng điểm sáng vệt đuôi (tạo cảm giác mờ ảo)
+    trailOpacity: 0.48,
+    // Chu kỳ nhả hạt vệt sáng dãn cách (giây, giãn ra để giảm tỷ lệ sinh hạt, tạo vệt mờ thưa)
+    trailInterval: 0.075,
+    // Thời gian sống kéo dài của từng điểm sáng rời rạc để lưu giữ đường bay (giây)
+    trailParticleLife: 0.90,
+    // Tỷ lệ lệch góc
+    deflectionJitter: 0.85
+  },
+
   // Cấu hình quỹ đạo bay lên dạng xoắn ốc (spiral) tần suất cao và vệt sáng đậm
   ASCENT: {
     // Bật hiệu ứng xoắn ốc tự nhiên khi pháo bay lên
@@ -384,5 +494,20 @@ export const FIREWORK_CONFIG = {
     // Hệ số kích thước và độ mờ cho khối khói lớn tự nhiên
     ambientBurstScaleMultiplier: 0.95,
     ambientBurstOpacityMultiplier: 0.75
+  },
+
+  // Cấu hình pháo nổ phụ thứ cấp (Second Burst)
+  SECOND_BURST: {
+    minParticlesPerChild: 10,
+    maxParticlesPerChild: 48,
+    defaultScale: 0.35,
+    minScale: 0.15,
+    maxScale: 0.8,
+    defaultLife: 0.9,
+    lifeJitter: 0.2,
+    baseSpeed: 38,
+    maxConcurrentChildParticles: 35000,
+    audioThrottleMs: 45,
+    maxAudioTriggersPerWindow: 3
   }
 };

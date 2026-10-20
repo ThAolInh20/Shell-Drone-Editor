@@ -30,8 +30,9 @@ graph TD
    - [BurstShapeGenerator.js](../../src/factories/BurstShapeGenerator.js): Tinh toan vector huong tam 3D ban dau cua cac hat. Tuyet doi khong chua logic vat ly hay hieu ung dong.
 3. **Dong luc hoc & Vat ly hat (Dynamics - t > 0):**
    - [BurstEffectProcessor.js](../../src/factories/BurstEffectProcessor.js): Dieu khien van toc, ma sat khong khi, trong luc rieng biet (vi du: flow, willow, falling-leaves, snow, wave, galaxy-spin, bouquet-comet).
-4. **Hieu ung quang hoc (Visual Effects):**
-   - [BurstEffectProcessor.js](../../src/factories/BurstEffectProcessor.js): Xu ly nhap nhay (strobe, white-strobe, glitter-strobe), no lach tach (crackle), an hien (ghost), vet sang (trail).
+4. **Hieu ung quang hoc & Active Effects (Visual Effects):**
+   - [BurstEffectProcessor.js](../../src/factories/BurstEffectProcessor.js) & [FireworkSystem.js](../../src/systems/FireworkSystem.js): Xu ly nhap nhay (strobe, white-strobe, glitter-strobe), no lach tach (crackle), an hien (ghost), tach sao (crossette), tia xu nong noc (tadpole-flurry), khoi (burst-smoke), vet sang (trail).
+   - Quy tac bat buoc: Cac the trong Active Effects phai mang tinh dung chung (universal), ap dung truc tiep duoc tren cac hat `burstParticles` cua moi loai phao hoa (peony, sphere, ring, willow,...) ma khong bi troi buoc vao mot preset rieng le nao.
 5. **Giao dien bien tap & Khoi dong nhanh (UI & Preset Factory):**
    - [PropertyInspector.js](../../src/ui/PropertyInspector.js): Render cac dropdown doc lap cho Shape, Dynamics va tag chips cho Visual Effects.
    - [ShellPresetFactory.js](../../src/factories/ShellPresetFactory.js): Khai bao preset khoi dong nhanh.
@@ -150,6 +151,7 @@ Moi loai phao hoa co thu muc luu tru video minh hoa rieng biet trong `./public/p
 ## 4. Nguyen tac bat buoc (Enforced Rules)
 
 - **Khong pha vo Composition**: Khong duoc dua logic Dynamics vao Shape hoac hard-code Shape vao Dynamics.
+- **Mac dinh khong them Smoke**: Mac dinh khi tao moi bat ky loai phao hoa nao (presets, burst shells, comets), tuyet doi khong tu dong them khoi (`burstSmoke: false`, `hasBurstSmoke: false`, `noSmoke: true`, khong them tag `burst-smoke` hay `smoke`). Smoke chi duoc phep them khi nguoi dung co yeu cau ro rang (vi du: phao khoi, smoke shell).
 - **Dong bo Taxonomy & Metadata**: Bat ky thanh phan moi nao cung phai duoc cap nhat vao `FireworkCompositionHelper.js`, tu dien da ngon ngu va `src/config/effectPreviews.js`.
 - **Thong bao duong dan video**: Luon ghi ro duong dan thu muc video tuong ung va huong dan nguoi dung tu bo sung file video mau kem lenh `npm run media:mute-previews`.
 - **Khong dung Icons/Emojis**: Giu toan bo ma nguon, comment, giao dien va tai lieu thuan van ban (text-only).

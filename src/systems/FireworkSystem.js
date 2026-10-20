@@ -4,6 +4,8 @@ import { ShellEntity } from '../entities/ShellEntity.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
 import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
+import { BurstParticleFactory } from '../factories/BurstParticleFactory.js';
+import { resolveSecondBurstConfig } from '../factories/FireworkCompositionHelper.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
@@ -44,6 +46,7 @@ export class FireworkSystem {
     this.autoLaunchTimer = 0;
     this.autoLaunchInterval = 3; // seconds between auto launches
     this.shellSequence = 0;
+    this.lastSecondBurstAudioTime = 0;
     this.diagnostics = {
       launched: 0,
       bursted: 0,
@@ -68,7 +71,7 @@ export class FireworkSystem {
     this.instancedShellRenderer = new InstancedShellRenderer(scene);
 
     // Global Burst Particle System (Option 2)
-    this.allocatedMaxBurstParticles = 10000; // Pre-allocate for High quality limit
+    this.allocatedMaxBurstParticles = 50000; // Pre-allocate for high particle limits
     this.maxBurstParticles = 6000;
     this.graphicsQualityMultiplier = 1.0;
     this.burstParticles = [];
@@ -189,7 +192,9 @@ export class FireworkSystem {
 
     this.eventSubscriptions = [];
     this.setGraphicsQuality(
-      localStorage.getItem('graphics_quality') || 'medium'
+      (typeof localStorage !== 'undefined' && localStorage?.getItem)
+        ? localStorage.getItem('graphics_quality') || 'medium'
+        : 'medium'
     );
     this.eventSubscriptions.push(
       globalEventBus.on(
@@ -309,6 +314,7 @@ export class FireworkSystem {
           effectType: shellPreset.effectType ?? 'standard',
           colorHex: finalColor.getHex(),
           hasCustomColor: isCustomColor,
+          sound: shellPreset.sound || null,
           position: {
             x: position.x,
             y: position.y,
@@ -379,6 +385,7 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
           effects: shellPreset.effects,
+          sound: shellPreset.sound || null,
           noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
           position: {
@@ -421,6 +428,7 @@ export class FireworkSystem {
         effectType: shellPreset.effectType ?? 'standard',
         colorHex: finalColor.getHex(),
         hasCustomColor: isCustomColor,
+        sound: shellPreset.sound || null,
         position: {
           x: position.x,
           y: position.y,
@@ -519,8 +527,14 @@ export class FireworkSystem {
     const baseAngle = this._lastLaunchAngle || (Math.PI / 2);
     const forwardSpeed = 20;
 
-    // Vận tốc tạt nghiêng theo angleOffset (tính bằng tan(angleOffset))
-    const tiltLateral = launchSpeedY * Math.tan(angleOffset);
+    // Vận tốc tạt nghiêng theo angleOffset (tính bằng tan(angleOffset) với ngưỡng an toàn tối đa 85 độ)
+    const maxTiltRad = 85 * (Math.PI / 180);
+    const safeAngle = THREE.MathUtils.clamp(
+      angleOffset,
+      -maxTiltRad,
+      maxTiltRad
+    );
+    const tiltLateral = launchSpeedY * Math.tan(safeAngle);
 
     const vx = forwardSpeed * Math.cos(baseAngle) +
       tiltLateral * Math.sin(baseAngle) +
@@ -997,6 +1011,269 @@ export class FireworkSystem {
     }
   }
 
+  triggerTadpoleBurstShell(
+    burstPosition,
+    color,
+    preset,
+    shellId,
+    burstDirection = null,
+    parentVelocity = null
+  ) {
+    const burstCfg = FIREWORK_CONFIG.COMET_TADPOLE?.burstShell || {};
+    const countMin = burstCfg.clusterCountMin || 18;
+    const countMax = burstCfg.clusterCountMax || 26;
+    const clusterCount = preset?.clusterCount
+      ?? (countMin + Math.floor(Math.random() * (countMax - countMin + 1)));
+    const speedMin = burstCfg.burstSpeedMin || 45.0;
+    const speedMax = burstCfg.burstSpeedMax || 68.0;
+    const childStarLife = burstCfg.childStarLife || 2.2;
+    const gravityScale = burstCfg.gravityScale || 0.45;
+
+    for (let i = 0; i < clusterCount; i++) {
+      // Fibonacci sphere distribution for uniform 3D spherical dispersion
+      const t = (i + 0.5) / clusterCount;
+      const phi = Math.acos(1 - 2 * t);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+      let outwardDir = new THREE.Vector3(
+        Math.cos(theta) * Math.sin(phi),
+        Math.cos(phi),
+        Math.sin(theta) * Math.sin(phi)
+      ).normalize();
+
+      // Tránh để tia phóng thẳng xuống đất
+      if (outwardDir.y < -0.32) {
+        outwardDir.y = -0.32;
+        outwardDir.normalize();
+      }
+
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
+      const childVel = outwardDir.multiplyScalar(speed);
+      if (parentVelocity) {
+        childVel.addScaledVector(parentVelocity, 0.15);
+      }
+
+      const childColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.06,
+        0.05,
+        0.08
+      );
+
+      const childPreset = {
+        shellType: 'comet_tadpole_burst',
+        dynamicsType: 'tadpole-spiral',
+        isTadpole: true,
+        maxDecayTime: childStarLife * (0.85 + Math.random() * 0.3),
+        gravityScale,
+        thickTrail: false,
+        thinTrail: true,
+        launchTrail: true,
+        burstSmoke: false,
+        noSmoke: true,
+        launchSmoke: false
+      };
+
+      globalEventBus.emit(
+        'comet:spawn',
+        {
+          position: burstPosition.clone(),
+          velocity: childVel,
+          color: childColor,
+          preset: childPreset
+        }
+      );
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnEffectSpark === 'function') {
+      for (let s = 0; s < 36; s++) {
+        const sparkPos = burstPosition.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 4.5,
+            (Math.random() - 0.5) * 4.5,
+            (Math.random() - 0.5) * 4.5
+          )
+        );
+        this.trailSystem.spawnEffectSpark(
+          sparkPos,
+          color,
+          true,
+          null,
+          Math.random() * 1000,
+          0.60 + Math.random() * 0.35,
+          false
+        );
+      }
+    }
+  }
+
+  spawnBurstParticleArrowSparks(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const v = p.velocity;
+    const speed = v.length();
+    if (speed < 0.8) return;
+
+    const dir = v.clone().normalize();
+    const upVec = Math.abs(dir.y) > 0.88 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
+    const count = 1 + (Math.random() < 0.40 ? 1 : 0);
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const coneAngle = 0.55 + Math.random() * 0.35;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const ejectSpeed = 10.0 + Math.random() * 8.0;
+      const sparkVel = ejectDir.multiplyScalar(ejectSpeed);
+      sparkVel.addScaledVector(v, 0.20);
+
+      const sparkColor = p.baseColor.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        0.08,
+        0.18 + Math.random() * 0.12
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.70) * (0.8 + Math.random() * 0.35);
+
+      this.trailSystem.spawnTrailParticle(
+        p.position,
+        sparkColor,
+        1.0,
+        false,
+        sparkLife,
+        1.0,
+        isStrobe,
+        sparkVel,
+        0.20,
+        0.85,
+        false,
+        null,
+        true
+      );
+    }
+
+    if (p.crackle && Math.random() < 0.10 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
+  spawnBurstParticleFlurry(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const v = p.velocity;
+    const dir = v && v.lengthSq() > 0.01 ? v.clone().normalize() : new THREE.Vector3(0, 1, 0);
+    const upVec = Math.abs(dir.y) > 0.88 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
+    const flurryCount = 4 + Math.floor(Math.random() * 3);
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    for (let i = 0; i < flurryCount; i++) {
+      const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+      const coneAngle = 0.55 + Math.random() * 0.40;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const ejectSpeed = 12.0 + Math.random() * 10.0;
+      const subVel = ejectDir.multiplyScalar(ejectSpeed);
+      if (v) {
+        subVel.addScaledVector(v, 0.18);
+      }
+
+      const subColor = p.baseColor.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.05,
+        0.08,
+        0.20 + Math.random() * 0.14
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.flurryStarLife ?? 0.80) * (0.8 + Math.random() * 0.35);
+
+      this.trailSystem.spawnTrailParticle(
+        p.position,
+        subColor,
+        1.0,
+        false,
+        sparkLife,
+        1.0,
+        isStrobe,
+        subVel,
+        0.24,
+        0.88,
+        false,
+        null,
+        true
+      );
+    }
+
+    if (p.crackle && Math.random() < 0.20 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
+  spawnErraticDartStreak(p, parentFade = 1.0) {
+    if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
+
+    const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+    const baseBrightness = parentFade;
+    const streakMultiplier = dartCfg.streakBrightnessMultiplier ?? 1.35;
+    const streakOpacity = dartCfg.trailOpacity ?? 0.48;
+    const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+
+    const streakVel = p.velocity
+      ? p.velocity.clone().multiplyScalar(0.015)
+      : new THREE.Vector3(0, 0, 0);
+
+    const whiteCore = new THREE.Color(0xffffff);
+    const streakColor = p.baseColor.clone()
+      .lerp(whiteCore, 0.18)
+      .multiplyScalar(baseBrightness * streakMultiplier);
+
+    const streakLife = (dartCfg.trailParticleLife ?? 0.90) * (0.85 + Math.random() * 0.30);
+
+    this.trailSystem.spawnTrailParticle(
+      p.position,
+      streakColor,
+      1.0,
+      false,
+      streakLife,
+      streakOpacity,
+      isStrobe,
+      streakVel,
+      0.03,
+      0.98,
+      false,
+      null,
+      true
+    );
+
+    if (p.crackle && Math.random() < 0.15 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+    }
+  }
+
   getDefaultNestedStages(baseColor = null) {
     const primaryHex = (baseColor && baseColor.getHexString)
       ? '#' + baseColor.getHexString()
@@ -1222,14 +1499,16 @@ export class FireworkSystem {
       || effectsList.includes('crossette')
       || effectType === 'crossette';
     const crossetteScale = (isCrossetteActive && effectType !== 'crossette') ? 0.6 : 1.0;
+    const isSecondBurstActive = Boolean(preset?.secondBurst?.enabled || preset?.secondBurstEnabled);
+    const secondBurstScale = isSecondBurstActive ? 0.78 : 1.0;
 
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
-    const baseMin = isCrossetteActive ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES;
+    const baseMin = (isCrossetteActive || isSecondBurstActive) ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES;
     const minParticles = Math.round(baseMin * this.graphicsQualityMultiplier);
     const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
 
     return Math.max(minParticles, Math.min(maxParticles, Math.round(rawCount)));
   }
@@ -1414,9 +1693,23 @@ export class FireworkSystem {
     }
     const nestedBurstDelay = BURST_LIFE * 0.82;
 
-    const isCrossetteShell = Boolean(preset?.crossette)
-      || effectsList.includes('crossette')
-      || normalizedEffect === 'crossette';
+    const {
+      isCrossetteShell,
+      isTadpoleFlurryShell,
+      isErraticDartShell,
+      hasBurstSmoke: isBurstSmokeActive,
+      isLongBurn,
+      isApexHang
+    } = BurstParticleFactory.resolveActiveEffectFlags({
+      preset,
+      effects: effectsList,
+      dynamicsType: normalizedEffect
+    });
+
+    const baseLifeMul = (preset?.starLifeMultiplier !== undefined && !isNaN(Number(preset.starLifeMultiplier)))
+      ? Math.max(0.2, Number(preset.starLifeMultiplier))
+      : (isLongBurn ? (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2) : 1.0);
+    const isEffectiveLongBurn = isLongBurn || baseLifeMul >= 1.5;
 
     const crossetteSplitMap = new Map();
     if (isCrossetteShell && burstParticleCount > 0) {
@@ -1464,6 +1757,88 @@ export class FireworkSystem {
           THREE.MathUtils.clamp(staggeredRatio, 0.32, 0.68)
         );
       }
+    }
+
+    const isSecondBurstShell = Boolean(
+      (preset?.secondBurst?.enabled || preset?.secondBurstEnabled)
+      && burstParticleCount > 0
+    );
+
+    const secondBurstMap = new Map();
+    if (isSecondBurstShell) {
+      const sbConfig = resolveSecondBurstConfig(preset);
+      const childShells = sbConfig.childShells;
+
+      const outerIndices = [];
+      for (let k = 0; k < burstParticleCount; k++) {
+        const isCore = isCompositeCore && k < coreCount;
+        if (!isCore) {
+          outerIndices.push(k);
+        }
+      }
+      const availablePool = outerIndices.length >= 8
+        ? [...outerIndices]
+        : Array.from({ length: burstParticleCount }, (_, idx) => idx);
+
+      // Fisher-Yates shuffle the pool for fair random sampling
+      for (let k = 0; k < availablePool.length; k++) {
+        const randIdx = k + Math.floor(Math.random() * (availablePool.length - k));
+        const temp = availablePool[k];
+        availablePool[k] = availablePool[randIdx];
+        availablePool[randIdx] = temp;
+      }
+
+      let poolCursor = 0;
+
+      childShells.forEach((child) => {
+        const childRatio = typeof child.ratio === 'number' ? child.ratio : 0.20;
+        const targetCount = Math.min(
+          availablePool.length - poolCursor,
+          Math.max(1, Math.round(burstParticleCount * childRatio))
+        );
+
+        if (targetCount <= 0) return;
+
+        const assignedIndices = availablePool.slice(poolCursor, poolCursor + targetCount);
+        poolCursor += targetCount;
+
+        const baseTiming = typeof child.triggerTiming === 'number' ? child.triggerTiming : 0.50;
+        const distMode = child.distributionMode || 'random';
+
+        for (let k = 0; k < assignedIndices.length; k++) {
+          const pIdx = assignedIndices[k];
+          let timingRatio = baseTiming;
+
+          if (distMode === 'sequential') {
+            const tProgress = assignedIndices.length > 1
+              ? (k / (assignedIndices.length - 1))
+              : 0.5;
+            timingRatio = THREE.MathUtils.clamp(
+              baseTiming - 0.15 + tProgress * 0.30 + (Math.random() - 0.5) * 0.02,
+              0.15,
+              0.85
+            );
+          } else if (distMode === 'random') {
+            timingRatio = THREE.MathUtils.clamp(
+              baseTiming + (Math.random() - 0.5) * 0.30,
+              0.15,
+              0.85
+            );
+          } else {
+            // simultaneous with micro-jitter (1-2 frames)
+            timingRatio = THREE.MathUtils.clamp(
+              baseTiming + (Math.random() - 0.5) * 0.04,
+              0.15,
+              0.85
+            );
+          }
+
+          secondBurstMap.set(pIdx, {
+            childShell: child,
+            timingRatio
+          });
+        }
+      });
     }
 
     const newParticles = [];
@@ -1558,11 +1933,15 @@ export class FireworkSystem {
         Math.random() < 0.05;
       const speedJitter = dynamicsProfile?.speedJitter ?? BURST_SPEED_JITTER;
       const speedJitterScale = 1.0 + (Math.random() - 0.5) * (speedJitter * 2);
+      const apexSpeedMul = isApexHang
+        ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+        : 1.0;
       const speed = baseSpeed *
         (useContourMagnitude ? 1.15 : 1) *
         shellSizeScale *
         speedJitterScale *
-        (isDyingEmber ? 0.85 : 1.0);
+        (isDyingEmber ? 0.85 : 1.0) *
+        apexSpeedMul;
 
       const normDir = direction.clone().normalize();
       const velocityVal = direction.multiplyScalar(speed);
@@ -1638,9 +2017,11 @@ export class FireworkSystem {
         const lifeJitter = dynamicsProfile?.lifeJitter ?? BURST_LIFE_JITTER;
         const lifeJitterScale = 1.0 + (Math.random() - 0.5) * (lifeJitter * 2);
         const baseMaxLife = BURST_LIFE * lifeJitterScale;
-        particleMaxLife = isDyingEmber
-          ? baseMaxLife * 2.0
-          : baseMaxLife;
+        const apexLifeMul = isApexHang ? 1.35 : 1.0;
+        const lifeMultiplier = isEffectiveLongBurn
+          ? baseLifeMul
+          : (isDyingEmber ? 2.0 * baseLifeMul : apexLifeMul * baseLifeMul);
+        particleMaxLife = baseMaxLife * lifeMultiplier;
       }
 
       const baseParticleDrag = (preset?.drag !== undefined)
@@ -1653,16 +2034,24 @@ export class FireworkSystem {
         baseParticleDrag * dragJitterScale
       );
 
-      newParticles.push({
-        position: position.clone(),
-        velocity: particleVelocity.clone(),
-        color: finalColorVal.clone(),
-        baseColor: finalColorVal.clone(),
-        color2: color2Scaled
-          ? color2Scaled.clone()
-          : null,
+      const hasParticleTadpole = isTadpoleFlurryShell
+        && !isDyingEmber
+        && (Math.random() < (FIREWORK_CONFIG.COMET_TADPOLE?.burstActivationRatio ?? 0.35));
+
+      const hasParticleErraticDart = isErraticDartShell
+        && !isDyingEmber
+        && (Math.random() < (FIREWORK_CONFIG.ERRATIC_DART?.activationRatio ?? 0.40));
+
+      const particle = BurstParticleFactory.createParticle({
+        position,
+        velocity: particleVelocity,
+        color: finalColorVal,
+        baseColor: finalColorVal,
+        color2: color2Scaled,
         age: 0,
         maxLife: particleMaxLife,
+        isLongBurn: isEffectiveLongBurn,
+        isApexHang,
         effectType: isGhostEffect
           ? 'ghost'
           : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
@@ -1682,27 +2071,58 @@ export class FireworkSystem {
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
-        isDyingEmber: isDyingEmber,
-        isNestedTrigger: isNestedTrigger,
+        isDyingEmber,
+        isNestedTrigger,
         effects: effectsList,
         dragCoefficient: particleDrag,
-        dynamicsProfile: dynamicsProfile,
-        hasBurstSmoke: Boolean(
-          !preset?.noBurst &&
-          (
-            (Array.isArray(effectsList) && effectsList.includes('burst-smoke')) ||
-            (Array.isArray(preset?.effects) && preset.effects.includes('burst-smoke')) ||
-            preset?.['burst-smoke'] ||
-            preset?.burstSmoke
-          )
-        ),
+        dynamicsProfile,
+        hasBurstSmoke: isBurstSmokeActive,
         burstSmokeLimit: 0.28 + Math.random() * 0.10,
         isCrossette: isCrossetteShell
           && !isDyingEmber
           && crossetteSplitMap.has(i),
         crossetteSplitTime: particleMaxLife * (crossetteSplitMap.get(i) ?? 0.5),
-        crossetteSplitDone: false
+        crossetteSplitDone: false,
+        isSecondBurst: isSecondBurstShell
+          && !isDyingEmber
+          && secondBurstMap.has(i),
+        secondBurstConfig: secondBurstMap.get(i)?.childShell || null,
+        secondBurstTime: particleMaxLife * (secondBurstMap.get(i)?.timingRatio ?? 0.5),
+        secondBurstDone: false,
+        hasTadpoleFlurry: hasParticleTadpole,
+        tadpoleArrowTimer: Math.random() * 0.065,
+        hasFlurried: false,
+        hasErraticDart: hasParticleErraticDart,
+        erraticDartTriggerRatio: (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          + Math.random() * (
+            (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMax ?? 0.76)
+            - (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          ),
+        erraticDartTriggered: false,
+        erraticDartTrailTimer: Math.random() * (FIREWORK_CONFIG.ERRATIC_DART?.trailInterval ?? 0.032),
+        erraticDartFlash: 1.0,
+        erraticDartWigglePhase: Math.random() * Math.PI * 2,
+        erraticDartWiggleFreq: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleFreq ?? 22.0)
+          * (0.85 + Math.random() * 0.30),
+        erraticDartWiggleAmp: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleAmp ?? 26.0)
+          * (0.85 + Math.random() * 0.30)
       });
+
+      newParticles.push(particle);
+    }
+
+    if (isTadpoleFlurryShell && newParticles.length > 0 && !newParticles.some((p) => p.hasTadpoleFlurry)) {
+      const candidate = newParticles.find((p) => !p.isDyingEmber) || newParticles[0];
+      if (candidate) {
+        candidate.hasTadpoleFlurry = true;
+      }
+    }
+
+    if (isErraticDartShell && newParticles.length > 0 && !newParticles.some((p) => p.hasErraticDart)) {
+      const candidate = newParticles.find((p) => !p.isDyingEmber) || newParticles[0];
+      if (candidate) {
+        candidate.hasErraticDart = true;
+      }
     }
 
     for (const p of newParticles) {
@@ -1714,13 +2134,298 @@ export class FireworkSystem {
   }
 
   createRandomBurstRotation() {
-    const axis = new THREE.Vector3(
-      Math.random() * 2 - 1,
-      Math.random() * 2 - 1,
-      Math.random() * 2 - 1
-    ).normalize();
-    const angle = Math.random() * Math.PI * 2;
-    return new THREE.Quaternion().setFromAxisAngle(axis, angle);
+    return BurstParticleFactory.createRandomBurstRotation();
+  }
+
+  spawnSecondBurst(p, activeParticles) {
+    if (!p || !p.secondBurstConfig) return;
+    const cfg = p.secondBurstConfig;
+    const childShape = BurstShapeGenerator.resolveShape(cfg.shapeType || 'sphere');
+    const childDynamics = cfg.dynamicsType || 'standard';
+    const childScale = typeof cfg.scale === 'number' ? cfg.scale : 0.35;
+    const childColor = new THREE.Color(cfg.color || '#ffd700');
+    const childEffects = Array.isArray(cfg.effects) ? cfg.effects : [];
+    const isInstantBurst = Boolean(cfg.instantBurst);
+    const hasPistil = Boolean(cfg.pistil);
+
+    const sbSettings = FIREWORK_CONFIG.SECOND_BURST || {};
+    const minP = sbSettings.minParticlesPerChild ?? 8;
+    const maxP = sbSettings.maxParticlesPerChild ?? 16;
+    const childParticleCount = Math.round(
+      THREE.MathUtils.lerp(minP, maxP, (childScale - 0.15) / 0.65) * this.graphicsQualityMultiplier
+    );
+
+    const pistilCount = hasPistil
+      ? Math.max(4, Math.min(18, Math.round(childParticleCount * 0.4)))
+      : 0;
+
+    const totalToSpawn = childParticleCount + pistilCount;
+    const maxGlobalBurst = FIREWORK_CONFIG.SYSTEM?.maxBurstParticles ?? 20000;
+    if (activeParticles.length + totalToSpawn > maxGlobalBurst) {
+      return;
+    }
+
+    const instantSpeedMultiplier = isInstantBurst ? 1.25 : 1.0;
+    const baseSpeed = (sbSettings.baseSpeed ?? 38)
+      * (0.8 + childScale * 0.5)
+      * instantSpeedMultiplier;
+
+    const childLife = (sbSettings.defaultLife ?? 0.9)
+      * (0.85 + Math.random() * (sbSettings.lifeJitter ?? 0.3));
+
+    const parentVelInheritance = p.velocity.clone().multiplyScalar(0.2);
+    const originPos = p.position.clone();
+    const burstRotation = this.createRandomBurstRotation();
+
+    const {
+      isCrossetteShell,
+      isTadpoleFlurryShell,
+      isErraticDartShell,
+      hasBurstSmoke: isBurstSmokeActive,
+      isGhostEffect,
+      isCCEffect,
+      isLongBurn: isContourLongBurn,
+      isApexHang: isContourApexHang
+    } = BurstParticleFactory.resolveActiveEffectFlags({
+      preset: cfg,
+      effects: childEffects,
+      dynamicsType: childDynamics
+    });
+
+    const childLifeMul = (cfg?.starLifeMultiplier !== undefined && !isNaN(Number(cfg.starLifeMultiplier)))
+      ? Math.max(0.2, Number(cfg.starLifeMultiplier))
+      : (isContourLongBurn ? (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2) : 1.0);
+
+    let childColor2 = null;
+    if (cfg.secondColor && cfg.secondColor !== cfg.color) {
+      childColor2 = new THREE.Color(cfg.secondColor);
+    } else if (isGhostEffect || isCCEffect) {
+      childColor2 = childColor.clone();
+    }
+
+    const crossetteSplitMap = new Map();
+    if (isCrossetteShell && childParticleCount >= 4) {
+      const targetCrossetteCount = Math.max(2, Math.min(6, Math.floor(childParticleCount * 0.4)));
+      const pool = Array.from({ length: childParticleCount }, (_, idx) => idx);
+      for (let k = 0; k < targetCrossetteCount; k++) {
+        const randIdx = k + Math.floor(Math.random() * (pool.length - k));
+        const temp = pool[k];
+        pool[k] = pool[randIdx];
+        pool[randIdx] = temp;
+      }
+      for (let k = 0; k < targetCrossetteCount; k++) {
+        const pIdx = pool[k];
+        const staggeredRatio = 0.35 + (k / Math.max(1, targetCrossetteCount - 1)) * 0.25;
+        crossetteSplitMap.set(pIdx, THREE.MathUtils.clamp(staggeredRatio, 0.30, 0.65));
+      }
+    }
+
+    const childEffectState = {
+      ...BurstEffectProcessor.initialize(
+        childDynamics,
+        childParticleCount,
+        {
+          ...cfg,
+          effects: childEffects,
+          strobe: childEffects.includes('strobe')
+            || childEffects.includes('white-strobe')
+            || childEffects.includes('glitter-strobe')
+            || Boolean(cfg.strobe),
+          crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
+          flow: childEffects.includes('flow') || childDynamics === 'flow',
+          ghost: isGhostEffect,
+          crossette: isCrossetteShell
+        }
+      ),
+      shapeType: childShape
+    };
+
+    const dynamicsProfile = BurstEffectProcessor.getDynamicsProfile(
+      childDynamics,
+      childShape,
+      cfg
+    );
+
+    // 1. Spawn Outer Shell Particles
+    const outerParticles = [];
+    for (let k = 0; k < childParticleCount; k++) {
+      const angle = (k / childParticleCount) * Math.PI * 2;
+      const rawDir = BurstShapeGenerator.direction(
+        childShape,
+        angle,
+        k,
+        childParticleCount,
+        cfg
+      );
+      const dir = rawDir.applyQuaternion(burstRotation).normalize();
+      const speedVariance = (isInstantBurst ? 0.95 : 0.85) + Math.random() * 0.3;
+      const contourApexSpeedMul = isContourApexHang
+        ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+        : 1.0;
+      const vel = dir.multiplyScalar(
+        baseSpeed * speedVariance * contourApexSpeedMul
+      ).add(parentVelInheritance);
+
+      const hasParticleErraticDart = isErraticDartShell
+        && (Math.random() < (FIREWORK_CONFIG.ERRATIC_DART?.activationRatio ?? 0.40));
+      const hasParticleTadpole = isTadpoleFlurryShell
+        && (Math.random() < (FIREWORK_CONFIG.COMET_TADPOLE?.burstActivationRatio ?? 0.35));
+
+      const particle = BurstParticleFactory.createParticle({
+        position: originPos,
+        velocity: vel,
+        color: childColor,
+        baseColor: childColor,
+        color2: childColor2,
+        age: 0,
+        maxLife: isContourLongBurn
+          ? childLife * (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2)
+          : childLife * childLifeMul * (isContourApexHang ? 1.35 : 1.0),
+        isLongBurn: isContourLongBurn || childLifeMul >= 1.5,
+        isApexHang: isContourApexHang,
+        effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
+        crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
+        phase: (childEffectState.phase && childEffectState.phase[k] !== undefined)
+          ? childEffectState.phase[k]
+          : Math.random() * Math.PI * 2,
+        preset: {
+          shapeType: childShape,
+          dynamicsType: childDynamics,
+          effects: childEffects,
+          secondBurst: null
+        },
+        heightProfile: p.heightProfile,
+        effectState: childEffectState,
+        particleIndex: k,
+        totalParticleCount: childParticleCount,
+        shellId: p.shellId,
+        effects: childEffects,
+        hasBurstSmoke: isBurstSmokeActive,
+        burstSmokeLimit: 0.28 + Math.random() * 0.10,
+        isCrossette: isCrossetteShell && crossetteSplitMap.has(k),
+        crossetteSplitTime: childLife * (crossetteSplitMap.get(k) ?? 0.5),
+        crossetteSplitDone: false,
+        renderSize: Math.max(16, (p.renderSize || BASE_BURST_POINT_SIZE) * childScale * 1.35),
+        renderOpacity: 0.85,
+        isSecondBurstChild: true,
+        dynamicsProfile,
+        dragCoefficient: dynamicsProfile?.baseDrag ?? BURST_BASE_DRAG,
+        hasTadpoleFlurry: hasParticleTadpole,
+        tadpoleArrowTimer: Math.random() * 0.065,
+        hasErraticDart: hasParticleErraticDart,
+        erraticDartTriggerRatio: (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          + Math.random() * (
+            (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMax ?? 0.76)
+            - (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
+          ),
+        erraticDartTrailTimer: Math.random() * (FIREWORK_CONFIG.ERRATIC_DART?.trailInterval ?? 0.032),
+        erraticDartFlash: 1.0,
+        erraticDartWigglePhase: Math.random() * Math.PI * 2,
+        erraticDartWiggleFreq: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleFreq ?? 22.0)
+          * (0.85 + Math.random() * 0.30),
+        erraticDartWiggleAmp: (FIREWORK_CONFIG.ERRATIC_DART?.wobbleAmp ?? 26.0)
+          * (0.85 + Math.random() * 0.30)
+      });
+
+      outerParticles.push(particle);
+      activeParticles.push(particle);
+    }
+
+    if (isErraticDartShell && outerParticles.length > 0 && !outerParticles.some((item) => item.hasErraticDart)) {
+      outerParticles[0].hasErraticDart = true;
+    }
+    if (isTadpoleFlurryShell && outerParticles.length > 0 && !outerParticles.some((item) => item.hasTadpoleFlurry)) {
+      outerParticles[0].hasTadpoleFlurry = true;
+    }
+
+    // 2. Spawn Miniature Pistil Core Particles if Pistil Modifier is Active
+    if (hasPistil && pistilCount > 0) {
+      const pistilColor = new THREE.Color(cfg.pistilColor || '#ffffff');
+      const pistilSpeed = baseSpeed * 0.42;
+      const pistilEffectState = {
+        ...BurstEffectProcessor.initialize('standard', pistilCount, { effects: [] }),
+        shapeType: 'sphere'
+      };
+
+      for (let pi = 0; pi < pistilCount; pi++) {
+        const pAngle = (pi / pistilCount) * Math.PI * 2;
+        const rawPistilDir = BurstShapeGenerator.direction(
+          'sphere',
+          pAngle,
+          pi,
+          pistilCount,
+          cfg
+        );
+        const pDir = rawPistilDir.applyQuaternion(burstRotation).normalize();
+        const pSpeedVar = 0.90 + Math.random() * 0.20;
+        const pistilApexSpeedMul = isContourApexHang
+          ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+          : 1.0;
+        const pVel = pDir.multiplyScalar(
+          pistilSpeed * pSpeedVar * pistilApexSpeedMul
+        ).add(parentVelInheritance);
+
+        const pistilParticle = BurstParticleFactory.createParticle({
+          position: originPos,
+          velocity: pVel,
+          color: pistilColor,
+          baseColor: pistilColor,
+          color2: null,
+          age: 0,
+          maxLife: childLife * 0.85,
+          isApexHang: isContourApexHang,
+          effectType: 'standard',
+          crackle: false,
+          crackleTriggered: false,
+          phase: (pistilEffectState.phase && pistilEffectState.phase[pi] !== undefined)
+            ? pistilEffectState.phase[pi]
+            : Math.random() * Math.PI * 2,
+          preset: {
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            effects: [],
+            secondBurst: null
+          },
+          heightProfile: p.heightProfile,
+          effectState: pistilEffectState,
+          particleIndex: pi,
+          totalParticleCount: pistilCount,
+          shellId: p.shellId,
+          renderSize: Math.max(14, (p.renderSize || BASE_BURST_POINT_SIZE) * childScale * 1.15),
+          renderOpacity: 0.85,
+          isSecondBurstChild: true,
+          dragCoefficient: BURST_BASE_DRAG
+        });
+
+        activeParticles.push(pistilParticle);
+      }
+    }
+
+    const now = performance.now();
+    const throttleMs = sbSettings.audioThrottleMs ?? 45;
+    if (now - this.lastSecondBurstAudioTime > throttleMs) {
+      this.lastSecondBurstAudioTime = now;
+      const childBurstSound = cfg.burstSound || 'standard';
+      const pitchVariance = 0.98 + Math.random() * 0.12;
+      this.emitFireworkEvent(
+        'firework:burst',
+        {
+          position: {
+            x: originPos.x,
+            y: originPos.y,
+            z: originPos.z
+          },
+          intensity: 0.65,
+          isSubBurst: true,
+          isSecondBurst: true,
+          sound: {
+            burst: childBurstSound,
+            volumeMultiplier: 0.85,
+            pitchMultiplier: pitchVariance
+          }
+        }
+      );
+    }
   }
 
   handleShellUpdate(item, deltaTime, finished) {
@@ -2098,6 +2803,64 @@ export class FireworkSystem {
 
     const burstPosition = item.mesh.position.clone();
 
+    const isTadpolePrimary = Boolean(
+      item.preset?.isTadpoleShell
+      || item.preset?.shellType === 'chrysanthemum_tadpole_burst'
+      || item.shellType === 'chrysanthemum_tadpole_burst'
+    );
+    const hasTadpoleFlurryEffect = Boolean(
+      (Array.isArray(item.preset?.effects) && (item.preset.effects.includes('tadpole-flurry') || item.preset.effects.includes('tadpole_flurry')))
+      || (Array.isArray(item.effects) && (item.effects.includes('tadpole-flurry') || item.effects.includes('tadpole_flurry')))
+    );
+
+    if (isTadpolePrimary) {
+      const parentVel = item.velocity ? item.velocity.clone() : null;
+      const burstDir = parentVel && parentVel.lengthSq() > 0.001
+        ? parentVel.clone().normalize()
+        : new THREE.Vector3(0, 1, 0);
+
+      this.triggerTadpoleBurstShell(
+        burstPosition,
+        item.color,
+        item.preset,
+        item.shellId,
+        burstDir,
+        parentVel
+      );
+
+      item.markBursted?.();
+      finished.push(item);
+      this.diagnostics.bursted += 1;
+      this.emitDiagnostics();
+
+      const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
+      const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
+
+      this.emitFireworkEvent(
+        'firework:burst',
+        {
+          shellId: item.shellId,
+          shellType: 'chrysanthemum_tadpole_burst',
+          shapeType: item.shapeType ?? 'sphere',
+          effectType: 'tadpole-flurry',
+          effects: ['tadpole-flurry'],
+          hasBurstSmoke: false,
+          burstSmoke: false,
+          hasCustomColor: Boolean(item.preset?.hasCustomColor),
+          noBurstSound: false,
+          colorHex: item.color.getHex(),
+          position: {
+            x: burstPosition.x,
+            y: burstPosition.y,
+            z: burstPosition.z
+          },
+          intensity: 1.4,
+          duration: 2.5 + normalizedEnergy * 1.2
+        }
+      );
+      return;
+    }
+
     if (this.isBouquetShell(item) || this.isBouquetShell(item.preset)) {
       const parentVel = item.velocity ? item.velocity.clone() : null;
       const burstDir = parentVel && parentVel.lengthSq() > 0.001
@@ -2227,6 +2990,7 @@ export class FireworkSystem {
       shapeType: item.shapeType ?? item.shape,
       effectType: item.preset?.effectType ?? item.shape,
       effects: item.preset?.effects,
+      sound: item.preset?.sound || null,
       hasBurstSmoke,
       burstSmoke: hasBurstSmoke,
       hasCustomColor: Boolean(item.preset?.hasCustomColor),
@@ -2314,6 +3078,9 @@ export class FireworkSystem {
           this.emitFireworkEvent(
             'firework:crackle',
             {
+              sound: p.preset?.sound || null,
+              isSubBurst: Boolean(p.isSecondBurst || p.secondBurstDone),
+              source: 'burst-particle',
               position: {
                 x: originPos.x,
                 y: originPos.y,
@@ -2360,57 +3127,44 @@ export class FireworkSystem {
         const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
         const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
 
-        for (let b = 0; b < 4; b++) {
-          const branchVel = dir.clone().multiplyScalar(speed * 0.28).addScaledVector(
-            branchDirs[b],
-            9.0 + Math.random() * 2.5
-          );
-          activeParticles.push({
-            position: splitOrigin.clone(),
-            velocity: branchVel,
-            color: branchColor.clone(),
-            baseColor: branchColor.clone(),
-            color2: null,
-            age: 0,
-            maxLife: remainingLife,
-            effectType: branchEffectType,
-            crackle: false,
-            crackleTriggered: false,
-            phase: p.phase + b * 0.5,
-            preset: {
-              ...p.preset,
-              crossette: false,
-              noTrail: hasNoTrail
-            },
-            heightProfile: p.heightProfile,
-            effectState: p.effectState,
-            ghostDot: 0,
-            spiralIndex: 0,
-            isSpiralArm: false,
-            particleIndex: p.particleIndex * 4 + b,
-            totalParticleCount: p.totalParticleCount,
-            shellId: p.shellId,
-            isDyingEmber: false,
-            isNestedTrigger: false,
-            effects: branchEffects,
-            hasBurstSmoke: Boolean(p.hasBurstSmoke),
-            burstSmokeLimit: p.burstSmokeLimit ?? 0.33,
-            isCrossette: false,
-            crossetteSplitDone: true,
-            isChromaticWave: false,
-            radialDistanceRatio: 0,
-            renderSize: p.renderSize,
-            renderOpacity: 1.0,
-            dynamicsProfile: p.dynamicsProfile,
-            dragCoefficient: p.dragCoefficient ?? BURST_BASE_DRAG
-          });
+        const branches = BurstParticleFactory.createCrossetteBranches({
+          parentParticle: p,
+          branchDirs,
+          speed,
+          dir,
+          splitOrigin,
+          branchColor,
+          remainingLife,
+          hasNoTrail
+        });
+        for (let b = 0; b < branches.length; b++) {
+          activeParticles.push(branches[b]);
         }
 
         p.baseColor.setRGB(0, 0, 0);
       }
 
+      // Second burst trigger
+      if (
+        p.isSecondBurst
+        && !p.secondBurstDone
+        && p.age >= p.secondBurstTime
+        && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
+      ) {
+        p.secondBurstDone = true;
+        this.spawnSecondBurst(p, activeParticles);
+        p.baseColor.setRGB(0, 0, 0);
+        p.renderOpacity = 0;
+      }
+
       const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
-      let finalGravityScale = gravityScale;
+
+      let finalGravityScale = BurstEffectProcessor.processErraticDart(
+        p,
+        deltaTime,
+        lifeRatio,
+        gravityScale
+      );
       const profile = p.dynamicsProfile ?? FIREWORK_CONFIG.DYNAMICS_PROFILES?.standard;
       const currentDrag = (effectDragOverride !== undefined)
         ? effectDragOverride
@@ -2438,9 +3192,61 @@ export class FireworkSystem {
       p.velocity.y *= dragFactor;
       p.velocity.z *= dragFactor;
 
-      if (p.isDyingEmber) {
-        finalGravityScale = gravityScale * 1.3;
-        p.velocity.multiplyScalar(0.994);
+      if (p.isLongBurn || p.isDyingEmber) {
+        const gravScale = p.isLongBurn
+          ? (FIREWORK_CONFIG.BURST?.longBurnGravityScale ?? 0.85)
+          : 1.3;
+        finalGravityScale = gravityScale * gravScale;
+        p.velocity.multiplyScalar(p.isLongBurn ? 0.995 : 0.994);
+      }
+
+      if (p.isApexHang) {
+        // Mô hình vật lý tự nhiên:
+        // Hạt bay theo phương bắn với vận tốc ban đầu và giảm dần do lực cản không khí.
+        // Khi vận tốc bung nở giảm dần về 0 (đạt đỉnh nở), lực hút Trái Đất bắt đầu kéo hạt rơi tự do xuống dưới.
+        const apexDrag = FIREWORK_CONFIG.BURST?.apexExpansionDrag ?? 3.8;
+        const brakeFactor = Math.exp(-apexDrag * deltaTime);
+        p.velocity.x *= brakeFactor;
+        p.velocity.y *= brakeFactor;
+        p.velocity.z *= brakeFactor;
+
+        const ejectionDir = p.ejectionDir;
+        const initialSpeed = p.initialSpeed ?? 0;
+
+        if (ejectionDir && initialSpeed > 0.001) {
+          const expSpeed = Math.max(
+            0,
+            p.velocity.dot(ejectionDir)
+          );
+          const expRatio = expSpeed / initialSpeed;
+          const threshold = FIREWORK_CONFIG.BURST?.apexGravityThreshold ?? 0.18;
+
+          if (expRatio > threshold) {
+            finalGravityScale = 0.0;
+          } else {
+            const gravityBlend = 1.0 - (expRatio / threshold);
+            finalGravityScale = THREE.MathUtils.smoothstep(
+              gravityBlend,
+              0.0,
+              1.0
+            );
+          }
+        } else {
+          const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+          if (lifeRatio < hangEnd) {
+            finalGravityScale = 0.0;
+          } else {
+            const releaseProgress = Math.min(
+              1.0,
+              (lifeRatio - hangEnd) / 0.18
+            );
+            finalGravityScale = THREE.MathUtils.smoothstep(
+              releaseProgress,
+              0.0,
+              1.0
+            );
+          }
+        }
       }
 
       // Environmental Wind Coupling: Hat tan phao va willow troi theo huong gio he thong
@@ -2448,14 +3254,15 @@ export class FireworkSystem {
         || atmosphereManager.currentWind;
 
       if (wind) {
-        const isFloatingEffect = p.isDyingEmber
+        const isFloatingEffect = p.isLongBurn
+          || p.isDyingEmber
           || p.effectType === 'willow'
           || p.effectType === 'willow-arch'
           || p.effectType === 'falling-leaves'
           || p.effectType === 'kamuro';
 
         if (isFloatingEffect) {
-          const windInfluence = p.isDyingEmber ? 0.85 : 0.45;
+          const windInfluence = p.isLongBurn ? 0.65 : (p.isDyingEmber ? 0.85 : 0.45);
           p.velocity.x = THREE.MathUtils.lerp(
             p.velocity.x,
             wind.x,
@@ -2633,7 +3440,7 @@ export class FireworkSystem {
           const trailGrav = isCometRing ? 0.0 : 0.8;
           const trailDrag = isCometRing ? 1.2 : 1.6;
 
-          this.trailSystem.spawnTrailParticle(
+          this.trailSystem?.spawnTrailParticle?.(
             p.position,
             trailColor,
             isCometRing ? 1.0 : currentLife,
@@ -2645,6 +3452,42 @@ export class FireworkSystem {
             trailGrav,
             trailDrag
           );
+        }
+      }
+
+      // Tadpole arrow sparks and flurry when tadpole-flurry active effect is on burst particle
+      if (
+        p.hasTadpoleFlurry
+        && !isGhostInvisible
+        && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
+      ) {
+        if (lifeRatio >= 0.18 && lifeRatio <= 0.85) {
+          p.tadpoleArrowTimer = (p.tadpoleArrowTimer || 0) + deltaTime;
+          const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
+          if (p.tadpoleArrowTimer >= arrowInterval) {
+            p.tadpoleArrowTimer = 0;
+            this.spawnBurstParticleArrowSparks(p, parentFade);
+          }
+        }
+
+        if (lifeRatio >= 0.85 && !p.hasFlurried) {
+          p.hasFlurried = true;
+          this.spawnBurstParticleFlurry(p, parentFade);
+        }
+      }
+
+      // Erratic dart bright streak trail
+      if (
+        p.hasErraticDart &&
+        p.erraticDartTriggered &&
+        p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01
+      ) {
+        p.erraticDartTrailTimer = (p.erraticDartTrailTimer || 0) + deltaTime;
+        const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+        const trailInt = dartCfg.trailInterval ?? 0.032;
+        if (p.erraticDartTrailTimer >= trailInt) {
+          p.erraticDartTrailTimer = 0;
+          this.spawnErraticDartStreak(p, parentFade);
         }
       }
 
@@ -2801,10 +3644,16 @@ export class FireworkSystem {
         1.15
       );
       let baseOpacity = brightnessOpacityScale;
+      if (p.isSecondBurstChild) {
+        baseOpacity *= 0.85;
+      }
 
-      if (lifeRatio > BURST_DISSOLVE_START) {
+      const dissolveThreshold = p.isLongBurn
+        ? (FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : BURST_DISSOLVE_START;
+      if (lifeRatio > dissolveThreshold) {
         const dissolveT = THREE.MathUtils.clamp(
-          (lifeRatio - BURST_DISSOLVE_START) / (1 - BURST_DISSOLVE_START),
+          (lifeRatio - dissolveThreshold) / (1 - dissolveThreshold),
           0,
           1
         );
@@ -2814,192 +3663,49 @@ export class FireworkSystem {
         );
       }
 
+      if (p.hasErraticDart && p.erraticDartTriggered) {
+        // Dau hat duy tri do sang va do mo duc ban dau trong suot pha vut
+        const dartDuration = FIREWORK_CONFIG.ERRATIC_DART?.boostLifeDuration ?? 0.95;
+        const dartRemainRatio = (p.maxLife - p.age) / dartDuration;
+        if (dartRemainRatio > 0.12) {
+          baseOpacity = Math.max(baseOpacity, 0.98);
+        } else {
+          baseOpacity = Math.max(0.0, dartRemainRatio / 0.12);
+        }
+      }
+
+      let effTypeForOpacity = p.effectType;
+      if (Array.isArray(p.effects)) {
+        for (const eff of p.effects) {
+          if (BurstEffectProcessor.effectsRegistry.has(eff)) {
+            const strat = BurstEffectProcessor.effectsRegistry.get(eff);
+            if (typeof strat?.materialOpacity === 'function') {
+              effTypeForOpacity = eff;
+              break;
+            }
+          }
+        }
+      }
+
       const opacity = BurstEffectProcessor.materialOpacity(
-        p.effectType,
+        effTypeForOpacity,
         p.age,
         p.maxLife,
         baseOpacity
       );
 
       // Color sweep
-      let r = p.baseColor.r;
-      let g = p.baseColor.g;
-      let b = p.baseColor.b;
-
-      if (p.effectType === 'sparking') {
-        const randomOffset = ((p.particleIndex * 7) % 11) * 0.01;
-        const transitionStart = 0.46 + randomOffset;
-        const transitionEnd = transitionStart + 0.08;
-
-        if (p.particleIndex % 2 !== 0) {
-          if (lifeRatio > transitionEnd) {
-            r = 0; g = 0; b = 0;
-          } else if (lifeRatio > transitionStart) {
-            const fade = (transitionEnd - lifeRatio) / (transitionEnd - transitionStart);
-            r = p.baseColor.r * fade;
-            g = p.baseColor.g * fade;
-            b = p.baseColor.b * fade;
-          }
+      const { r, g, b } = BurstEffectProcessor.resolveParticleColor(
+        p,
+        lifeRatio,
+        {
+          strobeFreqMultiplier,
+          isSpiralIgnited,
+          spiralFlashBonus,
+          hasGhostFlare,
+          profile
         }
-      } else if (p.effectType === 'white-strobe') {
-        if (lifeRatio > 0.5) {
-          const timeMs = (p.age + p.phase) * 1000;
-          const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
-          const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-          const blink = isBlinking ? 1.0 : 0.05;
-          r = blink;
-          g = blink;
-          b = blink;
-        }
-      } else if (p.effectType === 'glitter-strobe' || p.effectType === 'falling-comets-glitter') {
-        const timeMs = (p.age + p.phase) * 1000;
-        const strobeFreq = 90 * strobeFreqMultiplier;
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 4 === 0;
-        const blink = isBlinking ? 1.5 : 0.0;
-        r = blink;
-        g = blink;
-        b = blink;
-      } else if (
-        p.isDyingEmber
-        || (p.preset?.shellType === 'crysanthemumNestedChild' && p.preset?.strobe)
-      ) {
-        const timeMs = (p.age + p.phase) * 1000;
-        const strobeFreq = 120 * strobeFreqMultiplier;
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 7 === 0;
-        const blink = isBlinking ? 1.5 : 0.06;
-
-        const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
-        const coolFactor = Math.pow(1.0 - lifeRatio, 0.85);
-
-        r = p.baseColor.r * blink * coolFactor;
-        g = p.baseColor.g * blink * coolFactor;
-        b = p.baseColor.b * blink * coolFactor;
-      } else if (
-        (p.effectType === 'strobe' || p.preset?.strobe)
-        && p.preset?.shellType !== 'crysanthemumNested'
-      ) {
-        const timeMs = (p.age + p.phase) * 1000;
-        const strobeFreq = 150 * strobeFreqMultiplier;
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-        const blink = isBlinking ? 1.0 : 0.0;
-
-        if (p.preset?.shellType === 'strobe') {
-          r = blink;
-          g = blink;
-          b = blink;
-        } else {
-          r = p.baseColor.r * blink;
-          g = p.baseColor.g * blink;
-          b = p.baseColor.b * blink;
-        }
-      } else if (hasGhost) {
-        let intensity = 0.0;
-        if (lifeRatio < 0.40) {
-          // Giai đoạn 1: Khi vừa nổ và bay ra vị trí đích -> Hoàn toàn tối, không màu sắc
-          intensity = 0.0;
-        } else if (lifeRatio < 0.48) {
-          // Giai đoạn 2: Hiện màu rực rỡ khi tới vị trí đích (flash reveal)
-          const t = (lifeRatio - 0.40) / 0.08;
-          intensity = THREE.MathUtils.lerp(0.0, 1.35, Math.sin(t * Math.PI * 0.5));
-        } else if (lifeRatio < 0.85) {
-          // Tồn tại rực rỡ lơ lửng lâu hơn ở vị trí đích
-          intensity = 1.0;
-        } else {
-          // Giai đoạn 3: Mờ dần và biến mất
-          const t = (lifeRatio - 0.85) / 0.15;
-          intensity = Math.max(0.0, 1.0 - t);
-        }
-        r = p.baseColor.r * intensity;
-        g = p.baseColor.g * intensity;
-        b = p.baseColor.b * intensity;
-      } else if (hasCC && p.color2) {
-        if (lifeRatio < 0.40) {
-          // Lần 1: Bay bung tỏa với Màu thứ 1
-          r = p.baseColor.r;
-          g = p.baseColor.g;
-          b = p.baseColor.b;
-        } else if (lifeRatio < 0.48) {
-          // Điểm tới đích: Phanh hãm và biến đổi màu sắc (Color Change flash reveal)
-          const t = (lifeRatio - 0.40) / 0.08;
-          const flashMultiplier = 1.0 + Math.sin(t * Math.PI) * 0.35;
-          r = THREE.MathUtils.lerp(p.baseColor.r, p.color2.r, t) * flashMultiplier;
-          g = THREE.MathUtils.lerp(p.baseColor.g, p.color2.g, t) * flashMultiplier;
-          b = THREE.MathUtils.lerp(p.baseColor.b, p.color2.b, t) * flashMultiplier;
-        } else if (lifeRatio < 0.85) {
-          // Lần 2: Lơ lửng tồn tại rực rỡ với Màu thứ 2
-          r = p.color2.r;
-          g = p.color2.g;
-          b = p.color2.b;
-        } else {
-          // Giai đoạn kết thúc: Mờ dần Màu thứ 2
-          const t = (lifeRatio - 0.85) / 0.15;
-          const fade = Math.max(0.0, 1.0 - t);
-          r = p.color2.r * fade;
-          g = p.color2.g * fade;
-          b = p.color2.b * fade;
-        }
-      } else if (p.effectType === 'crysanthemum-spiral' || p.effectType === 'crysanthemum-spiral-v2') {
-        if (!isSpiralIgnited) {
-          // Giai đoạn tiền kích hoạt: tia lửa ẩn tối rất mờ (0.02) lướt êm trong không trung
-          r = p.baseColor.r * 0.02;
-          g = p.baseColor.g * 0.02;
-          b = p.baseColor.b * 0.02;
-        } else {
-          // Giai đoạn bắt lửa: bừng sáng chói lọi và rực rỡ đuôi hoa cúc
-          r = Math.min(2.0, p.baseColor.r * spiralFlashBonus);
-          g = Math.min(2.0, p.baseColor.g * spiralFlashBonus);
-          b = Math.min(2.0, p.baseColor.b * spiralFlashBonus);
-        }
-      } else if (hasGhostFlare) {
-        if (lifeRatio < 0.32) {
-          r = p.baseColor.r;
-          g = p.baseColor.g;
-          b = p.baseColor.b;
-        } else if (lifeRatio <= 0.60) {
-          r = p.baseColor.r * 0.02;
-          g = p.baseColor.g * 0.02;
-          b = p.baseColor.b * 0.02;
-        } else {
-          const flashProgress = (lifeRatio - 0.60) / 0.40;
-          const reigniteIntensity = 1.6 * (1.0 - flashProgress * 0.4);
-          r = Math.min(2.0, p.baseColor.r * reigniteIntensity);
-          g = Math.min(2.0, p.baseColor.g * reigniteIntensity);
-          b = Math.min(2.0, p.baseColor.b * reigniteIntensity);
-        }
-      } else if (p.effectType === 'double-helix') {
-        if (p.color2) {
-          const strandFactor = (p.particleIndex % 2 === 0) ? 0.0 : 0.4;
-          const blendT = Math.min(1.0, lifeRatio * 0.7 + strandFactor);
-          const activeR = p.baseColor.r * (1.0 - blendT) + p.color2.r * blendT;
-          const activeG = p.baseColor.g * (1.0 - blendT) + p.color2.g * blendT;
-          const activeB = p.baseColor.b * (1.0 - blendT) + p.color2.b * blendT;
-          r = activeR;
-          g = activeG;
-          b = activeB;
-        }
-      } else if (profile?.thermalCooling !== false) {
-        // Vòng đời nhiệt sắc (Thermal Cooling Lifecycle):
-        // 1. Giai đoạn bùng cháy chói lòa (Incandescent Flash) ở 12% đầu vòng đời
-        if (lifeRatio < 0.12) {
-          const flashT = 1.0 - (lifeRatio / 0.12);
-          r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
-          g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
-          b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
-        } else if (lifeRatio > 0.62) {
-          // 2. Giai đoạn hạ nhiệt (Thermal Cooling) sang cam hổ phách rồi đỏ sẫm
-          if (lifeRatio < 0.88) {
-            const coolT = (lifeRatio - 0.62) / 0.26;
-            r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
-            g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
-            b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
-          } else {
-            const emberT = (lifeRatio - 0.88) / 0.12;
-            r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
-            g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
-            b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
-          }
-        }
-      }
+      );
 
       p.color.setRGB(r, g, b);
 
@@ -3016,7 +3722,9 @@ export class FireworkSystem {
       } else {
         // Co giảm kích thước động theo chu kỳ nhiệt độ
         let sizeDecay = 1.0;
-        if (lifeRatio < 0.12) {
+        if (p.hasErraticDart && p.erraticDartTriggered) {
+          sizeDecay = 1.0;
+        } else if (lifeRatio < 0.12) {
           sizeDecay = 1.25 - (lifeRatio / 0.12) * 0.25;
         } else if (lifeRatio > 0.60) {
           const t = (lifeRatio - 0.60) / 0.40;
@@ -3038,6 +3746,7 @@ export class FireworkSystem {
       this.emitFireworkEvent(
         'firework:crackle',
         {
+          sound: firstBurst.preset?.sound || null,
           position: {
             x: firstBurst.position.x,
             y: firstBurst.position.y,
@@ -3074,7 +3783,8 @@ export class FireworkSystem {
 
     const count = Math.min(
       this.burstParticles.length,
-      this.maxBurstParticles
+      this.maxBurstParticles,
+      this.allocatedMaxBurstParticles
     );
 
     // 4. Fill Geometry Buffers

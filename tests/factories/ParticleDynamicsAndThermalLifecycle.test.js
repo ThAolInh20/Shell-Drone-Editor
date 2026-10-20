@@ -215,4 +215,14 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     expect(particleVel.x).toBeGreaterThan(0.3);
     expect(particleVel.z).toBeGreaterThan(0.15);
   });
+
+  it('should define longBurn parameters in FIREWORK_CONFIG and support extended lifetime', () => {
+    expect(FIREWORK_CONFIG.BURST.longBurnMultiplier).toBeGreaterThan(1.5);
+    expect(FIREWORK_CONFIG.BURST.longBurnDissolveStart).toBeGreaterThan(0.65);
+    expect(FIREWORK_CONFIG.BURST.longBurnGravityScale).toBeLessThan(1.0);
+
+    const baseLife = FIREWORK_CONFIG.BURST.baseLife;
+    const longBurnLife = baseLife * FIREWORK_CONFIG.BURST.longBurnMultiplier;
+    expect(longBurnLife).toBeGreaterThan(4.0);
+  });
 });

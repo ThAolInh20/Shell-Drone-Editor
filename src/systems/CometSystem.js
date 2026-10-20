@@ -57,13 +57,17 @@ export class CometSystem {
     this.trailSystem = trailSystem;
     this.smokeSystem = smokeSystem;
     this.activeComets = [];
+    this.pendingDetachedLaunches = [];
+    this.simulationTime = 0;
     this.launchZone = LAUNCH_ZONE_CONFIG;
     this.shellPresetFactory = new ShellPresetFactory();
     this.eventSubscriptions = [];
 
     this.graphicsQualityMultiplier = 1.0;
     this.setGraphicsQuality(
-      localStorage.getItem('graphics_quality') || 'medium'
+      (typeof localStorage !== 'undefined' && localStorage?.getItem)
+        ? localStorage.getItem('graphics_quality') || 'medium'
+        : 'medium'
     );
     this.eventSubscriptions.push(
       globalEventBus.on(
@@ -73,6 +77,10 @@ export class CometSystem {
       globalEventBus.on(
         'firework:clear',
         () => this.clear()
+      ),
+      globalEventBus.on(
+        'comet:spawn',
+        (detail) => this.spawnComet(detail)
       )
     );
   }
@@ -100,6 +108,30 @@ export class CometSystem {
 
   emitFireworkEvent(type, detail) {
     globalEventBus.emit(type, detail);
+  }
+
+  spawnComet({ position, velocity, color, preset = null, spiral = null, lifetime = null }) {
+    if (!position || !velocity) return null;
+    const cometColor = (color instanceof THREE.Color)
+      ? color.clone()
+      : new THREE.Color(color ?? 0xffffff);
+
+    const comet = new CometEntity({
+      position: position.clone(),
+      velocity: velocity.clone(),
+      color: cometColor,
+      preset,
+      spiral,
+      lifetime
+    });
+
+    comet.mesh.traverse((child) => {
+      child.layers.enable(LAYER_REFLECTION);
+    });
+
+    this.scene.add(comet.mesh);
+    this.activeComets.push(comet);
+    return comet;
   }
 
   launchRandom(preset = null, options = {}) {
@@ -178,6 +210,65 @@ export class CometSystem {
       ? CASCADE_PALETTES[Math.floor(Math.random() * CASCADE_PALETTES.length)]
       : null;
 
+    const isDetachedCluster = !isCascade && clusterCount > 1 && Boolean(
+      finalPreset?.shellType === 'comet_cluster_detached' ||
+      finalPreset?.detachedTrail ||
+      ['detached', 'detached-trail'].includes(finalPreset?.cometTrail)
+    );
+    const detachedTargetHeight = isDetachedCluster ? this.resolveBurstHeight(finalPreset, ratioY) : null;
+    const detachedBaseVelocity = isDetachedCluster
+      ? this.resolveLaunchVelocity(detachedTargetHeight, angleOffset || 0)
+      : null;
+    const detachedDirections = [];
+    let detachedRanks = null;
+    if (isDetachedCluster) {
+      const direction = detachedBaseVelocity.clone().normalize();
+      const reference = Math.abs(direction.y) > 0.9
+        ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(direction, reference).normalize();
+      const up = new THREE.Vector3().crossVectors(direction, right).normalize();
+      // Independent strata fill the column length and its disk, without a
+      // launch-order speed ramp or a visible ring of equal-radius stars.
+      const shuffle = values => {
+        for (let i = values.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [values[i], values[j]] = [values[j], values[i]];
+        }
+        return values;
+      };
+      const nominalSpeed = detachedBaseVelocity.length();
+      const speeds = shuffle(Array.from({ length: clusterCount }, (_, i) => {
+        const u = (i + Math.random()) / clusterCount;
+        // Non-linear curve spanning from low base (~0.22) to high apex (~1.16)
+        const shaped = 0.22 + 0.94 * (0.35 * u + 0.65 * Math.pow(u, 0.9));
+        const jitter = (Math.random() - 0.5) * 0.04;
+        return Math.max(0.20, shaped + jitter);
+      }));
+      const radii = shuffle(Array.from({ length: clusterCount }, (_, i) =>
+        5 * Math.sqrt((i + Math.random()) / clusterCount)));
+      const azimuths = shuffle(Array.from({ length: clusterCount }, (_, i) =>
+        Math.PI * 2 * (i + Math.random()) / clusterCount));
+      for (let i = 0; i < clusterCount; i++) {
+        const angle = azimuths[i];
+        // Scale maximum allowable radial offset to preserve tight column beam coherence
+        const axialSpeed = speeds[i];
+        const maxOffset = Math.min(5, Math.max(1.5, axialSpeed * nominalSpeed * Math.tan(0.14)));
+        const radiusJitter = 0.85 + Math.random() * 0.30;
+        const clampedRadius = Math.min(radii[i] * radiusJitter, maxOffset);
+        const offset = right.clone().multiplyScalar(Math.cos(angle))
+          .addScaledVector(up, Math.sin(angle)).multiplyScalar(clampedRadius);
+        detachedDirections.push(detachedBaseVelocity.clone()
+          .multiplyScalar(speeds[i]).add(offset));
+      }
+      const heightOrder = detachedDirections
+        .map((velocity, index) => ({ vy: velocity.y, index }))
+        .sort((a, b) => a.vy - b.vy);
+      detachedRanks = new Array(clusterCount);
+      for (let r = 0; r < heightOrder.length; r++) {
+        detachedRanks[heightOrder[r].index] = clusterCount > 1 ? r / (clusterCount - 1) : 0;
+      }
+    }
+
     for (let i = 0; i < clusterCount; i++) {
       let targetHeight;
       let velocity;
@@ -231,12 +322,16 @@ export class CometSystem {
         );
       } else {
         // Độ cao tính toán trực tiếp từ resolveBurstHeight theo ratioY, dao động nhẹ (+/- 3%)
-        targetHeight = this.resolveBurstHeight(preset, ratioY) *
-          (0.97 + Math.random() * 0.06);
-        velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
+        if (isDetachedCluster) {
+          velocity = detachedDirections[i];
+        } else {
+          targetHeight = this.resolveBurstHeight(preset, ratioY) *
+            (0.97 + Math.random() * 0.06);
+          velocity = this.resolveLaunchVelocity(targetHeight, angleOffset || 0);
+        }
 
         // Spread the cluster laterally only when shooting multiple comets
-        if (clusterCount > 1) {
+        if (clusterCount > 1 && !isDetachedCluster) {
           velocity.x += (Math.random() - 0.5) * 5;
           velocity.z += (Math.random() - 0.5) * 5;
           velocity.y *= (0.95 + Math.random() * 0.1);
@@ -252,27 +347,62 @@ export class CometSystem {
           : clusterColor.clone();
       }
 
-      const cometPreset = hasStrobeTag
-        ? { ...finalPreset, isStrobeStar: (i < strobeCount) }
-        : finalPreset;
+      const baseHeadScale = Number.isFinite(finalPreset?.detachedHeadScale) && finalPreset.detachedHeadScale > 0
+        ? finalPreset.detachedHeadScale
+        : 0.42;
+      const starHeadScale = isDetachedCluster
+        ? baseHeadScale * (0.80 + Math.random() * 0.40)
+        : baseHeadScale;
 
-      const comet = new CometEntity({
+      const cometPreset = {
+        ...(hasStrobeTag ? { ...finalPreset, isStrobeStar: (i < strobeCount) } : finalPreset),
+        ...(isDetachedCluster ? { detachedHeadScale: starHeadScale } : {})
+      };
+
+      const immediateCount = Math.ceil(clusterCount * 0.25);
+      const launchDelay = isDetachedCluster && i >= immediateCount
+        ? 0.12 * (i - immediateCount + Math.random()) / (clusterCount - immediateCount)
+        : 0;
+      const clusterLifetime = Number.isFinite(finalPreset?.detachedLifetime) && finalPreset.detachedLifetime > 0
+        ? finalPreset.detachedLifetime : 2.5;
+      const sweepDuration = Number.isFinite(finalPreset?.detachedSweepDuration) && finalPreset.detachedSweepDuration > 0
+        ? finalPreset.detachedSweepDuration
+        : 0.12;
+      const baseLifetime = clusterLifetime - 0.04;
+      const rankOffset = (isDetachedCluster && detachedRanks)
+        ? detachedRanks[i] * sweepDuration
+        : 0;
+      const launch = {
         position: basePosition.clone(),
         velocity,
         color: cometColor,
         preset: cometPreset,
-        spiral: resolvedSpiral
-      });
-
-      comet.mesh.traverse((child) => {
-        child.layers.enable(LAYER_REFLECTION);
-      });
-      this.scene.add(comet.mesh);
-      this.activeComets.push(comet);
+        spiral: resolvedSpiral,
+        // Extinguish sequentially from bottom to top at rapid speed
+        lifetime: isDetachedCluster
+          ? Math.max(0.1, baseLifetime + rankOffset - launchDelay)
+          : null
+      };
+      if (isDetachedCluster && i >= immediateCount) {
+        // Capture launch data now: later launches must not depend on caller mutations.
+        const snapshot = (value) => {
+          if (value === null || typeof value !== 'object') return value;
+          if (typeof value.clone === 'function') return value.clone();
+          if (Array.isArray(value)) return value.map(snapshot);
+          return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, snapshot(item)]));
+        };
+        this.pendingDetachedLaunches.push({
+          time: this.simulationTime + launchDelay,
+          launch: snapshot(launch)
+        });
+      } else {
+        this.spawnComet(launch);
+      }
     }
+    this.pendingDetachedLaunches.sort((a, b) => a.time - b.time);
 
-    const baseTargetHeight = this.resolveBurstHeight(preset, ratioY);
-    const baseVelocity = this.resolveLaunchVelocity(baseTargetHeight, angleOffset || 0);
+    const baseTargetHeight = detachedTargetHeight ?? this.resolveBurstHeight(preset, ratioY);
+    const baseVelocity = detachedBaseVelocity || this.resolveLaunchVelocity(baseTargetHeight, angleOffset || 0);
     const launchDir = baseVelocity.lengthSq() > 0.001
       ? baseVelocity.clone().normalize()
       : new THREE.Vector3(0, 1, 0);
@@ -286,6 +416,7 @@ export class CometSystem {
         shapeType: 'comet',
         effectType: 'comet',
         colorHex: clusterColor.getHex(),
+        sound: (isDetachedCluster ? finalPreset?.sound : preset?.sound) || null,
         position: {
           x: basePosition.x,
           y: basePosition.y,
@@ -335,19 +466,24 @@ export class CometSystem {
   }
 
   resolveBurstHeight(preset = null, ratioY) {
-    if (ratioY !== undefined) {
-      // Độ cao tối đa của comet bằng 1/2 pháo hoa (ratioY 0 -> 1 tương ứng 0 -> 0.5 của pháo hoa)
-      return THREE.MathUtils.lerp(
-        this.launchZone.minBurstY,
-        this.launchZone.maxBurstY,
-        ratioY * 0.5
-      );
-    }
-    // Mặc định comets bay ở khoảng tầm thấp/trung (0.35 - 0.55 của comet, tương ứng 0.175 - 0.275 của pháo hoa)
-    return THREE.MathUtils.lerp(
+    const minCometY = 30;
+    const maxCometY = THREE.MathUtils.lerp(
       this.launchZone.minBurstY,
       this.launchZone.maxBurstY,
-      (0.35 + Math.random() * 0.2) * 0.5
+      0.65
+    );
+    if (ratioY !== undefined) {
+      return THREE.MathUtils.lerp(
+        minCometY,
+        maxCometY,
+        ratioY
+      );
+    }
+    // Default low to mid height range for comets
+    return THREE.MathUtils.lerp(
+      minCometY,
+      maxCometY,
+      0.35 + Math.random() * 0.2
     );
   }
 
@@ -366,8 +502,14 @@ export class CometSystem {
 
     // vy luôn đảm bảo đạt đủ độ cao
     const vy = requiredVy;
-    // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle)
-    const tiltRight = requiredVy * Math.tan(angleOffset);
+    // Vận tốc tạt ngang (tilt) để bay xéo, tính bằng tan(angle) với ngưỡng an toàn tối đa 85 độ
+    const maxTiltRad = 85 * (Math.PI / 180);
+    const safeAngle = THREE.MathUtils.clamp(
+      angleOffset,
+      -maxTiltRad,
+      maxTiltRad
+    );
+    const tiltRight = requiredVy * Math.tan(safeAngle);
 
     const vx = forwardSpeed * Math.cos(baseAngle) + tiltRight * Math.sin(baseAngle);
     const vz = -forwardSpeed * Math.sin(baseAngle) + tiltRight * Math.cos(baseAngle);
@@ -376,6 +518,7 @@ export class CometSystem {
   }
 
   clear() {
+    this.pendingDetachedLaunches.length = 0;
     for (let i = 0; i < this.activeComets.length; i++) {
       const comet = this.activeComets[i];
       if (comet) {
@@ -431,11 +574,219 @@ export class CometSystem {
     this.trailSystem.spawnMicroCrackle(position.clone(), color);
   }
 
-  update(deltaTime) {
+  spawnTadpoleArrowSparks(
+    position,
+    color,
+    velocity,
+    isStrobe = false,
+    hasCrackle = false
+  ) {
+    const dir = velocity && velocity.lengthSq() > 0.01
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    const upVec = Math.abs(dir.y) > 0.88
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const minSparks = tadpoleCfg.arrowSparksMin ?? 4;
+    const maxSparks = tadpoleCfg.arrowSparksMax ?? 7;
+    const count = minSparks + Math.floor(Math.random() * (maxSparks - minSparks + 1));
+    const brightness = tadpoleCfg.sparkBrightnessMultiplier ?? 2.2;
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      // Góc xòe hình mũi tên: 35 đến 60 độ xòe về phía sau ngược vector vận tốc dir
+      const coneAngle = 0.55 + Math.random() * 0.35;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const speed = 14.0 + Math.random() * 12.0;
+      const sparkVel = ejectDir.multiplyScalar(speed);
+      if (velocity) {
+        sparkVel.addScaledVector(velocity, 0.28);
+      }
+
+      // Tăng sáng rực rỡ và phát quang (bloom) cho hạt tia xù
+      const sparkColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        0.10,
+        0.22 + Math.random() * 0.15
+      ).multiplyScalar(brightness);
+
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.75) * (0.85 + Math.random() * 0.35);
+
+      if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+        this.trailSystem.spawnTrailParticle(
+          position,
+          sparkColor,
+          1.0,
+          false,
+          sparkLife,
+          1.0,
+          isStrobe,
+          sparkVel,
+          0.20,
+          0.85,
+          false,
+          null,
+          true
+        );
+      }
+    }
+
+    if (
+      (hasCrackle || Math.random() < 0.30)
+      && this.trailSystem
+      && typeof this.trailSystem.spawnMicroCrackle === 'function'
+    ) {
+      const cracklePos = position.clone().add(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * 2.5,
+          -Math.random() * 3.0,
+          (Math.random() - 0.5) * 2.5
+        )
+      );
+      this.trailSystem.spawnMicroCrackle(cracklePos, color);
+    }
+  }
+
+  spawnTadpoleFlurry(
+    position,
+    color,
+    velocity,
+    isStrobe = false,
+    hasCrackle = false
+  ) {
+    const dir = velocity && velocity.lengthSq() > 0.01
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
+    const upVec = Math.abs(dir.y) > 0.88
+      ? new THREE.Vector3(1, 0, 0)
+      : new THREE.Vector3(0, 1, 0);
+    const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
+    const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+
+    const flurryCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
+    const flurryCount = flurryCfg.flurryCount || 32;
+    const speedMin = flurryCfg.arrowSpeedMin || 15.0;
+    const speedMax = flurryCfg.arrowSpeedMax || 26.0;
+    const starLife = flurryCfg.flurryStarLife || 0.85;
+    const brightness = flurryCfg.sparkBrightnessMultiplier ?? 2.2;
+
+    for (let i = 0; i < flurryCount; i++) {
+      const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+      // Góc xòe bung tỏa chúc về phía sau theo chiều bay của hạt
+      const coneAngle = 0.55 + Math.random() * 0.40;
+      const radialX = Math.cos(angle) * Math.sin(coneAngle);
+      const radialZ = Math.sin(angle) * Math.sin(coneAngle);
+      const backScale = -Math.cos(coneAngle);
+
+      const ejectDir = new THREE.Vector3()
+        .addScaledVector(rightVec, radialX)
+        .addScaledVector(forwardVec, radialZ)
+        .addScaledVector(dir, backScale)
+        .normalize();
+
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
+      const subVel = ejectDir.multiplyScalar(speed);
+      if (velocity) {
+        subVel.addScaledVector(velocity, 0.22);
+      }
+
+      // Tăng sáng rực rỡ và phát quang (bloom) cho chùm xù bung tại đỉnh
+      const subColor = color.clone().offsetHSL(
+        (Math.random() - 0.5) * 0.06,
+        0.10,
+        0.24 + Math.random() * 0.16
+      ).multiplyScalar(brightness);
+
+      const sparkLife = starLife * (0.85 + Math.random() * 0.4);
+
+      if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+        this.trailSystem.spawnTrailParticle(
+          position,
+          subColor,
+          1.0,
+          false,
+          sparkLife,
+          1.0,
+          isStrobe,
+          subVel,
+          0.24,
+          0.88,
+          false,
+          null,
+          true
+        );
+      }
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnEffectSpark === 'function') {
+      for (let s = 0; s < 14; s++) {
+        const sparkPos = position.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 2.5,
+            -Math.random() * 3.0,
+            (Math.random() - 0.5) * 2.5
+          )
+        );
+        this.trailSystem.spawnEffectSpark(
+          sparkPos,
+          color,
+          true,
+          null,
+          Math.random() * 1000,
+          0.40 + Math.random() * 0.25,
+          false
+        );
+      }
+    }
+
+    if (this.trailSystem && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+      for (let c = 0; c < 6; c++) {
+        const cracklePos = position.clone().add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 3.5,
+            -Math.random() * 3.5,
+            (Math.random() - 0.5) * 3.5
+          )
+        );
+        this.trailSystem.spawnMicroCrackle(cracklePos, color);
+      }
+    }
+  }
+
+  update(frameDeltaTime) {
+    const frameEnd = this.simulationTime + frameDeltaTime;
+    while (this.pendingDetachedLaunches.length && this.pendingDetachedLaunches[0].time <= frameEnd + 1e-10) {
+      const pending = this.pendingDetachedLaunches.shift();
+      const comet = this.spawnComet(pending.launch);
+      comet._launchFrameDeltaTime = Math.max(0, frameEnd - pending.time);
+    }
+    this.simulationTime = frameEnd;
     let activeCount = 0;
 
     for (let i = 0; i < this.activeComets.length; i++) {
       const comet = this.activeComets[i];
+      const isNewLaunch = comet._launchFrameDeltaTime !== undefined;
+      const deltaTime = comet._launchFrameDeltaTime ?? frameDeltaTime;
+      delete comet._launchFrameDeltaTime;
+      if (isNewLaunch && deltaTime === 0) {
+        this.activeComets[activeCount++] = comet;
+        continue;
+      }
       let isDead = comet.update(deltaTime);
 
       const H_max = comet.initialVy ? (comet.initialVy * comet.initialVy) / 60 : 0;
@@ -473,6 +824,68 @@ export class CometSystem {
           comet.color,
           comet.velocity
         );
+      }
+
+      // Bắt đầu xù hạt chúc xuống dưới tạo hình mũi tên từ tầm thấp (progress >= 0.28)
+      const flurryStartProgress = FIREWORK_CONFIG.COMET_TADPOLE?.arrowFlurryStartProgress ?? 0.28;
+      if (
+        comet.isTadpole &&
+        comet.state === CometEntity.STATE.LAUNCHING &&
+        comet.tadpoleProgress !== undefined &&
+        comet.tadpoleProgress >= flurryStartProgress
+      ) {
+        comet.tadpoleArrowTimer = (comet.tadpoleArrowTimer || 0) + deltaTime;
+        const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
+        if (comet.tadpoleArrowTimer >= arrowInterval) {
+          comet.tadpoleArrowTimer = 0;
+          this.spawnTadpoleArrowSparks(
+            comet.mesh.position,
+            comet.color,
+            comet.velocity,
+            Boolean(comet.hasStrobe),
+            Boolean(comet.hasCrackle)
+          );
+        }
+      }
+
+      // Tadpole flurry burst near apex ("khi gần tới điểm cao nhất thì sẽ xù tỏa nhiều hạt ra xung quanh")
+      const isApex = comet.state === CometEntity.STATE.DECAYING ||
+        (comet.tadpoleProgress !== undefined && comet.tadpoleProgress >= 0.88) ||
+        (comet.initialVy > 15.0 && comet.velocity.y <= 6.0);
+      if (
+        comet.isTadpole &&
+        !comet.hasFlurried &&
+        isApex
+      ) {
+        comet.hasFlurried = true;
+        this.spawnTadpoleFlurry(
+          comet.mesh.position,
+          comet.color,
+          comet.velocity,
+          Boolean(comet.hasStrobe),
+          Boolean(comet.hasCrackle)
+        );
+      }
+
+      // Crackle at apex
+      if (
+        comet.hasCrackle &&
+        !comet.hasCrackled &&
+        (comet.state === CometEntity.STATE.DECAYING || comet.velocity.y <= 0)
+      ) {
+        comet.hasCrackled = true;
+        if (this.trailSystem && typeof this.trailSystem.spawnMicroCrackle === 'function') {
+          for (let c = 0; c < 6; c++) {
+            const cracklePos = comet.mesh.position.clone().add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 4.5,
+                (Math.random() - 0.5) * 4.5,
+                (Math.random() - 0.5) * 4.5
+              )
+            );
+            this.trailSystem.spawnMicroCrackle(cracklePos, comet.color);
+          }
+        }
       }
 
       // Thicker trails for comets during launch (before reaching strobe threshold or if not dimmed/ghost-dark/ghost-hidden)
@@ -603,9 +1016,16 @@ export class CometSystem {
                 || comet.preset?.cometTrail === 'detached-trail'
                 || comet.preset?.shellType === 'comet_cluster_detached';
 
-              const minDistSq = comet.preset?.thickTrail
-                ? 0.36
-                : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64);
+              const isCascade = Boolean(comet.preset?.isCascade)
+                || comet.preset?.shellType === 'comet_cluster_cascade';
+
+              const minDistSq = comet.isTadpole
+                ? 1.44
+                : (isCascade
+                  ? 0.90
+                  : (comet.preset?.thickTrail
+                    ? 0.36
+                    : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64)));
 
               if (comet.shouldSpawnTrail(minDistSq)) {
                 let spawnPos = comet.mesh.position;
@@ -619,7 +1039,19 @@ export class CometSystem {
                   spawnPos = comet.mesh.position.clone().addScaledVector(velDir, -gapDistance);
                 }
 
-                if (isDetached) {
+                if (comet.isTadpole) {
+                  // Kéo dãn vệt: Tăng thời gian sống của hạt và giảm tỷ lệ sinh để không bị vón cục
+                  const tadpoleLife = Math.max(0.75, customLife * 0.90);
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
+                    comet.color,
+                    1.4,
+                    false,
+                    tadpoleLife,
+                    0.80,
+                    false
+                  );
+                } else if (isDetached) {
                   const particleColor = comet.color.clone().offsetHSL(0, -0.15, -0.12);
                   this.trailSystem.spawnTrailParticle(
                     spawnPos,
@@ -628,6 +1060,16 @@ export class CometSystem {
                     false,
                     customLife * 0.5,
                     0.38,
+                    false
+                  );
+                } else if (isCascade) {
+                  this.trailSystem.spawnTrailParticle(
+                    comet.mesh.position,
+                    comet.color,
+                    1.4,
+                    false,
+                    Math.min(1.5, customLife * 0.70),
+                    0.85,
                     false
                   );
                 } else if (comet.preset?.thickTrail) {
@@ -663,7 +1105,8 @@ export class CometSystem {
                 }
               }
 
-              if (Math.random() < 0.08 && !comet.preset?.sparkleAtEnd && !isDetached) {
+              const sparkChance = isCascade ? 0.015 : 0.08;
+              if (Math.random() < sparkChance && !comet.preset?.sparkleAtEnd && !isDetached) {
                 this.trailSystem.spawnEffectSpark(
                   comet.mesh.position,
                   comet.color,

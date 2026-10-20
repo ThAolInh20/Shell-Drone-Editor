@@ -35,6 +35,7 @@
   - **Visual Effects** (stackable optical modifiers): E.g. `strobe`, `white-strobe`, `glitter-strobe`, `crackle`, `ghost`.
   - **Presets as Templates**: New presets must be registered as Composition Templates in `FireworkCompositionHelper.js` and `ShellPresetFactory.js`.
 - **Centralized Taxonomy**: Whenever adding a new Shape, Dynamics, Modifier, or Visual Effect tag, you MUST register it in `./src/factories/FireworkCompositionHelper.js` and provide translations in all language files (`./src/config/lang/{en,vi,zh,ja}.js`).
+- **Active Effects Universality**: Any effect tag classified under "Active Effects" (e.g. `strobe`, `crackle`, `ghost`, `crossette`, `tadpole-flurry`, `burst-smoke`) MUST be implemented as a universal modifier capable of running on ANY firework shell type, shape, or particle stream. It must not be tightly coupled or restricted to a single preset, and must seamlessly compose with other active effects (inheriting dynamic colors, fade lifecycle, physics, and companion modifiers).
 
 ## Preset & Shell Naming Conventions
 - **Lowercase snake_case Format**: All preset keys, shell types, and composition identifiers MUST be written in lowercase `snake_case`.
@@ -67,5 +68,16 @@
   - **Sanitization & Clean Export**: When serializing JSON data (e.g. through `cleanSequence` or export adapters), never leak transient runtime variables, UI caches, Promises, or ephemeral memory objects (such as `_waveformPeaks`, `_waveformPromise`, `_blobUrl`, `_trackRow`, `_deleted`). Only standardized, persistent schema attributes should be saved.
   - **Non-Destructive Evolution**: Never arbitrarily rename, reformat, or delete existing schema fields that legacy shows depend on. If a property is upgraded or superseded, maintain legacy adapters and compatibility aliases on import.
   - **Structural Stability of Hierarchies**: Nested structures (such as group sequences with `children`, audio blocks with `beats`, drone animations with `steps`) must retain their contract guarantees so that playback directors, sequencers, and loaders reliably traverse them across all versions.
+
+## Visual Effects & Particle Rendering Constraints
+- **Preserve Additive Blending for Emissive Fireworks**: Firework particles represent emissive photons and burning pyrotechnic stars. NEVER switch firework burst or trail particles to `THREE.NormalBlending` or custom opaque blending modes. Opaque blending creates unnatural flat circular discs with dark borders and destroys the authentic firework aesthetic. Always keep `THREE.AdditiveBlending`.
+- **Preserve Spatial Structures & Shape Generators**: Never modify particle coordinates, spatial distributions, or geometry algorithms in `src/factories/BurstShapeGenerator.js` when responding to requests regarding particle brightness, glare, or color. Shape structure, particle counts, and dynamics must remain untouched unless the user explicitly requests a geometry change.
+- **Handling Overlap Glare & Light Blowout**: When addressing excessive brightness or blinding glare caused by overlapping particles:
+  - Do NOT change materials or particle models.
+  - Dampen shader fragment accumulation by softening gradient stops in `FireworkSystem.js` and `TrailSystem.js` (e.g. blend `hotCenter` with diffuse color, lower center alpha from 1.0 to ~0.70, and reduce intermediate stop alphas).
+  - Tame extreme HDR brightness multipliers on star meshes (`coreColor` / `innerMultiplier` in `ShellEntity.js` and `CometEntity.js`) while maintaining unit test assertions.
+  - Calibrate post-processing bloom thresholds and strength in `src/config/rendering.js` and `src/config/settings.js` (raise threshold to prevent medium-brightness clusters from triggering bloom blowout, reduce bloom strength and radius).
+- **Adhere Strictly to Surgical Scoped Modifications**: Never rewrite an entire rendering pipeline, shader model, or factory when a request only targets visual balance. Adjust the minimum necessary scalar parameters or shader stops to solve the issue.
+
 
 
