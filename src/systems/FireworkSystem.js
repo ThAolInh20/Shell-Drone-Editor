@@ -1237,8 +1237,9 @@ export class FireworkSystem {
     if (!this.trailSystem || typeof this.trailSystem.spawnTrailParticle !== 'function') return;
 
     const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
-    const baseBrightness = (p.erraticDartFlash ?? 2.8) * parentFade;
-    const streakMultiplier = dartCfg.streakBrightnessMultiplier ?? 4.0;
+    const baseBrightness = parentFade;
+    const streakMultiplier = dartCfg.streakBrightnessMultiplier ?? 1.35;
+    const streakOpacity = dartCfg.trailOpacity ?? 0.48;
     const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
 
     const streakVel = p.velocity
@@ -1247,10 +1248,10 @@ export class FireworkSystem {
 
     const whiteCore = new THREE.Color(0xffffff);
     const streakColor = p.baseColor.clone()
-      .lerp(whiteCore, 0.32)
+      .lerp(whiteCore, 0.18)
       .multiplyScalar(baseBrightness * streakMultiplier);
 
-    const streakLife = (dartCfg.trailParticleLife ?? 0.95) * (0.85 + Math.random() * 0.30);
+    const streakLife = (dartCfg.trailParticleLife ?? 0.90) * (0.85 + Math.random() * 0.30);
 
     this.trailSystem.spawnTrailParticle(
       p.position,
@@ -1258,7 +1259,7 @@ export class FireworkSystem {
       1.0,
       false,
       streakLife,
-      1.0,
+      streakOpacity,
       isStrobe,
       streakVel,
       0.03,
@@ -3654,6 +3655,17 @@ export class FireworkSystem {
         );
       }
 
+      if (p.hasErraticDart && p.erraticDartTriggered) {
+        // Dau hat duy tri do sang va do mo duc ban dau trong suot pha vut
+        const dartDuration = FIREWORK_CONFIG.ERRATIC_DART?.boostLifeDuration ?? 0.95;
+        const dartRemainRatio = (p.maxLife - p.age) / dartDuration;
+        if (dartRemainRatio > 0.12) {
+          baseOpacity = Math.max(baseOpacity, 0.98);
+        } else {
+          baseOpacity = Math.max(0.0, dartRemainRatio / 0.12);
+        }
+      }
+
       let effTypeForOpacity = p.effectType;
       if (Array.isArray(p.effects)) {
         for (const eff of p.effects) {
@@ -3702,7 +3714,9 @@ export class FireworkSystem {
       } else {
         // Co giảm kích thước động theo chu kỳ nhiệt độ
         let sizeDecay = 1.0;
-        if (lifeRatio < 0.12) {
+        if (p.hasErraticDart && p.erraticDartTriggered) {
+          sizeDecay = 1.0;
+        } else if (lifeRatio < 0.12) {
           sizeDecay = 1.25 - (lifeRatio / 0.12) * 0.25;
         } else if (lifeRatio > 0.60) {
           const t = (lifeRatio - 0.60) / 0.40;

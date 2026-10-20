@@ -7,6 +7,7 @@ import {
   AVAILABLE_EFFECT_TAGS
 } from '../../src/factories/FireworkCompositionHelper.js';
 import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
+import { BurstEffectProcessor } from '../../src/factories/BurstEffectProcessor.js';
 import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
 
 describe('Erratic Dart Active Effect and Presets', () => {
@@ -146,7 +147,7 @@ describe('Erratic Dart Active Effect and Presets', () => {
 
     // Continue updating: verify streak particles are emitted
     spawnedStreakParticles = [];
-    p.erraticDartTrailTimer = 0.05;
+    p.erraticDartTrailTimer = FIREWORK_CONFIG.ERRATIC_DART?.trailInterval ?? 0.075;
     fireworkSystem.updateBurstParticles(0.016);
 
     expect(spawnedStreakParticles.length).toBeGreaterThan(0);
@@ -155,6 +156,7 @@ describe('Erratic Dart Active Effect and Presets', () => {
     expect(streak.strobe).toBe(true);
     expect(streak.gravityScale).toBeCloseTo(0.03, 2);
     expect(streak.customLife).toBeGreaterThanOrEqual(0.75);
+    expect(p.renderOpacity).toBeGreaterThanOrEqual(0.95);
 
     // Verify natural lateral wobble during dart flight
     const velBeforeWobble = p.velocity.clone();
@@ -216,4 +218,68 @@ describe('Erratic Dart Active Effect and Presets', () => {
 
     fireworkSystem.clear();
   });
+
+  it('should actively steer direction causing visible 3D curvature and sway rather than a straight line', () => {
+    const particle = {
+      hasErraticDart: true,
+      erraticDartTriggered: true,
+      erraticDartFlash: 2.0,
+      velocity: new THREE.Vector3(45, 0, 0),
+      erraticDartPhaseOffset: 0.5,
+      erraticDartCurlBias: 1.2
+    };
+
+    const initialDir = particle.velocity.clone().normalize();
+
+    // Simulate 0.3s of darting flight across 18 frames
+    for (let f = 0; f < 18; f++) {
+      BurstEffectProcessor.processErraticDart(particle, 0.016, 0.85, 0.2);
+    }
+
+    const currentDir = particle.velocity.clone().normalize();
+    const deflectionAngle = initialDir.angleTo(currentDir);
+
+    // Verifies substantial angular steering (> 15 degrees / ~0.26 rad)
+    expect(deflectionAngle).toBeGreaterThan(0.26);
+  });
+
+  it('should execute at most 1 to 2 sharp angular kinks and maintain straight flight between kinks', () => {
+    const particle = {
+      hasErraticDart: true,
+      erraticDartTriggered: false,
+      erraticDartTriggerRatio: 0.70,
+      velocity: new THREE.Vector3(0, 5, 0),
+      age: 1.4,
+      maxLife: 2.0
+    };
+
+    // Trigger dart
+    BurstEffectProcessor.processErraticDart(particle, 0.016, 0.71, 0.2);
+    expect(particle.erraticDartTriggered).toBe(true);
+    expect(particle.erraticDartKinkTimes.length).toBeGreaterThanOrEqual(1);
+    expect(particle.erraticDartKinkTimes.length).toBeLessThanOrEqual(2);
+
+    // Track direction changes across the entire dart flight (1.0 second, 60 frames)
+    let directionChanges = 0;
+    let prevDir = particle.velocity.clone().normalize();
+
+    for (let f = 0; f < 60; f++) {
+      BurstEffectProcessor.processErraticDart(particle, 0.016, 0.85, 0.2);
+      const currentDir = particle.velocity.clone().normalize();
+      const angle = prevDir.angleTo(currentDir);
+
+      if (angle > 0.1) {
+        directionChanges++;
+        // Each kink must be a sharp turn >= 40 degrees (~0.7 rad)
+        expect(angle).toBeGreaterThanOrEqual(0.65);
+      }
+
+      prevDir = currentDir;
+    }
+
+    // Direction changes must strictly match kink count (at most 1 or 2, never continuous)
+    expect(directionChanges).toBeGreaterThanOrEqual(1);
+    expect(directionChanges).toBeLessThanOrEqual(2);
+  });
 });
+

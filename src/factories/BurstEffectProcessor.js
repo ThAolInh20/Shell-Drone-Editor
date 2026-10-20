@@ -333,9 +333,10 @@ export class BurstEffectProcessor {
       return baseGravityScale;
     }
 
+    const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
+
     if (!particle.erraticDartTriggered && lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72)) {
       particle.erraticDartTriggered = true;
-      const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
       const minSpeed = dartCfg.dartSpeedMin ?? 36.0;
       const maxSpeed = dartCfg.dartSpeedMax ?? 54.0;
       const newSpeed = minSpeed + Math.random() * (maxSpeed - minSpeed);
@@ -356,14 +357,29 @@ export class BurstEffectProcessor {
 
       particle.velocity.copy(randDir.multiplyScalar(newSpeed));
       particle.dragCoefficient = dartCfg.dragAfterDart ?? 0.12;
-      const boostDuration = dartCfg.boostLifeDuration ?? 0.85;
+      const boostDuration = dartCfg.boostLifeDuration ?? 0.95;
       particle.maxLife = particle.age + boostDuration;
       particle.erraticDartFlash = dartCfg.flashBrightnessMultiplier ?? 3.8;
+
+      // Thiet lap toi da 1-2 nhip be goc gap khuc thay vi luon song lien tuc
+      const maxKinks = dartCfg.maxKinks ?? 2;
+      const totalKinks = (Math.random() < 0.60 && maxKinks >= 2) ? 2 : 1;
+      const t1 = 0.10 + Math.random() * 0.08;
+      particle.erraticDartKinkTimes = totalKinks === 2
+        ? [
+            t1,
+            t1 + 0.22 + Math.random() * 0.16
+          ]
+        : [
+            0.14 + Math.random() * 0.14
+          ];
+      particle.erraticDartKinkIndex = 0;
+      particle.erraticDartTimer = 0;
     }
 
     let finalGravityScale = baseGravityScale;
     if (particle.erraticDartTriggered) {
-      finalGravityScale = 0.08;
+      finalGravityScale = 0.05;
       if (particle.erraticDartFlash && particle.erraticDartFlash > 1.0) {
         particle.erraticDartFlash = Math.max(
           1.0,
@@ -371,25 +387,74 @@ export class BurstEffectProcessor {
         );
       }
 
+      // Khoi tao luoi cac moc gap khuc neu hat da kich hoat tu truoc
+      if (!particle.erraticDartKinkTimes) {
+        const maxKinks = dartCfg.maxKinks ?? 2;
+        const totalKinks = (Math.random() < 0.60 && maxKinks >= 2) ? 2 : 1;
+        const t1 = 0.10 + Math.random() * 0.08;
+        particle.erraticDartKinkTimes = totalKinks === 2
+          ? [
+              t1,
+              t1 + 0.22 + Math.random() * 0.16
+            ]
+          : [
+              0.14 + Math.random() * 0.14
+            ];
+        particle.erraticDartKinkIndex = 0;
+        particle.erraticDartTimer = 0;
+      }
+
+      particle.erraticDartTimer = (particle.erraticDartTimer || 0) + deltaTime;
+
       const curSpeed = particle.velocity.length();
-      if (curSpeed > 1.0) {
-        const dir = particle.velocity.clone().normalize();
-        const upVec = Math.abs(dir.y) > 0.88
-          ? new THREE.Vector3(1, 0, 0)
-          : new THREE.Vector3(0, 1, 0);
-        const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
-        const normalVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
+      if (curSpeed > 1.0 && particle.erraticDartKinkTimes) {
+        const kinkIdx = particle.erraticDartKinkIndex ?? 0;
+        if (
+          kinkIdx < particle.erraticDartKinkTimes.length &&
+          particle.erraticDartTimer >= particle.erraticDartKinkTimes[kinkIdx]
+        ) {
+          // Thuc hien cu be goc gap khuc dut khoat (sharp angular kink)
+          particle.erraticDartKinkIndex = kinkIdx + 1;
 
-        particle.erraticDartWigglePhase = (particle.erraticDartWigglePhase || 0)
-          + deltaTime * (particle.erraticDartWiggleFreq ?? 22.0);
-        const amp = (particle.erraticDartWiggleAmp ?? 26.0)
-          * Math.min(1.8, particle.erraticDartFlash ?? 1.2);
+          const dir = particle.velocity.clone().normalize();
+          const upVec = Math.abs(dir.y) > 0.88
+            ? new THREE.Vector3(1, 0, 0)
+            : new THREE.Vector3(0, 1, 0);
+          const rightVec = new THREE.Vector3()
+            .crossVectors(dir, upVec)
+            .normalize();
+          const normalVec = new THREE.Vector3()
+            .crossVectors(rightVec, dir)
+            .normalize();
 
-        const lateralX = Math.cos(particle.erraticDartWigglePhase) * amp;
-        const lateralZ = Math.sin(particle.erraticDartWigglePhase * 1.35) * amp;
+          // Vector vuong goc ngau nhien 360 do quanh truc bay 3D
+          const roll = Math.random() * Math.PI * 2;
+          const perpVec = new THREE.Vector3()
+            .addScaledVector(rightVec, Math.cos(roll))
+            .addScaledVector(normalVec, Math.sin(roll))
+            .normalize();
 
-        particle.velocity.addScaledVector(rightVec, lateralX * deltaTime);
-        particle.velocity.addScaledVector(normalVec, lateralZ * deltaTime);
+          // Goc be gap khuc nhon (tao duong gap khuc dut khoat thay vi luon)
+          const angleMin = dartCfg.kinkAngleMin ?? 42.0;
+          const angleMax = dartCfg.kinkAngleMax ?? 68.0;
+          const kinkAngleDeg = angleMin + Math.random() * (angleMax - angleMin);
+          const kinkAngleRad = (kinkAngleDeg * Math.PI) / 180.0;
+
+          // Huong moi sau khi gap khuc, bao toan do lon van toc
+          const newDir = new THREE.Vector3()
+            .addScaledVector(dir, Math.cos(kinkAngleRad))
+            .addScaledVector(perpVec, Math.sin(kinkAngleRad))
+            .normalize();
+
+          particle.velocity.copy(newDir.multiplyScalar(curSpeed));
+
+          // Chop sang nhe tai dinh goc gap khuc
+          const kinkFlash = dartCfg.kinkFlashMultiplier ?? 2.6;
+          particle.erraticDartFlash = Math.max(
+            particle.erraticDartFlash || 1.0,
+            kinkFlash
+          );
+        }
       }
     }
 
@@ -408,6 +473,20 @@ export class BurstEffectProcessor {
     let r = particle.baseColor.r;
     let g = particle.baseColor.g;
     let b = particle.baseColor.b;
+
+    if (particle.hasErraticDart && particle.erraticDartTriggered) {
+      // Dau hat giu nguyen do sang va mau sac ban dau trong suot pha vut
+      const hasWhiteStrobe = particle.effectType === 'white-strobe'
+        || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))
+        || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('white-strobe'));
+      if (hasWhiteStrobe) {
+        const strobeT = (Math.sin(particle.age * 38.0 * strobeFreqMultiplier) + 1.0) * 0.5;
+        r = THREE.MathUtils.lerp(r, 2.2, strobeT);
+        g = THREE.MathUtils.lerp(g, 2.2, strobeT);
+        b = THREE.MathUtils.lerp(b, 2.2, strobeT);
+      }
+      return { r, g, b };
+    }
 
     const hasWhiteStrobe = particle.effectType === 'white-strobe'
       || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))

@@ -298,22 +298,35 @@ export const FIREWORK_CONFIG = {
     // Tốc độ xung lực vút tốc mới cực đại (m/s)
     dartSpeedMin: 36.0,
     dartSpeedMax: 54.0,
-    // Biên độ lắc uốn lượn tự nhiên của hạt khi vút (m/s^2)
+    // Số nhịp bẻ góc gấp khúc tối đa (chỉ từ 1 đến 2 nhịp)
+    maxKinks: 2,
+    // Góc bẻ gập khúc nhọn tối thiểu và tối đa (độ)
+    kinkAngleMin: 42.0,
+    kinkAngleMax: 68.0,
+    // Hệ số sáng lóe lên tại mỗi đỉnh góc gấp khúc
+    kinkFlashMultiplier: 2.0,
+    // Tốc độ bẻ lái góc tối đa (rad/s, giữ tương thích ngược)
+    turnRateMax: 6.8,
+    // Tần số uốn lượn hình chữ S và xoắn ốc (rad/s, giữ tương thích ngược)
+    turnFreq: 7.2,
+    // Biên độ lắc uốn lượn tự nhiên của hạt khi vút (m/s^2, giữ tương thích ngược)
     wobbleAmp: 26.0,
-    // Tần số lắc lượn ngoằn ngoèo (rad/s)
+    // Tần số lắc lượn ngoằn ngoèo (rad/s, giữ tương thích ngược)
     wobbleFreq: 22.0,
     // Hệ số ma sát không khí sau khi vút (thấp hơn để hạt lướt nhanh và xa)
     dragAfterDart: 0.12,
-    // Thời gian sống kéo dài thêm cho pha vút vẽ vệt (giây)
-    boostLifeDuration: 0.85,
+    // Thời gian sống kéo dài thêm cho pha vút vẽ vệt (giây, giảm vừa phải để kết thúc gọn gàng)
+    boostLifeDuration: 0.95,
     // Độ sáng bừng lên tức thì khi bắt đầu vút (multiplier)
-    flashBrightnessMultiplier: 3.8,
-    // Hệ số tăng cường độ sáng và độ nét của các hạt điểm sáng rời rạc (multiplier)
-    streakBrightnessMultiplier: 4.0,
-    // Chu kỳ nhả hạt vệt sáng dãn cách tạo độ rời rạc tự nhiên (giảm số lượng hạt sinh ra)
-    trailInterval: 0.032,
+    flashBrightnessMultiplier: 2.2,
+    // Hệ số tăng cường độ sáng của vệt đuôi mờ dịu (tạo độ mờ thanh thoát thay vì chói)
+    streakBrightnessMultiplier: 1.35,
+    // Độ mờ đục của từng điểm sáng vệt đuôi (tạo cảm giác mờ ảo)
+    trailOpacity: 0.48,
+    // Chu kỳ nhả hạt vệt sáng dãn cách (giây, giãn ra để giảm tỷ lệ sinh hạt, tạo vệt mờ thưa)
+    trailInterval: 0.075,
     // Thời gian sống kéo dài của từng điểm sáng rời rạc để lưu giữ đường bay (giây)
-    trailParticleLife: 0.95,
+    trailParticleLife: 0.90,
     // Tỷ lệ lệch góc
     deflectionJitter: 0.85
   },
