@@ -2559,6 +2559,17 @@ export class FireworkSystem {
           t
         );
 
+        if (item.trailOffset) {
+          const prevOffset = item.prevTrailOffset || item.trailOffset;
+          const currOffset = item.trailOffset;
+          const stepOffset = new THREE.Vector3().lerpVectors(
+            prevOffset,
+            currOffset,
+            t
+          );
+          spawnPos.add(stepOffset);
+        }
+
         if (isDetached) {
           const vel = item.velocity;
           const velSpeed = vel ? vel.length() : 0;

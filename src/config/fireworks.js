@@ -395,6 +395,8 @@ export const FIREWORK_CONFIG = {
     // Thời lượng mỗi nhịp đứt quãng (giây, tương đương 2-4 frame tạo khoảng hở 1.5 - 3 mét)
     sputterDurationMin: 0.035,
     sputterDurationMax: 0.075,
+    // Biên độ cú giật lệch hướng sau mỗi nhịp đứt quãng (tạo vết gãy lệch đường chân thực)
+    sputterKickAmp: 0.85,
     // Bập bùng nhấp nháy trước khi tắt hẳn ở giai đoạn cuối
     endFlicker: true
   },

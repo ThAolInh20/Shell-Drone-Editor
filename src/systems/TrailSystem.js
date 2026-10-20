@@ -106,7 +106,10 @@ export class TrailSystem {
       globalEventBus.on('firework:clear', () => this.clear())
     );
 
-    this.setGraphicsQuality(localStorage.getItem('graphics_quality') || 'medium');
+    const savedQuality = (typeof localStorage !== 'undefined' && localStorage?.getItem)
+      ? localStorage.getItem('graphics_quality') || 'medium'
+      : 'medium';
+    this.setGraphicsQuality(savedQuality);
     this.eventSubscriptions.push(
       globalEventBus.on('graphics:quality', (quality) => this.setGraphicsQuality(quality))
     );
