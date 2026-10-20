@@ -65,7 +65,13 @@ export const FIREWORK_CONFIG = {
     // Ngưỡng kết thúc pha dừng cho hiệu ứng apex-hang
     apexHangEnd: 0.48,
     // Hệ số hãm phanh mượt mà đưa vận tốc về trạng thái đứng yên
-    apexHangBrakeRate: 9.5
+    apexHangBrakeRate: 9.5,
+    // Hệ số lực cản khí động học triệt tiêu vận tốc bung nở theo phương bắn (êm đềm, nở to)
+    apexExpansionDrag: 1.35,
+    // Ngưỡng tỉ lệ vận tốc bung nở bắt đầu chuyển giao sang trọng lực Trái Đất
+    apexGravityThreshold: 0.14,
+    // Hệ số nhân vận tốc bung nở ban đầu cho hiệu ứng apex-hang (nhịp nhàng)
+    apexSpeedMultiplier: 1.35
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)

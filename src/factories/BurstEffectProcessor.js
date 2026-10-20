@@ -1078,38 +1078,53 @@ BurstEffectProcessor.registerEffect('sparkling-branch-comet', {
 });
 
 BurstEffectProcessor.registerEffect('apex-hang', {
-  updateVelocity(velocity, index, deltaTime, age, maxLife) {
-    const lifeRatio = maxLife > 0
-      ? age / maxLife
-      : 1;
-    const hangStart = FIREWORK_CONFIG.BURST?.apexHangStart ?? 0.28;
-    const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
-    const brakeRate = FIREWORK_CONFIG.BURST?.apexHangBrakeRate ?? 9.5;
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const apexDrag = FIREWORK_CONFIG.BURST?.apexExpansionDrag ?? 3.8;
+    const brakeFactor = Math.exp(-apexDrag * deltaTime);
+    velocity.multiplyScalar(brakeFactor);
 
-    if (lifeRatio >= hangStart && lifeRatio <= hangEnd) {
-      const brakeFactor = Math.exp(-brakeRate * deltaTime);
-      velocity.multiplyScalar(brakeFactor);
+    const initialSpeed = effectState?.initialSpeeds?.[index] ?? 0;
+    const threshold = FIREWORK_CONFIG.BURST?.apexGravityThreshold ?? 0.18;
+
+    if (initialSpeed > 0.001) {
+      const currentSpeed = velocity.length();
+      const expRatio = currentSpeed / initialSpeed;
+      if (expRatio > threshold) {
+        return {
+          gravityScale: 0.0,
+          spawnTrail: false
+        };
+      }
+      const gravityBlend = 1.0 - (expRatio / threshold);
+      return {
+        gravityScale: THREE.MathUtils.smoothstep(
+          gravityBlend,
+          0.0,
+          1.0
+        ),
+        spawnTrail: false
+      };
+    }
+
+    const lifeRatio = maxLife > 0 ? age / maxLife : 1;
+    const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+    if (lifeRatio <= hangEnd) {
       return {
         gravityScale: 0.0,
         spawnTrail: false
       };
-    } else if (lifeRatio > hangEnd) {
-      const releaseProgress = Math.min(
-        1.0,
-        (lifeRatio - hangEnd) / 0.18
-      );
-      const releaseGravity = THREE.MathUtils.smoothstep(
+    }
+    const releaseProgress = Math.min(
+      1.0,
+      (lifeRatio - hangEnd) / 0.18
+    );
+    return {
+      gravityScale: THREE.MathUtils.smoothstep(
         releaseProgress,
         0.0,
         1.0
-      );
-      return {
-        gravityScale: releaseGravity
-      };
-    }
-
-    return {
-      gravityScale: 0.0
+      ),
+      spawnTrail: false
     };
   }
 });

@@ -1927,11 +1927,15 @@ export class FireworkSystem {
         Math.random() < 0.05;
       const speedJitter = dynamicsProfile?.speedJitter ?? BURST_SPEED_JITTER;
       const speedJitterScale = 1.0 + (Math.random() - 0.5) * (speedJitter * 2);
+      const apexSpeedMul = isApexHang
+        ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+        : 1.0;
       const speed = baseSpeed *
         (useContourMagnitude ? 1.15 : 1) *
         shellSizeScale *
         speedJitterScale *
-        (isDyingEmber ? 0.85 : 1.0);
+        (isDyingEmber ? 0.85 : 1.0) *
+        apexSpeedMul;
 
       const normDir = direction.clone().normalize();
       const velocityVal = direction.multiplyScalar(speed);
@@ -2008,7 +2012,10 @@ export class FireworkSystem {
         const lifeJitterScale = 1.0 + (Math.random() - 0.5) * (lifeJitter * 2);
         const baseMaxLife = BURST_LIFE * lifeJitterScale;
         const longBurnMul = FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2;
-        const lifeMultiplier = isLongBurn ? longBurnMul : (isDyingEmber ? 2.0 : 1.0);
+        const apexLifeMul = isApexHang ? 1.35 : 1.0;
+        const lifeMultiplier = isLongBurn
+          ? longBurnMul
+          : (isDyingEmber ? 2.0 : apexLifeMul);
         particleMaxLife = baseMaxLife * lifeMultiplier;
       }
 
@@ -2243,7 +2250,12 @@ export class FireworkSystem {
       );
       const dir = rawDir.applyQuaternion(burstRotation).normalize();
       const speedVariance = (isInstantBurst ? 0.95 : 0.85) + Math.random() * 0.3;
-      const vel = dir.multiplyScalar(baseSpeed * speedVariance).add(parentVelInheritance);
+      const contourApexSpeedMul = isContourApexHang
+        ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+        : 1.0;
+      const vel = dir.multiplyScalar(
+        baseSpeed * speedVariance * contourApexSpeedMul
+      ).add(parentVelInheritance);
 
       const hasParticleErraticDart = isErraticDartShell
         && (Math.random() < (FIREWORK_CONFIG.ERRATIC_DART?.activationRatio ?? 0.40));
@@ -2259,7 +2271,7 @@ export class FireworkSystem {
         age: 0,
         maxLife: isContourLongBurn
           ? childLife * (FIREWORK_CONFIG.BURST?.longBurnMultiplier ?? 2.2)
-          : childLife,
+          : (isContourApexHang ? childLife * 1.35 : childLife),
         isLongBurn: isContourLongBurn,
         isApexHang: isContourApexHang,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
@@ -2337,7 +2349,12 @@ export class FireworkSystem {
         );
         const pDir = rawPistilDir.applyQuaternion(burstRotation).normalize();
         const pSpeedVar = 0.90 + Math.random() * 0.20;
-        const pVel = pDir.multiplyScalar(pistilSpeed * pSpeedVar).add(parentVelInheritance);
+        const pistilApexSpeedMul = isContourApexHang
+          ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
+          : 1.0;
+        const pVel = pDir.multiplyScalar(
+          pistilSpeed * pSpeedVar * pistilApexSpeedMul
+        ).add(parentVelInheritance);
 
         const pistilParticle = BurstParticleFactory.createParticle({
           position: originPos,
@@ -3175,29 +3192,51 @@ export class FireworkSystem {
       }
 
       if (p.isApexHang) {
-        const hangStart = FIREWORK_CONFIG.BURST?.apexHangStart ?? 0.28;
-        const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
-        const brakeRate = FIREWORK_CONFIG.BURST?.apexHangBrakeRate ?? 9.5;
+        // Mô hình vật lý tự nhiên:
+        // Hạt bay theo phương bắn với vận tốc ban đầu và giảm dần do lực cản không khí.
+        // Khi vận tốc bung nở giảm dần về 0 (đạt đỉnh nở), lực hút Trái Đất bắt đầu kéo hạt rơi tự do xuống dưới.
+        const apexDrag = FIREWORK_CONFIG.BURST?.apexExpansionDrag ?? 3.8;
+        const brakeFactor = Math.exp(-apexDrag * deltaTime);
+        p.velocity.x *= brakeFactor;
+        p.velocity.y *= brakeFactor;
+        p.velocity.z *= brakeFactor;
 
-        if (lifeRatio >= hangStart && lifeRatio <= hangEnd) {
-          const brakeFactor = Math.exp(-brakeRate * deltaTime);
-          p.velocity.x *= brakeFactor;
-          p.velocity.y *= brakeFactor;
-          p.velocity.z *= brakeFactor;
-          finalGravityScale = 0.0;
-        } else if (lifeRatio > hangEnd) {
-          const releaseProgress = Math.min(
-            1.0,
-            (lifeRatio - hangEnd) / 0.18
+        const ejectionDir = p.ejectionDir;
+        const initialSpeed = p.initialSpeed ?? 0;
+
+        if (ejectionDir && initialSpeed > 0.001) {
+          const expSpeed = Math.max(
+            0,
+            p.velocity.dot(ejectionDir)
           );
-          const releaseGravity = THREE.MathUtils.smoothstep(
-            releaseProgress,
-            0.0,
-            1.0
-          );
-          finalGravityScale *= releaseGravity;
+          const expRatio = expSpeed / initialSpeed;
+          const threshold = FIREWORK_CONFIG.BURST?.apexGravityThreshold ?? 0.18;
+
+          if (expRatio > threshold) {
+            finalGravityScale = 0.0;
+          } else {
+            const gravityBlend = 1.0 - (expRatio / threshold);
+            finalGravityScale = THREE.MathUtils.smoothstep(
+              gravityBlend,
+              0.0,
+              1.0
+            );
+          }
         } else {
-          finalGravityScale = 0.0;
+          const hangEnd = FIREWORK_CONFIG.BURST?.apexHangEnd ?? 0.48;
+          if (lifeRatio < hangEnd) {
+            finalGravityScale = 0.0;
+          } else {
+            const releaseProgress = Math.min(
+              1.0,
+              (lifeRatio - hangEnd) / 0.18
+            );
+            finalGravityScale = THREE.MathUtils.smoothstep(
+              releaseProgress,
+              0.0,
+              1.0
+            );
+          }
         }
       }
 

@@ -28,7 +28,7 @@ describe('Apex Hang Active Effect', () => {
     expect(flagsDefault.isApexHang).toBe(false);
   });
 
-  it('creates particle with isApexHang property initialized', () => {
+  it('creates particle with isApexHang property initialized with ejection direction', () => {
     const p = BurstParticleFactory.createParticle({
       position: new THREE.Vector3(0, 50, 0),
       velocity: new THREE.Vector3(10, 20, 10),
@@ -36,6 +36,40 @@ describe('Apex Hang Active Effect', () => {
       isApexHang: true
     });
     expect(p.isApexHang).toBe(true);
+    expect(p.initialSpeed).toBeCloseTo(new THREE.Vector3(10, 20, 10).length(), 4);
+    expect(p.ejectionDir).toBeDefined();
+    expect(p.ejectionDir.length()).toBeCloseTo(1.0, 4);
+  });
+
+  it('governs gravity strictly based on velocity ratio when initial speed is tracked', () => {
+    const initialVel = new THREE.Vector3(60, 0, 0);
+    const initialSpeed = initialVel.length();
+    const strategy = BurstEffectProcessor.effectsRegistry.get('apex-hang');
+    const effectState = { initialSpeeds: [initialSpeed] };
+
+    // High velocity (v = 50m/s > threshold of 0.18 * 60 = 10.8): zero gravity
+    const highVel = initialVel.clone().multiplyScalar(50 / 60);
+    const highRes = strategy.updateVelocity(
+      highVel,
+      0,
+      0.016,
+      0.2,
+      2.5,
+      effectState
+    );
+    expect(highRes.gravityScale).toBe(0.0);
+
+    // Near-zero velocity (v = 2m/s < threshold): gravity activates towards 1.0
+    const stoppedVel = initialVel.clone().multiplyScalar(2 / 60);
+    const stoppedRes = strategy.updateVelocity(
+      stoppedVel,
+      0,
+      0.016,
+      0.8,
+      2.5,
+      effectState
+    );
+    expect(stoppedRes.gravityScale).toBeGreaterThan(0.7);
   });
 
   it('decelerates smoothly and locks gravity during the apex window', () => {
@@ -80,5 +114,9 @@ describe('Apex Hang Active Effect', () => {
       maxLife
     );
     expect(lateRes.gravityScale).toBeGreaterThan(0.5);
+  });
+
+  it('provides an apexSpeedMultiplier in FIREWORK_CONFIG.BURST for rhythmic expansion', () => {
+    expect(FIREWORK_CONFIG.BURST.apexSpeedMultiplier).toBe(1.35);
   });
 });

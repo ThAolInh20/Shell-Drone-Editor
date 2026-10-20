@@ -179,9 +179,16 @@ export class BurstParticleFactory {
       ? baseColor.clone()
       : color.clone();
 
+    const initialSpeed = velocity.length();
+    const ejectionDir = initialSpeed > 0.0001
+      ? velocity.clone().normalize()
+      : new THREE.Vector3(0, 1, 0);
+
     return {
       position: position.clone(),
       velocity: velocity.clone(),
+      initialSpeed,
+      ejectionDir,
       color: color.clone(),
       baseColor: resolvedBaseColor,
       color2: color2 ? color2.clone() : null,
