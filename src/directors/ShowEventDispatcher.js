@@ -24,6 +24,7 @@ export class ShowEventDispatcher {
       if (
         evt.instantBurst !== undefined
         || evt.shellSize !== undefined
+        || evt.starLifeMultiplier !== undefined
         || evt.shapeType !== undefined
         || evt.dynamicsType !== undefined
         || evt.pistil !== undefined
@@ -43,6 +44,7 @@ export class ShowEventDispatcher {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
         if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
+        if (evt.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = evt.starLifeMultiplier;
         if (evt.shapeType !== undefined) overrides.shapeType = evt.shapeType;
         if (evt.dynamicsType !== undefined) overrides.dynamicsType = evt.dynamicsType;
         if (evt.pistil !== undefined) overrides.pistil = evt.pistil;

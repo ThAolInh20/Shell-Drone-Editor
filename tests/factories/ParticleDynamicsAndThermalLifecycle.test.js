@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
 import { BurstEffectProcessor } from '../../src/factories/BurstEffectProcessor.js';
+import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 
 describe('Particle Dynamics and Thermal Lifecycle', () => {
   it('should define aerodynamic drag and organic dispersion constants in FIREWORK_CONFIG.BURST', () => {
@@ -224,5 +225,43 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     const baseLife = FIREWORK_CONFIG.BURST.baseLife;
     const longBurnLife = baseLife * FIREWORK_CONFIG.BURST.longBurnMultiplier;
     expect(longBurnLife).toBeGreaterThan(4.0);
+  });
+
+  it('should define terminalVelocity and phase budget boundaries in FIREWORK_CONFIG.BURST', () => {
+    expect(FIREWORK_CONFIG.BURST.terminalVelocity).toBeLessThan(0);
+    expect(FIREWORK_CONFIG.BURST.phaseExpansionEnd).toBe(0.35);
+    expect(FIREWORK_CONFIG.BURST.phaseApexEnd).toBe(0.65);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.terminalVelocity).toBe(-15.0);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.terminalVelocity).toBe(-9.5);
+  });
+
+  it('should scale drag and clamp terminal velocity over extended lifetime in FireworkSystem simulation', () => {
+    const scene = new THREE.Scene();
+    const mockTrailSystem = {
+      spawnEffectSpark: vi.fn(),
+      spawnTrailParticle: vi.fn(),
+      spawnMicroCrackle: vi.fn()
+    };
+    const fireworkSystem = new FireworkSystem(scene, mockTrailSystem);
+
+    fireworkSystem.createBurst(
+      new THREE.Vector3(0, 150, 0),
+      new THREE.Color(0xffaa00),
+      'sphere',
+      { starLifeMultiplier: 5.0 },
+      'test-extended-5x'
+    );
+
+    const particle = fireworkSystem.burstParticles.find((p) => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    expect(particle.maxLife).toBeGreaterThan(10.0);
+
+    // Simulate through Phase 1 into Phase 3 (late fall)
+    for (let s = 0; s < 180; s++) {
+      fireworkSystem.update(0.04);
+    }
+
+    // Ensure particle y velocity is smoothly clamped and does not plummet at extreme speeds
+    expect(particle.velocity.y).toBeGreaterThanOrEqual(-18.0);
+    expect(particle.position.y).toBeGreaterThan(0);
   });
 });

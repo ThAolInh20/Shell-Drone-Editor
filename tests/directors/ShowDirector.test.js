@@ -136,4 +136,25 @@ describe('ShowDirector', () => {
       expect.objectContaining({ sequencer: mockSequencer, fireworkSystem: mockFireworkSystem })
     );
   });
+
+  it('should forward starLifeMultiplier in effectOverrides when executing single firework', () => {
+    const script = [
+      {
+        time: 1.0,
+        type: 'single',
+        preset: 'crysanthemum',
+        starLifeMultiplier: 5.0
+      }
+    ];
+
+    director.loadScript(script);
+    director.play();
+    director.update(1.5);
+
+    expect(mockFireworkSystem.launchRandom).toHaveBeenCalledWith('crysanthemum', expect.objectContaining({
+      effectOverrides: expect.objectContaining({
+        starLifeMultiplier: 5.0
+      })
+    }));
+  });
 });

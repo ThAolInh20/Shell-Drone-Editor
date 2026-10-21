@@ -408,6 +408,7 @@ export class FireworkSequencer {
       }
       if (instantBurst !== undefined 
         || shellSize !== undefined 
+        || config.starLifeMultiplier !== undefined
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
         || config.pistil !== undefined
@@ -425,6 +426,7 @@ export class FireworkSequencer {
         overrides = { ...(overrides || {}) };
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
         if (shellSize !== undefined) overrides.shellSize = shellSize;
+        if (config.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = config.starLifeMultiplier;
         if (config.shapeType !== undefined) overrides.shapeType = config.shapeType;
         if (config.dynamicsType !== undefined) overrides.dynamicsType = config.dynamicsType;
         if (config.pistil !== undefined) overrides.pistil = config.pistil;
@@ -870,6 +872,7 @@ export class FireworkSequencer {
       if (
         config.instantBurst !== undefined 
         || config.shellSize !== undefined 
+        || config.starLifeMultiplier !== undefined
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
         || config.pistil !== undefined
@@ -887,6 +890,7 @@ export class FireworkSequencer {
         overrides = { ...(overrides || {}) };
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
         if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
+        if (config.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = config.starLifeMultiplier;
         if (config.shapeType !== undefined) overrides.shapeType = config.shapeType;
         if (config.dynamicsType !== undefined) overrides.dynamicsType = config.dynamicsType;
         if (config.pistil !== undefined) overrides.pistil = config.pistil;

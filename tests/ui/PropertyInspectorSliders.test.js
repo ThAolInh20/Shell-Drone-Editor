@@ -106,7 +106,7 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
     expect(starLifeField).toBeDefined();
     expect(starLifeField.type).toBe('slider');
     expect(starLifeField.min).toBe('0.4');
-    expect(starLifeField.max).toBe('2.5');
+    expect(starLifeField.max).toBe('5.0');
     expect(starLifeField.span).toBe(2);
 
     const cometTrailField = visualGroup.fields.find((f) => f.name === 'cometTrail');
@@ -203,9 +203,23 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
     const longMaxLife = longParticle.maxLife;
     fireworkSystem.clear();
 
+    // Burst with 5.0x starLifeMultiplier
+    fireworkSystem.createBurst(
+      new THREE.Vector3(0, 100, 0),
+      new THREE.Color(0xffaa00),
+      'sphere',
+      { starLifeMultiplier: 5.0 },
+      'test-5x'
+    );
+    const ultraLongParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    const ultraLongMaxLife = ultraLongParticle.maxLife;
+    fireworkSystem.clear();
+
     expect(shortMaxLife).toBeLessThan(standardMaxLife * 0.75);
     expect(longMaxLife).toBeGreaterThan(standardMaxLife * 1.5);
+    expect(ultraLongMaxLife).toBeGreaterThan(standardMaxLife * 4.0);
     expect(longParticle.isLongBurn).toBe(true);
+    expect(ultraLongParticle.isLongBurn).toBe(true);
   });
 
   it('should gracefully fallback to longBurnMultiplier for legacy events with long-burn', () => {

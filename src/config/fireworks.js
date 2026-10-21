@@ -71,7 +71,13 @@ export const FIREWORK_CONFIG = {
     // Ngưỡng tỉ lệ vận tốc bung nở bắt đầu chuyển giao sang trọng lực Trái Đất
     apexGravityThreshold: 0.14,
     // Hệ số nhân vận tốc bung nở ban đầu cho hiệu ứng apex-hang (nhịp nhàng)
-    apexSpeedMultiplier: 1.35
+    apexSpeedMultiplier: 1.35,
+    // Vận tốc rơi tự do cực đại chuẩn cho hạt pháo hoa (m/s)
+    terminalVelocity: -15.0,
+    // Mốc tỉ lệ vòng đời kết thúc pha bung nở (Phase 1)
+    phaseExpansionEnd: 0.35,
+    // Mốc tỉ lệ vòng đời kết thúc pha lơ lửng đỉnh nở (Phase 2)
+    phaseApexEnd: 0.65
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
@@ -89,6 +95,7 @@ export const FIREWORK_CONFIG = {
       gravityRampStart: 0.32,
       gravityRampFull: 0.55,
       minGravity: 0.05,
+      terminalVelocity: -15.0,
       thermalCooling: true
     },
     // Hình dạng hình học đường viền (Ring, Heart, Star, Smiley, Cat, Fish)
@@ -103,6 +110,7 @@ export const FIREWORK_CONFIG = {
       gravityRampStart: 0.35,
       gravityRampFull: 0.60,
       minGravity: 0.08,
+      terminalVelocity: -14.0,
       thermalCooling: true
     },
     // Liễu rủ vàng kim và tàn rơi dài (Willow, Kamuro, Weeping Willow, Falling Comets)
@@ -117,6 +125,7 @@ export const FIREWORK_CONFIG = {
       gravityRampStart: 0.20,
       gravityRampFull: 0.45,
       minGravity: 0.10,
+      terminalVelocity: -9.5,
       thermalCooling: false
     },
     // Hạt trôi nổi, bồng bềnh hữu cơ (Flow, Snow, Wave, Falling Leaves, Swimming Star)
@@ -128,6 +137,7 @@ export const FIREWORK_CONFIG = {
       lifeJitter: 0.20,
       hasApexBrake: false,
       delayedGravity: false,
+      terminalVelocity: -5.0,
       thermalCooling: false
     },
     // Pháo nổ tách chữ thập (Crossette)
@@ -142,6 +152,7 @@ export const FIREWORK_CONFIG = {
       gravityRampStart: 0.32,
       gravityRampFull: 0.55,
       minGravity: 0.06,
+      terminalVelocity: -14.0,
       thermalCooling: true
     },
     // Chùm tia sao băng (Bouquet Comet, Comet Ring, Half-Flash, Split-Flash)
@@ -156,6 +167,7 @@ export const FIREWORK_CONFIG = {
       gravityRampStart: 0.28,
       gravityRampFull: 0.52,
       minGravity: 0.06,
+      terminalVelocity: -16.0,
       thermalCooling: true
     }
   },

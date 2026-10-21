@@ -376,6 +376,9 @@ export class FireworkSystem {
         || shellPreset.effectType === 'strobe'
         || Boolean(shellPreset.strobe);
       const isDyingEmberManual = Boolean(shellPreset.isDyingEmber);
+      const instantLifeMul = (shellPreset?.starLifeMultiplier !== undefined && !isNaN(Number(shellPreset.starLifeMultiplier)))
+        ? Math.max(0.2, Number(shellPreset.starLifeMultiplier))
+        : 1.0;
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -395,7 +398,7 @@ export class FireworkSystem {
           },
           intensity: normalizedEnergy,
           duration: 1.25 + normalizedEnergy * 1.1,
-          particleLife: BURST_LIFE * (isDyingEmberManual ? 2.0 : 1.0),
+          particleLife: BURST_LIFE * (isDyingEmberManual ? 2.0 : 1.0) * instantLifeMul,
           isStrobe: isStrobeManual
         }
       );
@@ -3119,6 +3122,9 @@ export class FireworkSystem {
       || item.preset?.effectType === 'strobe'
       || Boolean(item.preset?.strobe);
     const isDyingEmber = Boolean(item.preset?.isDyingEmber);
+    const flightLifeMul = (item.preset?.starLifeMultiplier !== undefined && !isNaN(Number(item.preset.starLifeMultiplier)))
+      ? Math.max(0.2, Number(item.preset.starLifeMultiplier))
+      : 1.0;
 
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
@@ -3141,7 +3147,7 @@ export class FireworkSystem {
       burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
       intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1,
-      particleLife: BURST_LIFE * (isDyingEmber ? 2.0 : 1.0),
+      particleLife: BURST_LIFE * (isDyingEmber ? 2.0 : 1.0) * flightLifeMul,
       isStrobe
     });
   }
@@ -3325,8 +3331,7 @@ export class FireworkSystem {
         finalGravityScale *= gravityRamp;
       }
 
-      // Giảm tốc khí động học êm dịu theo hàm mũ tự nhiên (không giật khựng)
-
+      // Giảm tốc khí động học êm dịu theo hàm mũ tự nhiên (đồng nhất mọi hướng)
       const dragFactor = Math.exp(-currentDrag * deltaTime);
       p.velocity.x *= dragFactor;
       p.velocity.y *= dragFactor;
@@ -3336,7 +3341,7 @@ export class FireworkSystem {
         const gravScale = p.isLongBurn
           ? (FIREWORK_CONFIG.BURST?.longBurnGravityScale ?? 0.85)
           : 1.3;
-        finalGravityScale = gravityScale * gravScale;
+        finalGravityScale *= gravScale;
         p.velocity.multiplyScalar(p.isLongBurn ? 0.995 : 0.994);
       }
 
@@ -3417,6 +3422,20 @@ export class FireworkSystem {
       }
 
       p.velocity.y += GRAVITY * deltaTime * finalGravityScale;
+
+      // Giới hạn vận tốc rơi cực đại (Terminal Fall Velocity) trong pha rũ tàn (Phase 3):
+      // Chỉ kích hoạt khi đã qua pha bung nở và đỉnh nở (lifeRatio >= phaseApexEnd)
+      // để tuyệt đối không cản trở vận tốc bung nở ban đầu của các hạt hướng xuống dưới.
+      const phaseApexEnd = FIREWORK_CONFIG.BURST?.phaseApexEnd ?? 0.65;
+      if (lifeRatio >= phaseApexEnd) {
+        const terminalVel = profile?.terminalVelocity
+          ?? (p.isLongBurn ? -10.0 : (FIREWORK_CONFIG.BURST?.terminalVelocity ?? -15.0));
+        if (p.velocity.y < terminalVel) {
+          const brakeRate = 4.5;
+          p.velocity.y = THREE.MathUtils.lerp(p.velocity.y, terminalVel, deltaTime * brakeRate);
+        }
+      }
+
       p.position.addScaledVector(
         p.velocity,
         deltaTime
@@ -3467,7 +3486,7 @@ export class FireworkSystem {
               1.2 + Math.random() * 2.0,
               (Math.random() - 0.5) * 3.5
             );
-            this.trailSystem.spawnEffectSpark(
+            this.trailSystem?.spawnEffectSpark?.(
               new THREE.Vector3(p.position.x, 0.05, p.position.z),
               p.baseColor.clone().lerp(new THREE.Color(0xffffff), 0.5),
               false,
@@ -3484,7 +3503,7 @@ export class FireworkSystem {
 
       // 2. Spawn Side Effects (sparks, trails, smoke)
       if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
-        this.trailSystem.spawnEffectSpark(
+        this.trailSystem?.spawnEffectSpark?.(
           p.position,
           CRACKLE_SPARK_COLOR
         );

@@ -444,7 +444,7 @@ export class PropertyInspector {
               labelKey: 'starLifeMultiplier',
               type: 'slider',
               min: '0.4',
-              max: '2.5',
+              max: '5.0',
               step: '0.05',
               defaultValue: 1.0,
               formatValue: (v) => `${Number(v).toFixed(2)}x`,
