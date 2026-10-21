@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 const COMET_CORE_SIZE = 1.2;
 
@@ -111,6 +112,18 @@ export class CometEntity {
       effectType === 'tadpole-flurry' ||
       effectType === 'tadpole_flurry'
     );
+
+    if (this.isTadpole) {
+      const varCfg = FIREWORK_CONFIG.COMET_TADPOLE?.variance || {};
+      const isWild = Math.random() < (varCfg.wildDeflectionChance ?? 0.30);
+      this.tadpoleDeflectionScale = isWild
+        ? (1.8 + Math.random() * ((varCfg.deflectionMax ?? 3.2) - 1.8))
+        : ((varCfg.deflectionMin ?? 0.25) + Math.random() * 0.75);
+      this.tadpoleSizeScale = (varCfg.sizeMin ?? 0.55)
+        + Math.random() * ((varCfg.sizeMax ?? 1.65) - (varCfg.sizeMin ?? 0.55));
+      this.tadpoleDensityScale = (varCfg.densityMin ?? 0.50)
+        + Math.random() * ((varCfg.densityMax ?? 1.80) - (varCfg.densityMin ?? 0.50));
+    }
 
     this.isWhiteStrobe = effects.includes('white-strobe') || effectType === 'white-strobe';
     this.isGlitterStrobe = effects.includes('glitter-strobe') || effectType === 'glitter-strobe';

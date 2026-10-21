@@ -1119,16 +1119,51 @@ export class FireworkSystem {
     const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
 
     const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
-    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
-    const count = 1 + (Math.random() < 0.40 ? 1 : 0);
+    const sizeScale = p?.tadpoleSizeScale ?? 1.0;
+    const densityScale = p?.tadpoleDensityScale ?? 1.0;
+    const deflectionScale = p?.tadpoleDeflectionScale ?? 1.0;
+
+    const standoffDist = tadpoleCfg.standoffDistance ?? 0.25;
+    const spawnPos = p.position.clone().addScaledVector(
+      dir,
+      -standoffDist
+    );
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 4.2) * parentFade * (0.85 + 0.3 * Math.random());
+    const baseCount = 1 + (Math.random() < 0.45 ? 1 : 0);
+    const count = Math.max(1, Math.round(baseCount * densityScale));
     const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+    const speedMin = (tadpoleCfg.arrowSpeedMin ?? 28.0) * sizeScale;
+    const speedMax = (tadpoleCfg.arrowSpeedMax ?? 48.0) * sizeScale;
+    const needleDrag = tadpoleCfg.needleDragScale ?? 0.38;
+
+    // Hot incandescent flash right at the core/origin of the spiky flurry
+    const centerBrightness = (tadpoleCfg.centerCoreBrightness ?? 7.5) * parentFade * Math.min(1.4, Math.max(0.7, sizeScale));
+    const centerColor = new THREE.Color(0xffffff)
+      .lerp(p.baseColor, 0.25)
+      .multiplyScalar(centerBrightness);
+    const centerVel = dir.clone().multiplyScalar(2.2);
+    this.trailSystem.spawnTrailParticle(
+      spawnPos,
+      centerColor,
+      1.0,
+      false,
+      0.15 + Math.random() * 0.10,
+      1.0,
+      isStrobe,
+      centerVel,
+      0.20,
+      1.0,
+      false,
+      null,
+      true
+    );
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const coneAngle = 0.55 + Math.random() * 0.35;
+      const coneAngle = (1.05 + Math.random() * 0.40) * Math.min(1.15, Math.max(0.85, sizeScale));
       const radialX = Math.cos(angle) * Math.sin(coneAngle);
       const radialZ = Math.sin(angle) * Math.sin(coneAngle);
-      const backScale = -Math.cos(coneAngle);
+      const backScale = -Math.cos(coneAngle) * 0.45;
 
       const ejectDir = new THREE.Vector3()
         .addScaledVector(rightVec, radialX)
@@ -1136,20 +1171,22 @@ export class FireworkSystem {
         .addScaledVector(dir, backScale)
         .normalize();
 
-      const ejectSpeed = 10.0 + Math.random() * 8.0;
+      const ejectSpeed = (speedMin + Math.random() * (speedMax - speedMin)) * 0.65;
       const sparkVel = ejectDir.multiplyScalar(ejectSpeed);
-      sparkVel.addScaledVector(v, 0.20);
+      sparkVel.addScaledVector(v, 0.25);
 
       const sparkColor = p.baseColor.clone().offsetHSL(
         (Math.random() - 0.5) * 0.04,
         0.08,
-        0.18 + Math.random() * 0.12
+        0.30 + Math.random() * 0.16
       ).multiplyScalar(brightness);
 
-      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.70) * (0.8 + Math.random() * 0.35);
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.48)
+        * Math.sqrt(sizeScale)
+        * (0.8 + Math.random() * 0.35);
 
       this.trailSystem.spawnTrailParticle(
-        p.position,
+        spawnPos,
         sparkColor,
         1.0,
         false,
@@ -1158,7 +1195,7 @@ export class FireworkSystem {
         isStrobe,
         sparkVel,
         0.20,
-        0.85,
+        needleDrag,
         false,
         null,
         true
@@ -1166,7 +1203,18 @@ export class FireworkSystem {
     }
 
     if (p.crackle && Math.random() < 0.10 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
-      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+      this.trailSystem.spawnMicroCrackle(spawnPos, p.baseColor);
+    }
+
+    // Reactive kick to deflect particle trajectory erratically
+    if (v && deflectionScale > 0.05) {
+      const kickBase = tadpoleCfg.variance?.kickImpulseBase ?? 2.8;
+      const kickAngle = Math.random() * Math.PI * 2;
+      const kickMag = kickBase * deflectionScale * (0.7 + Math.random() * 0.6);
+      const kickVec = new THREE.Vector3()
+        .addScaledVector(rightVec, Math.cos(kickAngle) * kickMag)
+        .addScaledVector(forwardVec, Math.sin(kickAngle) * kickMag);
+      v.add(kickVec);
     }
   }
 
@@ -1180,16 +1228,50 @@ export class FireworkSystem {
     const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
 
     const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
-    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 2.2) * parentFade;
-    const flurryCount = 4 + Math.floor(Math.random() * 3);
+    const sizeScale = p?.tadpoleSizeScale ?? 1.0;
+    const densityScale = p?.tadpoleDensityScale ?? 1.0;
+    const deflectionScale = p?.tadpoleDeflectionScale ?? 1.0;
+
+    const standoffDist = tadpoleCfg.standoffDistance ?? 0.25;
+    const spawnPos = p.position.clone().addScaledVector(
+      dir,
+      -standoffDist
+    );
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 4.2) * parentFade;
+    const baseCount = 5 + Math.floor(Math.random() * 4);
+    const flurryCount = Math.max(3, Math.round(baseCount * densityScale));
     const isStrobe = Boolean(p.isStrobe || (Array.isArray(p.effects) && p.effects.includes('strobe')));
+    const speedMin = (tadpoleCfg.arrowSpeedMin ?? 28.0) * sizeScale;
+    const speedMax = (tadpoleCfg.arrowSpeedMax ?? 48.0) * sizeScale;
+    const needleDrag = tadpoleCfg.needleDragScale ?? 0.38;
+
+    // Hot incandescent flash right at the core/origin of the spiky flurry
+    const centerBrightness = (tadpoleCfg.centerCoreBrightness ?? 7.5) * 1.15 * parentFade * sizeScale;
+    const centerColor = new THREE.Color(0xffffff)
+      .lerp(p.baseColor, 0.20)
+      .multiplyScalar(centerBrightness);
+    this.trailSystem.spawnTrailParticle(
+      spawnPos,
+      centerColor,
+      1.0,
+      true,
+      0.18 + Math.random() * 0.10,
+      1.0,
+      false,
+      null,
+      0.0,
+      1.0,
+      false,
+      null,
+      true
+    );
 
     for (let i = 0; i < flurryCount; i++) {
       const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-      const coneAngle = 0.55 + Math.random() * 0.40;
+      const coneAngle = (0.95 + Math.random() * 0.50) * Math.min(1.15, Math.max(0.85, sizeScale));
       const radialX = Math.cos(angle) * Math.sin(coneAngle);
       const radialZ = Math.sin(angle) * Math.sin(coneAngle);
-      const backScale = -Math.cos(coneAngle);
+      const backScale = -Math.cos(coneAngle) * 0.40;
 
       const ejectDir = new THREE.Vector3()
         .addScaledVector(rightVec, radialX)
@@ -1197,22 +1279,24 @@ export class FireworkSystem {
         .addScaledVector(dir, backScale)
         .normalize();
 
-      const ejectSpeed = 12.0 + Math.random() * 10.0;
+      const ejectSpeed = (speedMin + Math.random() * (speedMax - speedMin)) * 0.70;
       const subVel = ejectDir.multiplyScalar(ejectSpeed);
       if (v) {
-        subVel.addScaledVector(v, 0.18);
+        subVel.addScaledVector(v, 0.20);
       }
 
       const subColor = p.baseColor.clone().offsetHSL(
         (Math.random() - 0.5) * 0.05,
         0.08,
-        0.20 + Math.random() * 0.14
+        0.32 + Math.random() * 0.16
       ).multiplyScalar(brightness);
 
-      const sparkLife = (tadpoleCfg.flurryStarLife ?? 0.80) * (0.8 + Math.random() * 0.35);
+      const sparkLife = (tadpoleCfg.flurryStarLife ?? 0.58)
+        * Math.sqrt(sizeScale)
+        * (0.8 + Math.random() * 0.35);
 
       this.trailSystem.spawnTrailParticle(
-        p.position,
+        spawnPos,
         subColor,
         1.0,
         false,
@@ -1220,8 +1304,8 @@ export class FireworkSystem {
         1.0,
         isStrobe,
         subVel,
-        0.24,
-        0.88,
+        0.20,
+        needleDrag,
         false,
         null,
         true
@@ -1229,7 +1313,18 @@ export class FireworkSystem {
     }
 
     if (p.crackle && Math.random() < 0.20 && typeof this.trailSystem.spawnMicroCrackle === 'function') {
-      this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+      this.trailSystem.spawnMicroCrackle(spawnPos, p.baseColor);
+    }
+
+    // Reactive kick to deflect particle trajectory erratically at apex flurry
+    if (v && deflectionScale > 0.05) {
+      const kickBase = (tadpoleCfg.variance?.kickImpulseBase ?? 2.8) * 1.35;
+      const kickAngle = Math.random() * Math.PI * 2;
+      const kickMag = kickBase * deflectionScale * (0.6 + Math.random() * 0.8);
+      const kickVec = new THREE.Vector3()
+        .addScaledVector(rightVec, Math.cos(kickAngle) * kickMag)
+        .addScaledVector(forwardVec, Math.sin(kickAngle) * kickMag);
+      v.add(kickVec);
     }
   }
 
@@ -2038,6 +2133,16 @@ export class FireworkSystem {
         && !isDyingEmber
         && (Math.random() < (FIREWORK_CONFIG.COMET_TADPOLE?.burstActivationRatio ?? 0.35));
 
+      const tadpoleVarCfg = FIREWORK_CONFIG.COMET_TADPOLE?.variance || {};
+      const isWildTadpole = Math.random() < (tadpoleVarCfg.wildDeflectionChance ?? 0.30);
+      const tadpoleDeflectionScale = isWildTadpole
+        ? (1.8 + Math.random() * ((tadpoleVarCfg.deflectionMax ?? 3.2) - 1.8))
+        : ((tadpoleVarCfg.deflectionMin ?? 0.25) + Math.random() * 0.75);
+      const tadpoleSizeScale = (tadpoleVarCfg.sizeMin ?? 0.55)
+        + Math.random() * ((tadpoleVarCfg.sizeMax ?? 1.65) - (tadpoleVarCfg.sizeMin ?? 0.55));
+      const tadpoleDensityScale = (tadpoleVarCfg.densityMin ?? 0.50)
+        + Math.random() * ((tadpoleVarCfg.densityMax ?? 1.80) - (tadpoleVarCfg.densityMin ?? 0.50));
+
       const hasParticleErraticDart = isErraticDartShell
         && !isDyingEmber
         && (Math.random() < (FIREWORK_CONFIG.ERRATIC_DART?.activationRatio ?? 0.40));
@@ -2091,6 +2196,9 @@ export class FireworkSystem {
         secondBurstDone: false,
         hasTadpoleFlurry: hasParticleTadpole,
         tadpoleArrowTimer: Math.random() * 0.065,
+        tadpoleDeflectionScale,
+        tadpoleSizeScale,
+        tadpoleDensityScale,
         hasFlurried: false,
         hasErraticDart: hasParticleErraticDart,
         erraticDartTriggerRatio: (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
@@ -2271,6 +2379,16 @@ export class FireworkSystem {
       const hasParticleTadpole = isTadpoleFlurryShell
         && (Math.random() < (FIREWORK_CONFIG.COMET_TADPOLE?.burstActivationRatio ?? 0.35));
 
+      const tadpoleVarCfg = FIREWORK_CONFIG.COMET_TADPOLE?.variance || {};
+      const isWildTadpole = Math.random() < (tadpoleVarCfg.wildDeflectionChance ?? 0.30);
+      const tadpoleDeflectionScale = isWildTadpole
+        ? (1.8 + Math.random() * ((tadpoleVarCfg.deflectionMax ?? 3.2) - 1.8))
+        : ((tadpoleVarCfg.deflectionMin ?? 0.25) + Math.random() * 0.75);
+      const tadpoleSizeScale = (tadpoleVarCfg.sizeMin ?? 0.55)
+        + Math.random() * ((tadpoleVarCfg.sizeMax ?? 1.65) - (tadpoleVarCfg.sizeMin ?? 0.55));
+      const tadpoleDensityScale = (tadpoleVarCfg.densityMin ?? 0.50)
+        + Math.random() * ((tadpoleVarCfg.densityMax ?? 1.80) - (tadpoleVarCfg.densityMin ?? 0.50));
+
       const particle = BurstParticleFactory.createParticle({
         position: originPos,
         velocity: vel,
@@ -2312,6 +2430,9 @@ export class FireworkSystem {
         dragCoefficient: dynamicsProfile?.baseDrag ?? BURST_BASE_DRAG,
         hasTadpoleFlurry: hasParticleTadpole,
         tadpoleArrowTimer: Math.random() * 0.065,
+        tadpoleDeflectionScale,
+        tadpoleSizeScale,
+        tadpoleDensityScale,
         hasErraticDart: hasParticleErraticDart,
         erraticDartTriggerRatio: (FIREWORK_CONFIG.ERRATIC_DART?.triggerRatioMin ?? 0.70)
           + Math.random() * (
@@ -2844,6 +2965,8 @@ export class FireworkSystem {
       this.diagnostics.bursted += 1;
       this.emitDiagnostics();
 
+      const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
+        || Boolean(item.preset?.['no-burst']);
       const shellSize = Math.max(1, Math.min(6, item.preset?.shellSize ?? 1));
       const normalizedEnergy = 0.35 + ((shellSize - 1) / 5) * 0.65;
 
@@ -2855,18 +2978,19 @@ export class FireworkSystem {
           shapeType: item.shapeType ?? 'sphere',
           effectType: 'tadpole-flurry',
           effects: ['tadpole-flurry'],
+          sound: item.preset?.sound || null,
           hasBurstSmoke: false,
           burstSmoke: false,
           hasCustomColor: Boolean(item.preset?.hasCustomColor),
-          noBurstSound: false,
+          noBurstSound: hasNoBurst || Boolean(item.preset?.noBurstSound),
           colorHex: item.color.getHex(),
           position: {
             x: burstPosition.x,
             y: burstPosition.y,
             z: burstPosition.z
           },
-          intensity: 1.4,
-          duration: 2.5 + normalizedEnergy * 1.2
+          intensity: normalizedEnergy,
+          duration: 1.25 + normalizedEnergy * 1.1
         }
       );
       return;

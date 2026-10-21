@@ -579,7 +579,8 @@ export class CometSystem {
     color,
     velocity,
     isStrobe = false,
-    hasCrackle = false
+    hasCrackle = false,
+    options = {}
   ) {
     const dir = velocity && velocity.lengthSq() > 0.01
       ? velocity.clone().normalize()
@@ -592,18 +593,56 @@ export class CometSystem {
     const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
 
     const tadpoleCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
-    const minSparks = tadpoleCfg.arrowSparksMin ?? 4;
-    const maxSparks = tadpoleCfg.arrowSparksMax ?? 7;
-    const count = minSparks + Math.floor(Math.random() * (maxSparks - minSparks + 1));
-    const brightness = tadpoleCfg.sparkBrightnessMultiplier ?? 2.2;
+    const sizeScale = options?.tadpoleSizeScale ?? options?.sizeScale ?? 1.0;
+    const densityScale = options?.tadpoleDensityScale ?? options?.densityScale ?? 1.0;
+    const deflectionScale = options?.tadpoleDeflectionScale ?? options?.deflectionScale ?? 1.0;
+
+    const standoffDist = tadpoleCfg.standoffDistance ?? 0.25;
+    const spawnPos = position.clone().addScaledVector(
+      dir,
+      -standoffDist
+    );
+    const minSparks = tadpoleCfg.arrowSparksMin ?? 5;
+    const maxSparks = tadpoleCfg.arrowSparksMax ?? 8;
+    const baseCount = minSparks + Math.floor(Math.random() * (maxSparks - minSparks + 1));
+    const count = Math.max(2, Math.round(baseCount * densityScale));
+
+    const brightness = (tadpoleCfg.sparkBrightnessMultiplier ?? 4.2) * (0.85 + 0.3 * Math.random());
+    const speedMin = (tadpoleCfg.arrowSpeedMin ?? 28.0) * sizeScale;
+    const speedMax = (tadpoleCfg.arrowSpeedMax ?? 48.0) * sizeScale;
+    const needleDrag = tadpoleCfg.needleDragScale ?? 0.38;
+
+    // Hot incandescent flash right at the core/origin of the spiky flurry
+    if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+      const centerBrightness = (tadpoleCfg.centerCoreBrightness ?? 7.5) * Math.min(1.4, Math.max(0.7, sizeScale));
+      const centerColor = new THREE.Color(0xffffff)
+        .lerp(color, 0.25)
+        .multiplyScalar(centerBrightness);
+      const centerVel = dir.clone().multiplyScalar(2.2);
+      this.trailSystem.spawnTrailParticle(
+        spawnPos,
+        centerColor,
+        1.0,
+        false,
+        0.16 + Math.random() * 0.10,
+        1.0,
+        isStrobe,
+        centerVel,
+        0.20,
+        1.0,
+        false,
+        null,
+        true
+      );
+    }
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      // Góc xòe hình mũi tên: 35 đến 60 độ xòe về phía sau ngược vector vận tốc dir
-      const coneAngle = 0.55 + Math.random() * 0.35;
+      // Góc xòe gai nhọn mở rộng theo sizeScale (cái xù to thì gai xòe rộng và vươn dài, cái xù nhỏ thì gọn hơn)
+      const coneAngle = (1.05 + Math.random() * 0.40) * Math.min(1.15, Math.max(0.85, sizeScale));
       const radialX = Math.cos(angle) * Math.sin(coneAngle);
       const radialZ = Math.sin(angle) * Math.sin(coneAngle);
-      const backScale = -Math.cos(coneAngle);
+      const backScale = -Math.cos(coneAngle) * 0.45;
 
       const ejectDir = new THREE.Vector3()
         .addScaledVector(rightVec, radialX)
@@ -611,24 +650,26 @@ export class CometSystem {
         .addScaledVector(dir, backScale)
         .normalize();
 
-      const speed = 14.0 + Math.random() * 12.0;
+      const speed = speedMin + Math.random() * (speedMax - speedMin);
       const sparkVel = ejectDir.multiplyScalar(speed);
       if (velocity) {
-        sparkVel.addScaledVector(velocity, 0.28);
+        sparkVel.addScaledVector(velocity, 0.35);
       }
 
-      // Tăng sáng rực rỡ và phát quang (bloom) cho hạt tia xù
+      // Tăng sáng rực rỡ và phát quang (bloom) cho hạt tia gai
       const sparkColor = color.clone().offsetHSL(
         (Math.random() - 0.5) * 0.04,
         0.10,
-        0.22 + Math.random() * 0.15
+        0.30 + Math.random() * 0.16
       ).multiplyScalar(brightness);
 
-      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.75) * (0.85 + Math.random() * 0.35);
+      const sparkLife = (tadpoleCfg.arrowStarLife ?? 0.48)
+        * Math.sqrt(sizeScale)
+        * (0.85 + Math.random() * 0.35);
 
       if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
         this.trailSystem.spawnTrailParticle(
-          position,
+          spawnPos,
           sparkColor,
           1.0,
           false,
@@ -637,7 +678,7 @@ export class CometSystem {
           isStrobe,
           sparkVel,
           0.20,
-          0.85,
+          needleDrag,
           false,
           null,
           true
@@ -650,7 +691,7 @@ export class CometSystem {
       && this.trailSystem
       && typeof this.trailSystem.spawnMicroCrackle === 'function'
     ) {
-      const cracklePos = position.clone().add(
+      const cracklePos = spawnPos.clone().add(
         new THREE.Vector3(
           (Math.random() - 0.5) * 2.5,
           -Math.random() * 3.0,
@@ -659,6 +700,17 @@ export class CometSystem {
       );
       this.trailSystem.spawnMicroCrackle(cracklePos, color);
     }
+
+    // Phản lực phụt khí ngẫu nhiên làm hạt bay lệch quỹ đạo (khi xù thì bay lệch lung tung)
+    if (velocity && deflectionScale > 0.05) {
+      const kickBase = tadpoleCfg.variance?.kickImpulseBase ?? 2.8;
+      const kickAngle = Math.random() * Math.PI * 2;
+      const kickMag = kickBase * deflectionScale * (0.7 + Math.random() * 0.6);
+      const kickVec = new THREE.Vector3()
+        .addScaledVector(rightVec, Math.cos(kickAngle) * kickMag)
+        .addScaledVector(forwardVec, Math.sin(kickAngle) * kickMag);
+      velocity.add(kickVec);
+    }
   }
 
   spawnTadpoleFlurry(
@@ -666,7 +718,8 @@ export class CometSystem {
     color,
     velocity,
     isStrobe = false,
-    hasCrackle = false
+    hasCrackle = false,
+    options = {}
   ) {
     const dir = velocity && velocity.lengthSq() > 0.01
       ? velocity.clone().normalize()
@@ -679,19 +732,56 @@ export class CometSystem {
     const forwardVec = new THREE.Vector3().crossVectors(rightVec, dir).normalize();
 
     const flurryCfg = FIREWORK_CONFIG.COMET_TADPOLE || {};
-    const flurryCount = flurryCfg.flurryCount || 32;
-    const speedMin = flurryCfg.arrowSpeedMin || 15.0;
-    const speedMax = flurryCfg.arrowSpeedMax || 26.0;
-    const starLife = flurryCfg.flurryStarLife || 0.85;
-    const brightness = flurryCfg.sparkBrightnessMultiplier ?? 2.2;
+    const sizeScale = options?.tadpoleSizeScale ?? options?.sizeScale ?? 1.0;
+    const densityScale = options?.tadpoleDensityScale ?? options?.densityScale ?? 1.0;
+    const deflectionScale = options?.tadpoleDeflectionScale ?? options?.deflectionScale ?? 1.0;
+
+    const standoffDist = flurryCfg.standoffDistance ?? 0.25;
+    const spawnPos = position.clone().addScaledVector(
+      dir,
+      -standoffDist
+    );
+    const baseCount = flurryCfg.flurryCount || 36;
+    const flurryCount = Math.max(12, Math.round(baseCount * densityScale));
+
+    const speedMin = (flurryCfg.arrowSpeedMin ? flurryCfg.arrowSpeedMin * 1.15 : 32.0) * sizeScale;
+    const speedMax = (flurryCfg.arrowSpeedMax ? flurryCfg.arrowSpeedMax * 1.15 : 54.0) * sizeScale;
+    const starLife = (flurryCfg.flurryStarLife || 0.58) * Math.sqrt(sizeScale);
+    const brightness = (flurryCfg.sparkBrightnessMultiplier ?? 4.2) * 1.15;
+    const needleDrag = flurryCfg.needleDragScale ?? 0.38;
+
+    // Hot center flash at apex flurry
+    if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
+      const centerBrightness = (flurryCfg.centerCoreBrightness ?? 7.5) * 1.25 * sizeScale;
+      const centerColor = new THREE.Color(0xffffff)
+        .lerp(color, 0.20)
+        .multiplyScalar(centerBrightness);
+      for (let c = 0; c < 2; c++) {
+        this.trailSystem.spawnTrailParticle(
+          spawnPos,
+          centerColor,
+          1.0,
+          true,
+          0.20 + Math.random() * 0.12,
+          1.0,
+          false,
+          null,
+          0.0,
+          1.0,
+          false,
+          null,
+          true
+        );
+      }
+    }
 
     for (let i = 0; i < flurryCount; i++) {
       const angle = (i / flurryCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-      // Góc xòe bung tỏa chúc về phía sau theo chiều bay của hạt
-      const coneAngle = 0.55 + Math.random() * 0.40;
+      // Bung tỏa hình cầu gai nhọn mở rộng góc quét
+      const coneAngle = (0.95 + Math.random() * 0.55) * Math.min(1.15, Math.max(0.85, sizeScale));
       const radialX = Math.cos(angle) * Math.sin(coneAngle);
       const radialZ = Math.sin(angle) * Math.sin(coneAngle);
-      const backScale = -Math.cos(coneAngle);
+      const backScale = -Math.cos(coneAngle) * 0.40;
 
       const ejectDir = new THREE.Vector3()
         .addScaledVector(rightVec, radialX)
@@ -702,21 +792,21 @@ export class CometSystem {
       const speed = speedMin + Math.random() * (speedMax - speedMin);
       const subVel = ejectDir.multiplyScalar(speed);
       if (velocity) {
-        subVel.addScaledVector(velocity, 0.22);
+        subVel.addScaledVector(velocity, 0.25);
       }
 
       // Tăng sáng rực rỡ và phát quang (bloom) cho chùm xù bung tại đỉnh
       const subColor = color.clone().offsetHSL(
         (Math.random() - 0.5) * 0.06,
         0.10,
-        0.24 + Math.random() * 0.16
+        0.32 + Math.random() * 0.16
       ).multiplyScalar(brightness);
 
-      const sparkLife = starLife * (0.85 + Math.random() * 0.4);
+      const sparkLife = starLife * (0.85 + Math.random() * 0.35);
 
       if (this.trailSystem && typeof this.trailSystem.spawnTrailParticle === 'function') {
         this.trailSystem.spawnTrailParticle(
-          position,
+          spawnPos,
           subColor,
           1.0,
           false,
@@ -724,8 +814,8 @@ export class CometSystem {
           1.0,
           isStrobe,
           subVel,
-          0.24,
-          0.88,
+          0.20,
+          needleDrag,
           false,
           null,
           true
@@ -734,12 +824,13 @@ export class CometSystem {
     }
 
     if (this.trailSystem && typeof this.trailSystem.spawnEffectSpark === 'function') {
-      for (let s = 0; s < 14; s++) {
-        const sparkPos = position.clone().add(
+      const extraSparks = Math.round(14 * densityScale);
+      for (let s = 0; s < extraSparks; s++) {
+        const sparkPos = spawnPos.clone().add(
           new THREE.Vector3(
-            (Math.random() - 0.5) * 2.5,
-            -Math.random() * 3.0,
-            (Math.random() - 0.5) * 2.5
+            (Math.random() - 0.5) * 2.5 * sizeScale,
+            -Math.random() * 3.0 * sizeScale,
+            (Math.random() - 0.5) * 2.5 * sizeScale
           )
         );
         this.trailSystem.spawnEffectSpark(
@@ -748,7 +839,7 @@ export class CometSystem {
           true,
           null,
           Math.random() * 1000,
-          0.40 + Math.random() * 0.25,
+          (0.40 + Math.random() * 0.25) * Math.sqrt(sizeScale),
           false
         );
       }
@@ -765,6 +856,17 @@ export class CometSystem {
         );
         this.trailSystem.spawnMicroCrackle(cracklePos, color);
       }
+    }
+
+    // Reactive kick at apex flurry (đẩy hạt bay lệch hướng dứt khoát tại đỉnh)
+    if (velocity && deflectionScale > 0.05) {
+      const kickBase = (flurryCfg.variance?.kickImpulseBase ?? 2.8) * 1.35;
+      const kickAngle = Math.random() * Math.PI * 2;
+      const kickMag = kickBase * deflectionScale * (0.6 + Math.random() * 0.8);
+      const kickVec = new THREE.Vector3()
+        .addScaledVector(rightVec, Math.cos(kickAngle) * kickMag)
+        .addScaledVector(forwardVec, Math.sin(kickAngle) * kickMag);
+      velocity.add(kickVec);
     }
   }
 
@@ -843,7 +945,8 @@ export class CometSystem {
             comet.color,
             comet.velocity,
             Boolean(comet.hasStrobe),
-            Boolean(comet.hasCrackle)
+            Boolean(comet.hasCrackle),
+            comet
           );
         }
       }
@@ -863,7 +966,8 @@ export class CometSystem {
           comet.color,
           comet.velocity,
           Boolean(comet.hasStrobe),
-          Boolean(comet.hasCrackle)
+          Boolean(comet.hasCrackle),
+          comet
         );
       }
 

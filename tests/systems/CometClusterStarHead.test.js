@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { CometEntity } from '../../src/entities/CometEntity.js';
 import { ShellEntity } from '../../src/entities/ShellEntity.js';
+import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
 
 describe('Comet Cluster Firework Star Head Rendering', () => {
   it('should initialize cluster comets with toneMapped: false and hot-white inner core', () => {
@@ -304,10 +305,12 @@ describe('Comet Cluster Firework Star Head Rendering', () => {
     );
 
     expect(spawnedArrowSparks.length).toBeGreaterThanOrEqual(2);
-    // Sparks must inherit flight direction and have low gravity to maintain arrow shape
+    const expectedStandoff = FIREWORK_CONFIG.COMET_TADPOLE?.standoffDistance ?? 0.25;
     for (const spark of spawnedArrowSparks) {
       expect(spark.gravityScale).toBeCloseTo(0.20, 2);
       expect(spark.velocity.lengthSq()).toBeGreaterThan(1.0);
+      expect(spark.position.x).toBeCloseTo(-expectedStandoff, 1);
+      expect(spark.position.distanceTo(horizontalComet.mesh.position)).toBeCloseTo(expectedStandoff, 1);
     }
 
     horizontalComet.dispose();
@@ -366,9 +369,11 @@ describe('Comet Cluster Firework Star Head Rendering', () => {
     expect(emittedSparks.length).toBeGreaterThan(0);
     // Sparks must inherit strobe = true and exactColor = true
     const spark = emittedSparks[0];
+    const expectedStandoff = FIREWORK_CONFIG.COMET_TADPOLE?.standoffDistance ?? 0.25;
     expect(spark.strobe).toBe(true);
     expect(spark.exactColor).toBe(true);
     expect(spark.velocity).toBeDefined();
+    expect(spark.position.distanceTo(sampleParticle.position)).toBeCloseTo(expectedStandoff, 1);
 
     fireworkSystem.clear();
   });

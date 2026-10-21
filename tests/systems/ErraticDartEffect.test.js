@@ -135,7 +135,7 @@ describe('Erratic Dart Active Effect and Presets', () => {
     expect(p.erraticDartTriggered).toBe(false);
 
     // Fast forward to trigger window
-    p.age = p.maxLife * 0.75;
+    p.age = p.maxLife * Math.max(0.75, (p.erraticDartTriggerRatio ?? 0.75) + 0.01);
     const initialVel = p.velocity.clone();
     fireworkSystem.updateBurstParticles(0.016);
 

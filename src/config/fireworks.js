@@ -259,22 +259,44 @@ export const FIREWORK_CONFIG = {
     swayFreq: 1.85,
     // Ngưỡng bắt đầu xù hạt chúc xuống dưới hình mũi tên (hạ xuống tầm thấp 28% độ cao)
     arrowFlurryStartProgress: 0.28,
+    // Khoảng cách lùi về phía sau của các hạt xù (bám sát chân đầu pháo, tránh cảm giác nhả khói tách rời)
+    standoffDistance: 0.25,
     // Chu kỳ bắn đợt hạt xù hình mũi tên (giây, ngắn hơn để xù đều và dày dặn hơn)
-    arrowInterval: 0.065,
+    arrowInterval: 0.055,
     // Số hạt xù bắn ra trong mỗi đợt
-    arrowSparksMin: 4,
-    arrowSparksMax: 7,
-    // Vận tốc hạt xù bắn chúc ngược xuống dưới (m/s)
-    arrowSpeedMin: 14.0,
-    arrowSpeedMax: 24.0,
-    // Thời gian sống của hạt tia xù hình mũi tên (giây)
-    arrowStarLife: 0.75,
+    arrowSparksMin: 5,
+    arrowSparksMax: 8,
+    // Vận tốc hạt xù bắn xòe gai nhọn (m/s)
+    arrowSpeedMin: 28.0,
+    arrowSpeedMax: 48.0,
+    // Hệ số lực cản không khí của hạt gai xù (giảm mạnh để tia phóng vút gai góc không bị khựng lại thành đám khói)
+    needleDragScale: 0.38,
+    // Thời gian sống của hạt tia xù hình mũi tên (giây, tắt dứt khoát)
+    arrowStarLife: 0.48,
     // Số hạt bung chùm chúc xuống tại đỉnh (tăng mật độ để nổi bật rõ nét)
-    flurryCount: 32,
+    flurryCount: 36,
     // Thời gian sống của hạt bung chùm tại đỉnh (giây)
-    flurryStarLife: 0.85,
-    // Hệ số tăng sáng và bloom cho các hạt tia xù
-    sparkBrightnessMultiplier: 2.2,
+    flurryStarLife: 0.58,
+    // Hệ số tăng sáng và bloom cho các hạt tia xù gai góc
+    sparkBrightnessMultiplier: 4.2,
+    // Độ sáng của tâm nổ phát quang (hot center flash) tại gốc chùm gai xù
+    centerCoreBrightness: 7.5,
+    // Cấu hình độ ngẫu nhiên hóa khi xù: to/nhỏ, ít/nhiều, lệch quỹ đạo ít/lệch hẳn
+    variance: {
+      // Độ biến thiên kích thước chùm xù (xù nhỏ: 0.55, xù to: 1.65)
+      sizeMin: 0.55,
+      sizeMax: 1.65,
+      // Độ biến thiên số lượng gai nhọn (xù ít: 0.50, xù nhiều: 1.80)
+      densityMin: 0.50,
+      densityMax: 1.80,
+      // Hệ số độ lệch quỹ đạo (lệch ít: 0.25, lệch hẳn quỹ đạo: 3.2)
+      deflectionMin: 0.25,
+      deflectionMax: 3.2,
+      // Tỷ lệ hạt chịu phản lực giật mạnh lệch hẳn quỹ đạo
+      wildDeflectionChance: 0.30,
+      // Xung lực phản lực giật lệch hướng cơ sở khi bắn gai xù (m/s)
+      kickImpulseBase: 2.8
+    },
     // Cấu hình pháo hoa mẹ khi nổ bung tỏa ra chùm nòng nọc xù (chrysanthemum_tadpole_burst)
     burstShell: {
       clusterCountMin: 18,
