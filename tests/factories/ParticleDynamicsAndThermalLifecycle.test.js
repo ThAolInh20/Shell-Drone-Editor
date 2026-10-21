@@ -264,4 +264,39 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     expect(particle.velocity.y).toBeGreaterThanOrEqual(-18.0);
     expect(particle.position.y).toBeGreaterThan(0);
   });
+
+  it('should excite frictionHeat and boost core luminance upon sudden velocity impulse', () => {
+    const scene = new THREE.Scene();
+    const mockTrailSystem = {
+      spawnEffectSpark: vi.fn(),
+      spawnTrailParticle: vi.fn(),
+      spawnMicroCrackle: vi.fn()
+    };
+    const fireworkSystem = new FireworkSystem(scene, mockTrailSystem);
+
+    fireworkSystem.createBurst(
+      new THREE.Vector3(0, 100, 0),
+      new THREE.Color(0x0088ff),
+      'sphere',
+      {},
+      'test-friction'
+    );
+
+    const particle = fireworkSystem.burstParticles[0];
+    expect(particle.frictionHeat).toBeDefined();
+
+    // Cause sudden sharp velocity deflection
+    particle.velocity.set(0, 50, 0);
+    fireworkSystem.update(0.016);
+    particle.velocity.set(40, -30, 20); // Sudden large impulse
+    fireworkSystem.update(0.016);
+
+    expect(particle.frictionHeat).toBeGreaterThan(0.05);
+
+    // Verify resolveParticleColor boosts core brightness when frictionHeat is present
+    const boostedColor = BurstEffectProcessor.resolveParticleColor(particle, 0.35);
+    expect(boostedColor.r).toBeGreaterThan(0.5); // Core whitening
+    expect(boostedColor.g).toBeGreaterThan(0.8);
+    expect(boostedColor.b).toBeGreaterThan(1.2);
+  });
 });

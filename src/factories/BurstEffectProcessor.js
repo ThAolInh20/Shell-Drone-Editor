@@ -756,6 +756,15 @@ export class BurstEffectProcessor {
       }
     }
 
+    // Kích nhiệt ma sát khí động học (Friction Ram Heating):
+    // Khi hạt chịu biến thiên vận tốc đột ngột, lõi hạt nóng sáng rực rỡ (incandescent core boost)
+    if (particle.frictionHeat && particle.frictionHeat > 0.02) {
+      const heat = Math.min(1.0, particle.frictionHeat);
+      r = THREE.MathUtils.lerp(r, Math.max(r, 2.2), heat * 0.75);
+      g = THREE.MathUtils.lerp(g, Math.max(g, 2.1), heat * 0.75);
+      b = THREE.MathUtils.lerp(b, Math.max(b, 1.8), heat * 0.75);
+    }
+
     return { r, g, b };
   }
 }

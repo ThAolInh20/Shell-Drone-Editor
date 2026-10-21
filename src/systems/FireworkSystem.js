@@ -3305,6 +3305,23 @@ export class FireworkSystem {
 
       const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
 
+      // Đo xung biến thiên vận tốc từ frame trước (external impulses / redirection)
+      if (p.lastVelocity) {
+        const extDvx = p.velocity.x - p.lastVelocity.x;
+        const extDvy = p.velocity.y - p.lastVelocity.y;
+        const extDvz = p.velocity.z - p.lastVelocity.z;
+        const extImpulse = Math.sqrt(extDvx * extDvx + extDvy * extDvy + extDvz * extDvz);
+        if (extImpulse > 1.8) {
+          const heatGain = Math.min(1.0, (extImpulse - 1.8) * 0.16);
+          p.frictionHeat = Math.min(1.5, (p.frictionHeat || 0) + heatGain);
+        }
+      }
+
+      // Lưu vận tốc trước khi chịu các lực động lực học nội tại trong frame
+      const preVelX = p.velocity.x;
+      const preVelY = p.velocity.y;
+      const preVelZ = p.velocity.z;
+
       let finalGravityScale = BurstEffectProcessor.processErraticDart(
         p,
         deltaTime,
@@ -3435,6 +3452,29 @@ export class FireworkSystem {
           p.velocity.y = THREE.MathUtils.lerp(p.velocity.y, terminalVel, deltaTime * brakeRate);
         }
       }
+
+      // Khí động học ma sát nhiệt (Aerodynamic Ram Heating / Friction Impulse):
+      // Khi vận tốc biến thiên đột ngột (do lực cản gắt, bẻ góc, phanh đỉnh hoặc xung lực tách nhánh),
+      // lõi hạt hấp thụ nhiệt ma sát và bừng sáng rực rỡ tức thời.
+      const dvx = p.velocity.x - preVelX;
+      const dvy = p.velocity.y - preVelY;
+      const dvz = p.velocity.z - preVelZ;
+      const impulse = Math.sqrt(dvx * dvx + dvy * dvy + dvz * dvz);
+
+      if (impulse > 1.8) {
+        const heatGain = Math.min(1.0, (impulse - 1.8) * 0.16);
+        p.frictionHeat = Math.min(1.5, (p.frictionHeat || 0) + heatGain);
+      }
+      if (p.frictionHeat > 0.001) {
+        p.frictionHeat *= Math.exp(-deltaTime * 12.0);
+      } else {
+        p.frictionHeat = 0;
+      }
+
+      if (!p.lastVelocity) {
+        p.lastVelocity = new THREE.Vector3();
+      }
+      p.lastVelocity.set(p.velocity.x, p.velocity.y, p.velocity.z);
 
       p.position.addScaledVector(
         p.velocity,
@@ -3903,7 +3943,8 @@ export class FireworkSystem {
           const t = (lifeRatio - 0.60) / 0.40;
           sizeDecay = 1.0 - t * 0.45;
         }
-        renderSize = baseSize * sizeDecay;
+        const frictionScale = 1.0 + Math.min(0.25, (p.frictionHeat || 0) * 0.2);
+        renderSize = baseSize * sizeDecay * frictionScale;
       }
       p.renderSize = renderSize;
       p.renderOpacity = opacity;

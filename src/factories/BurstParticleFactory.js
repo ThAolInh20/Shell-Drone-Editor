@@ -209,7 +209,8 @@ export class BurstParticleFactory {
       erraticDartWiggleAmp = 26.0,
       isSecondBurstChild = false,
       isLongBurn = false,
-      isApexHang = false
+      isApexHang = false,
+      frictionHeat = 0.0
     } = options;
 
     const resolvedBaseColor = baseColor
@@ -360,7 +361,9 @@ export class BurstParticleFactory {
       strobeStart,
       strobeEnd,
       ghostStart,
-      ghostEnd
+      ghostEnd,
+      frictionHeat: Number(frictionHeat) || 0.0,
+      lastVelocity: velocity ? velocity.clone() : new THREE.Vector3()
     };
   }
 
@@ -426,7 +429,8 @@ export class BurstParticleFactory {
         renderSize: parentParticle.renderSize,
         renderOpacity: 1.0,
         dynamicsProfile: parentParticle.dynamicsProfile,
-        dragCoefficient: parentParticle.dragCoefficient ?? BURST_BASE_DRAG
+        dragCoefficient: parentParticle.dragCoefficient ?? BURST_BASE_DRAG,
+        frictionHeat: 0.95
       });
 
       branches.push(branchParticle);
