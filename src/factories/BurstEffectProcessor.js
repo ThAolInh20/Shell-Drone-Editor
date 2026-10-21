@@ -82,6 +82,60 @@ export class BurstEffectProcessor {
     // 4. Mac dinh la profile standard
     return profiles.standard;
   }
+
+  static isEffectActive(particle, effectName) {
+    if (!particle) return false;
+
+    const age = particle.age ?? 0;
+
+    if (effectName === 'strobe' || effectName === 'white-strobe' || effectName === 'glitter-strobe') {
+      if (particle.strobeStart !== undefined) {
+        return age >= particle.strobeStart && age <= particle.strobeEnd;
+      }
+    } else if (effectName === 'ghost') {
+      if (particle.ghostStart !== undefined) {
+        return age >= particle.ghostStart && age <= particle.ghostEnd;
+      }
+    } else if (effectName === 'crackle') {
+      if (particle.crackleStart !== undefined) {
+        return age >= particle.crackleStart && age <= particle.crackleEnd;
+      }
+    } else if (effectName === 'tadpole-flurry' || effectName === 'tadpole_flurry') {
+      if (particle.tadpoleStart !== undefined) {
+        return age >= particle.tadpoleStart && age <= particle.tadpoleEnd;
+      }
+    } else if (effectName === 'burst-smoke') {
+      if (particle.burstSmokeStart !== undefined) {
+        return age >= particle.burstSmokeStart && age <= particle.burstSmokeEnd;
+      }
+    }
+
+    if (particle.effectType === effectName) {
+      return true;
+    }
+
+    const effects = Array.isArray(particle.effects) && particle.effects.length > 0
+      ? particle.effects
+      : (Array.isArray(particle.preset?.effects) ? particle.preset.effects : null);
+
+    if (!effects) return false;
+
+    for (let i = 0; i < effects.length; i++) {
+      const eff = effects[i];
+      if (typeof eff === 'string') {
+        if (eff === effectName) return true;
+      } else if (eff && typeof eff === 'object') {
+        const type = eff.type || eff.key;
+        if (type === effectName) {
+          const start = eff.start !== undefined ? Number(eff.start) : 0;
+          const end = eff.end !== undefined ? Number(eff.end) : (particle.maxLife ?? 9999);
+          return age >= start && age <= end;
+        }
+      }
+    }
+
+    return false;
+  }
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
@@ -335,7 +389,11 @@ export class BurstEffectProcessor {
 
     const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
 
-    if (!particle.erraticDartTriggered && lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72)) {
+    const triggerCondition = particle.erraticDartTriggerTime !== undefined
+      ? particle.age >= particle.erraticDartTriggerTime
+      : lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72);
+
+    if (!particle.erraticDartTriggered && triggerCondition) {
       particle.erraticDartTriggered = true;
       const minSpeed = dartCfg.dartSpeedMin ?? 36.0;
       const maxSpeed = dartCfg.dartSpeedMax ?? 54.0;
@@ -488,26 +546,18 @@ export class BurstEffectProcessor {
       return { r, g, b };
     }
 
-    const hasWhiteStrobe = particle.effectType === 'white-strobe'
-      || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))
-      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('white-strobe'));
+    const hasWhiteStrobe = BurstEffectProcessor.isEffectActive(particle, 'white-strobe');
 
-    const hasGlitterStrobe = particle.effectType === 'glitter-strobe'
-      || particle.effectType === 'falling-comets-glitter'
-      || (Array.isArray(particle.effects) && particle.effects.includes('glitter-strobe'))
-      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('glitter-strobe'));
+    const hasGlitterStrobe = BurstEffectProcessor.isEffectActive(particle, 'glitter-strobe')
+      || particle.effectType === 'falling-comets-glitter';
 
     const hasStandardStrobe = (
-      particle.effectType === 'strobe'
-      || particle.preset?.strobe
+      particle.preset?.strobe
       || particle.effectState?.strobe
-      || (Array.isArray(particle.effects) && particle.effects.includes('strobe'))
-      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('strobe'))
+      || BurstEffectProcessor.isEffectActive(particle, 'strobe')
     ) && particle.preset?.shellType !== 'crysanthemumNested';
 
-    const hasGhost = particle.effectType === 'ghost'
-      || (Array.isArray(particle.effects) && particle.effects.includes('ghost'))
-      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('ghost'))
+    const hasGhost = BurstEffectProcessor.isEffectActive(particle, 'ghost')
       || Boolean(particle.preset?.ghost)
       || particle.preset?.shellType === 'ghost';
 

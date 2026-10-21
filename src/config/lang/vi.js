@@ -447,6 +447,9 @@ export default {
       noActiveEffects: "Chưa kích hoạt hiệu ứng nào",
       allEffectsAdded: "Đã thêm tất cả hiệu ứng",
       removeEffect: "Gỡ bỏ hiệu ứng",
+      expandTimeline: "Phóng to dòng thời gian",
+      collapseTimeline: "Thu nhỏ dòng thời gian",
+      expandedTimelineTitle: "Dòng thời gian hiệu ứng Active",
       auditionSoundTooltip: "Nghe thử âm thanh",
       auditionSoundBtn: "Thử",
       waveCurve: {

@@ -439,6 +439,9 @@ export default {
       noActiveEffects: "未启用任何效果",
       allEffectsAdded: "已添加全部效果",
       removeEffect: "移除效果",
+      expandTimeline: "放大时间线",
+      collapseTimeline: "收起时间线",
+      expandedTimelineTitle: "动态特效时间线",
       auditionSoundTooltip: "试听音效",
       auditionSoundBtn: "试听",
       waveCurve: {

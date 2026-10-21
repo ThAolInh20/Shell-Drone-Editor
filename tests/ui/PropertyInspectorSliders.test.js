@@ -175,7 +175,8 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 1.0 },
       'test-standard'
     );
-    const standardMaxLife = fireworkSystem.burstParticles[0].maxLife;
+    const standardParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    const standardMaxLife = standardParticle.maxLife;
     fireworkSystem.clear();
 
     // Burst with 0.5x starLifeMultiplier
@@ -186,7 +187,8 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 0.5 },
       'test-short'
     );
-    const shortMaxLife = fireworkSystem.burstParticles[0].maxLife;
+    const shortParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    const shortMaxLife = shortParticle.maxLife;
     fireworkSystem.clear();
 
     // Burst with 2.0x starLifeMultiplier
@@ -197,8 +199,8 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 2.0 },
       'test-long'
     );
-    const longMaxLife = fireworkSystem.burstParticles[0].maxLife;
-    const longParticle = fireworkSystem.burstParticles[0];
+    const longParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    const longMaxLife = longParticle.maxLife;
     fireworkSystem.clear();
 
     expect(shortMaxLife).toBeLessThan(standardMaxLife * 0.75);

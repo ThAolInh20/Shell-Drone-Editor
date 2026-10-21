@@ -439,6 +439,9 @@ export default {
       noActiveEffects: "有効なエフェクトはありません",
       allEffectsAdded: "すべてのエフェクトが追加されました",
       removeEffect: "エフェクトを削除",
+      expandTimeline: "タイムラインを拡大",
+      collapseTimeline: "タイムラインを折りたたむ",
+      expandedTimelineTitle: "アクティブエフェクトタイムライン",
       auditionSoundTooltip: "サウンド試聴",
       auditionSoundBtn: "試聴",
       waveCurve: {

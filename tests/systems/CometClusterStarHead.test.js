@@ -196,6 +196,7 @@ describe('Comet Cluster Firework Star Head Rendering', () => {
     cometSystem.activeComets.push(comet);
 
     // Simulate early-mid ascent (progress >= 0.28)
+    comet.state = CometEntity.STATE.LAUNCHING;
     comet.tadpoleProgress = 0.32;
     cometSystem.update(0.1);
     expect(arrowSparksTriggered).toBe(true);

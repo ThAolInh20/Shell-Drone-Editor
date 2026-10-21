@@ -16,6 +16,8 @@ import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { WaveCurveEditor } from './WaveCurveEditor.js';
 import { DEFAULT_WAVE_POINTS } from '../utils/SplineMath.js';
+import { ActiveEffectsTimeline } from './ActiveEffectsTimeline.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -1230,161 +1232,105 @@ export class PropertyInspector {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
-    const label = document.createElement('label');
-    label.className = 'inspector-label';
-    label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
-
     const container = document.createElement('div');
-    container.className = 'inspector-effect-chips-container';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '8px';
-    container.style.marginTop = '4px';
+    container.className = 'inspector-active-effects-container';
+    container.style.marginTop = '6px';
+    container.style.marginBottom = '6px';
 
-    // 1. Chips wrapper
-    const chipsWrapper = document.createElement('div');
-    chipsWrapper.className = 'inspector-chips-wrapper';
-    chipsWrapper.style.display = 'flex';
-    chipsWrapper.style.flexWrap = 'wrap';
-    chipsWrapper.style.gap = '6px';
-    chipsWrapper.style.minHeight = '24px';
-    chipsWrapper.style.alignItems = 'center';
+    const getBurstLifetime = () => {
+      const baseLife = FIREWORK_CONFIG?.BURST?.baseLife ?? 2.3;
+      const mul = (targetEvent.starLifeMultiplier !== undefined && !isNaN(Number(targetEvent.starLifeMultiplier)))
+        ? Math.max(0.2, Number(targetEvent.starLifeMultiplier))
+        : 1.0;
+      const longBurnMul = targetEvent.longBurn ? (FIREWORK_CONFIG?.BURST?.longBurnMultiplier ?? 2.2) : 1.0;
+      return Math.round(baseLife * mul * longBurnMul * 10) / 10;
+    };
 
-    const currentEffectsList = Array.isArray(targetEvent.effects)
-      ? targetEvent.effects
-      : [];
+    const burstLife = getBurstLifetime();
 
-    const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!targetEvent[eff.key] || currentEffectsList.includes(eff.key);
-    });
+    const getNormalizedEffects = () => {
+      const list = [];
+      const currentList = Array.isArray(targetEvent.effects) ? targetEvent.effects : [];
 
-    if (activeEffects.length === 0) {
-      const emptySpan = document.createElement('span');
-      emptySpan.style.fontSize = '11px';
-      emptySpan.style.color = '#777';
-      emptySpan.style.fontStyle = 'italic';
-      emptySpan.textContent = t('editor.inspector.noActiveEffects') || 'No active effects';
-      chipsWrapper.appendChild(emptySpan);
-    } else {
-      activeEffects.forEach((eff) => {
-        const chip = document.createElement('div');
-        chip.className = 'inspector-effect-chip';
-        chip.style.display = 'inline-flex';
-        chip.style.alignItems = 'center';
-        chip.style.gap = '6px';
-        chip.style.padding = '3px 8px';
-        chip.style.background = 'rgba(0, 200, 255, 0.12)';
-        chip.style.border = '1px solid rgba(0, 200, 255, 0.35)';
-        chip.style.borderRadius = '12px';
-        chip.style.fontSize = '11px';
-        chip.style.color = '#64d2ff';
-        chip.style.userSelect = 'none';
+      currentList.forEach((item) => {
+        if (typeof item === 'string') {
+          list.push({
+            type: item,
+            startRatio: 0.1,
+            endRatio: 0.5,
+            start: Math.round(burstLife * 0.1 * 100) / 100,
+            end: Math.round(burstLife * 0.5 * 100) / 100
+          });
+        } else if (typeof item === 'object' && item !== null) {
+          const type = item.type || item.key;
+          let startRatio = item.startRatio !== undefined ? Number(item.startRatio) : undefined;
+          let endRatio = item.endRatio !== undefined ? Number(item.endRatio) : undefined;
+          let start = item.start !== undefined ? Number(item.start) : undefined;
+          let end = item.end !== undefined ? Number(item.end) : undefined;
 
-        const chipText = document.createElement('span');
-        chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
-        chip.appendChild(chipText);
-
-        EffectPreviewTooltip.getInstance().bindElement(chip, eff.key, PREVIEW_CATEGORIES.OPTICAL_EFFECT);
-
-        const removeBtn = document.createElement('span');
-        removeBtn.textContent = '×';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.fontSize = '14px';
-        removeBtn.style.lineHeight = '1';
-        removeBtn.style.color = '#ff6b6b';
-        removeBtn.style.fontWeight = 'bold';
-        removeBtn.style.padding = '0 2px';
-        removeBtn.title = t('editor.inspector.removeEffect') || 'Remove effect';
-
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.triggerUpdate('beforeChange');
-          delete targetEvent[eff.key];
-          if (Array.isArray(targetEvent.effects)) {
-            targetEvent.effects = targetEvent.effects.filter((k) => k !== eff.key);
+          if (startRatio === undefined) {
+            startRatio = start !== undefined ? Math.max(0, Math.min(1.0, start / burstLife)) : 0.1;
           }
-          this.triggerUpdate();
-          this.render();
-        });
-
-        chip.appendChild(removeBtn);
-        chipsWrapper.appendChild(chip);
-      });
-    }
-
-    // 2. Add Effect Dropdown Selector
-    const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !targetEvent[eff.key] && !currentEffectsList.includes(eff.key);
-    });
-
-    const addWrapper = document.createElement('div');
-    addWrapper.style.display = 'flex';
-    addWrapper.style.alignItems = 'center';
-    addWrapper.style.gap = '6px';
-
-    const select = document.createElement('select');
-    select.className = 'inspector-input';
-    select.style.fontSize = '11px';
-    select.style.padding = '4px 8px';
-    select.style.cursor = 'pointer';
-
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = availableToAdd.length > 0
-      ? (t('editor.inspector.addEffectPrompt') || '+ Add Effect...')
-      : (t('editor.inspector.allEffectsAdded') || 'All effects added');
-    select.appendChild(defaultOption);
-
-    if (availableToAdd.length === 0) {
-      const disabledPlaceholder = document.createElement('div');
-      disabledPlaceholder.className = 'inspector-input';
-      disabledPlaceholder.style.fontSize = '11px';
-      disabledPlaceholder.style.padding = '4px 8px';
-      disabledPlaceholder.style.opacity = '0.5';
-      disabledPlaceholder.textContent =
-        t('editor.inspector.allEffectsAdded') || 'All effects added';
-      addWrapper.appendChild(disabledPlaceholder);
-    } else {
-      const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
-        const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
-        const labelB = en?.editor?.inspector?.fields?.[b.labelKey] || b.key;
-        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
-      });
-
-      const effectOptions = sortedAvailableToAdd.map((eff) => ({
-        value: eff.key,
-        label: t(`editor.inspector.fields.${eff.labelKey}`) || eff.key
-      }));
-
-      const effectSelect = new CustomSelect({
-        options: effectOptions,
-        placeholder:
-          t('editor.inspector.addEffectPrompt') || '+ Add Effect...',
-        category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
-        fieldName: 'addEffect',
-        enableSearch: false,
-        onChange: (selectedKey) => {
-          if (!selectedKey) return;
-          this.triggerUpdate('beforeChange');
-          targetEvent[selectedKey] = true;
-          if (!Array.isArray(targetEvent.effects)) {
-            targetEvent.effects = [];
+          if (endRatio === undefined) {
+            endRatio = end !== undefined ? Math.max(0, Math.min(1.0, end / burstLife)) : 0.5;
           }
-          if (!targetEvent.effects.includes(selectedKey)) {
-            targetEvent.effects.push(selectedKey);
-          }
-          this.triggerUpdate();
-          this.render();
+
+          start = Math.round(startRatio * burstLife * 100) / 100;
+          end = Math.round(endRatio * burstLife * 100) / 100;
+
+          list.push({
+            type,
+            startRatio: Math.round(startRatio * 100) / 100,
+            endRatio: Math.round(endRatio * 100) / 100,
+            start,
+            end
+          });
         }
       });
 
-      addWrapper.appendChild(effectSelect.element);
-    }
+      AVAILABLE_EFFECT_TAGS.forEach((tag) => {
+        if (targetEvent[tag.key] && !list.some((e) => e.type === tag.key)) {
+          list.push({
+            type: tag.key,
+            startRatio: 0.1,
+            endRatio: 0.5,
+            start: Math.round(burstLife * 0.1 * 100) / 100,
+            end: Math.round(burstLife * 0.5 * 100) / 100
+          });
+        }
+      });
 
-    container.appendChild(chipsWrapper);
-    container.appendChild(addWrapper);
+      targetEvent.effects = list;
+      return list;
+    };
 
-    parent.appendChild(label);
+    const syncLegacyFlags = (updatedEffects) => {
+      const activeKeys = new Set(updatedEffects.map((e) => e.type || e.key));
+      AVAILABLE_EFFECT_TAGS.forEach((tag) => {
+        if (activeKeys.has(tag.key)) {
+          targetEvent[tag.key] = true;
+        } else {
+          delete targetEvent[tag.key];
+        }
+      });
+    };
+
+    new ActiveEffectsTimeline(container, {
+      getDuration: () => {
+        return getBurstLifetime();
+      },
+      getEffects: () => {
+        return getNormalizedEffects();
+      },
+      onChange: (updatedEffects) => {
+        this.triggerUpdate('beforeChange');
+        targetEvent.effects = updatedEffects;
+        syncLegacyFlags(updatedEffects);
+        this.triggerUpdate();
+      },
+      availableEffectTags: AVAILABLE_EFFECT_TAGS
+    });
+
     parent.appendChild(container);
   }
 

@@ -1620,7 +1620,8 @@ export class FireworkSystem {
     }
 
     const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
-    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const effectKeys = effectsList.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+    const crackleEnabled = Boolean(preset?.crackle) || effectKeys.includes('crackle');
     const requestedEffect = preset?.dynamicsType
       || preset?.dynamics
       || (preset?.flow !== undefined
@@ -3196,36 +3197,40 @@ export class FireworkSystem {
       );
 
       // Micro crackle trigger
-      if (
-        p.crackle
-        && !p.isDyingEmber
-        && p.age >= p.maxLife * 0.65
-        && !p.crackleTriggered
-      ) {
-        p.crackleTriggered = true;
-        if (Math.random() < 0.65) {
-          const originPos = p.position.clone();
-          const origColor = p.baseColor.clone();
-          this.trailSystem.spawnMicroCrackle(
-            originPos,
-            origColor
-          );
-          this.emitFireworkEvent(
-            'firework:crackle',
-            {
-              sound: p.preset?.sound || null,
-              isSubBurst: Boolean(p.isSecondBurst || p.secondBurstDone),
-              source: 'burst-particle',
-              position: {
-                x: originPos.x,
-                y: originPos.y,
-                z: originPos.z
+      const crackleStart = p.crackleStart !== undefined ? p.crackleStart : p.maxLife * 0.65;
+      const crackleEnd = p.crackleEnd !== undefined ? p.crackleEnd : crackleStart;
+
+      if (p.crackle && !p.isDyingEmber) {
+        if (p.age >= crackleStart && p.age < crackleEnd) {
+          if (Math.random() < 0.20 && typeof this.trailSystem?.spawnMicroCrackle === 'function') {
+            this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+          }
+        } else if (p.age >= crackleEnd && !p.crackleTriggered) {
+          p.crackleTriggered = true;
+          if (Math.random() < 0.65 && typeof this.trailSystem?.spawnMicroCrackle === 'function') {
+            const originPos = p.position.clone();
+            const origColor = p.baseColor.clone();
+            this.trailSystem.spawnMicroCrackle(
+              originPos,
+              origColor
+            );
+            this.emitFireworkEvent(
+              'firework:crackle',
+              {
+                sound: p.preset?.sound || null,
+                isSubBurst: Boolean(p.isSecondBurst || p.secondBurstDone),
+                source: 'burst-particle',
+                position: {
+                  x: originPos.x,
+                  y: originPos.y,
+                  z: originPos.z
+                }
               }
-            }
-          );
+            );
+          }
+          // Hide the original particle by setting its baseColor to 0
+          p.baseColor.setRGB(0, 0, 0);
         }
-        // Hide the original particle by setting its baseColor to 0
-        p.baseColor.setRGB(0, 0, 0);
       }
 
       // Crossette split cross trigger
@@ -3596,7 +3601,10 @@ export class FireworkSystem {
         && !isGhostInvisible
         && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
       ) {
-        if (lifeRatio >= 0.18 && lifeRatio <= 0.85) {
+        const tadpoleStart = p.tadpoleStart !== undefined ? p.tadpoleStart : p.maxLife * 0.18;
+        const tadpoleEnd = p.tadpoleEnd !== undefined ? p.tadpoleEnd : p.maxLife * 0.85;
+
+        if (p.age >= tadpoleStart && p.age <= tadpoleEnd) {
           p.tadpoleArrowTimer = (p.tadpoleArrowTimer || 0) + deltaTime;
           const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
           if (p.tadpoleArrowTimer >= arrowInterval) {
@@ -3605,7 +3613,7 @@ export class FireworkSystem {
           }
         }
 
-        if (lifeRatio >= 0.85 && !p.hasFlurried) {
+        if (p.age >= tadpoleEnd && !p.hasFlurried) {
           p.hasFlurried = true;
           this.spawnBurstParticleFlurry(p, parentFade);
         }
@@ -3626,7 +3634,11 @@ export class FireworkSystem {
         }
       }
 
-      const isStarBurstSmoke = p.hasBurstSmoke && lifeRatio <= (p.burstSmokeLimit ?? 0.33);
+      const isStarBurstSmoke = p.hasBurstSmoke && (
+        p.burstSmokeEnd !== undefined
+          ? (p.age >= (p.burstSmokeStart ?? 0) && p.age <= p.burstSmokeEnd)
+          : (lifeRatio <= (p.burstSmokeLimit ?? 0.33))
+      );
       const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
         && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 

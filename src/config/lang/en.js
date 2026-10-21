@@ -447,6 +447,9 @@ export default {
       noActiveEffects: "No active effects",
       allEffectsAdded: "All effects added",
       removeEffect: "Remove effect",
+      expandTimeline: "Expand Timeline",
+      collapseTimeline: "Collapse Timeline",
+      expandedTimelineTitle: "Active Effects Timeline",
       auditionSoundTooltip: "Play sound preview",
       auditionSoundBtn: "Test",
       waveCurve: {
