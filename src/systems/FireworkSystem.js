@@ -3891,7 +3891,14 @@ export class FireworkSystem {
         if (p.hasErraticDart && p.erraticDartTriggered) {
           sizeDecay = 1.0;
         } else if (lifeRatio < 0.12) {
-          sizeDecay = 1.25 - (lifeRatio / 0.12) * 0.25;
+          const ignitionEnd = 0.035;
+          if (lifeRatio < ignitionEnd) {
+            const t = lifeRatio / ignitionEnd;
+            sizeDecay = THREE.MathUtils.lerp(0.82, 1.25, THREE.MathUtils.smoothstep(t, 0.0, 1.0));
+          } else {
+            const t = (lifeRatio - ignitionEnd) / (0.12 - ignitionEnd);
+            sizeDecay = 1.25 - t * 0.25;
+          }
         } else if (lifeRatio > 0.60) {
           const t = (lifeRatio - 0.60) / 0.40;
           sizeDecay = 1.0 - t * 0.45;

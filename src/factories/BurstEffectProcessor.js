@@ -723,11 +723,23 @@ export class BurstEffectProcessor {
           }
         }
       } else {
-        if (lifeRatio < 0.12) {
-          const flashT = 1.0 - (lifeRatio / 0.12);
-          r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
-          g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
-          b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
+        const ignitionEnd = 0.035;
+        const flashEnd = 0.12;
+
+        if (lifeRatio < flashEnd) {
+          let flashT;
+          if (lifeRatio < ignitionEnd) {
+            // Pha 1: Bắt lửa bừng cháy vọt lên đỉnh nhiệt (Ignition flare-up ramp)
+            const igniteProgress = lifeRatio / ignitionEnd;
+            flashT = THREE.MathUtils.smoothstep(igniteProgress, 0.0, 1.0);
+          } else {
+            // Pha 2: Chuyển giao mượt mà từ đỉnh chói sang màu sắc hóa học ổn định
+            const decayProgress = (lifeRatio - ignitionEnd) / (flashEnd - ignitionEnd);
+            flashT = 1.0 - decayProgress;
+          }
+          r = THREE.MathUtils.lerp(r, Math.max(r, 1.65), flashT);
+          g = THREE.MathUtils.lerp(g, Math.max(g, 1.55), flashT);
+          b = THREE.MathUtils.lerp(b, Math.max(b, 1.35), flashT);
         } else if (lifeRatio > 0.62) {
           if (lifeRatio < 0.88) {
             const coolT = (lifeRatio - 0.62) / 0.26;
