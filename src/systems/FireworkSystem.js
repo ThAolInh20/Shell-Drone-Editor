@@ -1441,6 +1441,7 @@ export class FireworkSystem {
       }
 
       const stageEffects = Array.isArray(stage.effects) ? stage.effects : [];
+      const stageEffectKeys = stageEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
       const stagePreset = {
         ...preset,
         multiNested: false,
@@ -1449,10 +1450,10 @@ export class FireworkSystem {
         dynamicsType: stage.dynamicsType || 'standard',
         effects: stageEffects,
         shellSize: baseSize * stageScale,
-        strobe: stageEffects.includes('strobe') || Boolean(stage.strobe),
-        crackle: stageEffects.includes('crackle') || Boolean(stage.crackle),
-        noTrail: stageEffects.includes('no-trail') || Boolean(stage.noTrail),
-        crossette: stageEffects.includes('crossette') || Boolean(stage.crossette)
+        strobe: stageEffectKeys.includes('strobe') || Boolean(stage.strobe),
+        crackle: stageEffectKeys.includes('crackle') || Boolean(stage.crackle),
+        noTrail: stageEffectKeys.includes('no-trail') || Boolean(stage.noTrail),
+        crossette: stageEffectKeys.includes('crossette') || Boolean(stage.crossette)
       };
 
       if (delay <= 0.001) {
@@ -1798,7 +1799,8 @@ export class FireworkSystem {
       isErraticDartShell,
       hasBurstSmoke: isBurstSmokeActive,
       isLongBurn,
-      isApexHang
+      isApexHang,
+      hasNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset,
       effects: effectsList,
@@ -2183,6 +2185,7 @@ export class FireworkSystem {
         isDyingEmber,
         isNestedTrigger,
         effects: effectsList,
+        hasNoTrail,
         dragCoefficient: particleDrag,
         dynamicsProfile,
         hasBurstSmoke: isBurstSmokeActive,
@@ -2297,7 +2300,8 @@ export class FireworkSystem {
       isGhostEffect,
       isCCEffect,
       isLongBurn: isContourLongBurn,
-      isApexHang: isContourApexHang
+      isApexHang: isContourApexHang,
+      hasNoTrail: isStageNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset: cfg,
       effects: childEffects,
@@ -2422,6 +2426,7 @@ export class FireworkSystem {
         totalParticleCount: childParticleCount,
         shellId: p.shellId,
         effects: childEffects,
+        hasNoTrail: isStageNoTrail,
         hasBurstSmoke: isBurstSmokeActive,
         burstSmokeLimit: 0.28 + Math.random() * 0.10,
         isCrossette: isCrossetteShell && crossetteSplitMap.has(k),
@@ -3266,9 +3271,10 @@ export class FireworkSystem {
         const remainingLife = Math.max(0.65, p.maxLife - p.age);
 
         const hasNoTrail = Boolean(p.preset?.noTrail)
-          || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
-          || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
-          || p.effectType === 'no-trail';
+          || Boolean(p.hasNoTrail && (p.noTrailStart === undefined))
+          || BurstEffectProcessor.isEffectActive(p, 'no-trail')
+          || p.effectType === 'no-trail'
+          || p.effectType === 'notrail';
 
         const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
         const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
@@ -3610,9 +3616,9 @@ export class FireworkSystem {
         || p.effectType === 'ghost-kamuro';
       const isGhostFlareNoTrail = hasGhostFlare && lifeRatio <= 0.60;
       const hasNoTrailActive = Boolean(p.preset?.noTrail)
-        || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
-        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
-        || p.effectType === 'no-trail';
+        || BurstEffectProcessor.isEffectActive(p, 'no-trail')
+        || p.effectType === 'no-trail'
+        || p.effectType === 'notrail';
       const allowTrail = spawnTrail
         && (!isChrysanthemumSpiral || isSpiralIgnited)
         && !isGhostFlareNoTrail

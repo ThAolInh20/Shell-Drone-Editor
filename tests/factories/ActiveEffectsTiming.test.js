@@ -13,7 +13,8 @@ describe('Active Effects Timeline Custom Timing Windows', () => {
       { type: 'erratic-dart', start: 0.9, end: 2.0 },
       { type: 'burst-smoke', start: 0.1, end: 0.6 },
       { type: 'strobe', start: 0.3, end: 1.5 },
-      { type: 'ghost', start: 0.7, end: 2.2 }
+      { type: 'ghost', start: 0.7, end: 2.2 },
+      { type: 'no-trail', start: 0.6, end: 2.1 }
     ];
 
     const particle = BurstParticleFactory.createParticle({
@@ -45,6 +46,10 @@ describe('Active Effects Timeline Custom Timing Windows', () => {
 
     expect(particle.ghostStart).toBe(0.7);
     expect(particle.ghostEnd).toBe(2.2);
+
+    expect(particle.hasNoTrail).toBe(true);
+    expect(particle.noTrailStart).toBe(0.6);
+    expect(particle.noTrailEnd).toBe(2.1);
   });
 
   it('should calculate start and end times dynamically from startRatio and endRatio percentages based on particle maxLife', () => {
@@ -159,6 +164,72 @@ describe('Active Effects Timeline Custom Timing Windows', () => {
     // Step system past 0.35s
     system.update(0.20);
     expect(p.crossetteSplitDone).toBe(true);
+
+    system.clear();
+  });
+
+  it('should evaluate isEffectActive for no-trail and suppress trail emission in FireworkSystem during timing window', () => {
+    const particle = BurstParticleFactory.createParticle({
+      effects: [
+        { type: 'no-trail', start: 0.5, end: 1.5 }
+      ],
+      maxLife: 2.0
+    });
+
+    expect(particle.hasNoTrail).toBe(true);
+    expect(particle.noTrailStart).toBe(0.5);
+    expect(particle.noTrailEnd).toBe(1.5);
+
+    // Before start: not active
+    particle.age = 0.2;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'no-trail')).toBe(false);
+
+    // In window: active
+    particle.age = 0.8;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'no-trail')).toBe(true);
+
+    // After window: not active
+    particle.age = 1.8;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'no-trail')).toBe(false);
+
+    // Test in FireworkSystem with Chrysanthemum preset and active effect no-trail
+    const scene = new THREE.Scene();
+    const system = new FireworkSystem(scene);
+
+    let trailSpawnCount = 0;
+    system.trailSystem = {
+      spawnTrail: () => {
+        trailSpawnCount++;
+      },
+      spawnMicroCrackle: () => {}
+    };
+
+    system.createBurst(
+      new THREE.Vector3(0, 100, 0),
+      new THREE.Color(0xffaa00),
+      'sphere',
+      {
+        dynamicsType: 'crysanthemum-trail',
+        effects: [
+          { type: 'no-trail', start: 0.3, end: 0.9 }
+        ]
+      }
+    );
+
+    expect(system.burstParticles.length).toBeGreaterThan(0);
+    const burstP = system.burstParticles[0];
+    expect(burstP.hasNoTrail).toBe(true);
+    expect(burstP.noTrailStart).toBe(0.3);
+    expect(burstP.noTrailEnd).toBe(0.9);
+
+    // Step to age 0.1s (before 0.3s): trails can spawn
+    system.update(0.1);
+    const countBeforeWindow = trailSpawnCount;
+
+    // Step inside active window [0.3s - 0.9s]: no trails can spawn
+    system.update(0.4); // now age ~0.5s
+    const countInWindow = trailSpawnCount;
+    expect(countInWindow).toBe(countBeforeWindow); // No new trails spawned!
 
     system.clear();
   });

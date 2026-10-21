@@ -107,6 +107,19 @@ export class BurstParticleFactory {
       || preset?.effectType === 'apex-hang'
     );
 
+    const hasNoTrail = Boolean(
+      preset?.noTrail
+      || effectsList.includes('no-trail')
+      || effectsList.includes('notrail')
+      || (Array.isArray(preset?.effects) && (
+        preset.effects.includes('no-trail')
+        || preset.effects.includes('notrail')
+        || preset.effects.some((e) => (typeof e === 'object' && ((e.type || e.key) === 'no-trail' || (e.type || e.key) === 'notrail')))
+      ))
+      || normDynamics === 'no-trail'
+      || normDynamics === 'notrail'
+    );
+
     return {
       isCrossetteShell,
       isTadpoleFlurryShell,
@@ -116,6 +129,7 @@ export class BurstParticleFactory {
       isCCEffect,
       isLongBurn,
       isApexHang,
+      hasNoTrail,
       effectsList
     };
   }
@@ -210,6 +224,7 @@ export class BurstParticleFactory {
       isSecondBurstChild = false,
       isLongBurn = false,
       isApexHang = false,
+      hasNoTrail = false,
       frictionHeat = 0.0
     } = options;
 
@@ -292,6 +307,19 @@ export class BurstParticleFactory {
       ? ghostTiming.end
       : (ghostTiming ? maxLife : undefined);
 
+    const noTrailTiming = BurstParticleFactory.getEffectTiming(effectsArray, 'no-trail', maxLife)
+      || BurstParticleFactory.getEffectTiming(effectsArray, 'notrail', maxLife)
+      || BurstParticleFactory.getEffectTiming(effectsArray, 'noTrail', maxLife);
+    const effectiveHasNoTrail = options.hasNoTrail !== undefined
+      ? Boolean(options.hasNoTrail)
+      : (preset?.noTrail || noTrailTiming !== null);
+    const noTrailStart = noTrailTiming
+      ? noTrailTiming.start
+      : (effectiveHasNoTrail ? 0 : undefined);
+    const noTrailEnd = noTrailTiming && noTrailTiming.end !== null
+      ? noTrailTiming.end
+      : (effectiveHasNoTrail ? maxLife : undefined);
+
     return {
       position: position.clone(),
       velocity: velocity.clone(),
@@ -362,6 +390,9 @@ export class BurstParticleFactory {
       strobeEnd,
       ghostStart,
       ghostEnd,
+      hasNoTrail: Boolean(effectiveHasNoTrail),
+      noTrailStart,
+      noTrailEnd,
       frictionHeat: Number(frictionHeat) || 0.0,
       lastVelocity: velocity ? velocity.clone() : new THREE.Vector3()
     };

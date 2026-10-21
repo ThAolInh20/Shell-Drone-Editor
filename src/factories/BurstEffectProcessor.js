@@ -108,9 +108,20 @@ export class BurstEffectProcessor {
       if (particle.burstSmokeStart !== undefined) {
         return age >= particle.burstSmokeStart && age <= particle.burstSmokeEnd;
       }
+    } else if (effectName === 'no-trail' || effectName === 'noTrail' || effectName === 'notrail') {
+      if (particle.noTrailStart !== undefined) {
+        return age >= particle.noTrailStart && age <= (particle.noTrailEnd ?? (particle.maxLife ?? 9999));
+      }
+      if (particle.hasNoTrail) {
+        return true;
+      }
     }
 
     if (particle.effectType === effectName) {
+      return true;
+    }
+    if ((effectName === 'no-trail' || effectName === 'noTrail' || effectName === 'notrail')
+      && (particle.effectType === 'no-trail' || particle.effectType === 'notrail' || particle.effectType === 'noTrail')) {
       return true;
     }
 
@@ -120,15 +131,31 @@ export class BurstEffectProcessor {
 
     if (!effects) return false;
 
+    const normTarget = (effectName === 'noTrail' || effectName === 'notrail')
+      ? 'no-trail'
+      : effectName;
+
     for (let i = 0; i < effects.length; i++) {
       const eff = effects[i];
       if (typeof eff === 'string') {
-        if (eff === effectName) return true;
+        const normEff = (eff === 'noTrail' || eff === 'notrail')
+          ? 'no-trail'
+          : eff;
+        if (normEff === normTarget) return true;
       } else if (eff && typeof eff === 'object') {
-        const type = eff.type || eff.key;
-        if (type === effectName) {
-          const start = eff.start !== undefined ? Number(eff.start) : 0;
-          const end = eff.end !== undefined ? Number(eff.end) : (particle.maxLife ?? 9999);
+        let type = eff.type || eff.key;
+        if (type === 'noTrail' || type === 'notrail') {
+          type = 'no-trail';
+        }
+        if (type === normTarget) {
+          let start = eff.start !== undefined ? Number(eff.start) : 0;
+          let end = eff.end !== undefined ? Number(eff.end) : (particle.maxLife ?? 9999);
+          if (eff.startRatio !== undefined && !isNaN(eff.startRatio)) {
+            start = Number(eff.startRatio) * (particle.maxLife ?? 1.0);
+          }
+          if (eff.endRatio !== undefined && !isNaN(eff.endRatio)) {
+            end = Number(eff.endRatio) * (particle.maxLife ?? 1.0);
+          }
           return age >= start && age <= end;
         }
       }
@@ -219,7 +246,8 @@ export class BurstEffectProcessor {
 
   static initialize(effectType, count, preset = null) {
     const normalizedEffect = this.normalizeEffectType(effectType);
-    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
+    const rawEffects = Array.isArray(preset?.effects) ? preset.effects : [];
+    const effectsList = rawEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
     const strobeEnabled = Boolean(preset?.strobe)
       || effectsList.includes('strobe')
       || effectsList.includes('white-strobe')
@@ -228,11 +256,24 @@ export class BurstEffectProcessor {
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
     const crossetteEnabled = Boolean(preset?.crossette) || effectsList.includes('crossette') || normalizedEffect === 'crossette';
-    const noTrail = Boolean(preset?.noTrail)
+
+    const noTrailObj = rawEffects.find(
+      (e) => typeof e === 'object'
+        && e !== null
+        && ((e.type || e.key) === 'no-trail' || (e.type || e.key) === 'notrail' || (e.type || e.key) === 'noTrail')
+    );
+    const hasStaticNoTrail = Boolean(preset?.noTrail)
       || effectsList.includes('no-trail')
       || effectsList.includes('notrail')
       || normalizedEffect === 'notrail'
       || normalizedEffect === 'no-trail';
+    const noTrailTiming = noTrailObj ? {
+      start: noTrailObj.start !== undefined ? Number(noTrailObj.start) : undefined,
+      end: noTrailObj.end !== undefined ? Number(noTrailObj.end) : undefined,
+      startRatio: noTrailObj.startRatio !== undefined ? Number(noTrailObj.startRatio) : undefined,
+      endRatio: noTrailObj.endRatio !== undefined ? Number(noTrailObj.endRatio) : undefined
+    } : null;
+
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -264,7 +305,8 @@ export class BurstEffectProcessor {
       ghost: ghostEnabled,
       flow: flowEnabled,
       crossette: crossetteEnabled,
-      noTrail,
+      noTrail: hasStaticNoTrail && !noTrailTiming,
+      noTrailTiming,
       spin,
       phase,
       turbulence,
@@ -367,6 +409,17 @@ export class BurstEffectProcessor {
 
     if (effectState?.noTrail) {
       spawnTrail = false;
+    } else if (effectState?.noTrailTiming) {
+      const timing = effectState.noTrailTiming;
+      const start = timing.startRatio !== undefined
+        ? timing.startRatio * maxLife
+        : (timing.start ?? 0);
+      const end = timing.endRatio !== undefined
+        ? timing.endRatio * maxLife
+        : (timing.end ?? maxLife);
+      if (age >= start && age <= end) {
+        spawnTrail = false;
+      }
     }
 
     return {
