@@ -72,7 +72,7 @@ export class TrailSystem {
         
         vec2 coord = gl_PointCoord - vec2(0.5);
         float dist = length(coord) * 2.0;
-        if (dist > 1.0) discard;
+        if (dist > 0.75) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
         vec4 stop1 = vec4(diffuseColor.rgb, 0.3);
@@ -89,7 +89,7 @@ export class TrailSystem {
             float t = (dist - 0.125) / (0.32 - 0.125);
             gradientColor = mix(stop1, stop2, t);
         } else {
-            float t = (dist - 0.32) / (1.0 - 0.32);
+            float t = (dist - 0.32) / (0.75 - 0.32);
             gradientColor = mix(stop2, stop3, t);
         }
         
