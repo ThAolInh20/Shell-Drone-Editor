@@ -135,6 +135,11 @@ describe('ActiveEffectsTimeline and Effect Timings', () => {
       });
 
       expect(mockContainer.appendChild).toHaveBeenCalled();
+      const header = mockContainer.children[0];
+      const titleRow = header.children[0];
+      const titleLabel = titleRow.children[0];
+      expect(titleLabel.textContent).toBe('Active Effects');
+      expect(titleLabel.textContent).not.toContain('editor.inspector');
       timeline.destroy();
     });
 

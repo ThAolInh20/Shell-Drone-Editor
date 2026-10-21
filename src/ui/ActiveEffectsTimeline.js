@@ -198,7 +198,10 @@ export class ActiveEffectsTimeline {
     title.style.fontWeight = '600';
     title.style.fontSize = '12px';
     title.style.color = '#e2e8f0';
-    title.textContent = `${t('editor.inspector.activeEffects') || 'Active Effects'} (0% - 100%)`;
+    const rawTitle = t('editor.inspector.activeEffects');
+    title.textContent = (rawTitle && rawTitle !== 'editor.inspector.activeEffects')
+      ? rawTitle
+      : 'Active Effects';
     titleRow.appendChild(title);
 
     const actions = document.createElement('div');
