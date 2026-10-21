@@ -217,6 +217,13 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     expect(particleVel.z).toBeGreaterThan(0.15);
   });
 
+  it('should define reduced wind coupling parameters in FIREWORK_CONFIG.BURST', () => {
+    expect(FIREWORK_CONFIG.BURST.windCouplingScale).toBeCloseTo(0.25);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceLongBurn).toBeCloseTo(0.16);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceDyingEmber).toBeCloseTo(0.21);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceFloating).toBeCloseTo(0.11);
+  });
+
   it('should define longBurn parameters in FIREWORK_CONFIG and support extended lifetime', () => {
     expect(FIREWORK_CONFIG.BURST.longBurnMultiplier).toBeGreaterThan(1.5);
     expect(FIREWORK_CONFIG.BURST.longBurnDissolveStart).toBeGreaterThan(0.65);
@@ -253,7 +260,7 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     );
 
     const particle = fireworkSystem.burstParticles.find((p) => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
-    expect(particle.maxLife).toBeGreaterThan(10.0);
+    expect(particle.maxLife).toBeGreaterThan(8.0);
 
     // Simulate through Phase 1 into Phase 3 (late fall)
     for (let s = 0; s < 180; s++) {

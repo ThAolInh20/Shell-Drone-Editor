@@ -55,7 +55,10 @@ export class BurstShapeGenerator {
       case 'galaxy':
       case 'double-helix':
       case 'sparkling-branches':
+      case 'sphere_uniform':
         return shellType;
+      case 'sphere-uniform':
+        return 'sphere_uniform';
       case 'sparkling-comet-branches':
       case 'sparklingCometBranches':
         return 'sparkling-branches';
@@ -481,6 +484,23 @@ export class BurstShapeGenerator {
         Math.cos(angle) * 0.92,
         Math.sin(angle) * 0.92,
         (Math.random() - 0.5) * 0.12
+      ).normalize();
+    }
+
+    if (shape === 'sphere_uniform' || shape === 'sphere-uniform') {
+      const safeCount = Math.max(1, count);
+      // Fibonacci sphere distribution: equal-area regular spherical lattice
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~2.399963 radians
+      const y = 1 - (2 * index + 1) / safeCount;
+      const radius = Math.sqrt(Math.max(0, 1 - y * y));
+      const phi = index * goldenAngle;
+      const x = Math.cos(phi) * radius;
+      const z = Math.sin(phi) * radius;
+
+      return new THREE.Vector3(
+        x,
+        y,
+        z
       ).normalize();
     }
 

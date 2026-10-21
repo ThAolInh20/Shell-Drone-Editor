@@ -570,7 +570,9 @@ export default {
           "half-flash": "半球闪光",
           "split-flash": "赤道分极闪光",
           "double-helix": "双螺旋 Double Helix",
-          "sparkling-branches": "多分支闪耀彗星"
+          "sparkling-branches": "多分支闪耀彗星",
+          sphere_uniform: "均匀球形",
+          "sphere-uniform": "均匀球形"
         },
         dynamicsType: {
           standard: "标准径向放射",
@@ -596,7 +598,9 @@ export default {
           crossette: "十字分裂 Crossette",
           "sparkle-trail": "闪耀彗尾",
           "sparkling-branch-comet": "多分支闪耀彗星",
-          "tadpole-spiral": "蝌蚪螺旋游动"
+          "tadpole-spiral": "蝌蚪螺旋游动",
+          crysanthemum_discrete_trail: "菊花离散尾迹",
+          "crysanthemum-discrete-trail": "菊花离散尾迹"
         },
         pattern: {
           random: "随机",
@@ -661,6 +665,7 @@ export default {
           sparkling_comet: "顶点闪耀彗星",
           sparkling_comet_branches: "多分支闪耀彗星花火",
           crysanthemum: "菊花",
+          crysanthemum_uniform_sphere: "均匀球形菊花",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "烟雾菊花",
           crysanthemum_spiral: "螺旋菊花",

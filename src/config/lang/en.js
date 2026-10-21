@@ -582,7 +582,9 @@ export default {
           "half-flash": "Half Sphere Flash",
           "split-flash": "Split Sphere Flash",
           "double-helix": "Double Helix",
-          "sparkling-branches": "Sparkling Branches"
+          "sparkling-branches": "Sparkling Branches",
+          sphere_uniform: "Uniform Sphere",
+          "sphere-uniform": "Uniform Sphere"
         },
         dynamicsType: {
           standard: "Standard Radial",
@@ -608,7 +610,9 @@ export default {
           crossette: "Crossette Cross Split",
           "sparkle-trail": "Sparkle Trail",
           "sparkling-branch-comet": "Sparkling Branch Comet",
-          "tadpole-spiral": "Tadpole Swimming Spiral"
+          "tadpole-spiral": "Tadpole Swimming Spiral",
+          crysanthemum_discrete_trail: "Chrysanthemum Discrete Trail",
+          "crysanthemum-discrete-trail": "Chrysanthemum Discrete Trail"
         },
         pattern: {
           random: "Random",
@@ -673,6 +677,7 @@ export default {
           sparkling_comet: "Sparkling Comet Apex Spark",
           sparkling_comet_branches: "Sparkling Comet Multi Branch",
           crysanthemum: "Chrysanthemum",
+          crysanthemum_uniform_sphere: "Chrysanthemum Uniform Sphere",
           crysanthemum_v2: "Chrysanthemum V2",
           crysanthemum_smoke: "Chrysanthemum Smoke",
           crysanthemum_spiral: "Chrysanthemum Spiral",

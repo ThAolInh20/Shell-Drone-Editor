@@ -36,7 +36,9 @@ export class ShellPresetFactory {
       'galaxy',
       'upward-spray',
       'double-helix',
-      'sparkling-branches'
+      'sparkling-branches',
+      'sphere_uniform',
+      'sphere-uniform'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -54,6 +56,8 @@ export class ShellPresetFactory {
       'crysanthemum-spiral',
       'crysanthemum-spiral-v2',
       'crysanthemum-cc',
+      'crysanthemum_discrete_trail',
+      'crysanthemum-discrete-trail',
       'ghost',
       'ghost-kamuro',
       'galaxy-spin',
@@ -91,6 +95,7 @@ export class ShellPresetFactory {
       { key: 'comet_tadpole_burst', label: 'Comet Tadpole Burst' },
       { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
+      { key: 'crysanthemum_uniform_sphere', label: 'Chrysanthemum Uniform Sphere' },
       { key: 'crysanthemum_v2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemum_smoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemum_spiral', label: 'Chrysanthemum Spiral' },
@@ -165,6 +170,7 @@ export class ShellPresetFactory {
     };
 
     registerWithAlias('crysanthemum', 'crysanthemum', (size) => this.crysanthemumShell(size));
+    registerWithAlias('crysanthemum_uniform_sphere', 'crysanthemum_uniform_sphere', (size) => this.crysanthemumUniformSphereShell(size));
     registerWithAlias('crysanthemum_v2', 'crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     registerWithAlias('crysanthemum_smoke', 'crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     registerWithAlias('crysanthemum_spiral', 'crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
@@ -318,6 +324,22 @@ export class ShellPresetFactory {
       hearth: false,
       star: false,
       doubleRing: false
+    };
+  }
+
+  crysanthemumUniformSphereShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemum_uniform_sphere',
+      shapeType: 'sphere_uniform',
+      effectType: 'crysanthemum_discrete_trail',
+      dynamicsType: 'crysanthemum_discrete_trail',
+      launchTrail: true,
+      drag: 0.68,
+      starLifeMultiplier: 1.25,
+      starLife: 1600 + size * 250,
+      particleCountMultiplier: 1.35,
+      pistil: false
     };
   }
 

@@ -582,7 +582,9 @@ export default {
           "half-flash": "Bán cầu phát sáng",
           "split-flash": "Phân cực xích đạo",
           "double-helix": "Xoắn kép Double Helix",
-          "sparkling-branches": "Sao chổi đa nhánh"
+          "sparkling-branches": "Sao chổi đa nhánh",
+          sphere_uniform: "Hình cầu đồng đều",
+          "sphere-uniform": "Hình cầu đồng đều"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -608,7 +610,9 @@ export default {
           crossette: "Sao tách chữ thập Crossette",
           "sparkle-trail": "Đuôi sao chổi lấp lánh",
           "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh",
-          "tadpole-spiral": "Nòng nọc bơi xoắn ốc"
+          "tadpole-spiral": "Nòng nọc bơi xoắn ốc",
+          crysanthemum_discrete_trail: "Hoa cúc vệt đuôi rời rạc",
+          "crysanthemum-discrete-trail": "Hoa cúc vệt đuôi rời rạc"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -673,6 +677,7 @@ export default {
           sparkling_comet: "Sao chổi nổ đỉnh lấp lánh",
           sparkling_comet_branches: "Sao chổi đa nhánh lấp lánh",
           crysanthemum: "Hoa cúc",
+          crysanthemum_uniform_sphere: "Hoa cúc cầu đồng đều",
           crysanthemum_v2: "Hoa cúc V2",
           crysanthemum_smoke: "Hoa cúc khói",
           crysanthemum_spiral: "Hoa cúc xoắn ốc",

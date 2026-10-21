@@ -163,5 +163,32 @@ describe('BurstEffectProcessor', () => {
     expect(childFlashColor.b).toBeCloseTo(0.2 * (1.0 + (1.0 - 0.05 / 0.12) * 0.15));
     expect(childFlashColor.r).toBeLessThan(1.0);
   });
+
+  it('should process crysanthemum_discrete_trail dynamics correctly', () => {
+    expect(BurstEffectProcessor.normalizeEffectType('crysanthemum_discrete_trail')).toBe('crysanthemum_discrete_trail');
+    expect(BurstEffectProcessor.normalizeEffectType('crysanthemum-discrete-trail')).toBe('crysanthemum-discrete-trail');
+
+    const velocity = new THREE.Vector3(10, 20, 30);
+    const initialSpeed = velocity.length();
+    const state = BurstEffectProcessor.initialize('crysanthemum_discrete_trail', 10);
+
+    // Continuous natural gravity (~1G) right from the start, decelerating outward velocity, and long sporadic trail
+    const result = BurstEffectProcessor.updateVelocity(
+      velocity,
+      0,
+      0.016,
+      0.5,
+      2.0,
+      state
+    );
+    expect(result.spawnTrail).toBe(true);
+    expect(result.trailLife).toBe(1.45);
+    expect(result.gravityScale).toBeCloseTo(0.32, 2);
+    expect(result.dragCoefficient).toBe(0.68);
+    expect(result.trailSpawnChance).toBeDefined();
+
+    // Radial velocity decelerates over time to produce curving arc trajectory
+    expect(velocity.length()).toBeLessThan(initialSpeed);
+  });
 });
 

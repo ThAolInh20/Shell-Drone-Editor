@@ -3195,6 +3195,7 @@ export class FireworkSystem {
         spawnTrail,
         trailLife,
         trailIntensity,
+        trailSpawnChance,
         spawnSmoke,
         smokeLife,
         smokeOpacity
@@ -3430,16 +3431,23 @@ export class FireworkSystem {
           || p.effectType === 'kamuro';
 
         if (isFloatingEffect) {
-          const windInfluence = p.isLongBurn ? 0.65 : (p.isDyingEmber ? 0.85 : 0.45);
+          const windCfg = FIREWORK_CONFIG.BURST;
+          const windCouplingScale = windCfg?.windCouplingScale ?? 0.25;
+          const baseWindInfluence = p.isLongBurn
+            ? (windCfg?.windInfluenceLongBurn ?? (0.65 * windCouplingScale))
+            : (p.isDyingEmber
+              ? (windCfg?.windInfluenceDyingEmber ?? (0.85 * windCouplingScale))
+              : (windCfg?.windInfluenceFloating ?? (0.45 * windCouplingScale)));
+
           p.velocity.x = THREE.MathUtils.lerp(
             p.velocity.x,
             wind.x,
-            deltaTime * windInfluence
+            deltaTime * baseWindInfluence
           );
           p.velocity.z = THREE.MathUtils.lerp(
             p.velocity.z,
             wind.z,
-            deltaTime * windInfluence
+            deltaTime * baseWindInfluence
           );
         }
       }
@@ -3631,7 +3639,8 @@ export class FireworkSystem {
         const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
           && p.particleIndex >= (p.totalParticleCount - 5);
         const isCometRing = p.effectState?.effectType === 'comet-ring';
-        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
+        const defaultSpawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
+        const spawnChance = trailSpawnChance !== undefined ? trailSpawnChance : defaultSpawnChance;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();

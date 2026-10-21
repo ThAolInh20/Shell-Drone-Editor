@@ -571,6 +571,8 @@ export default {
           "split-flash": "赤道分割フラッシュ",
           "double-helix": "二重螺旋 Double Helix",
           "sparkling-branches": "多方向スパークル分岐",
+          sphere_uniform: "均一球形",
+          "sphere-uniform": "均一球形",
           waterfall: "ウォーターフォール滝"
         },
         dynamicsType: {
@@ -597,7 +599,9 @@ export default {
           crossette: "クロセット十字分裂",
           "sparkle-trail": "スパークルトレイル",
           "sparkling-branch-comet": "多方向分岐スパークル彗星",
-          "tadpole-spiral": "オタマジャクシ螺旋遊泳"
+          "tadpole-spiral": "オタマジャクシ螺旋遊泳",
+          crysanthemum_discrete_trail: "菊咲き離散トレイル",
+          "crysanthemum-discrete-trail": "菊咲き離散トレイル"
         },
         pattern: {
           random: "ランダム",
@@ -662,6 +666,7 @@ export default {
           sparkling_comet: "頂点スパークル彗星",
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
+          crysanthemum_uniform_sphere: "均一球形菊",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "スモーク菊花",
           crysanthemum_spiral: "スパイラル菊花",

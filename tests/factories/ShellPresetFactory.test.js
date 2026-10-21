@@ -136,4 +136,16 @@ describe('ShellPresetFactory', () => {
     expect(preset.branchCount).toBe(5);
     expect(preset.cometsPerBranch).toBe(5);
   });
+
+  it('should create valid crysanthemum_uniform_sphere preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crysanthemum_uniform_sphere');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crysanthemum_uniform_sphere');
+    expect(preset.shapeType).toBe('sphere_uniform');
+    expect(preset.dynamicsType).toBe('crysanthemum_discrete_trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.drag).toBe(0.68);
+    expect(preset.starLifeMultiplier).toBe(1.25);
+  });
 });

@@ -45,6 +45,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 21 | `flow.mp4` | Flow | Dong chay hat lien tuc | [ ] Chua quay |
 | 22 | `sparkle-trail.mp4` | Sparkle Trail | Duong bay tia sao choi vet mong thanh manh | [ ] Chua quay |
 | 23 | `tadpole-spiral.mp4` | Tadpole Spiral | Sao choi boi ngoan ngoeo lech xoan oc bung toa o dinh | [ ] Chua quay |
+| 24 | `crysanthemum_discrete_trail.mp4` | Chrysanthemum Discrete Trail | Trong luc lien tuc va van toc rieng giam dan tao duong cong ru, vet duoi roi rac | [ ] Chua quay |
 
 ---
 
@@ -69,6 +70,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 13 | `half-flash.mp4` | Half Flash | Nua phat sang doi lap | [ ] Chua quay |
 | 14 | `split-flash.mp4` | Split Flash | 4 goc phan tu chop tat | [ ] Chua quay |
 | 15 | `sparkling-branches.mp4` | Sparkling Branches | 4-5 nhanh toa deu moi nhanh 4-5 tia sao choi | [ ] Chua quay |
+| 16 | `sphere_uniform.mp4` | Sphere Uniform | Cau phan bo dong deu Fibonacci khong goc chet | [ ] Chua quay |
 
 ---
 
@@ -107,6 +109,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
 | 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
 | 11 | `sphere-erratic-dart.mp4` | Sphere Erratic Dart | Hinh cau bung deu roi dot ngot vut loan xa ve vet sang sac net | [ ] Chua quay |
+| 12 | `crysanthemum_uniform_sphere.mp4` | Chrysanthemum Uniform Sphere | Bung no cau Fibonacci deu dan, uon cong theo trong luc, vet duoi roi rac keo dai | [ ] Chua quay |
 
 ---
 

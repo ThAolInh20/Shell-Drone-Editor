@@ -17,7 +17,8 @@ export const AVAILABLE_SHAPES = [
   'half-flash',
   'split-flash',
   'double-helix',
-  'sparkling-branches'
+  'sparkling-branches',
+  'sphere_uniform'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -44,7 +45,8 @@ export const AVAILABLE_DYNAMICS = [
   'crossette',
   'sparkle-trail',
   'sparkling-branch-comet',
-  'tadpole-spiral'
+  'tadpole-spiral',
+  'crysanthemum_discrete_trail'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -153,6 +155,12 @@ export const PRESET_TEMPLATES = {
   crysanthemum: {
     shape: 'sphere',
     dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_uniform_sphere: {
+    shape: 'sphere_uniform',
+    dynamics: 'crysanthemum_discrete_trail',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },

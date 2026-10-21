@@ -201,7 +201,9 @@ export class BurstEffectProcessor {
     'sparkling-branch-comet',
     'tadpole-spiral',
     'long-burn',
-    'apex-hang'
+    'apex-hang',
+    'crysanthemum_discrete_trail',
+    'crysanthemum-discrete-trail'
   ]);
 
   static effectsRegistry = new Map();
@@ -332,6 +334,7 @@ export class BurstEffectProcessor {
     let spawnTrail = false;
     let trailLife = 0.8;
     let trailIntensity = 0.35;
+    let trailSpawnChance = undefined;
     let spawnSmoke = false;
     let smokeLife = 2.5;
     let smokeOpacity = 0.15;
@@ -348,6 +351,7 @@ export class BurstEffectProcessor {
         if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
         if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
         if (overrides.trailIntensity !== undefined) trailIntensity = overrides.trailIntensity;
+        if (overrides.trailSpawnChance !== undefined) trailSpawnChance = overrides.trailSpawnChance;
         if (overrides.spawnSmoke !== undefined) spawnSmoke = overrides.spawnSmoke;
         if (overrides.smokeLife !== undefined) smokeLife = overrides.smokeLife;
         if (overrides.smokeOpacity !== undefined) smokeOpacity = overrides.smokeOpacity;
@@ -429,6 +433,7 @@ export class BurstEffectProcessor {
       spawnTrail,
       trailLife,
       trailIntensity,
+      trailSpawnChance,
       spawnSmoke,
       smokeLife,
       smokeOpacity
@@ -997,6 +1002,38 @@ BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
       trailLife: 0.50,
       trailIntensity: 1.0
     };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum_discrete_trail', {
+  updateVelocity(velocity, index, deltaTime, age) {
+    // Vận tốc riêng bung nở giảm dần êm dịu theo thời gian
+    velocity.multiplyScalar(0.992);
+
+    // Vừa bung ra vừa chịu trọng lực liên tục ngay từ đầu (~1G tự nhiên)
+    // kết hợp với vận tốc riêng giảm dần để vẽ nên quỹ đạo đường cong rủ xuống mềm mại
+    const gravityScale = 0.32;
+
+    // Vệt đuôi dài (trailLife: 1.45s) nhưng cực kỳ rời rạc (tỷ lệ sinh dao động ngắt quãng)
+    const wave = Math.sin(age * 20.0 + (index * 7.13) % 6.28);
+    const isDropletPulse = wave > 0.55;
+    const trailSpawnChance = isDropletPulse ? 0.42 : 0.04;
+
+    return {
+      gravityScale,
+      dragCoefficient: 0.68,
+      spawnTrail: true,
+      trailLife: 1.45,
+      trailIntensity: 0.90,
+      trailSpawnChance
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('crysanthemum-discrete-trail', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
+    const strategy = BurstEffectProcessor.effectsRegistry.get('crysanthemum_discrete_trail');
+    return strategy.updateVelocity(velocity, index, deltaTime, age, maxLife, effectState);
   }
 });
 

@@ -43,6 +43,21 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Dual Vortex', 'Dense Trails'],
     summary: 'Enhanced helical vortex with high density spinning particle streamers.'
   },
+  'crysanthemum_discrete_trail': {
+    name: 'Chrysanthemum Discrete Trail',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/crysanthemum_discrete_trail.mp4',
+    tags: ['Curved Arc Trajectory', 'Discrete Trails', 'Decelerating Velocity'],
+    summary: 'Continuous gravity and decelerating radial velocity trace graceful curved trails with long sporadic droplet sparks.'
+  },
+  'crysanthemum-discrete-trail': {
+    name: 'Chrysanthemum Discrete Trail',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/crysanthemum_discrete_trail.mp4',
+    tags: ['Curved Arc Trajectory', 'Discrete Trails', 'Decelerating Velocity'],
+    summary: 'Continuous gravity and decelerating radial velocity trace graceful curved trails with long sporadic droplet sparks.'
+  },
+
   'willow': {
     name: 'Willow',
     category: PREVIEW_CATEGORIES.DYNAMICS,
@@ -185,6 +200,21 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Isotropic 3D', 'Classic Shell'],
     summary: 'Uniform 360-degree spherical explosion expanding in all directions.'
   },
+  'sphere_uniform': {
+    name: 'Sphere Uniform',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_uniform.mp4',
+    tags: ['Fibonacci Lattice', 'Equidistant Spherical Distribution'],
+    summary: 'Mathematically uniform spherical particle distribution based on Fibonacci spiral lattice.'
+  },
+  'sphere-uniform': {
+    name: 'Sphere Uniform',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_uniform.mp4',
+    tags: ['Fibonacci Lattice', 'Equidistant Spherical Distribution'],
+    summary: 'Mathematically uniform spherical particle distribution based on Fibonacci spiral lattice.'
+  },
+
   'sparkling-branches': {
     name: 'Sparkling Branches',
     category: PREVIEW_CATEGORIES.SHAPE,
@@ -371,6 +401,21 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Sphere Burst', 'Erratic Darting'],
     summary: 'Symmetrical spherical burst whose stars suddenly deflect erratically in random directions drawing vivid streak lines near burnout.'
   },
+  'crysanthemum_uniform_sphere': {
+    name: 'Chrysanthemum Uniform Sphere',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_uniform_sphere.mp4',
+    tags: ['Uniform Sphere', 'Curved Streamers', 'Discrete Trails'],
+    summary: 'Perfect spherical burst whose stars curve gracefully under continuous gravity and decaying velocity, leaving long sporadic droplet trails.'
+  },
+  'crysanthemum-uniform-sphere': {
+    name: 'Chrysanthemum Uniform Sphere',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_uniform_sphere.mp4',
+    tags: ['Uniform Sphere', 'Curved Streamers', 'Discrete Trails'],
+    summary: 'Perfect spherical burst whose stars curve gracefully under continuous gravity and decaying velocity, leaving long sporadic droplet trails.'
+  },
+
 
   // Sequence Firing Patterns
   'random': {
@@ -589,7 +634,11 @@ const PREVIEW_ALIASES = {
   'crysanthemumspiralv2': 'crysanthemum-spiral-v2',
   'willow-gold': 'willow',
   'bouquet-cluster': 'bouquet-comet',
-  'peony': 'standard'
+  'peony': 'standard',
+  'chrysanthemum-discrete-trail': 'crysanthemum-discrete-trail',
+  'chrysanthemum_discrete_trail': 'crysanthemum-discrete-trail',
+  'chrysanthemum-uniform-sphere': 'crysanthemum_uniform_sphere',
+  'chrysanthemum_uniform_sphere': 'crysanthemum_uniform_sphere'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

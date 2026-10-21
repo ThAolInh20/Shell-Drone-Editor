@@ -77,7 +77,12 @@ export const FIREWORK_CONFIG = {
     // Mốc tỉ lệ vòng đời kết thúc pha bung nở (Phase 1)
     phaseExpansionEnd: 0.35,
     // Mốc tỉ lệ vòng đời kết thúc pha lơ lửng đỉnh nở (Phase 2)
-    phaseApexEnd: 0.65
+    phaseApexEnd: 0.65,
+    // Hệ số tương tác gió môi trường lên các hạt pháo hoa (đã giảm 75% so với trước đây)
+    windCouplingScale: 0.25,
+    windInfluenceLongBurn: 0.16,
+    windInfluenceDyingEmber: 0.21,
+    windInfluenceFloating: 0.11
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
@@ -186,7 +191,9 @@ export const FIREWORK_CONFIG = {
     lightning: 1.16,
     star: 1.14,
     'double-helix': 0.95,
-    'sparkling-branches': 1.0
+    'sparkling-branches': 1.0,
+    'sphere_uniform': 1.15,
+    'sphere-uniform': 1.15
   },
 
   // Hệ số nhân số lượng hạt dựa trên hiệu ứng hình ảnh (Effect)
@@ -211,7 +218,9 @@ export const FIREWORK_CONFIG = {
     crossette: 0.6,
     'sparkle-trail': 1.0,
     'sparkling-branch-comet': 1.0,
-    'sparkle-apex': 1.0
+    'sparkle-apex': 1.0,
+    'crysanthemum_discrete_trail': 1.25,
+    'crysanthemum-discrete-trail': 1.25
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)
