@@ -139,17 +139,23 @@ export class InputSystem {
     this.instructions.style.display = 'none';
 
     this.statusOverlay = document.createElement('div');
-    this.statusOverlay.style.position = 'absolute';
-    this.statusOverlay.style.top = '12px';
+    this.statusOverlay.className = 'system-status-overlay';
+    this.statusOverlay.style.position = 'fixed';
+    this.statusOverlay.style.top = '112px';
     this.statusOverlay.style.left = '12px';
+    this.statusOverlay.style.width = '240px';
+    this.statusOverlay.style.boxSizing = 'border-box';
     this.statusOverlay.style.padding = '8px 12px';
-    this.statusOverlay.style.background = 'rgba(0, 0, 0, 0.55)';
+    this.statusOverlay.style.background = 'rgba(12, 16, 24, 0.85)';
+    this.statusOverlay.style.backdropFilter = 'blur(10px)';
+    this.statusOverlay.style.border = '1px solid rgba(255, 255, 255, 0.12)';
     this.statusOverlay.style.color = '#fff';
     this.statusOverlay.style.fontFamily = 'monospace';
     this.statusOverlay.style.fontSize = '12px';
     this.statusOverlay.style.lineHeight = '1.4';
     this.statusOverlay.style.borderRadius = '8px';
-    this.statusOverlay.style.zIndex = '100';
+    this.statusOverlay.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35)';
+    this.statusOverlay.style.zIndex = '999';
     this.statusOverlay.style.pointerEvents = 'none';
     document.body.appendChild(this.statusOverlay);
     this.updateStatusOverlay();

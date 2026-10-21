@@ -115,21 +115,44 @@ export class PropertyInspector {
     this.collapsedGroups = {}; // Keep track of open/closed states
     this.showHelpState = {}; // Keep track of help banner visibility states
 
-    this.container.style.position = 'relative';
-    this.container.style.width = '320px';
+    this.container.className = 'property-inspector-panel';
+    this.container.style.position = 'fixed';
+    this.container.style.top = '12px';
+    this.container.style.right = '12px';
+    this.container.style.width = '350px';
     this.container.style.minWidth = '320px';
-    this.container.style.flexShrink = '0';
-    this.container.style.height = '100%';
-    this.container.style.background = 'rgba(15, 20, 25, 0.95)';
-    this.container.style.borderLeft = '1px solid rgba(255, 255, 255, 0.1)';
-    this.container.style.boxShadow = '-4px 0 16px rgba(0,0,0,0.5)';
-    this.container.style.padding = '15px';
+    this.container.style.maxWidth = '420px';
+    this.container.style.bottom = 'calc(35% + 12px)';
+    this.container.style.height = 'auto';
+    this.container.style.background = 'rgba(12, 16, 24, 0.94)';
+    this.container.style.backdropFilter = 'blur(16px)';
+    this.container.style.webkitBackdropFilter = 'blur(16px)';
+    this.container.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+    this.container.style.borderRadius = '12px';
+    this.container.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.6)';
+    this.container.style.padding = '16px';
     this.container.style.boxSizing = 'border-box';
     this.container.style.color = '#fff';
     this.container.style.fontFamily = 'monospace';
     this.container.style.overflowY = 'auto';
     this.container.style.display = 'none';
     this.container.style.zIndex = '1001';
+
+    // Prevent orbit controls interaction while mouse is over inspector
+    if (typeof this.container.addEventListener === 'function') {
+      this.container.addEventListener(
+        'mouseenter',
+        () => {
+          globalEventBus.emit('timeline:hover', true);
+        }
+      );
+      this.container.addEventListener(
+        'mouseleave',
+        () => {
+          globalEventBus.emit('timeline:hover', false);
+        }
+      );
+    }
 
     this.debounceTimeout = null;
     this.isEditing = false;
@@ -589,8 +612,47 @@ export class PropertyInspector {
       }
     });
 
+    const headerActions = document.createElement('div');
+    headerActions.style.display = 'flex';
+    headerActions.style.alignItems = 'center';
+    headerActions.style.gap = '8px';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'inspector-close-btn';
+    closeBtn.textContent = '×';
+    closeBtn.title = t('common.close') || 'Close';
+    closeBtn.style.background = 'transparent';
+    closeBtn.style.border = 'none';
+    closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+    closeBtn.style.fontSize = '18px';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.lineHeight = '1';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.padding = '0 4px';
+    closeBtn.addEventListener(
+      'mouseenter',
+      () => {
+        closeBtn.style.color = '#fff';
+      }
+    );
+    closeBtn.addEventListener(
+      'mouseleave',
+      () => {
+        closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+      }
+    );
+    closeBtn.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation();
+        this.hide();
+      }
+    );
+
+    headerActions.appendChild(helpBtn);
+    headerActions.appendChild(closeBtn);
     headerWrapper.appendChild(titleEl);
-    headerWrapper.appendChild(helpBtn);
+    headerWrapper.appendChild(headerActions);
     this.container.appendChild(headerWrapper);
 
     if (!this.selectedEvent) {
