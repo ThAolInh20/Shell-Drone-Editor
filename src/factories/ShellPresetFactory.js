@@ -38,7 +38,8 @@ export class ShellPresetFactory {
       'double-helix',
       'sparkling-branches',
       'sphere_uniform',
-      'sphere-uniform'
+      'sphere-uniform',
+      'egg'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -95,6 +96,7 @@ export class ShellPresetFactory {
       { key: 'comet_tadpole_burst', label: 'Comet Tadpole Burst' },
       { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
+      { key: 'egg_crysanthemum', label: 'Egg Chrysanthemum' },
       { key: 'crysanthemum_uniform_sphere', label: 'Chrysanthemum Uniform Sphere' },
       { key: 'crysanthemum_v2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemum_smoke', label: 'Chrysanthemum Smoke' },
@@ -170,6 +172,7 @@ export class ShellPresetFactory {
     };
 
     registerWithAlias('crysanthemum', 'crysanthemum', (size) => this.crysanthemumShell(size));
+    registerWithAlias('egg_crysanthemum', 'egg_crysanthemum', (size) => this.eggChrysanthemumShell(size));
     registerWithAlias('crysanthemum_uniform_sphere', 'crysanthemum_uniform_sphere', (size) => this.crysanthemumUniformSphereShell(size));
     registerWithAlias('crysanthemum_v2', 'crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     registerWithAlias('crysanthemum_smoke', 'crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
@@ -324,6 +327,24 @@ export class ShellPresetFactory {
       hearth: false,
       star: false,
       doubleRing: false
+    };
+  }
+
+  eggChrysanthemumShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'egg_crysanthemum',
+      shape: 'egg',
+      shapeType: 'egg',
+      effectType: 'crysanthemum-trail',
+      dynamicsType: 'crysanthemum-trail',
+      launchTrail: true,
+      starLifeMultiplier: 1.15,
+      starLife: 1500 + size * 200,
+      particleCountMultiplier: 1.0,
+      hasBurstSmoke: false,
+      noSmoke: true,
+      pistil: false
     };
   }
 

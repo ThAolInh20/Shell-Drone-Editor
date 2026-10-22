@@ -56,6 +56,7 @@ export class BurstShapeGenerator {
       case 'double-helix':
       case 'sparkling-branches':
       case 'sphere_uniform':
+      case 'egg':
         return shellType;
       case 'sphere-uniform':
         return 'sphere_uniform';
@@ -485,6 +486,34 @@ export class BurstShapeGenerator {
         Math.sin(angle) * 0.92,
         (Math.random() - 0.5) * 0.12
       ).normalize();
+    }
+
+    if (shape === 'egg') {
+      const safeCount = Math.max(1, count);
+      // Fibonacci spherical lattice: equal-area regular distribution over the spherical surface
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const uY = 1 - (2 * index + 1) / safeCount;
+      const rCircle = Math.sqrt(Math.max(0, 1 - uY * uY));
+      const phi = index * goldenAngle;
+      const uX = Math.cos(phi) * rCircle;
+      const uZ = Math.sin(phi) * rCircle;
+
+      // Asymmetric ovoid/egg deformation:
+      // 1. Tapering factor: Top (uY > 0) is tapered/thinner, bottom (uY < 0) is rounder/plumper
+      const taper = 1.0 - 0.16 * uY;
+      // 2. Vertical elongation: Y axis slightly elongated (1.18x) like a natural egg
+      const elongatedY = uY * 1.18;
+      const eggX = uX * taper;
+      const eggZ = uZ * taper;
+
+      // 3. Subtle surface thickness jitter to create a natural, organic crust
+      const thicknessJitter = 1.0 + (Math.random() - 0.5) * 0.09;
+
+      return new THREE.Vector3(
+        eggX * thicknessJitter,
+        elongatedY * thicknessJitter,
+        eggZ * thicknessJitter
+      );
     }
 
     if (shape === 'sphere_uniform' || shape === 'sphere-uniform') {

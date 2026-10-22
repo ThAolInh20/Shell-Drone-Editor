@@ -148,4 +148,16 @@ describe('ShellPresetFactory', () => {
     expect(preset.drag).toBe(0.68);
     expect(preset.starLifeMultiplier).toBe(1.25);
   });
+
+  it('should create valid egg_crysanthemum preset with hollow egg crust', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('egg_crysanthemum');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('egg_crysanthemum');
+    expect(preset.shapeType).toBe('egg');
+    expect(preset.dynamicsType).toBe('crysanthemum-trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.hasBurstSmoke).toBe(false);
+    expect(preset.noSmoke).toBe(true);
+  });
 });

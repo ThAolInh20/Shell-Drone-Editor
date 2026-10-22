@@ -2057,7 +2057,7 @@ export class FireworkSystem {
         }
       }
 
-      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy');
+      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -2089,6 +2089,9 @@ export class FireworkSystem {
         baseSpeed = profileBaseSpeed * outlineSpeedBand;
       } else if (particleShape === 'galaxy') {
         baseSpeed = profileBaseSpeed * (1.15 + Math.random() * 0.2);
+      } else if (particleShape === 'egg') {
+        const eggSpeedBand = 0.96 + Math.random() * 0.08;
+        baseSpeed = profileBaseSpeed * eggSpeedBand;
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
         const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
           ? (0.97 + Math.random() * 0.06)

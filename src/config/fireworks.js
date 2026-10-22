@@ -210,7 +210,8 @@ export const FIREWORK_CONFIG = {
     'double-helix': 0.95,
     'sparkling-branches': 1.0,
     'sphere_uniform': 1.15,
-    'sphere-uniform': 1.15
+    'sphere-uniform': 1.15,
+    egg: 1.2
   },
 
   // Hệ số nhân số lượng hạt dựa trên hiệu ứng hình ảnh (Effect)

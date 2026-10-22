@@ -292,6 +292,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Elliptical Spread', 'Egg Contour'],
     summary: 'Stretched elliptical spatial distribution expanding outward.'
   },
+  'egg': {
+    name: 'Egg Shell',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/egg.mp4',
+    tags: ['Ovoid Contour', 'Hollow Shell', 'Surface Distribution'],
+    summary: 'Slightly elongated ovoid shape with particles concentrated strictly on the outer crust.'
+  },
   'upward-spray': {
     name: 'Upward Spray',
     category: PREVIEW_CATEGORIES.SHAPE,
@@ -414,6 +421,20 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/crysanthemum_uniform_sphere.mp4',
     tags: ['Uniform Sphere', 'Curved Streamers', 'Discrete Trails'],
     summary: 'Perfect spherical burst whose stars curve gracefully under continuous gravity and decaying velocity, leaving long sporadic droplet trails.'
+  },
+  'egg_crysanthemum': {
+    name: 'Egg Chrysanthemum',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/egg_crysanthemum.mp4',
+    tags: ['Egg Shell', 'Hollow Crust', 'Trailing Stars'],
+    summary: 'Ovoid outer-crust shell burst leaving graceful glowing trails from the egg contour.'
+  },
+  'egg-crysanthemum': {
+    name: 'Egg Chrysanthemum',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/egg_crysanthemum.mp4',
+    tags: ['Egg Shell', 'Hollow Crust', 'Trailing Stars'],
+    summary: 'Ovoid outer-crust shell burst leaving graceful glowing trails from the egg contour.'
   },
 
 
@@ -638,7 +659,9 @@ const PREVIEW_ALIASES = {
   'chrysanthemum-discrete-trail': 'crysanthemum-discrete-trail',
   'chrysanthemum_discrete_trail': 'crysanthemum-discrete-trail',
   'chrysanthemum-uniform-sphere': 'crysanthemum_uniform_sphere',
-  'chrysanthemum_uniform_sphere': 'crysanthemum_uniform_sphere'
+  'chrysanthemum_uniform_sphere': 'crysanthemum_uniform_sphere',
+  'egg-chrysanthemum': 'egg_crysanthemum',
+  'egg_chrysanthemum': 'egg_crysanthemum'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

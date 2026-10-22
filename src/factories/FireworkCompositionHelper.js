@@ -18,7 +18,8 @@ export const AVAILABLE_SHAPES = [
   'split-flash',
   'double-helix',
   'sparkling-branches',
-  'sphere_uniform'
+  'sphere_uniform',
+  'egg'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -74,6 +75,12 @@ export const AVAILABLE_EFFECT_TAGS = [
 ];
 
 export const PRESET_TEMPLATES = {
+  egg_crysanthemum: {
+    shape: 'egg',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   random: {
     shape: 'sphere',
     dynamics: 'standard',
