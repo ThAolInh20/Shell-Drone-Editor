@@ -112,7 +112,13 @@ export const FIREWORK_CONFIG = {
     // Dao dong ngau nhien vi mo ve kich thuoc hat (+/- 6%)
     starSizeVariance: 0.06,
     // Dao dong ngau nhien vi mo ve do sang hat (+/- 10%)
-    starBrightnessVariance: 0.10
+    starBrightnessVariance: 0.10,
+    // Khoang cach buoc noi suy ly tuong giua 2 hat duoi tren quy dao bay (met)
+    trailStride: 0.45,
+    // So hat noi suy toi da tren moi khung hinh de bao ve FPS
+    maxTrailSubSteps: 3,
+    // Ti le sinh hat duoi co ban trong pha bung no nhanh
+    defaultTrailSpawnChance: 0.95
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)

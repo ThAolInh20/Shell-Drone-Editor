@@ -3566,6 +3566,12 @@ export class FireworkSystem {
       }
       p.lastVelocity.set(p.velocity.x, p.velocity.y, p.velocity.z);
 
+      if (!p.prevPosition) {
+        p.prevPosition = p.position.clone();
+      } else {
+        p.prevPosition.copy(p.position);
+      }
+
       p.position.addScaledVector(
         p.velocity,
         deltaTime
@@ -3719,8 +3725,14 @@ export class FireworkSystem {
         const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
           && p.particleIndex >= (p.totalParticleCount - 5);
         const isCometRing = p.effectState?.effectType === 'comet-ring';
-        const defaultSpawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
-        const spawnChance = trailSpawnChance !== undefined ? trailSpawnChance : defaultSpawnChance;
+        const burstTrailCfg = FIREWORK_CONFIG.BURST;
+        const baseSpawnChance = burstTrailCfg?.defaultTrailSpawnChance ?? 0.95;
+        const defaultSpawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral)
+          ? 0.95
+          : (lifeRatio < 0.65 ? baseSpawnChance : 0.80);
+        const spawnChance = trailSpawnChance !== undefined
+          ? trailSpawnChance
+          : defaultSpawnChance;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();
@@ -3734,18 +3746,40 @@ export class FireworkSystem {
           const trailGrav = isCometRing ? 0.0 : 0.8;
           const trailDrag = isCometRing ? 1.2 : 1.6;
 
-          this.trailSystem?.spawnTrailParticle?.(
-            p.position,
-            trailColor,
-            isCometRing ? 1.0 : currentLife,
-            false,
-            isCometRing ? currentLife : null,
-            0.65,
-            false,
-            trailVel,
-            trailGrav,
-            trailDrag
-          );
+          // Trajectory segment interpolation
+          const startPos = p.prevPosition || p.position;
+          const moveDist = startPos.distanceTo(p.position);
+          const isDiscretePulse = trailSpawnChance !== undefined && trailSpawnChance < 0.5;
+          const targetStride = burstTrailCfg?.trailStride ?? 0.45;
+          const maxSubSteps = burstTrailCfg?.maxTrailSubSteps ?? 3;
+          const steps = isDiscretePulse
+            ? 1
+            : Math.min(
+              maxSubSteps,
+              Math.max(1, Math.ceil(moveDist / targetStride))
+            );
+
+          for (let s = 1; s <= steps; s++) {
+            const alpha = s / steps;
+            const spawnPos = new THREE.Vector3().lerpVectors(
+              startPos,
+              p.position,
+              alpha
+            );
+
+            this.trailSystem?.spawnTrailParticle?.(
+              spawnPos,
+              trailColor,
+              isCometRing ? 1.0 : currentLife,
+              false,
+              isCometRing ? currentLife : null,
+              0.65,
+              false,
+              trailVel,
+              trailGrav,
+              trailDrag
+            );
+          }
         }
       }
 

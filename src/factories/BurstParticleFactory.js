@@ -334,6 +334,7 @@ export class BurstParticleFactory {
 
     return {
       position: position.clone(),
+      prevPosition: position.clone(),
       velocity: velocity.clone(),
       initialSpeed,
       ejectionDir,
