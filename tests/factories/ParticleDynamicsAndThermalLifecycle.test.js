@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
+import { FIREWORK_CONFIG, BASE_BURST_PROFILE } from '../../src/config/fireworks.js';
 import { BurstEffectProcessor } from '../../src/factories/BurstEffectProcessor.js';
 import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 
@@ -240,6 +240,49 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     expect(FIREWORK_CONFIG.BURST.phaseApexEnd).toBe(0.65);
     expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.terminalVelocity).toBe(-15.0);
     expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.terminalVelocity).toBe(-9.5);
+  });
+
+  it('should centralize common burst physics and photometrics in BASE_BURST_PROFILE and inherit across profiles', () => {
+    expect(BASE_BURST_PROFILE.baseSpeed).toBe(74);
+    expect(BASE_BURST_PROFILE.attenuationStart).toBe(0.35);
+    expect(BASE_BURST_PROFILE.dissolveStart).toBe(0.60);
+    expect(BASE_BURST_PROFILE.coolingStart).toBe(0.55);
+
+    // Standard profile inherits directly
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.attenuationStart).toBe(0.35);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.hasApexBrake).toBe(false);
+
+    // Willow profile overrides specific properties while inheriting baseline
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.baseSpeed).toBe(58);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.attenuationStart).toBe(0.45);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.hasApexBrake).toBe(false);
+  });
+
+  it('should attenuate particle light smoothly when transitioning from apex into falling phase', () => {
+    const particle = {
+      baseColor: new THREE.Color(0.9, 0.5, 0.1),
+      effectType: 'standard'
+    };
+    const profile = FIREWORK_CONFIG.DYNAMICS_PROFILES.standard;
+
+    // Full brightness during stable expansion (lifeRatio = 0.25)
+    const midColor = BurstEffectProcessor.resolveParticleColor(
+      particle,
+      0.25,
+      { profile }
+    );
+    expect(midColor.r).toBeCloseTo(0.9);
+    expect(midColor.g).toBeCloseTo(0.5);
+
+    // Light starts softening during drop phase (lifeRatio = 0.45, between attenuationStart 0.35 and coolingStart 0.55)
+    const droppingColor = BurstEffectProcessor.resolveParticleColor(
+      particle,
+      0.45,
+      { profile }
+    );
+    expect(droppingColor.r).toBeLessThan(midColor.r);
+    expect(droppingColor.g).toBeLessThan(midColor.g);
+    expect(droppingColor.r).toBeGreaterThan(0.65); // Gentle attenuation, not sudden drop
   });
 
   it('should scale drag and clamp terminal velocity over extended lifetime in FireworkSystem simulation', () => {

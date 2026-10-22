@@ -762,11 +762,18 @@ export class BurstEffectProcessor {
       if (particle.isSecondBurstChild) {
         // Second burst child particles: suppress white incandescent flash resonance
         // Preserve rich chromatic saturation instead of bleaching to white
+        const attenuationStart = profile?.attenuationStart ?? 0.35;
         if (lifeRatio < 0.12) {
           const flashT = 1.0 - (lifeRatio / 0.12);
           r = r * (1.0 + flashT * 0.15);
           g = g * (1.0 + flashT * 0.15);
           b = b * (1.0 + flashT * 0.15);
+        } else if (lifeRatio >= attenuationStart && lifeRatio <= 0.65) {
+          const attenProgress = (lifeRatio - attenuationStart) / (0.65 - attenuationStart);
+          const attenFactor = 1.0 - attenProgress * 0.15;
+          r *= attenFactor;
+          g *= attenFactor;
+          b *= attenFactor;
         } else if (lifeRatio > 0.65) {
           if (lifeRatio < 0.90) {
             const coolT = (lifeRatio - 0.65) / 0.25;
@@ -782,33 +789,85 @@ export class BurstEffectProcessor {
         }
       } else {
         const ignitionEnd = 0.035;
-        const flashEnd = 0.12;
+        const flashEnd = profile?.flashEnd ?? 0.12;
+        const attenuationStart = profile?.attenuationStart ?? 0.35;
+        const coolingStart = profile?.coolingStart ?? 0.55;
+        const emberStart = profile?.emberStart ?? 0.85;
 
         if (lifeRatio < flashEnd) {
           let flashT;
           if (lifeRatio < ignitionEnd) {
             // Pha 1: Bắt lửa bừng cháy vọt lên đỉnh nhiệt (Ignition flare-up ramp)
             const igniteProgress = lifeRatio / ignitionEnd;
-            flashT = THREE.MathUtils.smoothstep(igniteProgress, 0.0, 1.0);
+            flashT = THREE.MathUtils.smoothstep(
+              igniteProgress,
+              0.0,
+              1.0
+            );
           } else {
             // Pha 2: Chuyển giao mượt mà từ đỉnh chói sang màu sắc hóa học ổn định
             const decayProgress = (lifeRatio - ignitionEnd) / (flashEnd - ignitionEnd);
             flashT = 1.0 - decayProgress;
           }
-          r = THREE.MathUtils.lerp(r, Math.max(r, 1.65), flashT);
-          g = THREE.MathUtils.lerp(g, Math.max(g, 1.55), flashT);
-          b = THREE.MathUtils.lerp(b, Math.max(b, 1.35), flashT);
-        } else if (lifeRatio > 0.62) {
-          if (lifeRatio < 0.88) {
-            const coolT = (lifeRatio - 0.62) / 0.26;
-            r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
-            g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
-            b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
+          r = THREE.MathUtils.lerp(
+            r,
+            Math.max(r, 1.65),
+            flashT
+          );
+          g = THREE.MathUtils.lerp(
+            g,
+            Math.max(g, 1.55),
+            flashT
+          );
+          b = THREE.MathUtils.lerp(
+            b,
+            Math.max(b, 1.35),
+            flashT
+          );
+        } else if (lifeRatio >= attenuationStart && lifeRatio < coolingStart) {
+          // Giai đoạn bắt đầu đạt đỉnh nở và rơi xuống (Apex to Fall Transition):
+          // Ánh sáng phát ra từ từ dịu bớt khi động năng bung giảm và trọng lực bắt đầu kéo hạt rơi
+          const attenProgress = (lifeRatio - attenuationStart) / (coolingStart - attenuationStart);
+          const attenFactor = 1.0 - attenProgress * 0.20;
+          r *= attenFactor;
+          g *= attenFactor;
+          b *= attenFactor;
+        } else if (lifeRatio >= coolingStart) {
+          if (lifeRatio < emberStart) {
+            const coolT = (lifeRatio - coolingStart) / (emberStart - coolingStart);
+            const baseFactor = 0.80 * (1.0 - coolT * 0.20);
+            r = THREE.MathUtils.lerp(
+              r * baseFactor,
+              1.0 * baseFactor,
+              coolT * 0.55
+            );
+            g = THREE.MathUtils.lerp(
+              g * baseFactor,
+              0.46 * baseFactor,
+              coolT * 0.55
+            );
+            b = THREE.MathUtils.lerp(
+              b * baseFactor,
+              0.08 * baseFactor,
+              coolT * 0.78
+            );
           } else {
-            const emberT = (lifeRatio - 0.88) / 0.12;
-            r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
-            g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
-            b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
+            const emberT = (lifeRatio - emberStart) / (1.0 - emberStart);
+            r = THREE.MathUtils.lerp(
+              r * 0.64,
+              0.45,
+              emberT
+            );
+            g = THREE.MathUtils.lerp(
+              g * 0.36,
+              0.06,
+              emberT
+            );
+            b = THREE.MathUtils.lerp(
+              b * 0.14,
+              0.01,
+              emberT
+            );
           }
         }
       }

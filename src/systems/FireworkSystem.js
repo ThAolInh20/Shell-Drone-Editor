@@ -3596,9 +3596,13 @@ export class FireworkSystem {
         );
       }
 
-      const parentFade = lifeRatio > BURST_DISSOLVE_START
+      const particleDissolveStart = p.isLongBurn
+        ? (profile?.longBurnDissolveStart ?? FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : (profile?.dissolveStart ?? BURST_DISSOLVE_START);
+
+      const parentFade = lifeRatio > particleDissolveStart
         ? Math.pow(
-          1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START),
+          1.0 - (lifeRatio - particleDissolveStart) / (1.0 - particleDissolveStart),
           2.0
         )
         : 1.0;
@@ -3903,16 +3907,26 @@ export class FireworkSystem {
       }
 
       const dissolveThreshold = p.isLongBurn
-        ? (FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
-        : BURST_DISSOLVE_START;
-      if (lifeRatio > dissolveThreshold) {
+        ? (profile?.longBurnDissolveStart ?? FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : (profile?.dissolveStart ?? BURST_DISSOLVE_START);
+
+      const attenuationStart = profile?.attenuationStart
+        ?? FIREWORK_CONFIG.BURST?.attenuationStart
+        ?? 0.35;
+
+      if (lifeRatio > attenuationStart && lifeRatio <= dissolveThreshold) {
+        // Giai đoạn bắt đầu đạt đỉnh và rơi xuống: ánh sáng dịu bớt êm ái
+        const attenT = (lifeRatio - attenuationStart) / (dissolveThreshold - attenuationStart);
+        baseOpacity *= (1.0 - attenT * 0.15);
+      } else if (lifeRatio > dissolveThreshold) {
         const dissolveT = THREE.MathUtils.clamp(
           (lifeRatio - dissolveThreshold) / (1 - dissolveThreshold),
           0,
           1
         );
+        const fadeExp = profile?.dissolveExponent ?? BURST_FADE_EXPONENT;
         baseOpacity = Math.max(
-          Math.pow(1 - dissolveT, BURST_FADE_EXPONENT) * brightnessOpacityScale,
+          Math.pow(1 - dissolveT, fadeExp) * (brightnessOpacityScale * 0.85),
           (1 - dissolveT) * 0.08
         );
       }
@@ -3987,8 +4001,8 @@ export class FireworkSystem {
             const t = (lifeRatio - ignitionEnd) / (0.12 - ignitionEnd);
             sizeDecay = 1.25 - t * 0.25;
           }
-        } else if (lifeRatio > 0.60) {
-          const t = (lifeRatio - 0.60) / 0.40;
+        } else if (lifeRatio > attenuationStart) {
+          const t = (lifeRatio - attenuationStart) / (1.0 - attenuationStart);
           sizeDecay = 1.0 - t * 0.45;
         }
         const frictionScale = 1.0 + Math.min(0.25, (p.frictionHeat || 0) * 0.2);
