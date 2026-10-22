@@ -146,8 +146,8 @@ export class SkyDome {
           vec3 cloudIllumination = vec3(0.0);
           if (uFlashIntensity > 0.001) {
             float distToFlash = length(vWorldPosition - uFlashPos);
-            float flashAtten = clamp(1.0 - distToFlash / 1800.0, 0.0, 1.0);
-            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * (2.8 * uCloudDensity));
+            float flashAtten = clamp(1.0 - distToFlash / 380.0, 0.0, 1.0);
+            cloudIllumination = uFlashColor * (uFlashIntensity * flashAtten * flashAtten * flashAtten * (0.35 * uCloudDensity));
           }
 
           vec3 baseCloudColor = mix(uBottomColor * 1.35, vec3(0.08, 0.11, 0.20), 0.65);
