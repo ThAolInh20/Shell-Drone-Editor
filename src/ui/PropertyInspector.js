@@ -437,7 +437,7 @@ export class PropertyInspector {
               labelKey: 'shellSize',
               type: 'slider',
               min: '0.2',
-              max: '2.5',
+              max: '5.0',
               step: '0.1',
               defaultValue: 1.0,
               formatValue: (v) => `${Number(v).toFixed(1)}x`,

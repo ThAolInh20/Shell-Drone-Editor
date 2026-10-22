@@ -99,7 +99,7 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
     expect(shellSizeField).toBeDefined();
     expect(shellSizeField.type).toBe('slider');
     expect(shellSizeField.min).toBe('0.2');
-    expect(shellSizeField.max).toBe('2.5');
+    expect(shellSizeField.max).toBe('5.0');
     expect(shellSizeField.span).toBe(2);
 
     const starLifeField = visualGroup.fields.find((f) => f.name === 'starLifeMultiplier');
