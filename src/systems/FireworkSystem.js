@@ -4018,7 +4018,12 @@ export class FireworkSystem {
         }
       );
 
-      p.color.setRGB(r, g, b);
+      const bVar = p.brightnessVariance ?? 1.0;
+      p.color.setRGB(
+        r * bVar,
+        g * bVar,
+        b * bVar
+      );
 
       // Calculate size
       const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
@@ -4051,7 +4056,8 @@ export class FireworkSystem {
         const frictionScale = 1.0 + Math.min(0.25, (p.frictionHeat || 0) * 0.2);
         renderSize = baseSize * sizeDecay * frictionScale;
       }
-      p.renderSize = renderSize;
+      const sVar = p.sizeVariance ?? 1.0;
+      p.renderSize = renderSize * sVar;
       p.renderOpacity = opacity;
 
       activeParticles.push(p);

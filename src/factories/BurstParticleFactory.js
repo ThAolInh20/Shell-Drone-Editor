@@ -225,8 +225,20 @@ export class BurstParticleFactory {
       isLongBurn = false,
       isApexHang = false,
       hasNoTrail = false,
-      frictionHeat = 0.0
+      frictionHeat = 0.0,
+      sizeVariance = null,
+      brightnessVariance = null
     } = options;
+
+    const sizeSpread = FIREWORK_CONFIG.BURST?.starSizeVariance ?? 0.06;
+    const brightSpread = FIREWORK_CONFIG.BURST?.starBrightnessVariance ?? 0.10;
+
+    const resolvedSizeVariance = sizeVariance !== null
+      ? sizeVariance
+      : (1.0 + (Math.random() + Math.random() - 1.0) * sizeSpread);
+    const resolvedBrightnessVariance = brightnessVariance !== null
+      ? brightnessVariance
+      : (1.0 + (Math.random() + Math.random() - 1.0) * brightSpread);
 
     const resolvedBaseColor = baseColor
       ? baseColor.clone()
@@ -328,6 +340,8 @@ export class BurstParticleFactory {
       color: color.clone(),
       baseColor: resolvedBaseColor,
       color2: color2 ? color2.clone() : null,
+      sizeVariance: resolvedSizeVariance,
+      brightnessVariance: resolvedBrightnessVariance,
       age,
       maxLife,
       effectType,

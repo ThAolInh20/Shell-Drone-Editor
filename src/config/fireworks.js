@@ -108,7 +108,11 @@ export const FIREWORK_CONFIG = {
     windCouplingScale: 0.25,
     windInfluenceLongBurn: 0.16,
     windInfluenceDyingEmber: 0.21,
-    windInfluenceFloating: 0.11
+    windInfluenceFloating: 0.11,
+    // Dao dong ngau nhien vi mo ve kich thuoc hat (+/- 6%)
+    starSizeVariance: 0.06,
+    // Dao dong ngau nhien vi mo ve do sang hat (+/- 10%)
+    starBrightnessVariance: 0.10
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
