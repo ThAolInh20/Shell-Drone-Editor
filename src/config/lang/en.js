@@ -593,7 +593,9 @@ export default {
           "double-helix": "Double Helix",
           "sparkling-branches": "Sparkling Branches",
           sphere_uniform: "Uniform Sphere",
-          "sphere-uniform": "Uniform Sphere"
+          "sphere-uniform": "Uniform Sphere",
+          sphere_rings: "Sphere Latitude Rings",
+          "sphere-rings": "Sphere Latitude Rings"
         },
         dynamicsType: {
           standard: "Standard Radial",
@@ -686,6 +688,7 @@ export default {
           sparkling_comet: "Sparkling Comet Apex Spark",
           sparkling_comet_branches: "Sparkling Comet Multi Branch",
           crysanthemum: "Chrysanthemum",
+          crysanthemum_sphere_rings: "Chrysanthemum Sphere Rings",
           crysanthemum_uniform_sphere: "Chrysanthemum Uniform Sphere",
           crysanthemum_v2: "Chrysanthemum V2",
           crysanthemum_smoke: "Chrysanthemum Smoke",

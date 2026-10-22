@@ -80,4 +80,52 @@ describe('BurstShapeGenerator', () => {
     // Egg is tapered at top (narrower) and wider at bottom
     expect(avgTopLateralRadius).toBeLessThan(avgBottomLateralRadius);
   });
+
+  it('should resolve sphere_rings and sphere-rings correctly', () => {
+    expect(BurstShapeGenerator.resolveShape('sphere_rings')).toBe('sphere_rings');
+    expect(BurstShapeGenerator.resolveShape('sphere-rings')).toBe('sphere_rings');
+  });
+
+  it('should generate spherical latitude rings with equidistant circular bands', () => {
+    const totalCount = 150;
+    const vectors = [];
+
+    for (let i = 0; i < totalCount; i++) {
+      const angle = (i / totalCount) * Math.PI * 2;
+      const dir = BurstShapeGenerator.direction(
+        'sphere_rings',
+        angle,
+        i,
+        totalCount
+      );
+
+      expect(dir).toBeDefined();
+      expect(Number.isFinite(dir.x)).toBe(true);
+      expect(Number.isFinite(dir.y)).toBe(true);
+      expect(Number.isFinite(dir.z)).toBe(true);
+      expect(dir.ringIndex).toBeDefined();
+      expect(dir.ringIndex).toBeGreaterThanOrEqual(0);
+      expect(dir.ringIndex).toBeLessThan(5);
+
+      // Points stay on the unit sphere shell (+/- thickness jitter)
+      const len = dir.length();
+      expect(len).toBeGreaterThan(0.96);
+      expect(len).toBeLessThan(1.04);
+
+      vectors.push(dir);
+    }
+
+    // Verify 5 distinct rings are populated
+    const ringCounts = [0, 1, 2, 3, 4].map((k) => {
+      return vectors.filter((v) => v.ringIndex === k).length;
+    });
+
+    ringCounts.forEach((cnt) => {
+      expect(cnt).toBeGreaterThan(0);
+    });
+
+    // Equator (ring 2) should have more particles than extreme poles (rings 0 and 4)
+    expect(ringCounts[2]).toBeGreaterThan(ringCounts[0]);
+    expect(ringCounts[2]).toBeGreaterThan(ringCounts[4]);
+  });
 });

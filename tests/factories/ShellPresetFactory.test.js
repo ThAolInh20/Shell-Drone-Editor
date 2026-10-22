@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import * as THREE from 'three';
 import { ShellPresetFactory } from '../../src/factories/ShellPresetFactory.js';
+import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 
 describe('ShellPresetFactory', () => {
   it('should instantiate correctly and contain registries', () => {
@@ -159,5 +161,44 @@ describe('ShellPresetFactory', () => {
     expect(preset.launchTrail).toBe(true);
     expect(preset.hasBurstSmoke).toBe(false);
     expect(preset.noSmoke).toBe(true);
+  });
+
+  it('should create valid crysanthemum_sphere_rings preset with latitude bands', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crysanthemum_sphere_rings');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crysanthemum_sphere_rings');
+    expect(preset.shapeType).toBe('sphere_rings');
+    expect(preset.dynamicsType).toBe('crysanthemum-trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.ringCount).toBe(5);
+    expect(preset.hasBurstSmoke).toBe(false);
+    expect(preset.noSmoke).toBe(true);
+  });
+
+  it('should cleanly createBurst in FireworkSystem without rawDir reference error', () => {
+    const scene = new THREE.Scene();
+    const system = new FireworkSystem(scene, null);
+    const factory = new ShellPresetFactory();
+
+    const ringPreset = factory.createPresetByKey('crysanthemum_sphere_rings');
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xffd700),
+        'sphere_rings',
+        ringPreset
+      );
+    }).not.toThrow();
+
+    const eggPreset = factory.createPresetByKey('egg_crysanthemum');
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xff4500),
+        'egg',
+        eggPreset
+      );
+    }).not.toThrow();
   });
 });

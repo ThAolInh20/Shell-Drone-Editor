@@ -2032,6 +2032,7 @@ export class FireworkSystem {
       const isSpiralArm = isSpiralV2 && (i < spiralArmCount);
 
       let direction;
+      let rawDir = null;
       if (isSpiralArm) {
         const tArm = i / Math.max(1, spiralArmCount - 1);
         const turns = 3.5;
@@ -2043,7 +2044,7 @@ export class FireworkSystem {
           Math.sin(phi) * Math.sin(theta)
         ).applyQuaternion(burstRotation);
       } else {
-        const rawDir = BurstShapeGenerator.direction(
+        rawDir = BurstShapeGenerator.direction(
           particleShape,
           angle,
           particleIndex,
@@ -2057,7 +2058,7 @@ export class FireworkSystem {
         }
       }
 
-      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg');
+      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg') || (particleShape === 'sphere_rings');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -2092,6 +2093,9 @@ export class FireworkSystem {
       } else if (particleShape === 'egg') {
         const eggSpeedBand = 0.96 + Math.random() * 0.08;
         baseSpeed = profileBaseSpeed * eggSpeedBand;
+      } else if (particleShape === 'sphere_rings') {
+        const ringsSpeedBand = 0.98 + (Math.random() - 0.5) * 0.04;
+        baseSpeed = profileBaseSpeed * ringsSpeedBand;
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
         const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
           ? (0.97 + Math.random() * 0.06)
@@ -2147,6 +2151,15 @@ export class FireworkSystem {
         }
       } else if (normalizedEffect === 'crysanthemum-cc') {
         particleColor = burstColor;
+      } else if (particleShape === 'sphere_rings' && rawDir?.ringIndex !== undefined) {
+        if (preset?.ringColors && Array.isArray(preset.ringColors) && preset.ringColors.length > 0) {
+          const ringColorHex = preset.ringColors[rawDir.ringIndex % preset.ringColors.length];
+          particleColor = new THREE.Color(ringColorHex);
+        } else if (preset?.colorPerRing && color2Blend) {
+          particleColor = (rawDir.ringIndex % 2 === 0) ? burstColor : color2Blend;
+        } else {
+          particleColor = burstColor;
+        }
       }
 
       const finalColorVal = particleColor.clone().multiplyScalar(brightnessIntensity);

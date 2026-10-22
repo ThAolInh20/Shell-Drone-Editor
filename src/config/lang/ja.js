@@ -582,6 +582,8 @@ export default {
           "sparkling-branches": "多方向スパークル分岐",
           sphere_uniform: "均一球形",
           "sphere-uniform": "均一球形",
+          sphere_rings: "球体緯度リング",
+          "sphere-rings": "球体緯度リング",
           waterfall: "ウォーターフォール滝"
         },
         dynamicsType: {
@@ -675,6 +677,7 @@ export default {
           sparkling_comet: "頂点スパークル彗星",
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
+          crysanthemum_sphere_rings: "球体緯度リング菊",
           crysanthemum_uniform_sphere: "均一球形菊",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "スモーク菊花",

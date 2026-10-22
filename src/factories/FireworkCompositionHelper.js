@@ -19,7 +19,8 @@ export const AVAILABLE_SHAPES = [
   'double-helix',
   'sparkling-branches',
   'sphere_uniform',
-  'egg'
+  'egg',
+  'sphere_rings'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -168,6 +169,24 @@ export const PRESET_TEMPLATES = {
   crysanthemum_uniform_sphere: {
     shape: 'sphere_uniform',
     dynamics: 'crysanthemum_discrete_trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_sphere_rings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemumSphereRings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  egg_crysanthemum: {
+    shape: 'egg',
+    dynamics: 'crysanthemum-trail',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },

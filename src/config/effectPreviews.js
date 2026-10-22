@@ -299,6 +299,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Ovoid Contour', 'Hollow Shell', 'Surface Distribution'],
     summary: 'Slightly elongated ovoid shape with particles concentrated strictly on the outer crust.'
   },
+  'sphere_rings': {
+    name: 'Sphere Latitude Rings',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_rings.mp4',
+    tags: ['Latitude Rings', 'Spherical Bands', 'Parallel Circles'],
+    summary: 'Parallel circular latitude rings distributed symmetrically across a spherical surface.'
+  },
+  'sphere-rings': {
+    name: 'Sphere Latitude Rings',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_rings.mp4',
+    tags: ['Latitude Rings', 'Spherical Bands', 'Parallel Circles'],
+    summary: 'Parallel circular latitude rings distributed symmetrically across a spherical surface.'
+  },
   'upward-spray': {
     name: 'Upward Spray',
     category: PREVIEW_CATEGORIES.SHAPE,
@@ -435,6 +449,20 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/egg_crysanthemum.mp4',
     tags: ['Egg Shell', 'Hollow Crust', 'Trailing Stars'],
     summary: 'Ovoid outer-crust shell burst leaving graceful glowing trails from the egg contour.'
+  },
+  'crysanthemum_sphere_rings': {
+    name: 'Chrysanthemum Sphere Rings',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_sphere_rings.mp4',
+    tags: ['Sphere Rings', 'Latitude Bands', 'Trailing Stars'],
+    summary: 'Expanding spherical firework whose stars form distinct glowing circular latitude bands.'
+  },
+  'crysanthemum-sphere-rings': {
+    name: 'Chrysanthemum Sphere Rings',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_sphere_rings.mp4',
+    tags: ['Sphere Rings', 'Latitude Bands', 'Trailing Stars'],
+    summary: 'Expanding spherical firework whose stars form distinct glowing circular latitude bands.'
   },
 
 
@@ -661,7 +689,11 @@ const PREVIEW_ALIASES = {
   'chrysanthemum-uniform-sphere': 'crysanthemum_uniform_sphere',
   'chrysanthemum_uniform_sphere': 'crysanthemum_uniform_sphere',
   'egg-chrysanthemum': 'egg_crysanthemum',
-  'egg_chrysanthemum': 'egg_crysanthemum'
+  'egg_chrysanthemum': 'egg_crysanthemum',
+  'crysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
+  'crysanthemum_sphere_rings': 'crysanthemum_sphere_rings',
+  'chrysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
+  'chrysanthemum_sphere_rings': 'crysanthemum_sphere_rings'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

@@ -581,7 +581,9 @@ export default {
           "double-helix": "双螺旋 Double Helix",
           "sparkling-branches": "多分支闪耀彗星",
           sphere_uniform: "均匀球形",
-          "sphere-uniform": "均匀球形"
+          "sphere-uniform": "均匀球形",
+          sphere_rings: "球形纬度环",
+          "sphere-rings": "球形纬度环"
         },
         dynamicsType: {
           standard: "标准径向放射",
@@ -674,6 +676,7 @@ export default {
           sparkling_comet: "顶点闪耀彗星",
           sparkling_comet_branches: "多分支闪耀彗星花火",
           crysanthemum: "菊花",
+          crysanthemum_sphere_rings: "球形纬度环菊花",
           crysanthemum_uniform_sphere: "均匀球形菊花",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "烟雾菊花",

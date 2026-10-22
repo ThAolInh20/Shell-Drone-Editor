@@ -57,7 +57,10 @@ export class BurstShapeGenerator {
       case 'sparkling-branches':
       case 'sphere_uniform':
       case 'egg':
+      case 'sphere_rings':
         return shellType;
+      case 'sphere-rings':
+        return 'sphere_rings';
       case 'sphere-uniform':
         return 'sphere_uniform';
       case 'sparkling-comet-branches':
@@ -514,6 +517,64 @@ export class BurstShapeGenerator {
         elongatedY * thicknessJitter,
         eggZ * thicknessJitter
       );
+    }
+
+    if (shape === 'sphere_rings' || shape === 'sphere-rings') {
+      const safeCount = Math.max(1, count);
+      const ringCount = preset?.ringCount || 5;
+      const maxLat = 58 * (Math.PI / 180);
+      const latitudes = [];
+      const weights = [];
+
+      for (let k = 0; k < ringCount; k++) {
+        const lat = ringCount === 1
+          ? 0
+          : -maxLat + (2 * maxLat * k) / (ringCount - 1);
+        latitudes.push(lat);
+        weights.push(Math.cos(lat));
+      }
+
+      const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+      const ringThresholds = [];
+      let accumulatedCount = 0;
+
+      for (let k = 0; k < ringCount; k++) {
+        const countForRing = Math.max(
+          4,
+          Math.round((safeCount * weights[k]) / totalWeight)
+        );
+        accumulatedCount += countForRing;
+        ringThresholds.push(accumulatedCount);
+      }
+
+      let ringIndex = 0;
+      let ringStartIndex = 0;
+      for (let k = 0; k < ringCount; k++) {
+        if (index < ringThresholds[k] || k === ringCount - 1) {
+          ringIndex = k;
+          ringStartIndex = k === 0 ? 0 : ringThresholds[k - 1];
+          break;
+        }
+      }
+
+      const ringTotal = (ringIndex === ringCount - 1 ? safeCount : ringThresholds[ringIndex]) - ringStartIndex;
+      const ringParticleIndex = index - ringStartIndex;
+      const lat = latitudes[ringIndex];
+      const ringRadius = Math.cos(lat);
+      const y = Math.sin(lat);
+
+      // Golden ratio phase offset per ring to prevent aligned vertical seams
+      const phaseOffset = ringIndex * 1.6180339887;
+      const theta = (ringParticleIndex / Math.max(1, ringTotal)) * Math.PI * 2 + phaseOffset;
+      const thicknessJitter = 1.0 + (Math.random() - 0.5) * 0.04;
+
+      const vec = new THREE.Vector3(
+        ringRadius * Math.cos(theta) * thicknessJitter,
+        y * thicknessJitter,
+        ringRadius * Math.sin(theta) * thicknessJitter
+      );
+      vec.ringIndex = ringIndex;
+      return vec;
     }
 
     if (shape === 'sphere_uniform' || shape === 'sphere-uniform') {

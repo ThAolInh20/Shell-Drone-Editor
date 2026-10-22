@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as THREE from 'three';
 import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
@@ -11,6 +11,7 @@ describe('Burst Trail Trajectory Segment Interpolation', () => {
   let spawnedParticles = [];
 
   beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.1);
     scene = new THREE.Scene();
     spawnedParticles = [];
 
@@ -39,6 +40,10 @@ describe('Burst Trail Trajectory Segment Interpolation', () => {
     };
 
     fireworkSystem = new FireworkSystem(scene, mockTrailSystem);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should define centralized burst trail parameters in FIREWORK_CONFIG.BURST', () => {

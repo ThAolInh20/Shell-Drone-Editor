@@ -593,7 +593,9 @@ export default {
           "double-helix": "Xoắn kép Double Helix",
           "sparkling-branches": "Sao chổi đa nhánh",
           sphere_uniform: "Hình cầu đồng đều",
-          "sphere-uniform": "Hình cầu đồng đều"
+          "sphere-uniform": "Hình cầu đồng đều",
+          sphere_rings: "Vành đai cầu vĩ độ",
+          "sphere-rings": "Vành đai cầu vĩ độ"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -686,6 +688,7 @@ export default {
           sparkling_comet: "Sao chổi nổ đỉnh lấp lánh",
           sparkling_comet_branches: "Sao chổi đa nhánh lấp lánh",
           crysanthemum: "Hoa cúc",
+          crysanthemum_sphere_rings: "Hoa cúc vành đai cầu",
           crysanthemum_uniform_sphere: "Hoa cúc cầu đồng đều",
           crysanthemum_v2: "Hoa cúc V2",
           crysanthemum_smoke: "Hoa cúc khói",
