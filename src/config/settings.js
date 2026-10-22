@@ -943,12 +943,106 @@ export function applySetting(
   }
 }
 
-export function resetSettings(
+export function getSettingValue(
+  key
+) {
+  const setting = SETTINGS_DEFINITION.find(
+    (s) => s.key === key
+  );
+  if (!setting) {
+    return undefined;
+  }
+  const savedStr = typeof localStorage !== 'undefined'
+    ? localStorage.getItem(`settings_${setting.key}`)
+    : null;
+  if (savedStr !== null) {
+    if (setting.type === 'checkbox') {
+      return savedStr === 'true';
+    }
+    if (setting.type === 'select') {
+      return savedStr;
+    }
+    return parseFloat(savedStr);
+  }
+  return setting.default;
+}
+
+export function getSettingsSnapshot() {
+  const snapshot = {
+    settings: {},
+    graphicsQuality: typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('graphics_quality') || 'medium')
+      : 'medium'
+  };
+  for (const setting of SETTINGS_DEFINITION) {
+    snapshot.settings[setting.key] = getSettingValue(setting.key);
+  }
+  return snapshot;
+}
+
+export function revertSettings(
+  snapshot,
   context
+) {
+  if (
+    !snapshot ||
+    !snapshot.settings
+  ) {
+    return;
+  }
+  for (
+    const setting of SETTINGS_DEFINITION
+  ) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        snapshot.settings,
+        setting.key
+      )
+    ) {
+      const val = snapshot.settings[setting.key];
+      applySetting(
+        setting.key,
+        val,
+        context
+      );
+    }
+  }
+  if (
+    snapshot.graphicsQuality &&
+    typeof localStorage !== 'undefined'
+  ) {
+    localStorage.setItem(
+      'graphics_quality',
+      snapshot.graphicsQuality
+    );
+  }
+}
+
+export function resetSettings(
+  context,
+  filter = {}
 ) {
   for (
     const setting of SETTINGS_DEFINITION
   ) {
+    if (
+      filter.category &&
+      setting.category !== filter.category
+    ) {
+      continue;
+    }
+    if (
+      filter.subgroup &&
+      setting.subgroup !== filter.subgroup
+    ) {
+      continue;
+    }
+    if (
+      filter.keys &&
+      !filter.keys.includes(setting.key)
+    ) {
+      continue;
+    }
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(
         `settings_${setting.key}`
@@ -960,3 +1054,14 @@ export function resetSettings(
     );
   }
 }
+
+export function resetCategorySettings(
+  category,
+  context
+) {
+  return resetSettings(
+    context,
+    { category }
+  );
+}
+
