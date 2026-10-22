@@ -11,6 +11,7 @@ import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
 import { atmosphereManager } from '../environment/AtmosphereManager.js';
+import { renderingConfig } from '../config/rendering.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const BASE_BURST_PARTICLES = FIREWORK_CONFIG.BURST.baseParticles;
@@ -111,6 +112,12 @@ export class FireworkSystem {
       )
     );
 
+    this.burstUniforms = {
+      uEdgeSoftness: {
+        value: renderingConfig.post?.particleEdgeSoftness ?? 0.75
+      }
+    };
+
     this.globalBurstMaterial = new THREE.PointsMaterial({
       vertexColors: true,
       transparent: true,
@@ -120,6 +127,9 @@ export class FireworkSystem {
     });
 
     this.globalBurstMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uEdgeSoftness = this.burstUniforms.uEdgeSoftness;
+      this.burstShader = shader;
+
       // Add custom attribute floats for particle-specific sizes and opacities
       shader.vertexShader = `
         attribute float aSize;
@@ -140,6 +150,7 @@ export class FireworkSystem {
 
       // Patch the fragment shader to apply the custom opacity and gradient
       shader.fragmentShader = `
+        uniform float uEdgeSoftness;
         varying float vOpacity;
       ` + shader.fragmentShader.replace(
         '#include <color_fragment>',
@@ -148,24 +159,25 @@ export class FireworkSystem {
         
         vec2 coord = gl_PointCoord - vec2(0.5);
         float dist = length(coord) * 2.0;
-        if (dist > 0.75) discard;
+        if (dist > uEdgeSoftness) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
         vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
         vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
         vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
         
+        float outerStart = min(0.32, uEdgeSoftness * 0.45);
         vec4 gradientColor;
         if (dist < 0.024) {
             gradientColor = stop0;
-        } else if (dist < 0.125) {
-            float t = (dist - 0.024) / (0.125 - 0.024);
+        } else if (dist < min(0.125, outerStart)) {
+            float t = (dist - 0.024) / max(0.001, min(0.125, outerStart) - 0.024);
             gradientColor = mix(stop0, stop1, t);
-        } else if (dist < 0.32) {
-            float t = (dist - 0.125) / (0.32 - 0.125);
+        } else if (dist < outerStart) {
+            float t = (dist - min(0.125, outerStart)) / max(0.001, outerStart - min(0.125, outerStart));
             gradientColor = mix(stop1, stop2, t);
         } else {
-            float t = (dist - 0.32) / (0.75 - 0.32);
+            float t = (dist - outerStart) / max(0.001, uEdgeSoftness - outerStart);
             gradientColor = mix(stop2, stop3, t);
         }
         
@@ -210,6 +222,27 @@ export class FireworkSystem {
         }
       )
     );
+  }
+
+  setParticleEdgeSoftness(value) {
+    if (
+      this.burstUniforms &&
+      this.burstUniforms.uEdgeSoftness
+    ) {
+      this.burstUniforms.uEdgeSoftness.value = value;
+    }
+    if (
+      this.trailSystem &&
+      typeof this.trailSystem.setParticleEdgeSoftness === 'function'
+    ) {
+      this.trailSystem.setParticleEdgeSoftness(value);
+    }
+  }
+
+  getParticleEdgeSoftness() {
+    return this.burstUniforms?.uEdgeSoftness?.value ??
+      renderingConfig.post?.particleEdgeSoftness ??
+      0.75;
   }
 
   setGraphicsQuality(quality) {

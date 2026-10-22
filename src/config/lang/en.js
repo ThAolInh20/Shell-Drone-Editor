@@ -384,6 +384,7 @@ export default {
     bloom_strength: "Bloom Strength",
     bloom_radius: "Bloom Radius",
     bloom_threshold: "Bloom Threshold",
+    particle_edge_softness: "Particle Edge Softness",
     lake_mirror_reflection: "Lake Mirror Reflection",
     lake_reflection_resolution: "Lake Reflection Resolution",
     lake_reflection_resolution_low: "Low",

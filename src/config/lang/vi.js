@@ -384,6 +384,7 @@ export default {
     bloom_strength: "Cường độ Bloom",
     bloom_radius: "Bán kính Bloom",
     bloom_threshold: "Ngưỡng Bloom",
+    particle_edge_softness: "Độ mờ viền hạt",
     lake_mirror_reflection: "Phản xạ mặt hồ",
     lake_reflection_resolution: "Độ phân giải phản chiếu mặt nước",
     lake_reflection_resolution_low: "Thấp",

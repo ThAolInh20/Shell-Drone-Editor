@@ -121,6 +121,36 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'particle_edge_softness',
+    label: 'Particle Edge Softness',
+    type: 'slider',
+    category: 'system',
+    subgroup: 'camera_post',
+    min: 0.2,
+    max: 1.0,
+    step: 0.02,
+    default: 0.75,
+    apply(
+      value,
+      context
+    ) {
+      renderingConfig.post.particleEdgeSoftness = value;
+      if (
+        context &&
+        context.fireworkSystem &&
+        typeof context.fireworkSystem.setParticleEdgeSoftness === 'function'
+      ) {
+        context.fireworkSystem.setParticleEdgeSoftness(value);
+      } else if (
+        context &&
+        context.trailSystem &&
+        typeof context.trailSystem.setParticleEdgeSoftness === 'function'
+      ) {
+        context.trailSystem.setParticleEdgeSoftness(value);
+      }
+    }
+  },
+  {
     key: 'auto_save_enabled',
     label: 'Auto-Save Direct',
     type: 'checkbox',

@@ -376,6 +376,7 @@ export default {
     bloom_strength: "辉光强度",
     bloom_radius: "辉光半径",
     bloom_threshold: "辉光阈值",
+    particle_edge_softness: "粒子边缘柔和度",
     lake_mirror_reflection: "水面倒影",
     lake_reflection_resolution: "水面反射分辨率",
     lake_reflection_resolution_low: "低",

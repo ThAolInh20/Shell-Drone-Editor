@@ -376,6 +376,7 @@ export default {
     bloom_strength: "ブルーム強度",
     bloom_radius: "ブルーム半径",
     bloom_threshold: "ブルームしきい値",
+    particle_edge_softness: "パーティクルエッジのぼかし",
     lake_mirror_reflection: "水面反射",
     lake_reflection_resolution: "水面反射解像度",
     lake_reflection_resolution_low: "低",
