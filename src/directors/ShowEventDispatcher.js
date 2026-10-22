@@ -64,6 +64,9 @@ export class ShowEventDispatcher {
         if (evt['burst-smoke'] !== undefined) overrides['burst-smoke'] = evt['burst-smoke'];
         if (evt['apex-hang'] !== undefined) overrides['apex-hang'] = evt['apex-hang'];
         if (evt.apexHang !== undefined) overrides['apex-hang'] = evt.apexHang;
+        if (evt['slow-burst'] !== undefined) overrides['slow-burst'] = evt['slow-burst'];
+        if (evt.slowBurst !== undefined) overrides['slow-burst'] = evt.slowBurst;
+        if (evt.slow_burst !== undefined) overrides['slow-burst'] = evt.slow_burst;
         if (evt.stages !== undefined) overrides.stages = evt.stages;
         if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
         if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;

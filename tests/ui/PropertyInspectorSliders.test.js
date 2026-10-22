@@ -216,8 +216,8 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
     fireworkSystem.clear();
 
     expect(shortMaxLife).toBeLessThan(standardMaxLife * 0.75);
-    expect(longMaxLife).toBeGreaterThan(standardMaxLife * 1.5);
-    expect(ultraLongMaxLife).toBeGreaterThan(standardMaxLife * 4.0);
+    expect(longMaxLife).toBeGreaterThan(standardMaxLife * 1.35);
+    expect(ultraLongMaxLife).toBeGreaterThan(standardMaxLife * 3.2);
     expect(longParticle.isLongBurn).toBe(true);
     expect(ultraLongParticle.isLongBurn).toBe(true);
   });

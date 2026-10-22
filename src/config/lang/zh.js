@@ -531,6 +531,7 @@ export default {
         erraticDart: "乱窜飞箭",
         longBurn: "长效滞空燃烧",
         apexHang: "滞空定格",
+        slowBurst: "缓慢漂移绽放",
         activeEffects: "已启用效果",
         launchSound: "发射音效",
         burstSound: "爆炸音效",
@@ -611,7 +612,9 @@ export default {
           "sparkling-branch-comet": "多分支闪耀彗星",
           "tadpole-spiral": "蝌蚪螺旋游动",
           crysanthemum_discrete_trail: "菊花离散尾迹",
-          "crysanthemum-discrete-trail": "菊花离散尾迹"
+          "crysanthemum-discrete-trail": "菊花离散尾迹",
+          sphere_rings_wave: "球形纬度环波浪点亮",
+          "sphere-rings-wave": "球形纬度环波浪点亮"
         },
         pattern: {
           random: "随机",
@@ -677,6 +680,8 @@ export default {
           sparkling_comet_branches: "多分支闪耀彗星花火",
           crysanthemum: "菊花",
           crysanthemum_sphere_rings: "球形纬度环菊花",
+          sphere_rings_cascade: "球形纬度环级联点亮",
+          sphere_rings_strobe: "球形纬度环同步闪烁",
           crysanthemum_uniform_sphere: "均匀球形菊花",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "烟雾菊花",

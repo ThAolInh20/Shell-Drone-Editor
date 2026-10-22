@@ -39,6 +39,8 @@ export class BurstEffectProcessor {
     if (
       normDynamics === 'flow' ||
       normDynamics === 'snow' ||
+      normDynamics === 'slow-burst' ||
+      normDynamics === 'slow_burst' ||
       normDynamics === 'wave' ||
       normDynamics === 'falling-leaves' ||
       normDynamics === 'swimming-star' ||
@@ -203,7 +205,11 @@ export class BurstEffectProcessor {
     'long-burn',
     'apex-hang',
     'crysanthemum_discrete_trail',
-    'crysanthemum-discrete-trail'
+    'crysanthemum-discrete-trail',
+    'sphere_rings_wave',
+    'sphere-rings-wave',
+    'slow-burst',
+    'slow_burst'
   ]);
 
   static effectsRegistry = new Map();
@@ -258,6 +264,13 @@ export class BurstEffectProcessor {
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
     const crossetteEnabled = Boolean(preset?.crossette) || effectsList.includes('crossette') || normalizedEffect === 'crossette';
+    const slowBurstEnabled = Boolean(preset?.slowBurst)
+      || Boolean(preset?.['slow-burst'])
+      || Boolean(preset?.slow_burst)
+      || effectsList.includes('slow-burst')
+      || effectsList.includes('slow_burst')
+      || normalizedEffect === 'slow-burst'
+      || normalizedEffect === 'slow_burst';
 
     const noTrailObj = rawEffects.find(
       (e) => typeof e === 'object'
@@ -307,6 +320,7 @@ export class BurstEffectProcessor {
       ghost: ghostEnabled,
       flow: flowEnabled,
       crossette: crossetteEnabled,
+      slowBurst: slowBurstEnabled,
       noTrail: hasStaticNoTrail && !noTrailTiming,
       noTrailTiming,
       spin,
@@ -387,6 +401,14 @@ export class BurstEffectProcessor {
       spawnTrail = true;
       trailLife = Math.max(trailLife, 0.25);
       trailIntensity = Math.max(trailIntensity, 0.3);
+    }
+
+    if (effectState?.slowBurst && effectType !== 'snow' && effectType !== 'slow-burst' && effectType !== 'slow_burst') {
+      const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
+      velocity.x += drift * deltaTime;
+      velocity.z += drift * deltaTime * 0.7;
+      velocity.multiplyScalar(0.996);
+      gravityScale = Math.min(gravityScale, 0.05);
     }
 
     // Custom shape logic for half-flash comets (jellyfish tentacles)
@@ -582,6 +604,8 @@ export class BurstEffectProcessor {
       strobeFreqMultiplier = 1.0,
       isSpiralIgnited = true,
       spiralFlashBonus = 1.0,
+      isRingIgnited = true,
+      ringFlashBonus = 1.0,
       hasGhostFlare = false,
       profile = null
     } = options;
@@ -672,19 +696,25 @@ export class BurstEffectProcessor {
       g = particle.baseColor.g * blink * coolFactor;
       b = particle.baseColor.b * blink * coolFactor;
     } else if (hasStandardStrobe) {
-      const timeMs = (particle.age + particle.phase) * 1000;
-      const strobeFreq = 150 * strobeFreqMultiplier;
-      const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-      const blink = isBlinking ? 1.0 : 0.0;
-
-      if (particle.preset?.shellType === 'strobe') {
-        r = blink;
-        g = blink;
-        b = blink;
+      if ((particle.effectType === 'sphere_rings_wave' || particle.effectType === 'sphere-rings-wave') && !isRingIgnited) {
+        r = 0;
+        g = 0;
+        b = 0;
       } else {
-        r = particle.baseColor.r * blink;
-        g = particle.baseColor.g * blink;
-        b = particle.baseColor.b * blink;
+        const timeMs = (particle.age + particle.phase) * 1000;
+        const strobeFreq = 150 * strobeFreqMultiplier;
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+        const blink = isBlinking ? 1.0 : 0.0;
+
+        if (particle.preset?.shellType === 'strobe') {
+          r = blink;
+          g = blink;
+          b = blink;
+        } else {
+          r = particle.baseColor.r * blink;
+          g = particle.baseColor.g * blink;
+          b = particle.baseColor.b * blink;
+        }
       }
     } else if (hasGhost) {
       let intensity = 0.0;
@@ -733,6 +763,16 @@ export class BurstEffectProcessor {
         r = Math.min(2.0, particle.baseColor.r * spiralFlashBonus);
         g = Math.min(2.0, particle.baseColor.g * spiralFlashBonus);
         b = Math.min(2.0, particle.baseColor.b * spiralFlashBonus);
+      }
+    } else if (particle.effectType === 'sphere_rings_wave' || particle.effectType === 'sphere-rings-wave') {
+      if (!isRingIgnited) {
+        r = particle.baseColor.r * 0.01;
+        g = particle.baseColor.g * 0.01;
+        b = particle.baseColor.b * 0.01;
+      } else {
+        r = Math.min(2.5, particle.baseColor.r * ringFlashBonus);
+        g = Math.min(2.5, particle.baseColor.g * ringFlashBonus);
+        b = Math.min(2.5, particle.baseColor.b * ringFlashBonus);
       }
     } else if (hasGhostFlare) {
       if (lifeRatio < 0.32) {
@@ -917,6 +957,10 @@ BurstEffectProcessor.registerEffect('snow', {
     return { gravityScale: 0.05 };
   }
 });
+
+const snowStrategy = BurstEffectProcessor.effectsRegistry.get('snow');
+BurstEffectProcessor.registerEffect('slow-burst', snowStrategy);
+BurstEffectProcessor.registerEffect('slow_burst', snowStrategy);
 
 BurstEffectProcessor.registerEffect('crackle', {
   updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {

@@ -86,6 +86,16 @@ export class CometEntity {
       this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
     }
 
+    this.hasSlowBurst = Boolean(
+      preset?.slowBurst ||
+      preset?.['slow-burst'] ||
+      preset?.slow_burst ||
+      effects.includes('slow-burst') ||
+      effects.includes('slow_burst') ||
+      effectType === 'slow-burst' ||
+      effectType === 'slow_burst'
+    );
+
     this.hasCrackle = Boolean(preset?.crackle || effects.includes('crackle') || effectType === 'crackle');
     this.hasCrossette = Boolean(preset?.crossette || effects.includes('crossette') || effectType === 'crossette');
     this.hasFlow = Boolean(preset?.flow || effects.includes('flow') || effectType === 'flow');

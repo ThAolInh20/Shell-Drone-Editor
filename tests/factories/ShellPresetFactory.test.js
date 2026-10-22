@@ -200,5 +200,35 @@ describe('ShellPresetFactory', () => {
         eggPreset
       );
     }).not.toThrow();
+
+    const cascadePreset = factory.createPresetByKey('sphere_rings_cascade');
+    expect(cascadePreset).not.toBeNull();
+    expect(cascadePreset.shellType).toBe('sphere_rings_cascade');
+    expect(cascadePreset.shapeType).toBe('sphere_rings');
+    expect(cascadePreset.dynamicsType).toBe('sphere_rings_wave');
+    expect(cascadePreset.ringWaveMode).toBe('equator-outward');
+    expect(cascadePreset.ringCount).toBe(5);
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0x00ffff),
+        'sphere_rings',
+        cascadePreset
+      );
+    }).not.toThrow();
+
+    const strobePreset = factory.createPresetByKey('sphere_rings_strobe');
+    expect(strobePreset).not.toBeNull();
+    expect(strobePreset.shellType).toBe('sphere_rings_strobe');
+    expect(strobePreset.shapeType).toBe('sphere_rings');
+    expect(strobePreset.strobe).toBe(true);
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xffffff),
+        'sphere_rings',
+        strobePreset
+      );
+    }).not.toThrow();
   });
 });

@@ -513,6 +513,7 @@ export default {
         erraticDart: "乱舞ダート",
         longBurn: "ロングバーン",
         apexHang: "エイペックスハング",
+        slowBurst: "スローバースト浮遊",
         activeEffects: "有効エフェクト",
         launchSound: "発射サウンド",
         burstSound: "炸裂サウンド",
@@ -612,7 +613,9 @@ export default {
           "sparkling-branch-comet": "多方向分岐スパークル彗星",
           "tadpole-spiral": "オタマジャクシ螺旋遊泳",
           crysanthemum_discrete_trail: "菊咲き離散トレイル",
-          "crysanthemum-discrete-trail": "菊咲き離散トレイル"
+          "crysanthemum-discrete-trail": "菊咲き離散トレイル",
+          sphere_rings_wave: "球体リングウェーブ点灯",
+          "sphere-rings-wave": "球体リングウェーブ点灯"
         },
         pattern: {
           random: "ランダム",
@@ -678,6 +681,8 @@ export default {
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
           crysanthemum_sphere_rings: "球体緯度リング菊",
+          sphere_rings_cascade: "球体緯度リングカスケード",
+          sphere_rings_strobe: "球体緯度リング同期ストロボ",
           crysanthemum_uniform_sphere: "均一球形菊",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "スモーク菊花",

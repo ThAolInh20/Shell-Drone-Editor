@@ -190,5 +190,53 @@ describe('BurstEffectProcessor', () => {
     // Radial velocity decelerates over time to produce curving arc trajectory
     expect(velocity.length()).toBeLessThan(initialSpeed);
   });
+
+  it('should process slow-burst active effect kinematics reusing snow strategy', () => {
+    expect(BurstEffectProcessor.normalizeEffectType('slow-burst')).toBe('slow-burst');
+    expect(BurstEffectProcessor.normalizeEffectType('slow_burst')).toBe('slow_burst');
+
+    // Reuses snow floating dynamics profile
+    const profile = BurstEffectProcessor.getDynamicsProfile('slow-burst');
+    expect(profile).toBeDefined();
+    expect(profile.baseSpeed).toBe(36);
+    expect(profile.terminalVelocity).toBe(-5.0);
+
+    const velocity = new THREE.Vector3(20, 15, 20);
+    const initialLength = velocity.length();
+    const state = BurstEffectProcessor.initialize('slow-burst', 5);
+
+    expect(state.slowBurst).toBe(true);
+
+    const result = BurstEffectProcessor.updateVelocity(
+      velocity,
+      0,
+      0.016,
+      0.3,
+      2.0,
+      state
+    );
+
+    // Gravity should match snow's floating gravityScale (0.05)
+    expect(result.gravityScale).toBe(0.05);
+    // Aerodynamic damping from snow should decelerate velocity
+    expect(velocity.length()).toBeLessThan(initialLength);
+
+    // Modular application on top of another effect (e.g. standard)
+    const modularVel = new THREE.Vector3(15, 10, 15);
+    const modularState = BurstEffectProcessor.initialize('standard', 5, {
+      effects: ['slow-burst']
+    });
+    expect(modularState.slowBurst).toBe(true);
+
+    const modularResult = BurstEffectProcessor.updateVelocity(
+      modularVel,
+      0,
+      0.016,
+      0.5,
+      2.0,
+      modularState
+    );
+    expect(modularResult.gravityScale).toBeLessThanOrEqual(0.05);
+  });
 });
 

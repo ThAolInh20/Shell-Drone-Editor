@@ -48,7 +48,8 @@ export const AVAILABLE_DYNAMICS = [
   'sparkle-trail',
   'sparkling-branch-comet',
   'tadpole-spiral',
-  'crysanthemum_discrete_trail'
+  'crysanthemum_discrete_trail',
+  'sphere_rings_wave'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -72,7 +73,8 @@ export const AVAILABLE_EFFECT_TAGS = [
   'tadpole-flurry',
   'erratic-dart',
   'long-burn',
-  'apex-hang'
+  'apex-hang',
+  'slow-burst'
 ];
 
 export const PRESET_TEMPLATES = {
@@ -183,6 +185,30 @@ export const PRESET_TEMPLATES = {
     dynamics: 'crysanthemum-trail',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
+  },
+  sphere_rings_cascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphereRingsCascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphere_rings_strobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
+  },
+  sphereRingsStrobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
   },
   egg_crysanthemum: {
     shape: 'egg',
@@ -644,6 +670,9 @@ export function resolveFireworkComposition(eventOrPreset) {
     }
     if ((eventOrPreset.erraticDart || eventOrPreset.hasErraticDart) && !effects.includes('erratic-dart')) {
       effects.push('erratic-dart');
+    }
+    if ((eventOrPreset.slowBurst || eventOrPreset['slow-burst'] || eventOrPreset.slow_burst) && !effects.includes('slow-burst')) {
+      effects.push('slow-burst');
     }
   }
 

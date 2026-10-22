@@ -86,6 +86,10 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'noTrail'
   },
   {
+    key: 'slow-burst',
+    labelKey: 'slowBurst'
+  },
+  {
     key: 'strobe',
     labelKey: 'strobe'
   },

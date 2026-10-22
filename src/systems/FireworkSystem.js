@@ -1876,6 +1876,7 @@ export class FireworkSystem {
       hasBurstSmoke: isBurstSmokeActive,
       isLongBurn,
       isApexHang,
+      isSlowBurst,
       hasNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset,
@@ -2120,12 +2121,16 @@ export class FireworkSystem {
       const apexSpeedMul = isApexHang
         ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
         : 1.0;
+      const slowBurstSpeedMul = isSlowBurst
+        ? ((FIREWORK_CONFIG.DYNAMICS_PROFILES?.floating?.baseSpeed ?? 36) / (FIREWORK_CONFIG.BURST?.baseSpeed ?? 74))
+        : 1.0;
       const speed = baseSpeed *
         (useContourMagnitude ? 1.15 : 1) *
         shellSizeScale *
         speedJitterScale *
         (isDyingEmber ? 0.85 : 1.0) *
-        apexSpeedMul;
+        apexSpeedMul *
+        slowBurstSpeedMul;
 
       const normDir = direction.clone().normalize();
       const velocityVal = direction.multiplyScalar(speed);
@@ -2255,6 +2260,7 @@ export class FireworkSystem {
         maxLife: particleMaxLife,
         isLongBurn: isEffectiveLongBurn,
         isApexHang,
+        isSlowBurst,
         effectType: isGhostEffect
           ? 'ghost'
           : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
@@ -2262,15 +2268,16 @@ export class FireworkSystem {
           && !isDyingEmber
           && (crackleEnabled || normalizedEffect === 'crackle'),
         crackleTriggered: false,
-        phase: effectState.phase
-          ? effectState.phase[i]
-          : 0,
+        phase: (particleShape === 'sphere_rings' && rawDir?.ringIndex !== undefined && rawDir?.ringIndex !== null)
+          ? rawDir.ringIndex * 0.75
+          : (effectState.phase ? effectState.phase[i] : 0),
         preset,
         heightProfile,
         effectState,
         ghostDot: ghostDotVal,
         spiralIndex: spiralIndexVal,
         isSpiralArm: Boolean(isSpiralArm),
+        ringIndex: rawDir?.ringIndex ?? null,
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
@@ -2393,6 +2400,7 @@ export class FireworkSystem {
       isCCEffect,
       isLongBurn: isContourLongBurn,
       isApexHang: isContourApexHang,
+      isSlowBurst: isContourSlowBurst,
       hasNoTrail: isStageNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset: cfg,
@@ -2470,8 +2478,11 @@ export class FireworkSystem {
       const contourApexSpeedMul = isContourApexHang
         ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
         : 1.0;
+      const contourSlowBurstSpeedMul = isContourSlowBurst
+        ? ((FIREWORK_CONFIG.DYNAMICS_PROFILES?.floating?.baseSpeed ?? 36) / (FIREWORK_CONFIG.BURST?.baseSpeed ?? 74))
+        : 1.0;
       const vel = dir.multiplyScalar(
-        baseSpeed * speedVariance * contourApexSpeedMul
+        baseSpeed * speedVariance * contourApexSpeedMul * contourSlowBurstSpeedMul
       ).add(parentVelInheritance);
 
       const hasParticleErraticDart = isErraticDartShell
@@ -2501,6 +2512,7 @@ export class FireworkSystem {
           : childLife * childLifeMul * (isContourApexHang ? 1.35 : 1.0),
         isLongBurn: isContourLongBurn || childLifeMul >= 1.5,
         isApexHang: isContourApexHang,
+        isSlowBurst: isContourSlowBurst,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
         crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
         phase: (childEffectState.phase && childEffectState.phase[k] !== undefined)
@@ -3517,6 +3529,7 @@ export class FireworkSystem {
       if (wind) {
         const isFloatingEffect = p.isLongBurn
           || p.isDyingEmber
+          || p.isSlowBurst
           || p.effectType === 'willow'
           || p.effectType === 'willow-arch'
           || p.effectType === 'falling-leaves'
@@ -3709,6 +3722,35 @@ export class FireworkSystem {
         }
       }
 
+      let isRingWaveIgnited = true;
+      let ringFlashBonus = 1.0;
+      const isSphereRingsWave = p.effectType === 'sphere_rings_wave'
+        || p.effectType === 'sphere-rings-wave'
+        || p.preset?.dynamicsType === 'sphere_rings_wave'
+        || p.preset?.dynamicsType === 'sphere-rings-wave';
+
+      if (isSphereRingsWave) {
+        const ringK = p.ringIndex !== null && p.ringIndex !== undefined ? p.ringIndex : 2;
+        const mode = p.preset?.ringWaveMode || 'equator-outward';
+        let ringStartRatio = 0.08;
+
+        if (mode === 'pole-to-pole') {
+          ringStartRatio = 0.06 + ringK * 0.08;
+        } else {
+          // Equator outward: ring 2 is equator, rings 1 & 3 are mid, rings 0 & 4 are poles
+          const ringDist = Math.abs(ringK - 2);
+          ringStartRatio = 0.08 + ringDist * 0.14;
+        }
+
+        isRingWaveIgnited = lifeRatio >= ringStartRatio;
+        if (isRingWaveIgnited) {
+          const timeSinceIgnition = lifeRatio - ringStartRatio;
+          if (timeSinceIgnition < 0.08) {
+            ringFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 1.5;
+          }
+        }
+      }
+
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
       const hasGhost = p.effectType === 'ghost'
@@ -3731,6 +3773,7 @@ export class FireworkSystem {
         || p.effectType === 'notrail';
       const allowTrail = spawnTrail
         && (!isChrysanthemumSpiral || isSpiralIgnited)
+        && (!isSphereRingsWave || isRingWaveIgnited)
         && !isGhostFlareNoTrail
         && !isGhostInvisible
         && !hasNoTrailActive;
@@ -4063,6 +4106,8 @@ export class FireworkSystem {
           strobeFreqMultiplier,
           isSpiralIgnited,
           spiralFlashBonus,
+          isRingIgnited: isRingWaveIgnited,
+          ringFlashBonus,
           hasGhostFlare,
           profile
         }
@@ -4085,6 +4130,8 @@ export class FireworkSystem {
           const t = (lifeRatio - 0.40) / 0.08;
           renderSize = baseSize * THREE.MathUtils.lerp(0.0, 1.0, t);
         }
+      } else if (isSphereRingsWave && !isRingWaveIgnited) {
+        renderSize = 0;
       } else {
         // Co giảm kích thước động theo chu kỳ nhiệt độ
         let sizeDecay = 1.0;

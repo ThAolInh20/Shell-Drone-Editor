@@ -120,6 +120,23 @@ export class BurstParticleFactory {
       || normDynamics === 'notrail'
     );
 
+    const isSlowBurst = Boolean(
+      preset?.slowBurst
+      || preset?.['slow-burst']
+      || preset?.slow_burst
+      || effectsList.includes('slow-burst')
+      || effectsList.includes('slow_burst')
+      || (Array.isArray(preset?.effects) && (
+        preset.effects.includes('slow-burst')
+        || preset.effects.includes('slow_burst')
+        || preset.effects.some((e) => (typeof e === 'object' && ((e.type || e.key) === 'slow-burst' || (e.type || e.key) === 'slow_burst')))
+      ))
+      || normDynamics === 'slow-burst'
+      || normDynamics === 'slow_burst'
+      || preset?.effectType === 'slow-burst'
+      || preset?.effectType === 'slow_burst'
+    );
+
     return {
       isCrossetteShell,
       isTadpoleFlurryShell,
@@ -129,6 +146,7 @@ export class BurstParticleFactory {
       isCCEffect,
       isLongBurn,
       isApexHang,
+      isSlowBurst,
       hasNoTrail,
       effectsList
     };
@@ -224,8 +242,10 @@ export class BurstParticleFactory {
       isSecondBurstChild = false,
       isLongBurn = false,
       isApexHang = false,
+      isSlowBurst = false,
       hasNoTrail = false,
       frictionHeat = 0.0,
+      ringIndex = null,
       sizeVariance = null,
       brightnessVariance = null
     } = options;
@@ -363,6 +383,7 @@ export class BurstParticleFactory {
       isDyingEmber: Boolean(isDyingEmber),
       isLongBurn: Boolean(isLongBurn),
       isApexHang: Boolean(isApexHang),
+      isSlowBurst: Boolean(isSlowBurst),
       isNestedTrigger: Boolean(isNestedTrigger),
       effects: Array.isArray(effects) ? [...effects] : [],
       hasBurstSmoke: Boolean(effectiveHasBurstSmoke),
@@ -408,6 +429,7 @@ export class BurstParticleFactory {
       hasNoTrail: Boolean(effectiveHasNoTrail),
       noTrailStart,
       noTrailEnd,
+      ringIndex: ringIndex !== null ? Number(ringIndex) : null,
       frictionHeat: Number(frictionHeat) || 0.0,
       lastVelocity: velocity ? velocity.clone() : new THREE.Vector3()
     };

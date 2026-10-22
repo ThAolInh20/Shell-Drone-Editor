@@ -542,6 +542,7 @@ export default {
         erraticDart: "Tia vút loạn xạ",
         longBurn: "Cháy lâu",
         apexHang: "Dừng không trung",
+        slowBurst: "Nổ chậm bồng bềnh",
         activeEffects: "Hiệu ứng kích hoạt",
         launchSound: "Âm thanh phóng",
         burstSound: "Âm thanh nổ bung",
@@ -623,7 +624,9 @@ export default {
           "sparkling-branch-comet": "Sao chổi chùm đa nhánh lấp lánh",
           "tadpole-spiral": "Nòng nọc bơi xoắn ốc",
           crysanthemum_discrete_trail: "Hoa cúc vệt đuôi rời rạc",
-          "crysanthemum-discrete-trail": "Hoa cúc vệt đuôi rời rạc"
+          "crysanthemum-discrete-trail": "Hoa cúc vệt đuôi rời rạc",
+          sphere_rings_wave: "Sóng sáng vành đai cầu",
+          "sphere-rings-wave": "Sóng sáng vành đai cầu"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -689,6 +692,8 @@ export default {
           sparkling_comet_branches: "Sao chổi đa nhánh lấp lánh",
           crysanthemum: "Hoa cúc",
           crysanthemum_sphere_rings: "Hoa cúc vành đai cầu",
+          sphere_rings_cascade: "Vành đai cầu sáng nối tiếp",
+          sphere_rings_strobe: "Vành đai cầu nhấp nháy đồng bộ",
           crysanthemum_uniform_sphere: "Hoa cúc cầu đồng đều",
           crysanthemum_v2: "Hoa cúc V2",
           crysanthemum_smoke: "Hoa cúc khói",

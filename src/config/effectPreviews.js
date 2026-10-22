@@ -57,6 +57,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Curved Arc Trajectory', 'Discrete Trails', 'Decelerating Velocity'],
     summary: 'Continuous gravity and decelerating radial velocity trace graceful curved trails with long sporadic droplet sparks.'
   },
+  'sphere_rings_wave': {
+    name: 'Sphere Rings Staggered Wave',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sphere_rings_wave.mp4',
+    tags: ['Equator to Poles', 'Sequential Wave', 'Stealth Delayed Flash'],
+    summary: 'Staggered outward ring ignition wave starting at the equator and cascading toward the polar latitude rings.'
+  },
+  'sphere-rings-wave': {
+    name: 'Sphere Rings Staggered Wave',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sphere_rings_wave.mp4',
+    tags: ['Equator to Poles', 'Sequential Wave', 'Stealth Delayed Flash'],
+    summary: 'Staggered outward ring ignition wave starting at the equator and cascading toward the polar latitude rings.'
+  },
 
   'willow': {
     name: 'Willow',
@@ -399,6 +413,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Sudden Deflection', 'Bright Streak'],
     summary: 'Stars suddenly accelerate and dart erratically near burnout drawing luminous streaks.'
   },
+  'slow-burst': {
+    name: 'Slow Burst',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/slow-burst.mp4',
+    tags: ['Gentle Expansion', 'Snow Drift', 'Soft Floating'],
+    summary: 'Soft, decelerated radial expansion where stars float and sway organically like falling snow.'
+  },
+  'slow_burst': {
+    name: 'Slow Burst',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/slow-burst.mp4',
+    tags: ['Gentle Expansion', 'Snow Drift', 'Soft Floating'],
+    summary: 'Soft, decelerated radial expansion where stars float and sway organically like falling snow.'
+  },
 
   // Preset Shell Templates
   'sparkling-comet-branches': {
@@ -463,6 +491,34 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/crysanthemum_sphere_rings.mp4',
     tags: ['Sphere Rings', 'Latitude Bands', 'Trailing Stars'],
     summary: 'Expanding spherical firework whose stars form distinct glowing circular latitude bands.'
+  },
+  'sphere_rings_cascade': {
+    name: 'Sphere Rings Cascade',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_cascade.mp4',
+    tags: ['Sphere Rings', 'Cascading Wave', 'Equator to Poles'],
+    summary: 'Equator latitude ring ignites first followed in cascading waves by temperate and polar rings.'
+  },
+  'sphere-rings-cascade': {
+    name: 'Sphere Rings Cascade',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_cascade.mp4',
+    tags: ['Sphere Rings', 'Cascading Wave', 'Equator to Poles'],
+    summary: 'Equator latitude ring ignites first followed in cascading waves by temperate and polar rings.'
+  },
+  'sphere_rings_strobe': {
+    name: 'Sphere Rings Synchronous Strobe',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_strobe.mp4',
+    tags: ['Sphere Rings', 'Harmonic Strobe', 'Synchronized Rings'],
+    summary: 'Parallel latitude rings pulsing in synchronized phase-locked harmonic strobing flashes.'
+  },
+  'sphere-rings-strobe': {
+    name: 'Sphere Rings Synchronous Strobe',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_strobe.mp4',
+    tags: ['Sphere Rings', 'Harmonic Strobe', 'Synchronized Rings'],
+    summary: 'Parallel latitude rings pulsing in synchronized phase-locked harmonic strobing flashes.'
   },
 
 
@@ -693,7 +749,16 @@ const PREVIEW_ALIASES = {
   'crysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
   'crysanthemum_sphere_rings': 'crysanthemum_sphere_rings',
   'chrysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
-  'chrysanthemum_sphere_rings': 'crysanthemum_sphere_rings'
+  'chrysanthemum_sphere_rings': 'crysanthemum_sphere_rings',
+  'sphere-rings-wave': 'sphere_rings_wave',
+  'sphere_rings_wave': 'sphere_rings_wave',
+  'sphere-rings-cascade': 'sphere_rings_cascade',
+  'sphere_rings_cascade': 'sphere_rings_cascade',
+  'sphere-rings-strobe': 'sphere_rings_strobe',
+  'sphere_rings_strobe': 'sphere_rings_strobe',
+  'slow-burst': 'slow-burst',
+  'slow_burst': 'slow-burst',
+  'slowburst': 'slow-burst'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

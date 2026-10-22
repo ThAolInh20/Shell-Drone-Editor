@@ -542,6 +542,7 @@ export default {
         erraticDart: "Erratic Darting",
         longBurn: "Long Burn",
         apexHang: "Apex Hang",
+        slowBurst: "Slow Burst",
         activeEffects: "Active Effects",
         launchSound: "Launch Sound",
         burstSound: "Burst Sound",
@@ -623,7 +624,9 @@ export default {
           "sparkling-branch-comet": "Sparkling Branch Comet",
           "tadpole-spiral": "Tadpole Swimming Spiral",
           crysanthemum_discrete_trail: "Chrysanthemum Discrete Trail",
-          "crysanthemum-discrete-trail": "Chrysanthemum Discrete Trail"
+          "crysanthemum-discrete-trail": "Chrysanthemum Discrete Trail",
+          sphere_rings_wave: "Sphere Rings Staggered Wave",
+          "sphere-rings-wave": "Sphere Rings Staggered Wave"
         },
         pattern: {
           random: "Random",
@@ -689,6 +692,8 @@ export default {
           sparkling_comet_branches: "Sparkling Comet Multi Branch",
           crysanthemum: "Chrysanthemum",
           crysanthemum_sphere_rings: "Chrysanthemum Sphere Rings",
+          sphere_rings_cascade: "Sphere Rings Cascade",
+          sphere_rings_strobe: "Sphere Rings Synchronous Strobe",
           crysanthemum_uniform_sphere: "Chrysanthemum Uniform Sphere",
           crysanthemum_v2: "Chrysanthemum V2",
           crysanthemum_smoke: "Chrysanthemum Smoke",
