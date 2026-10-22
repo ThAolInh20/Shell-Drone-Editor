@@ -194,6 +194,49 @@ export class FireworkSystem {
     this.globalBurstPoints.layers.enable(LAYER_REFLECTION);
     this.scene.add(this.globalBurstPoints);
 
+    // Global Burst Velocity Lines (Option 1: Directional velocity streak rendering)
+    this.burstLinePositionsArray = new Float32Array(
+      this.allocatedMaxBurstParticles * 2 * 3
+    );
+    this.burstLineColorsArray = new Float32Array(
+      this.allocatedMaxBurstParticles * 2 * 3
+    );
+
+    this.burstLinesGeometry = new THREE.BufferGeometry();
+    this.burstLinesPositionsAttr = new THREE.BufferAttribute(
+      this.burstLinePositionsArray,
+      3
+    );
+    this.burstLinesColorsAttr = new THREE.BufferAttribute(
+      this.burstLineColorsArray,
+      3
+    );
+    this.burstLinesGeometry.setAttribute(
+      'position',
+      this.burstLinesPositionsAttr
+    );
+    this.burstLinesGeometry.setAttribute(
+      'color',
+      this.burstLinesColorsAttr
+    );
+    this.burstLinesGeometry.setDrawRange(0, 0);
+
+    this.burstLinesMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    this.burstLines = new THREE.LineSegments(
+      this.burstLinesGeometry,
+      this.burstLinesMaterial
+    );
+    this.burstLines.frustumCulled = false;
+    this.burstLines.layers.enable(LAYER_REFLECTION);
+    this.scene.add(this.burstLines);
+
     this.scheduledBursts = [];
 
     this.burstPositionsAttr = this.globalBurstGeometry.getAttribute('position');
@@ -4063,10 +4106,12 @@ export class FireworkSystem {
       this.allocatedMaxBurstParticles
     );
 
-    // 4. Fill Geometry Buffers
+    // 4. Fill Geometry Buffers (Points + Directional Velocity Streaks)
+    const streakDt = 0.038;
     for (let i = 0; i < count; i++) {
       const p = this.burstParticles[i];
 
+      // Points buffer
       this.burstPositionsArray[i * 3] = p.position.x;
       this.burstPositionsArray[i * 3 + 1] = p.position.y;
       this.burstPositionsArray[i * 3 + 2] = p.position.z;
@@ -4077,6 +4122,68 @@ export class FireworkSystem {
 
       this.burstSizesArray[i] = p.renderSize;
       this.burstOpacitiesArray[i] = p.renderOpacity;
+
+      // Lines buffer: Head vertex (i * 2) and Tail vertex (i * 2 + 1)
+      const v0 = i * 6;
+      const v1 = v0 + 3;
+
+      this.burstLinePositionsArray[v0] = p.position.x;
+      this.burstLinePositionsArray[v0 + 1] = p.position.y;
+      this.burstLinePositionsArray[v0 + 2] = p.position.z;
+
+      const vx = p.velocity?.x || 0;
+      const vy = p.velocity?.y || 0;
+      const vz = p.velocity?.z || 0;
+      let sx = vx * streakDt;
+      let sy = vy * streakDt;
+      let sz = vz * streakDt;
+      const sLenSq = sx * sx + sy * sy + sz * sz;
+      if (sLenSq > 6.25) {
+        const factor = 2.5 / Math.sqrt(sLenSq);
+        sx *= factor;
+        sy *= factor;
+        sz *= factor;
+      }
+
+      this.burstLinePositionsArray[v1] = p.position.x - sx;
+      this.burstLinePositionsArray[v1 + 1] = p.position.y - sy;
+      this.burstLinePositionsArray[v1 + 2] = p.position.z - sz;
+
+      const op = p.renderOpacity ?? 1.0;
+      if (
+        op > 0.001 &&
+        (p.renderSize || 0) > 0.001 &&
+        (p.color.r + p.color.g + p.color.b) > 0.001
+      ) {
+        // Head: whitened core
+        this.burstLineColorsArray[v0] = THREE.MathUtils.lerp(
+          p.color.r,
+          1.0,
+          0.65
+        ) * op;
+        this.burstLineColorsArray[v0 + 1] = THREE.MathUtils.lerp(
+          p.color.g,
+          1.0,
+          0.65
+        ) * op;
+        this.burstLineColorsArray[v0 + 2] = THREE.MathUtils.lerp(
+          p.color.b,
+          1.0,
+          0.65
+        ) * op;
+
+        // Tail: colored hue fading out
+        this.burstLineColorsArray[v1] = p.color.r * op * 0.15;
+        this.burstLineColorsArray[v1 + 1] = p.color.g * op * 0.15;
+        this.burstLineColorsArray[v1 + 2] = p.color.b * op * 0.15;
+      } else {
+        this.burstLineColorsArray[v0] = 0;
+        this.burstLineColorsArray[v0 + 1] = 0;
+        this.burstLineColorsArray[v0 + 2] = 0;
+        this.burstLineColorsArray[v1] = 0;
+        this.burstLineColorsArray[v1 + 1] = 0;
+        this.burstLineColorsArray[v1 + 2] = 0;
+      }
     }
 
     if (count > 0) {
@@ -4106,8 +4213,29 @@ export class FireworkSystem {
         0,
         count
       );
+
+      // Line segments updates
+      this.burstLinesPositionsAttr.needsUpdate = true;
+      this.burstLinesColorsAttr.needsUpdate = true;
+      if (this.burstLinesPositionsAttr.updateRange) {
+        this.burstLinesPositionsAttr.updateRange.offset = 0;
+        this.burstLinesPositionsAttr.updateRange.count = count * 6;
+      }
+      if (this.burstLinesColorsAttr.updateRange) {
+        this.burstLinesColorsAttr.updateRange.offset = 0;
+        this.burstLinesColorsAttr.updateRange.count = count * 6;
+      }
+
+      this.burstLinesGeometry.setDrawRange(
+        0,
+        count * 2
+      );
     } else {
       this.globalBurstGeometry.setDrawRange(
+        0,
+        0
+      );
+      this.burstLinesGeometry.setDrawRange(
         0,
         0
       );
@@ -4130,6 +4258,13 @@ export class FireworkSystem {
       }
     }
     this.eventSubscriptions.length = 0;
+    if (this.burstLines) {
+      if (this.scene) {
+        this.scene.remove(this.burstLines);
+      }
+      this.burstLinesGeometry?.dispose();
+      this.burstLinesMaterial?.dispose();
+    }
   }
 
   burstAll() {
