@@ -1293,7 +1293,11 @@ export class PropertyInspector {
       });
 
       AVAILABLE_EFFECT_TAGS.forEach((tag) => {
-        if (targetEvent[tag.key] && !list.some((e) => e.type === tag.key)) {
+        const hasLegacy = Boolean(
+          targetEvent[tag.key]
+          || (tag.key === 'burst-smoke' && targetEvent.burstSmoke)
+        );
+        if (hasLegacy && !list.some((e) => e.type === tag.key)) {
           list.push({
             type: tag.key,
             startRatio: 0.1,
@@ -1313,8 +1317,14 @@ export class PropertyInspector {
       AVAILABLE_EFFECT_TAGS.forEach((tag) => {
         if (activeKeys.has(tag.key)) {
           targetEvent[tag.key] = true;
+          if (tag.key === 'burst-smoke') {
+            targetEvent.burstSmoke = true;
+          }
         } else {
           delete targetEvent[tag.key];
+          if (tag.key === 'burst-smoke') {
+            delete targetEvent.burstSmoke;
+          }
         }
       });
     };

@@ -70,7 +70,12 @@ export class BurstParticleFactory {
     const hasBurstSmoke = Boolean(
       !preset?.noBurst && (
         effectsList.includes('burst-smoke')
-        || (Array.isArray(preset?.effects) && preset.effects.includes('burst-smoke'))
+        || (
+          Array.isArray(preset?.effects)
+          && preset.effects.some(
+            (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+          )
+        )
         || preset?.['burst-smoke']
         || preset?.burstSmoke
       )

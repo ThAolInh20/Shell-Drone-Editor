@@ -17,8 +17,9 @@ export const EFFECT_COLORS = {
   'long-burn': { bg: 'rgba(249, 115, 22, 0.38)', border: '#f97316', text: '#fdba74' },
   'apex-hang': { bg: 'rgba(236, 72, 153, 0.38)', border: '#ec4899', text: '#f472b6' },
   'slow-burst': { bg: 'rgba(186, 230, 253, 0.38)', border: '#38bdf8', text: '#bae6fd' },
-  'slow_burst': { bg: 'rgba(186, 230, 253, 0.38)', border: '#38bdf8', text: '#bae6fd' },
-  'burst-smoke': { bg: 'rgba(148, 163, 184, 0.38)', border: '#94a3b8', text: '#cbd5e1' }
+  'burst-smoke': { bg: 'rgba(148, 163, 184, 0.38)', border: '#94a3b8', text: '#cbd5e1' },
+  'burst_smoke': { bg: 'rgba(148, 163, 184, 0.38)', border: '#94a3b8', text: '#cbd5e1' },
+  'burstSmoke': { bg: 'rgba(148, 163, 184, 0.38)', border: '#94a3b8', text: '#cbd5e1' }
 };
 
 export function createSvgIcon(type, size = 14) {

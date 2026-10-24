@@ -368,5 +368,23 @@ describe('FireworkSequencer', () => {
       expect(task.options.effectOverrides.starLifeMultiplier).toBe(4.5);
     }
   });
+
+  it('should forward burst-smoke and optical active effect flags to effectOverrides in playPattern', () => {
+    sequencer.playPattern('sweep-left', {
+      count: 2,
+      duration: 1.0,
+      'burst-smoke': true,
+      ghost: true,
+      crossette: true
+    });
+
+    expect(sequencer.activeTasks.length).toBe(2);
+    for (const task of sequencer.activeTasks) {
+      expect(task.options.effectOverrides).toBeDefined();
+      expect(task.options.effectOverrides['burst-smoke']).toBe(true);
+      expect(task.options.effectOverrides.ghost).toBe(true);
+      expect(task.options.effectOverrides.crossette).toBe(true);
+    }
+  });
 });
 

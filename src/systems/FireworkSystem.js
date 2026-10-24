@@ -455,6 +455,13 @@ export class FireworkSystem {
       const instantLifeMul = (shellPreset?.starLifeMultiplier !== undefined && !isNaN(Number(shellPreset.starLifeMultiplier)))
         ? Math.max(0.2, Number(shellPreset.starLifeMultiplier))
         : 1.0;
+      const hasBurstSmoke = !hasNoBurst && (
+        (Array.isArray(shellPreset.effects) && shellPreset.effects.some(
+          (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+        ))
+        || Boolean(shellPreset['burst-smoke'])
+        || Boolean(shellPreset.burstSmoke)
+      );
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -464,6 +471,8 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
           effects: shellPreset.effects,
+          hasBurstSmoke,
+          burstSmoke: hasBurstSmoke,
           sound: shellPreset.sound || null,
           noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
@@ -3133,7 +3142,9 @@ export class FireworkSystem {
       const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
         || Boolean(item.preset?.['no-burst']);
       const hasBurstSmoke = !hasNoBurst && (
-        (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+        (Array.isArray(item.preset?.effects) && item.preset.effects.some(
+          (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+        ))
         || Boolean(item.preset?.['burst-smoke'])
         || Boolean(item.preset?.burstSmoke)
       );
@@ -3222,7 +3233,9 @@ export class FireworkSystem {
       || item.preset?.effectType === 'ghost'
       || Boolean(item.preset?.ghost);
     const hasBurstSmoke = !hasNoBurst && (
-      (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+      (Array.isArray(item.preset?.effects) && item.preset.effects.some(
+        (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+      ))
       || Boolean(item.preset?.['burst-smoke'])
       || Boolean(item.preset?.burstSmoke)
     );
@@ -3914,6 +3927,8 @@ export class FireworkSystem {
             (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
           );
           const smokeOptions = {
+            category: isStarBurstSmoke ? 'burst' : 'aerial',
+            force: isStarBurstSmoke,
             life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
             scale: (2.8 + Math.random() * 1.8) * densityMult,
             growth: 2.8,
