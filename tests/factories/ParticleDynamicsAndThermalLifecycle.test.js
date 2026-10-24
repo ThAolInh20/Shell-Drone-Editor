@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { FIREWORK_CONFIG } from '../../src/config/fireworks.js';
+import { FIREWORK_CONFIG, BASE_BURST_PROFILE } from '../../src/config/fireworks.js';
 import { BurstEffectProcessor } from '../../src/factories/BurstEffectProcessor.js';
+import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 
 describe('Particle Dynamics and Thermal Lifecycle', () => {
   it('should define aerodynamic drag and organic dispersion constants in FIREWORK_CONFIG.BURST', () => {
@@ -216,6 +217,13 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     expect(particleVel.z).toBeGreaterThan(0.15);
   });
 
+  it('should define reduced wind coupling parameters in FIREWORK_CONFIG.BURST', () => {
+    expect(FIREWORK_CONFIG.BURST.windCouplingScale).toBeCloseTo(0.25);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceLongBurn).toBeCloseTo(0.16);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceDyingEmber).toBeCloseTo(0.21);
+    expect(FIREWORK_CONFIG.BURST.windInfluenceFloating).toBeCloseTo(0.11);
+  });
+
   it('should define longBurn parameters in FIREWORK_CONFIG and support extended lifetime', () => {
     expect(FIREWORK_CONFIG.BURST.longBurnMultiplier).toBeGreaterThan(1.5);
     expect(FIREWORK_CONFIG.BURST.longBurnDissolveStart).toBeGreaterThan(0.65);
@@ -224,5 +232,121 @@ describe('Particle Dynamics and Thermal Lifecycle', () => {
     const baseLife = FIREWORK_CONFIG.BURST.baseLife;
     const longBurnLife = baseLife * FIREWORK_CONFIG.BURST.longBurnMultiplier;
     expect(longBurnLife).toBeGreaterThan(4.0);
+  });
+
+  it('should define terminalVelocity and phase budget boundaries in FIREWORK_CONFIG.BURST', () => {
+    expect(FIREWORK_CONFIG.BURST.terminalVelocity).toBeLessThan(0);
+    expect(FIREWORK_CONFIG.BURST.phaseExpansionEnd).toBe(0.35);
+    expect(FIREWORK_CONFIG.BURST.phaseApexEnd).toBe(0.65);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.terminalVelocity).toBe(-15.0);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.terminalVelocity).toBe(-9.5);
+  });
+
+  it('should centralize common burst physics and photometrics in BASE_BURST_PROFILE and inherit across profiles', () => {
+    expect(BASE_BURST_PROFILE.baseSpeed).toBe(74);
+    expect(BASE_BURST_PROFILE.attenuationStart).toBe(0.35);
+    expect(BASE_BURST_PROFILE.dissolveStart).toBe(0.60);
+    expect(BASE_BURST_PROFILE.coolingStart).toBe(0.55);
+
+    // Standard profile inherits directly
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.attenuationStart).toBe(0.35);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.standard.hasApexBrake).toBe(false);
+
+    // Willow profile overrides specific properties while inheriting baseline
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.baseSpeed).toBe(58);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.attenuationStart).toBe(0.45);
+    expect(FIREWORK_CONFIG.DYNAMICS_PROFILES.willow.hasApexBrake).toBe(false);
+  });
+
+  it('should attenuate particle light smoothly when transitioning from apex into falling phase', () => {
+    const particle = {
+      baseColor: new THREE.Color(0.9, 0.5, 0.1),
+      effectType: 'standard'
+    };
+    const profile = FIREWORK_CONFIG.DYNAMICS_PROFILES.standard;
+
+    // Full brightness during stable expansion (lifeRatio = 0.25)
+    const midColor = BurstEffectProcessor.resolveParticleColor(
+      particle,
+      0.25,
+      { profile }
+    );
+    expect(midColor.r).toBeCloseTo(0.9);
+    expect(midColor.g).toBeCloseTo(0.5);
+
+    // Light starts softening during drop phase (lifeRatio = 0.45, between attenuationStart 0.35 and coolingStart 0.55)
+    const droppingColor = BurstEffectProcessor.resolveParticleColor(
+      particle,
+      0.45,
+      { profile }
+    );
+    expect(droppingColor.r).toBeLessThan(midColor.r);
+    expect(droppingColor.g).toBeLessThan(midColor.g);
+    expect(droppingColor.r).toBeGreaterThan(0.65); // Gentle attenuation, not sudden drop
+  });
+
+  it('should scale drag and clamp terminal velocity over extended lifetime in FireworkSystem simulation', () => {
+    const scene = new THREE.Scene();
+    const mockTrailSystem = {
+      spawnEffectSpark: vi.fn(),
+      spawnTrailParticle: vi.fn(),
+      spawnMicroCrackle: vi.fn()
+    };
+    const fireworkSystem = new FireworkSystem(scene, mockTrailSystem);
+
+    fireworkSystem.createBurst(
+      new THREE.Vector3(0, 150, 0),
+      new THREE.Color(0xffaa00),
+      'sphere',
+      { starLifeMultiplier: 5.0 },
+      'test-extended-5x'
+    );
+
+    const particle = fireworkSystem.burstParticles.find((p) => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
+    expect(particle.maxLife).toBeGreaterThan(8.0);
+
+    // Simulate through Phase 1 into Phase 3 (late fall)
+    for (let s = 0; s < 180; s++) {
+      fireworkSystem.update(0.04);
+    }
+
+    // Ensure particle y velocity is smoothly clamped and does not plummet at extreme speeds
+    expect(particle.velocity.y).toBeGreaterThanOrEqual(-18.0);
+    expect(particle.position.y).toBeGreaterThan(0);
+  });
+
+  it('should excite frictionHeat and boost core luminance upon sudden velocity impulse', () => {
+    const scene = new THREE.Scene();
+    const mockTrailSystem = {
+      spawnEffectSpark: vi.fn(),
+      spawnTrailParticle: vi.fn(),
+      spawnMicroCrackle: vi.fn()
+    };
+    const fireworkSystem = new FireworkSystem(scene, mockTrailSystem);
+
+    fireworkSystem.createBurst(
+      new THREE.Vector3(0, 100, 0),
+      new THREE.Color(0x0088ff),
+      'sphere',
+      {},
+      'test-friction'
+    );
+
+    const particle = fireworkSystem.burstParticles[0];
+    expect(particle.frictionHeat).toBeDefined();
+
+    // Cause sudden sharp velocity deflection
+    particle.velocity.set(0, 50, 0);
+    fireworkSystem.update(0.016);
+    particle.velocity.set(40, -30, 20); // Sudden large impulse
+    fireworkSystem.update(0.016);
+
+    expect(particle.frictionHeat).toBeGreaterThan(0.05);
+
+    // Verify resolveParticleColor boosts core brightness when frictionHeat is present
+    const boostedColor = BurstEffectProcessor.resolveParticleColor(particle, 0.35);
+    expect(boostedColor.r).toBeGreaterThan(0.5); // Core whitening
+    expect(boostedColor.g).toBeGreaterThan(0.8);
+    expect(boostedColor.b).toBeGreaterThan(1.2);
   });
 });

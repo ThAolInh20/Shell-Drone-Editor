@@ -11,6 +11,7 @@ import { InstancedShellRenderer } from '../render/InstancedShellRenderer.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
 import { atmosphereManager } from '../environment/AtmosphereManager.js';
+import { renderingConfig } from '../config/rendering.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const BASE_BURST_PARTICLES = FIREWORK_CONFIG.BURST.baseParticles;
@@ -111,6 +112,12 @@ export class FireworkSystem {
       )
     );
 
+    this.burstUniforms = {
+      uEdgeSoftness: {
+        value: renderingConfig.post?.particleEdgeSoftness ?? 0.75
+      }
+    };
+
     this.globalBurstMaterial = new THREE.PointsMaterial({
       vertexColors: true,
       transparent: true,
@@ -120,6 +127,9 @@ export class FireworkSystem {
     });
 
     this.globalBurstMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uEdgeSoftness = this.burstUniforms.uEdgeSoftness;
+      this.burstShader = shader;
+
       // Add custom attribute floats for particle-specific sizes and opacities
       shader.vertexShader = `
         attribute float aSize;
@@ -140,6 +150,7 @@ export class FireworkSystem {
 
       // Patch the fragment shader to apply the custom opacity and gradient
       shader.fragmentShader = `
+        uniform float uEdgeSoftness;
         varying float vOpacity;
       ` + shader.fragmentShader.replace(
         '#include <color_fragment>',
@@ -148,24 +159,25 @@ export class FireworkSystem {
         
         vec2 coord = gl_PointCoord - vec2(0.5);
         float dist = length(coord) * 2.0;
-        if (dist > 1.0) discard;
+        if (dist > uEdgeSoftness) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
         vec4 stop1 = vec4(diffuseColor.rgb, 0.34);
         vec4 stop2 = vec4(diffuseColor.rgb, 0.16);
         vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
         
+        float outerStart = min(0.32, uEdgeSoftness * 0.45);
         vec4 gradientColor;
         if (dist < 0.024) {
             gradientColor = stop0;
-        } else if (dist < 0.125) {
-            float t = (dist - 0.024) / (0.125 - 0.024);
+        } else if (dist < min(0.125, outerStart)) {
+            float t = (dist - 0.024) / max(0.001, min(0.125, outerStart) - 0.024);
             gradientColor = mix(stop0, stop1, t);
-        } else if (dist < 0.32) {
-            float t = (dist - 0.125) / (0.32 - 0.125);
+        } else if (dist < outerStart) {
+            float t = (dist - min(0.125, outerStart)) / max(0.001, outerStart - min(0.125, outerStart));
             gradientColor = mix(stop1, stop2, t);
-          } else {
-            float t = (dist - 0.32) / (1.0 - 0.32);
+        } else {
+            float t = (dist - outerStart) / max(0.001, uEdgeSoftness - outerStart);
             gradientColor = mix(stop2, stop3, t);
         }
         
@@ -181,6 +193,49 @@ export class FireworkSystem {
     this.globalBurstPoints.frustumCulled = false;
     this.globalBurstPoints.layers.enable(LAYER_REFLECTION);
     this.scene.add(this.globalBurstPoints);
+
+    // Global Burst Velocity Lines (Option 1: Directional velocity streak rendering)
+    this.burstLinePositionsArray = new Float32Array(
+      this.allocatedMaxBurstParticles * 2 * 3
+    );
+    this.burstLineColorsArray = new Float32Array(
+      this.allocatedMaxBurstParticles * 2 * 3
+    );
+
+    this.burstLinesGeometry = new THREE.BufferGeometry();
+    this.burstLinesPositionsAttr = new THREE.BufferAttribute(
+      this.burstLinePositionsArray,
+      3
+    );
+    this.burstLinesColorsAttr = new THREE.BufferAttribute(
+      this.burstLineColorsArray,
+      3
+    );
+    this.burstLinesGeometry.setAttribute(
+      'position',
+      this.burstLinesPositionsAttr
+    );
+    this.burstLinesGeometry.setAttribute(
+      'color',
+      this.burstLinesColorsAttr
+    );
+    this.burstLinesGeometry.setDrawRange(0, 0);
+
+    this.burstLinesMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    this.burstLines = new THREE.LineSegments(
+      this.burstLinesGeometry,
+      this.burstLinesMaterial
+    );
+    this.burstLines.frustumCulled = false;
+    this.burstLines.layers.enable(LAYER_REFLECTION);
+    this.scene.add(this.burstLines);
 
     this.scheduledBursts = [];
 
@@ -210,6 +265,27 @@ export class FireworkSystem {
         }
       )
     );
+  }
+
+  setParticleEdgeSoftness(value) {
+    if (
+      this.burstUniforms &&
+      this.burstUniforms.uEdgeSoftness
+    ) {
+      this.burstUniforms.uEdgeSoftness.value = value;
+    }
+    if (
+      this.trailSystem &&
+      typeof this.trailSystem.setParticleEdgeSoftness === 'function'
+    ) {
+      this.trailSystem.setParticleEdgeSoftness(value);
+    }
+  }
+
+  getParticleEdgeSoftness() {
+    return this.burstUniforms?.uEdgeSoftness?.value ??
+      renderingConfig.post?.particleEdgeSoftness ??
+      0.75;
   }
 
   setGraphicsQuality(quality) {
@@ -376,6 +452,16 @@ export class FireworkSystem {
         || shellPreset.effectType === 'strobe'
         || Boolean(shellPreset.strobe);
       const isDyingEmberManual = Boolean(shellPreset.isDyingEmber);
+      const instantLifeMul = (shellPreset?.starLifeMultiplier !== undefined && !isNaN(Number(shellPreset.starLifeMultiplier)))
+        ? Math.max(0.2, Number(shellPreset.starLifeMultiplier))
+        : 1.0;
+      const hasBurstSmoke = !hasNoBurst && (
+        (Array.isArray(shellPreset.effects) && shellPreset.effects.some(
+          (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+        ))
+        || Boolean(shellPreset['burst-smoke'])
+        || Boolean(shellPreset.burstSmoke)
+      );
 
       this.emitFireworkEvent(
         'firework:burst',
@@ -385,6 +471,8 @@ export class FireworkSystem {
           shapeType: shellPreset.shapeType,
           effectType: shellPreset.effectType,
           effects: shellPreset.effects,
+          hasBurstSmoke,
+          burstSmoke: hasBurstSmoke,
           sound: shellPreset.sound || null,
           noBurstSound: hasNoBurst || Boolean(shellPreset.noBurstSound),
           colorHex: finalColor.getHex(),
@@ -395,7 +483,7 @@ export class FireworkSystem {
           },
           intensity: normalizedEnergy,
           duration: 1.25 + normalizedEnergy * 1.1,
-          particleLife: BURST_LIFE * (isDyingEmberManual ? 2.0 : 1.0),
+          particleLife: BURST_LIFE * (isDyingEmberManual ? 2.0 : 1.0) * instantLifeMul,
           isStrobe: isStrobeManual
         }
       );
@@ -1438,6 +1526,7 @@ export class FireworkSystem {
       }
 
       const stageEffects = Array.isArray(stage.effects) ? stage.effects : [];
+      const stageEffectKeys = stageEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
       const stagePreset = {
         ...preset,
         multiNested: false,
@@ -1446,10 +1535,10 @@ export class FireworkSystem {
         dynamicsType: stage.dynamicsType || 'standard',
         effects: stageEffects,
         shellSize: baseSize * stageScale,
-        strobe: stageEffects.includes('strobe') || Boolean(stage.strobe),
-        crackle: stageEffects.includes('crackle') || Boolean(stage.crackle),
-        noTrail: stageEffects.includes('no-trail') || Boolean(stage.noTrail),
-        crossette: stageEffects.includes('crossette') || Boolean(stage.crossette)
+        strobe: stageEffectKeys.includes('strobe') || Boolean(stage.strobe),
+        crackle: stageEffectKeys.includes('crackle') || Boolean(stage.crackle),
+        noTrail: stageEffectKeys.includes('no-trail') || Boolean(stage.noTrail),
+        crossette: stageEffectKeys.includes('crossette') || Boolean(stage.crossette)
       };
 
       if (delay <= 0.001) {
@@ -1620,7 +1709,8 @@ export class FireworkSystem {
     }
 
     const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
-    const crackleEnabled = Boolean(preset?.crackle) || effectsList.includes('crackle');
+    const effectKeys = effectsList.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+    const crackleEnabled = Boolean(preset?.crackle) || effectKeys.includes('crackle');
     const requestedEffect = preset?.dynamicsType
       || preset?.dynamics
       || (preset?.flow !== undefined
@@ -1794,7 +1884,9 @@ export class FireworkSystem {
       isErraticDartShell,
       hasBurstSmoke: isBurstSmokeActive,
       isLongBurn,
-      isApexHang
+      isApexHang,
+      isSlowBurst,
+      hasNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset,
       effects: effectsList,
@@ -1950,6 +2042,7 @@ export class FireworkSystem {
       const isSpiralArm = isSpiralV2 && (i < spiralArmCount);
 
       let direction;
+      let rawDir = null;
       if (isSpiralArm) {
         const tArm = i / Math.max(1, spiralArmCount - 1);
         const turns = 3.5;
@@ -1961,7 +2054,7 @@ export class FireworkSystem {
           Math.sin(phi) * Math.sin(theta)
         ).applyQuaternion(burstRotation);
       } else {
-        const rawDir = BurstShapeGenerator.direction(
+        rawDir = BurstShapeGenerator.direction(
           particleShape,
           angle,
           particleIndex,
@@ -1975,7 +2068,7 @@ export class FireworkSystem {
         }
       }
 
-      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy');
+      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg') || (particleShape === 'sphere_rings');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -2007,6 +2100,12 @@ export class FireworkSystem {
         baseSpeed = profileBaseSpeed * outlineSpeedBand;
       } else if (particleShape === 'galaxy') {
         baseSpeed = profileBaseSpeed * (1.15 + Math.random() * 0.2);
+      } else if (particleShape === 'egg') {
+        const eggSpeedBand = 0.96 + Math.random() * 0.08;
+        baseSpeed = profileBaseSpeed * eggSpeedBand;
+      } else if (particleShape === 'sphere_rings') {
+        const ringsSpeedBand = 0.98 + (Math.random() - 0.5) * 0.04;
+        baseSpeed = profileBaseSpeed * ringsSpeedBand;
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
         const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
           ? (0.97 + Math.random() * 0.06)
@@ -2031,12 +2130,16 @@ export class FireworkSystem {
       const apexSpeedMul = isApexHang
         ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
         : 1.0;
+      const slowBurstSpeedMul = isSlowBurst
+        ? ((FIREWORK_CONFIG.DYNAMICS_PROFILES?.floating?.baseSpeed ?? 36) / (FIREWORK_CONFIG.BURST?.baseSpeed ?? 74))
+        : 1.0;
       const speed = baseSpeed *
         (useContourMagnitude ? 1.15 : 1) *
         shellSizeScale *
         speedJitterScale *
         (isDyingEmber ? 0.85 : 1.0) *
-        apexSpeedMul;
+        apexSpeedMul *
+        slowBurstSpeedMul;
 
       const normDir = direction.clone().normalize();
       const velocityVal = direction.multiplyScalar(speed);
@@ -2062,6 +2165,15 @@ export class FireworkSystem {
         }
       } else if (normalizedEffect === 'crysanthemum-cc') {
         particleColor = burstColor;
+      } else if (particleShape === 'sphere_rings' && rawDir?.ringIndex !== undefined) {
+        if (preset?.ringColors && Array.isArray(preset.ringColors) && preset.ringColors.length > 0) {
+          const ringColorHex = preset.ringColors[rawDir.ringIndex % preset.ringColors.length];
+          particleColor = new THREE.Color(ringColorHex);
+        } else if (preset?.colorPerRing && color2Blend) {
+          particleColor = (rawDir.ringIndex % 2 === 0) ? burstColor : color2Blend;
+        } else {
+          particleColor = burstColor;
+        }
       }
 
       const finalColorVal = particleColor.clone().multiplyScalar(brightnessIntensity);
@@ -2157,6 +2269,7 @@ export class FireworkSystem {
         maxLife: particleMaxLife,
         isLongBurn: isEffectiveLongBurn,
         isApexHang,
+        isSlowBurst,
         effectType: isGhostEffect
           ? 'ghost'
           : (isCCEffect ? 'crysanthemum-cc' : normalizedEffect),
@@ -2164,21 +2277,23 @@ export class FireworkSystem {
           && !isDyingEmber
           && (crackleEnabled || normalizedEffect === 'crackle'),
         crackleTriggered: false,
-        phase: effectState.phase
-          ? effectState.phase[i]
-          : 0,
+        phase: (particleShape === 'sphere_rings' && rawDir?.ringIndex !== undefined && rawDir?.ringIndex !== null)
+          ? rawDir.ringIndex * 0.75
+          : (effectState.phase ? effectState.phase[i] : 0),
         preset,
         heightProfile,
         effectState,
         ghostDot: ghostDotVal,
         spiralIndex: spiralIndexVal,
         isSpiralArm: Boolean(isSpiralArm),
+        ringIndex: rawDir?.ringIndex ?? null,
         particleIndex: i,
         totalParticleCount: burstParticleCount,
         shellId: shellId ?? Math.floor(Math.random() * 100000000),
         isDyingEmber,
         isNestedTrigger,
         effects: effectsList,
+        hasNoTrail,
         dragCoefficient: particleDrag,
         dynamicsProfile,
         hasBurstSmoke: isBurstSmokeActive,
@@ -2293,7 +2408,9 @@ export class FireworkSystem {
       isGhostEffect,
       isCCEffect,
       isLongBurn: isContourLongBurn,
-      isApexHang: isContourApexHang
+      isApexHang: isContourApexHang,
+      isSlowBurst: isContourSlowBurst,
+      hasNoTrail: isStageNoTrail
     } = BurstParticleFactory.resolveActiveEffectFlags({
       preset: cfg,
       effects: childEffects,
@@ -2370,8 +2487,11 @@ export class FireworkSystem {
       const contourApexSpeedMul = isContourApexHang
         ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
         : 1.0;
+      const contourSlowBurstSpeedMul = isContourSlowBurst
+        ? ((FIREWORK_CONFIG.DYNAMICS_PROFILES?.floating?.baseSpeed ?? 36) / (FIREWORK_CONFIG.BURST?.baseSpeed ?? 74))
+        : 1.0;
       const vel = dir.multiplyScalar(
-        baseSpeed * speedVariance * contourApexSpeedMul
+        baseSpeed * speedVariance * contourApexSpeedMul * contourSlowBurstSpeedMul
       ).add(parentVelInheritance);
 
       const hasParticleErraticDart = isErraticDartShell
@@ -2401,6 +2521,7 @@ export class FireworkSystem {
           : childLife * childLifeMul * (isContourApexHang ? 1.35 : 1.0),
         isLongBurn: isContourLongBurn || childLifeMul >= 1.5,
         isApexHang: isContourApexHang,
+        isSlowBurst: isContourSlowBurst,
         effectType: isGhostEffect ? 'ghost' : (isCCEffect ? 'crysanthemum-cc' : childDynamics),
         crackle: childEffects.includes('crackle') || Boolean(cfg.crackle),
         phase: (childEffectState.phase && childEffectState.phase[k] !== undefined)
@@ -2418,6 +2539,7 @@ export class FireworkSystem {
         totalParticleCount: childParticleCount,
         shellId: p.shellId,
         effects: childEffects,
+        hasNoTrail: isStageNoTrail,
         hasBurstSmoke: isBurstSmokeActive,
         burstSmokeLimit: 0.28 + Math.random() * 0.10,
         isCrossette: isCrossetteShell && crossetteSplitMap.has(k),
@@ -3020,7 +3142,9 @@ export class FireworkSystem {
       const hasNoBurst = (Array.isArray(item.preset?.effects) && item.preset.effects.includes('no-burst'))
         || Boolean(item.preset?.['no-burst']);
       const hasBurstSmoke = !hasNoBurst && (
-        (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+        (Array.isArray(item.preset?.effects) && item.preset.effects.some(
+          (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+        ))
         || Boolean(item.preset?.['burst-smoke'])
         || Boolean(item.preset?.burstSmoke)
       );
@@ -3109,7 +3233,9 @@ export class FireworkSystem {
       || item.preset?.effectType === 'ghost'
       || Boolean(item.preset?.ghost);
     const hasBurstSmoke = !hasNoBurst && (
-      (Array.isArray(item.preset?.effects) && item.preset.effects.includes('burst-smoke'))
+      (Array.isArray(item.preset?.effects) && item.preset.effects.some(
+        (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
+      ))
       || Boolean(item.preset?.['burst-smoke'])
       || Boolean(item.preset?.burstSmoke)
     );
@@ -3118,6 +3244,9 @@ export class FireworkSystem {
       || item.preset?.effectType === 'strobe'
       || Boolean(item.preset?.strobe);
     const isDyingEmber = Boolean(item.preset?.isDyingEmber);
+    const flightLifeMul = (item.preset?.starLifeMultiplier !== undefined && !isNaN(Number(item.preset.starLifeMultiplier)))
+      ? Math.max(0.2, Number(item.preset.starLifeMultiplier))
+      : 1.0;
 
     this.emitFireworkEvent('firework:burst', {
       shellId: item.shellId,
@@ -3140,7 +3269,7 @@ export class FireworkSystem {
       burstRadius: 45.0 * (0.75 + 0.25 * shellSize),
       intensity: isGhostShell ? 0.0 : normalizedEnergy,
       duration: 1.25 + normalizedEnergy * 1.1,
-      particleLife: BURST_LIFE * (isDyingEmber ? 2.0 : 1.0),
+      particleLife: BURST_LIFE * (isDyingEmber ? 2.0 : 1.0) * flightLifeMul,
       isStrobe
     });
   }
@@ -3183,6 +3312,7 @@ export class FireworkSystem {
         spawnTrail,
         trailLife,
         trailIntensity,
+        trailSpawnChance,
         spawnSmoke,
         smokeLife,
         smokeOpacity
@@ -3196,36 +3326,40 @@ export class FireworkSystem {
       );
 
       // Micro crackle trigger
-      if (
-        p.crackle
-        && !p.isDyingEmber
-        && p.age >= p.maxLife * 0.65
-        && !p.crackleTriggered
-      ) {
-        p.crackleTriggered = true;
-        if (Math.random() < 0.65) {
-          const originPos = p.position.clone();
-          const origColor = p.baseColor.clone();
-          this.trailSystem.spawnMicroCrackle(
-            originPos,
-            origColor
-          );
-          this.emitFireworkEvent(
-            'firework:crackle',
-            {
-              sound: p.preset?.sound || null,
-              isSubBurst: Boolean(p.isSecondBurst || p.secondBurstDone),
-              source: 'burst-particle',
-              position: {
-                x: originPos.x,
-                y: originPos.y,
-                z: originPos.z
+      const crackleStart = p.crackleStart !== undefined ? p.crackleStart : p.maxLife * 0.65;
+      const crackleEnd = p.crackleEnd !== undefined ? p.crackleEnd : crackleStart;
+
+      if (p.crackle && !p.isDyingEmber) {
+        if (p.age >= crackleStart && p.age < crackleEnd) {
+          if (Math.random() < 0.20 && typeof this.trailSystem?.spawnMicroCrackle === 'function') {
+            this.trailSystem.spawnMicroCrackle(p.position, p.baseColor);
+          }
+        } else if (p.age >= crackleEnd && !p.crackleTriggered) {
+          p.crackleTriggered = true;
+          if (Math.random() < 0.65 && typeof this.trailSystem?.spawnMicroCrackle === 'function') {
+            const originPos = p.position.clone();
+            const origColor = p.baseColor.clone();
+            this.trailSystem.spawnMicroCrackle(
+              originPos,
+              origColor
+            );
+            this.emitFireworkEvent(
+              'firework:crackle',
+              {
+                sound: p.preset?.sound || null,
+                isSubBurst: Boolean(p.isSecondBurst || p.secondBurstDone),
+                source: 'burst-particle',
+                position: {
+                  x: originPos.x,
+                  y: originPos.y,
+                  z: originPos.z
+                }
               }
-            }
-          );
+            );
+          }
+          // Hide the original particle by setting its baseColor to 0
+          p.baseColor.setRGB(0, 0, 0);
         }
-        // Hide the original particle by setting its baseColor to 0
-        p.baseColor.setRGB(0, 0, 0);
       }
 
       // Crossette split cross trigger
@@ -3255,9 +3389,10 @@ export class FireworkSystem {
         const remainingLife = Math.max(0.65, p.maxLife - p.age);
 
         const hasNoTrail = Boolean(p.preset?.noTrail)
-          || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
-          || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
-          || p.effectType === 'no-trail';
+          || Boolean(p.hasNoTrail && (p.noTrailStart === undefined))
+          || BurstEffectProcessor.isEffectActive(p, 'no-trail')
+          || p.effectType === 'no-trail'
+          || p.effectType === 'notrail';
 
         const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
         const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
@@ -3294,6 +3429,23 @@ export class FireworkSystem {
 
       const lifeRatio = p.maxLife > 0 ? p.age / p.maxLife : 1;
 
+      // Đo xung biến thiên vận tốc từ frame trước (external impulses / redirection)
+      if (p.lastVelocity) {
+        const extDvx = p.velocity.x - p.lastVelocity.x;
+        const extDvy = p.velocity.y - p.lastVelocity.y;
+        const extDvz = p.velocity.z - p.lastVelocity.z;
+        const extImpulse = Math.sqrt(extDvx * extDvx + extDvy * extDvy + extDvz * extDvz);
+        if (extImpulse > 1.8) {
+          const heatGain = Math.min(1.0, (extImpulse - 1.8) * 0.16);
+          p.frictionHeat = Math.min(1.5, (p.frictionHeat || 0) + heatGain);
+        }
+      }
+
+      // Lưu vận tốc trước khi chịu các lực động lực học nội tại trong frame
+      const preVelX = p.velocity.x;
+      const preVelY = p.velocity.y;
+      const preVelZ = p.velocity.z;
+
       let finalGravityScale = BurstEffectProcessor.processErraticDart(
         p,
         deltaTime,
@@ -3320,8 +3472,7 @@ export class FireworkSystem {
         finalGravityScale *= gravityRamp;
       }
 
-      // Giảm tốc khí động học êm dịu theo hàm mũ tự nhiên (không giật khựng)
-
+      // Giảm tốc khí động học êm dịu theo hàm mũ tự nhiên (đồng nhất mọi hướng)
       const dragFactor = Math.exp(-currentDrag * deltaTime);
       p.velocity.x *= dragFactor;
       p.velocity.y *= dragFactor;
@@ -3331,7 +3482,7 @@ export class FireworkSystem {
         const gravScale = p.isLongBurn
           ? (FIREWORK_CONFIG.BURST?.longBurnGravityScale ?? 0.85)
           : 1.3;
-        finalGravityScale = gravityScale * gravScale;
+        finalGravityScale *= gravScale;
         p.velocity.multiplyScalar(p.isLongBurn ? 0.995 : 0.994);
       }
 
@@ -3391,27 +3542,78 @@ export class FireworkSystem {
       if (wind) {
         const isFloatingEffect = p.isLongBurn
           || p.isDyingEmber
+          || p.isSlowBurst
           || p.effectType === 'willow'
           || p.effectType === 'willow-arch'
           || p.effectType === 'falling-leaves'
           || p.effectType === 'kamuro';
 
         if (isFloatingEffect) {
-          const windInfluence = p.isLongBurn ? 0.65 : (p.isDyingEmber ? 0.85 : 0.45);
+          const windCfg = FIREWORK_CONFIG.BURST;
+          const windCouplingScale = windCfg?.windCouplingScale ?? 0.25;
+          const baseWindInfluence = p.isLongBurn
+            ? (windCfg?.windInfluenceLongBurn ?? (0.65 * windCouplingScale))
+            : (p.isDyingEmber
+              ? (windCfg?.windInfluenceDyingEmber ?? (0.85 * windCouplingScale))
+              : (windCfg?.windInfluenceFloating ?? (0.45 * windCouplingScale)));
+
           p.velocity.x = THREE.MathUtils.lerp(
             p.velocity.x,
             wind.x,
-            deltaTime * windInfluence
+            deltaTime * baseWindInfluence
           );
           p.velocity.z = THREE.MathUtils.lerp(
             p.velocity.z,
             wind.z,
-            deltaTime * windInfluence
+            deltaTime * baseWindInfluence
           );
         }
       }
 
       p.velocity.y += GRAVITY * deltaTime * finalGravityScale;
+
+      // Giới hạn vận tốc rơi cực đại (Terminal Fall Velocity) trong pha rũ tàn (Phase 3):
+      // Chỉ kích hoạt khi đã qua pha bung nở và đỉnh nở (lifeRatio >= phaseApexEnd)
+      // để tuyệt đối không cản trở vận tốc bung nở ban đầu của các hạt hướng xuống dưới.
+      const phaseApexEnd = FIREWORK_CONFIG.BURST?.phaseApexEnd ?? 0.65;
+      if (lifeRatio >= phaseApexEnd) {
+        const terminalVel = profile?.terminalVelocity
+          ?? (p.isLongBurn ? -10.0 : (FIREWORK_CONFIG.BURST?.terminalVelocity ?? -15.0));
+        if (p.velocity.y < terminalVel) {
+          const brakeRate = 4.5;
+          p.velocity.y = THREE.MathUtils.lerp(p.velocity.y, terminalVel, deltaTime * brakeRate);
+        }
+      }
+
+      // Khí động học ma sát nhiệt (Aerodynamic Ram Heating / Friction Impulse):
+      // Khi vận tốc biến thiên đột ngột (do lực cản gắt, bẻ góc, phanh đỉnh hoặc xung lực tách nhánh),
+      // lõi hạt hấp thụ nhiệt ma sát và bừng sáng rực rỡ tức thời.
+      const dvx = p.velocity.x - preVelX;
+      const dvy = p.velocity.y - preVelY;
+      const dvz = p.velocity.z - preVelZ;
+      const impulse = Math.sqrt(dvx * dvx + dvy * dvy + dvz * dvz);
+
+      if (impulse > 1.8) {
+        const heatGain = Math.min(1.0, (impulse - 1.8) * 0.16);
+        p.frictionHeat = Math.min(1.5, (p.frictionHeat || 0) + heatGain);
+      }
+      if (p.frictionHeat > 0.001) {
+        p.frictionHeat *= Math.exp(-deltaTime * 12.0);
+      } else {
+        p.frictionHeat = 0;
+      }
+
+      if (!p.lastVelocity) {
+        p.lastVelocity = new THREE.Vector3();
+      }
+      p.lastVelocity.set(p.velocity.x, p.velocity.y, p.velocity.z);
+
+      if (!p.prevPosition) {
+        p.prevPosition = p.position.clone();
+      } else {
+        p.prevPosition.copy(p.position);
+      }
+
       p.position.addScaledVector(
         p.velocity,
         deltaTime
@@ -3462,7 +3664,7 @@ export class FireworkSystem {
               1.2 + Math.random() * 2.0,
               (Math.random() - 0.5) * 3.5
             );
-            this.trailSystem.spawnEffectSpark(
+            this.trailSystem?.spawnEffectSpark?.(
               new THREE.Vector3(p.position.x, 0.05, p.position.z),
               p.baseColor.clone().lerp(new THREE.Color(0xffffff), 0.5),
               false,
@@ -3479,15 +3681,19 @@ export class FireworkSystem {
 
       // 2. Spawn Side Effects (sparks, trails, smoke)
       if (emitSpark && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01) {
-        this.trailSystem.spawnEffectSpark(
+        this.trailSystem?.spawnEffectSpark?.(
           p.position,
           CRACKLE_SPARK_COLOR
         );
       }
 
-      const parentFade = lifeRatio > BURST_DISSOLVE_START
+      const particleDissolveStart = p.isLongBurn
+        ? (profile?.longBurnDissolveStart ?? FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : (profile?.dissolveStart ?? BURST_DISSOLVE_START);
+
+      const parentFade = lifeRatio > particleDissolveStart
         ? Math.pow(
-          1.0 - (lifeRatio - BURST_DISSOLVE_START) / (1.0 - BURST_DISSOLVE_START),
+          1.0 - (lifeRatio - particleDissolveStart) / (1.0 - particleDissolveStart),
           2.0
         )
         : 1.0;
@@ -3529,28 +3735,66 @@ export class FireworkSystem {
         }
       }
 
+      let isRingWaveIgnited = true;
+      let ringFlashBonus = 1.0;
+      const isSphereRingsWave = p.effectType === 'sphere_rings_wave'
+        || p.effectType === 'sphere-rings-wave'
+        || p.preset?.dynamicsType === 'sphere_rings_wave'
+        || p.preset?.dynamicsType === 'sphere-rings-wave';
+
+      if (isSphereRingsWave) {
+        const ringK = p.ringIndex !== null && p.ringIndex !== undefined ? p.ringIndex : 2;
+        const mode = p.preset?.ringWaveMode || 'equator-outward';
+        let ringStartRatio = 0.08;
+
+        if (mode === 'pole-to-pole') {
+          ringStartRatio = 0.06 + ringK * 0.08;
+        } else {
+          // Equator outward: ring 2 is equator, rings 1 & 3 are mid, rings 0 & 4 are poles
+          const ringDist = Math.abs(ringK - 2);
+          ringStartRatio = 0.08 + ringDist * 0.14;
+        }
+
+        isRingWaveIgnited = lifeRatio >= ringStartRatio;
+        if (isRingWaveIgnited) {
+          const timeSinceIgnition = lifeRatio - ringStartRatio;
+          if (timeSinceIgnition < 0.08) {
+            ringFlashBonus = 1.0 + (1.0 - timeSinceIgnition / 0.08) * 1.5;
+          }
+        }
+      }
+
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
-      const hasGhost = p.effectType === 'ghost'
-        || (Array.isArray(p.effects) && p.effects.includes('ghost'))
-        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
-        || Boolean(p.preset?.ghost)
-        || p.preset?.shellType === 'ghost';
+      const hasGhostTiming = (p.effectWindows && p.effectWindows.ghost)
+        || (Array.isArray(p.effects) && p.effects.some((e) => typeof e === 'object' && e !== null && (e.type || e.key) === 'ghost'));
+      const isGhostActive = BurstEffectProcessor.isEffectActive(p, 'ghost');
+      const hasGhost = isGhostActive
+        || (!hasGhostTiming && (
+          p.effectType === 'ghost'
+          || (Array.isArray(p.effects) && p.effects.includes('ghost'))
+          || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
+          || Boolean(p.preset?.ghost)
+          || p.preset?.shellType === 'ghost'
+        ));
       const hasCC = p.effectType === 'crysanthemum-cc'
         || (Array.isArray(p.effects) && p.effects.includes('crysanthemum-cc'))
         || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('crysanthemum-cc'))
         || p.preset?.shellType === 'crysanthemumCC';
-      const isGhostInvisible = hasGhost && lifeRatio < 0.40;
+      const isGhostInvisible = isGhostActive || (!hasGhostTiming && hasGhost && lifeRatio < 0.40);
       const hasGhostFlare = p.effects?.includes('ghost-flare')
         || p.preset?.effects?.includes('ghost-flare')
         || p.effectType === 'ghost-kamuro';
       const isGhostFlareNoTrail = hasGhostFlare && lifeRatio <= 0.60;
-      const hasNoTrailActive = Boolean(p.preset?.noTrail)
-        || (Array.isArray(p.effects) && p.effects.includes('no-trail'))
-        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('no-trail'))
-        || p.effectType === 'no-trail';
+      const hasNoTrailTiming = (p.effectWindows && p.effectWindows['no-trail'])
+        || (Array.isArray(p.effects) && p.effects.some((e) => typeof e === 'object' && e !== null && ['no-trail', 'notrail', 'noTrail'].includes(e.type || e.key)));
+      const hasNoTrailActive = BurstEffectProcessor.isEffectActive(p, 'no-trail')
+        || (!hasNoTrailTiming && Boolean(p.preset?.noTrail))
+        || p.effectType === 'no-trail'
+        || p.effectType === 'notrail';
       const allowTrail = spawnTrail
         && (!isChrysanthemumSpiral || isSpiralIgnited)
+        && (!isSphereRingsWave || isRingWaveIgnited)
         && !isGhostFlareNoTrail
         && !isGhostInvisible
         && !hasNoTrailActive;
@@ -3561,7 +3805,14 @@ export class FireworkSystem {
         const isSplitFlashBeam = p.effectState?.shapeType === 'split-flash'
           && p.particleIndex >= (p.totalParticleCount - 5);
         const isCometRing = p.effectState?.effectType === 'comet-ring';
-        const spawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral) ? 0.95 : 0.3;
+        const burstTrailCfg = FIREWORK_CONFIG.BURST;
+        const baseSpawnChance = burstTrailCfg?.defaultTrailSpawnChance ?? 0.95;
+        const defaultSpawnChance = (isHalfFlashTentacle || isSplitFlashBeam || isCometRing || isChrysanthemumSpiral)
+          ? 0.95
+          : (lifeRatio < 0.65 ? baseSpawnChance : 0.80);
+        const spawnChance = trailSpawnChance !== undefined
+          ? trailSpawnChance
+          : defaultSpawnChance;
 
         if (Math.random() < spawnChance * parentFade) {
           const trailColor = p.baseColor.clone();
@@ -3575,18 +3826,40 @@ export class FireworkSystem {
           const trailGrav = isCometRing ? 0.0 : 0.8;
           const trailDrag = isCometRing ? 1.2 : 1.6;
 
-          this.trailSystem?.spawnTrailParticle?.(
-            p.position,
-            trailColor,
-            isCometRing ? 1.0 : currentLife,
-            false,
-            isCometRing ? currentLife : null,
-            0.65,
-            false,
-            trailVel,
-            trailGrav,
-            trailDrag
-          );
+          // Trajectory segment interpolation
+          const startPos = p.prevPosition || p.position;
+          const moveDist = startPos.distanceTo(p.position);
+          const isDiscretePulse = trailSpawnChance !== undefined && trailSpawnChance < 0.5;
+          const targetStride = burstTrailCfg?.trailStride ?? 0.45;
+          const maxSubSteps = burstTrailCfg?.maxTrailSubSteps ?? 3;
+          const steps = isDiscretePulse
+            ? 1
+            : Math.min(
+              maxSubSteps,
+              Math.max(1, Math.ceil(moveDist / targetStride))
+            );
+
+          for (let s = 1; s <= steps; s++) {
+            const alpha = s / steps;
+            const spawnPos = new THREE.Vector3().lerpVectors(
+              startPos,
+              p.position,
+              alpha
+            );
+
+            this.trailSystem?.spawnTrailParticle?.(
+              spawnPos,
+              trailColor,
+              isCometRing ? 1.0 : currentLife,
+              false,
+              isCometRing ? currentLife : null,
+              0.65,
+              false,
+              trailVel,
+              trailGrav,
+              trailDrag
+            );
+          }
         }
       }
 
@@ -3596,7 +3869,10 @@ export class FireworkSystem {
         && !isGhostInvisible
         && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
       ) {
-        if (lifeRatio >= 0.18 && lifeRatio <= 0.85) {
+        const tadpoleStart = p.tadpoleStart !== undefined ? p.tadpoleStart : p.maxLife * 0.18;
+        const tadpoleEnd = p.tadpoleEnd !== undefined ? p.tadpoleEnd : p.maxLife * 0.85;
+
+        if (p.age >= tadpoleStart && p.age <= tadpoleEnd) {
           p.tadpoleArrowTimer = (p.tadpoleArrowTimer || 0) + deltaTime;
           const arrowInterval = FIREWORK_CONFIG.COMET_TADPOLE?.arrowInterval ?? 0.065;
           if (p.tadpoleArrowTimer >= arrowInterval) {
@@ -3605,7 +3881,7 @@ export class FireworkSystem {
           }
         }
 
-        if (lifeRatio >= 0.85 && !p.hasFlurried) {
+        if (p.age >= tadpoleEnd && !p.hasFlurried) {
           p.hasFlurried = true;
           this.spawnBurstParticleFlurry(p, parentFade);
         }
@@ -3626,7 +3902,11 @@ export class FireworkSystem {
         }
       }
 
-      const isStarBurstSmoke = p.hasBurstSmoke && lifeRatio <= (p.burstSmokeLimit ?? 0.33);
+      const isStarBurstSmoke = p.hasBurstSmoke && (
+        p.burstSmokeEnd !== undefined
+          ? (p.age >= (p.burstSmokeStart ?? 0) && p.age <= p.burstSmokeEnd)
+          : (lifeRatio <= (p.burstSmokeLimit ?? 0.33))
+      );
       const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
         && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 
@@ -3655,6 +3935,8 @@ export class FireworkSystem {
             (smokeCfg.trailLifeMin + smokeCfg.trailLifeMax) * 0.5
           );
           const smokeOptions = {
+            category: isStarBurstSmoke ? 'burst' : 'aerial',
+            force: isStarBurstSmoke,
             life: starSmokeBaseLife * (0.8 + 0.4 * Math.random()),
             scale: (2.8 + Math.random() * 1.8) * densityMult,
             growth: 2.8,
@@ -3784,16 +4066,26 @@ export class FireworkSystem {
       }
 
       const dissolveThreshold = p.isLongBurn
-        ? (FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
-        : BURST_DISSOLVE_START;
-      if (lifeRatio > dissolveThreshold) {
+        ? (profile?.longBurnDissolveStart ?? FIREWORK_CONFIG.BURST?.longBurnDissolveStart ?? 0.72)
+        : (profile?.dissolveStart ?? BURST_DISSOLVE_START);
+
+      const attenuationStart = profile?.attenuationStart
+        ?? FIREWORK_CONFIG.BURST?.attenuationStart
+        ?? 0.35;
+
+      if (lifeRatio > attenuationStart && lifeRatio <= dissolveThreshold) {
+        // Giai đoạn bắt đầu đạt đỉnh và rơi xuống: ánh sáng dịu bớt êm ái
+        const attenT = (lifeRatio - attenuationStart) / (dissolveThreshold - attenuationStart);
+        baseOpacity *= (1.0 - attenT * 0.15);
+      } else if (lifeRatio > dissolveThreshold) {
         const dissolveT = THREE.MathUtils.clamp(
           (lifeRatio - dissolveThreshold) / (1 - dissolveThreshold),
           0,
           1
         );
+        const fadeExp = profile?.dissolveExponent ?? BURST_FADE_EXPONENT;
         baseOpacity = Math.max(
-          Math.pow(1 - dissolveT, BURST_FADE_EXPONENT) * brightnessOpacityScale,
+          Math.pow(1 - dissolveT, fadeExp) * (brightnessOpacityScale * 0.85),
           (1 - dissolveT) * 0.08
         );
       }
@@ -3837,37 +4129,55 @@ export class FireworkSystem {
           strobeFreqMultiplier,
           isSpiralIgnited,
           spiralFlashBonus,
+          isRingIgnited: isRingWaveIgnited,
+          ringFlashBonus,
           hasGhostFlare,
           profile
         }
       );
 
-      p.color.setRGB(r, g, b);
+      const bVar = p.brightnessVariance ?? 1.0;
+      p.color.setRGB(
+        r * bVar,
+        g * bVar,
+        b * bVar
+      );
 
       // Calculate size
       const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
       let renderSize = baseSize;
       if (hasGhost) {
-        if (lifeRatio < 0.40) {
+        if (hasGhostTiming ? isGhostActive : lifeRatio < 0.40) {
           renderSize = 0;
-        } else if (lifeRatio < 0.48) {
+        } else if (!hasGhostTiming && lifeRatio < 0.48) {
           const t = (lifeRatio - 0.40) / 0.08;
           renderSize = baseSize * THREE.MathUtils.lerp(0.0, 1.0, t);
         }
+      } else if (isSphereRingsWave && !isRingWaveIgnited) {
+        renderSize = 0;
       } else {
         // Co giảm kích thước động theo chu kỳ nhiệt độ
         let sizeDecay = 1.0;
         if (p.hasErraticDart && p.erraticDartTriggered) {
           sizeDecay = 1.0;
         } else if (lifeRatio < 0.12) {
-          sizeDecay = 1.25 - (lifeRatio / 0.12) * 0.25;
-        } else if (lifeRatio > 0.60) {
-          const t = (lifeRatio - 0.60) / 0.40;
+          const ignitionEnd = 0.035;
+          if (lifeRatio < ignitionEnd) {
+            const t = lifeRatio / ignitionEnd;
+            sizeDecay = THREE.MathUtils.lerp(0.82, 1.25, THREE.MathUtils.smoothstep(t, 0.0, 1.0));
+          } else {
+            const t = (lifeRatio - ignitionEnd) / (0.12 - ignitionEnd);
+            sizeDecay = 1.25 - t * 0.25;
+          }
+        } else if (lifeRatio > attenuationStart) {
+          const t = (lifeRatio - attenuationStart) / (1.0 - attenuationStart);
           sizeDecay = 1.0 - t * 0.45;
         }
-        renderSize = baseSize * sizeDecay;
+        const frictionScale = 1.0 + Math.min(0.25, (p.frictionHeat || 0) * 0.2);
+        renderSize = baseSize * sizeDecay * frictionScale;
       }
-      p.renderSize = renderSize;
+      const sVar = p.sizeVariance ?? 1.0;
+      p.renderSize = renderSize * sVar;
       p.renderOpacity = opacity;
 
       activeParticles.push(p);
@@ -3922,10 +4232,12 @@ export class FireworkSystem {
       this.allocatedMaxBurstParticles
     );
 
-    // 4. Fill Geometry Buffers
+    // 4. Fill Geometry Buffers (Points + Directional Velocity Streaks)
+    const streakDt = 0.038;
     for (let i = 0; i < count; i++) {
       const p = this.burstParticles[i];
 
+      // Points buffer
       this.burstPositionsArray[i * 3] = p.position.x;
       this.burstPositionsArray[i * 3 + 1] = p.position.y;
       this.burstPositionsArray[i * 3 + 2] = p.position.z;
@@ -3936,6 +4248,68 @@ export class FireworkSystem {
 
       this.burstSizesArray[i] = p.renderSize;
       this.burstOpacitiesArray[i] = p.renderOpacity;
+
+      // Lines buffer: Head vertex (i * 2) and Tail vertex (i * 2 + 1)
+      const v0 = i * 6;
+      const v1 = v0 + 3;
+
+      this.burstLinePositionsArray[v0] = p.position.x;
+      this.burstLinePositionsArray[v0 + 1] = p.position.y;
+      this.burstLinePositionsArray[v0 + 2] = p.position.z;
+
+      const vx = p.velocity?.x || 0;
+      const vy = p.velocity?.y || 0;
+      const vz = p.velocity?.z || 0;
+      let sx = vx * streakDt;
+      let sy = vy * streakDt;
+      let sz = vz * streakDt;
+      const sLenSq = sx * sx + sy * sy + sz * sz;
+      if (sLenSq > 6.25) {
+        const factor = 2.5 / Math.sqrt(sLenSq);
+        sx *= factor;
+        sy *= factor;
+        sz *= factor;
+      }
+
+      this.burstLinePositionsArray[v1] = p.position.x - sx;
+      this.burstLinePositionsArray[v1 + 1] = p.position.y - sy;
+      this.burstLinePositionsArray[v1 + 2] = p.position.z - sz;
+
+      const op = p.renderOpacity ?? 1.0;
+      if (
+        op > 0.001 &&
+        (p.renderSize || 0) > 0.001 &&
+        (p.color.r + p.color.g + p.color.b) > 0.001
+      ) {
+        // Head: whitened core
+        this.burstLineColorsArray[v0] = THREE.MathUtils.lerp(
+          p.color.r,
+          1.0,
+          0.65
+        ) * op;
+        this.burstLineColorsArray[v0 + 1] = THREE.MathUtils.lerp(
+          p.color.g,
+          1.0,
+          0.65
+        ) * op;
+        this.burstLineColorsArray[v0 + 2] = THREE.MathUtils.lerp(
+          p.color.b,
+          1.0,
+          0.65
+        ) * op;
+
+        // Tail: colored hue fading out
+        this.burstLineColorsArray[v1] = p.color.r * op * 0.15;
+        this.burstLineColorsArray[v1 + 1] = p.color.g * op * 0.15;
+        this.burstLineColorsArray[v1 + 2] = p.color.b * op * 0.15;
+      } else {
+        this.burstLineColorsArray[v0] = 0;
+        this.burstLineColorsArray[v0 + 1] = 0;
+        this.burstLineColorsArray[v0 + 2] = 0;
+        this.burstLineColorsArray[v1] = 0;
+        this.burstLineColorsArray[v1 + 1] = 0;
+        this.burstLineColorsArray[v1 + 2] = 0;
+      }
     }
 
     if (count > 0) {
@@ -3965,8 +4339,29 @@ export class FireworkSystem {
         0,
         count
       );
+
+      // Line segments updates
+      this.burstLinesPositionsAttr.needsUpdate = true;
+      this.burstLinesColorsAttr.needsUpdate = true;
+      if (this.burstLinesPositionsAttr.updateRange) {
+        this.burstLinesPositionsAttr.updateRange.offset = 0;
+        this.burstLinesPositionsAttr.updateRange.count = count * 6;
+      }
+      if (this.burstLinesColorsAttr.updateRange) {
+        this.burstLinesColorsAttr.updateRange.offset = 0;
+        this.burstLinesColorsAttr.updateRange.count = count * 6;
+      }
+
+      this.burstLinesGeometry.setDrawRange(
+        0,
+        count * 2
+      );
     } else {
       this.globalBurstGeometry.setDrawRange(
+        0,
+        0
+      );
+      this.burstLinesGeometry.setDrawRange(
         0,
         0
       );
@@ -3989,6 +4384,13 @@ export class FireworkSystem {
       }
     }
     this.eventSubscriptions.length = 0;
+    if (this.burstLines) {
+      if (this.scene) {
+        this.scene.remove(this.burstLines);
+      }
+      this.burstLinesGeometry?.dispose();
+      this.burstLinesMaterial?.dispose();
+    }
   }
 
   burstAll() {

@@ -14,16 +14,22 @@ export class PerformanceMonitor {
 
   createOverlay() {
     this.overlay = document.createElement('div');
-    this.overlay.style.position = 'absolute';
+    this.overlay.className = 'system-perf-overlay';
+    this.overlay.style.position = 'fixed';
     this.overlay.style.top = '12px';
-    this.overlay.style.right = '12px';
+    this.overlay.style.left = '12px';
+    this.overlay.style.width = '240px';
+    this.overlay.style.boxSizing = 'border-box';
     this.overlay.style.padding = '8px 12px';
-    this.overlay.style.background = 'rgba(0, 0, 0, 0.55)';
+    this.overlay.style.background = 'rgba(12, 16, 24, 0.85)';
+    this.overlay.style.backdropFilter = 'blur(10px)';
+    this.overlay.style.border = '1px solid rgba(255, 255, 255, 0.12)';
     this.overlay.style.color = '#fff';
     this.overlay.style.fontFamily = 'monospace';
     this.overlay.style.fontSize = '12px';
     this.overlay.style.lineHeight = '1.4';
     this.overlay.style.borderRadius = '8px';
+    this.overlay.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35)';
     this.overlay.style.zIndex = '999';
     this.overlay.style.pointerEvents = 'none';
     this.overlay.innerHTML = 'FPS: --<br>Frame: -- ms<br>Memory: --<br>FPS Drops: 0';

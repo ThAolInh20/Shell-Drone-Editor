@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import * as THREE from 'three';
 import { ShellPresetFactory } from '../../src/factories/ShellPresetFactory.js';
+import { FireworkSystem } from '../../src/systems/FireworkSystem.js';
 
 describe('ShellPresetFactory', () => {
   it('should instantiate correctly and contain registries', () => {
@@ -135,5 +137,98 @@ describe('ShellPresetFactory', () => {
     expect(preset.sparkleAtEnd).toBe(true);
     expect(preset.branchCount).toBe(5);
     expect(preset.cometsPerBranch).toBe(5);
+  });
+
+  it('should create valid crysanthemum_uniform_sphere preset', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crysanthemum_uniform_sphere');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crysanthemum_uniform_sphere');
+    expect(preset.shapeType).toBe('sphere_uniform');
+    expect(preset.dynamicsType).toBe('crysanthemum_discrete_trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.drag).toBe(0.68);
+    expect(preset.starLifeMultiplier).toBe(1.25);
+  });
+
+  it('should create valid egg_crysanthemum preset with hollow egg crust', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('egg_crysanthemum');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('egg_crysanthemum');
+    expect(preset.shapeType).toBe('egg');
+    expect(preset.dynamicsType).toBe('crysanthemum-trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.hasBurstSmoke).toBe(false);
+    expect(preset.noSmoke).toBe(true);
+  });
+
+  it('should create valid crysanthemum_sphere_rings preset with latitude bands', () => {
+    const factory = new ShellPresetFactory();
+    const preset = factory.createPresetByKey('crysanthemum_sphere_rings');
+    expect(preset).not.toBeNull();
+    expect(preset.shellType).toBe('crysanthemum_sphere_rings');
+    expect(preset.shapeType).toBe('sphere_rings');
+    expect(preset.dynamicsType).toBe('crysanthemum-trail');
+    expect(preset.launchTrail).toBe(true);
+    expect(preset.ringCount).toBe(5);
+    expect(preset.hasBurstSmoke).toBe(false);
+    expect(preset.noSmoke).toBe(true);
+  });
+
+  it('should cleanly createBurst in FireworkSystem without rawDir reference error', () => {
+    const scene = new THREE.Scene();
+    const system = new FireworkSystem(scene, null);
+    const factory = new ShellPresetFactory();
+
+    const ringPreset = factory.createPresetByKey('crysanthemum_sphere_rings');
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xffd700),
+        'sphere_rings',
+        ringPreset
+      );
+    }).not.toThrow();
+
+    const eggPreset = factory.createPresetByKey('egg_crysanthemum');
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xff4500),
+        'egg',
+        eggPreset
+      );
+    }).not.toThrow();
+
+    const cascadePreset = factory.createPresetByKey('sphere_rings_cascade');
+    expect(cascadePreset).not.toBeNull();
+    expect(cascadePreset.shellType).toBe('sphere_rings_cascade');
+    expect(cascadePreset.shapeType).toBe('sphere_rings');
+    expect(cascadePreset.dynamicsType).toBe('sphere_rings_wave');
+    expect(cascadePreset.ringWaveMode).toBe('equator-outward');
+    expect(cascadePreset.ringCount).toBe(5);
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0x00ffff),
+        'sphere_rings',
+        cascadePreset
+      );
+    }).not.toThrow();
+
+    const strobePreset = factory.createPresetByKey('sphere_rings_strobe');
+    expect(strobePreset).not.toBeNull();
+    expect(strobePreset.shellType).toBe('sphere_rings_strobe');
+    expect(strobePreset.shapeType).toBe('sphere_rings');
+    expect(strobePreset.strobe).toBe(true);
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 100, 0),
+        new THREE.Color(0xffffff),
+        'sphere_rings',
+        strobePreset
+      );
+    }).not.toThrow();
   });
 });

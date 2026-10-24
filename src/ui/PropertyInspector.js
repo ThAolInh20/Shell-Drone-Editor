@@ -16,6 +16,8 @@ import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { WaveCurveEditor } from './WaveCurveEditor.js';
 import { DEFAULT_WAVE_POINTS } from '../utils/SplineMath.js';
+import { ActiveEffectsTimeline } from './ActiveEffectsTimeline.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -38,30 +40,30 @@ function getEnglishOptionLabel(fieldName, opt) {
   return formatOptionLabelFallback(opt);
 }
 
-export const AVAILABLE_EFFECT_TAGS = [
+export const TIMED_EFFECT_TAGS = [
   {
-    key: 'apex-hang',
-    labelKey: 'apexHang'
-  },
-  {
-    key: 'burst-smoke',
-    labelKey: 'burstSmoke'
-  },
-  {
-    key: 'crackle',
-    labelKey: 'crackle'
-  },
-  {
-    key: 'crossette',
-    labelKey: 'crossette'
-  },
-  {
-    key: 'erratic-dart',
-    labelKey: 'erraticDart'
+    key: 'no-trail',
+    labelKey: 'noTrail'
   },
   {
     key: 'flow',
     labelKey: 'flow'
+  },
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
+  },
+  {
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
+  },
+  {
+    key: 'crackle',
+    labelKey: 'crackle'
   },
   {
     key: 'ghost',
@@ -72,29 +74,41 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghostFlare'
   },
   {
-    key: 'glitter-strobe',
-    labelKey: 'glitterStrobe'
-  },
-  {
-    key: 'no-burst',
-    labelKey: 'noBurst'
-  },
-  {
-    key: 'no-trail',
-    labelKey: 'noTrail'
-  },
-  {
-    key: 'strobe',
-    labelKey: 'strobe'
+    key: 'crossette',
+    labelKey: 'crossette'
   },
   {
     key: 'tadpole-flurry',
     labelKey: 'tadpoleFlurry'
   },
   {
-    key: 'white-strobe',
-    labelKey: 'whiteStrobe'
+    key: 'erratic-dart',
+    labelKey: 'erraticDart'
   }
+];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  {
+    key: 'burst-smoke',
+    labelKey: 'burstSmoke'
+  },
+  {
+    key: 'pistil',
+    labelKey: 'pistil'
+  },
+  {
+    key: 'apex-hang',
+    labelKey: 'apexHang'
+  },
+  {
+    key: 'slow-burst',
+    labelKey: 'slowBurst'
+  }
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
 ];
 
 export const ACTIVE_EFFECT_TAGS = AVAILABLE_EFFECT_TAGS;
@@ -115,21 +129,44 @@ export class PropertyInspector {
     this.collapsedGroups = {}; // Keep track of open/closed states
     this.showHelpState = {}; // Keep track of help banner visibility states
 
-    this.container.style.position = 'relative';
-    this.container.style.width = '320px';
+    this.container.className = 'property-inspector-panel';
+    this.container.style.position = 'fixed';
+    this.container.style.top = '12px';
+    this.container.style.right = '12px';
+    this.container.style.width = '350px';
     this.container.style.minWidth = '320px';
-    this.container.style.flexShrink = '0';
-    this.container.style.height = '100%';
-    this.container.style.background = 'rgba(15, 20, 25, 0.95)';
-    this.container.style.borderLeft = '1px solid rgba(255, 255, 255, 0.1)';
-    this.container.style.boxShadow = '-4px 0 16px rgba(0,0,0,0.5)';
-    this.container.style.padding = '15px';
+    this.container.style.maxWidth = '420px';
+    this.container.style.bottom = 'calc(35% + 12px)';
+    this.container.style.height = 'auto';
+    this.container.style.background = 'rgba(12, 16, 24, 0.94)';
+    this.container.style.backdropFilter = 'blur(16px)';
+    this.container.style.webkitBackdropFilter = 'blur(16px)';
+    this.container.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+    this.container.style.borderRadius = '12px';
+    this.container.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.6)';
+    this.container.style.padding = '16px';
     this.container.style.boxSizing = 'border-box';
     this.container.style.color = '#fff';
     this.container.style.fontFamily = 'monospace';
     this.container.style.overflowY = 'auto';
     this.container.style.display = 'none';
     this.container.style.zIndex = '1001';
+
+    // Prevent orbit controls interaction while mouse is over inspector
+    if (typeof this.container.addEventListener === 'function') {
+      this.container.addEventListener(
+        'mouseenter',
+        () => {
+          globalEventBus.emit('timeline:hover', true);
+        }
+      );
+      this.container.addEventListener(
+        'mouseleave',
+        () => {
+          globalEventBus.emit('timeline:hover', false);
+        }
+      );
+    }
 
     this.debounceTimeout = null;
     this.isEditing = false;
@@ -327,16 +364,6 @@ export class PropertyInspector {
               span: 2
             },
             {
-              name: 'pistil',
-              labelKey: 'pistil',
-              type: 'checkbox'
-            },
-            {
-              name: 'instantBurst',
-              labelKey: 'instantBurst',
-              type: 'checkbox'
-            },
-            {
               name: 'effects',
               labelKey: 'activeEffects',
               type: 'effect-chips',
@@ -408,7 +435,7 @@ export class PropertyInspector {
               labelKey: 'shellSize',
               type: 'slider',
               min: '0.2',
-              max: '2.5',
+              max: '5.0',
               step: '0.1',
               defaultValue: 1.0,
               formatValue: (v) => `${Number(v).toFixed(1)}x`,
@@ -419,7 +446,7 @@ export class PropertyInspector {
               labelKey: 'starLifeMultiplier',
               type: 'slider',
               min: '0.4',
-              max: '2.5',
+              max: '5.0',
               step: '0.05',
               defaultValue: 1.0,
               formatValue: (v) => `${Number(v).toFixed(2)}x`,
@@ -589,8 +616,47 @@ export class PropertyInspector {
       }
     });
 
+    const headerActions = document.createElement('div');
+    headerActions.style.display = 'flex';
+    headerActions.style.alignItems = 'center';
+    headerActions.style.gap = '8px';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'inspector-close-btn';
+    closeBtn.textContent = '×';
+    closeBtn.title = t('common.close') || 'Close';
+    closeBtn.style.background = 'transparent';
+    closeBtn.style.border = 'none';
+    closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+    closeBtn.style.fontSize = '18px';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.lineHeight = '1';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.padding = '0 4px';
+    closeBtn.addEventListener(
+      'mouseenter',
+      () => {
+        closeBtn.style.color = '#fff';
+      }
+    );
+    closeBtn.addEventListener(
+      'mouseleave',
+      () => {
+        closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+      }
+    );
+    closeBtn.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation();
+        this.hide();
+      }
+    );
+
+    headerActions.appendChild(helpBtn);
+    headerActions.appendChild(closeBtn);
     headerWrapper.appendChild(titleEl);
-    headerWrapper.appendChild(helpBtn);
+    headerWrapper.appendChild(headerActions);
     this.container.appendChild(headerWrapper);
 
     if (!this.selectedEvent) {
@@ -1164,165 +1230,277 @@ export class PropertyInspector {
     parent.appendChild(slider);
   }
 
+  renderToggleModifiers(parent, targetEvent) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'inspector-toggle-modifiers';
+    wrapper.style.marginBottom = '8px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '4px';
+
+    const title = document.createElement('label');
+    title.className = 'inspector-label';
+    title.style.margin = '0';
+    title.style.fontWeight = '600';
+    title.style.fontSize = '12px';
+    title.style.color = '#e2e8f0';
+    const rawTitle = t('editor.inspector.triggeredEffects')
+      || t('editor.inspector.characteristics');
+    title.textContent = (rawTitle && rawTitle !== 'editor.inspector.triggeredEffects')
+      ? rawTitle
+      : 'Triggered Effects';
+    header.appendChild(title);
+    wrapper.appendChild(header);
+
+    const chipsRow = document.createElement('div');
+    chipsRow.style.display = 'flex';
+    chipsRow.style.flexWrap = 'wrap';
+    chipsRow.style.gap = '6px';
+
+    TOGGLE_MODIFIER_TAGS.forEach((mod) => {
+      const isKeyActive = () => {
+        if (mod.key === 'burst-smoke') {
+          return Boolean(
+            targetEvent.burstSmoke
+            || targetEvent['burst-smoke']
+            || targetEvent.burst_smoke
+            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'))
+          );
+        }
+        if (mod.key === 'pistil') {
+          return Boolean(
+            targetEvent.pistil
+            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'pistil'))
+          );
+        }
+        if (mod.key === 'apex-hang') return Boolean(targetEvent.apexHang || targetEvent['apex-hang']);
+        if (mod.key === 'long-burn') return Boolean(targetEvent.longBurn || targetEvent['long-burn']);
+        if (mod.key === 'slow-burst') return Boolean(targetEvent.slowBurst || targetEvent['slow-burst'] || targetEvent.slow_burst);
+        return Boolean(targetEvent[mod.key]);
+      };
+
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'inspector-modifier-chip';
+      chip.dataset.key = mod.key;
+      chip.style.padding = '3px 8px';
+      chip.style.fontSize = '11px';
+      chip.style.borderRadius = '4px';
+      chip.style.cursor = 'pointer';
+      chip.style.border = isKeyActive()
+        ? '1px solid #38bdf8'
+        : '1px solid rgba(255, 255, 255, 0.15)';
+      chip.style.background = isKeyActive()
+        ? 'rgba(56, 189, 248, 0.25)'
+        : 'rgba(255, 255, 255, 0.05)';
+      chip.style.color = isKeyActive() ? '#ffffff' : '#94a3b8';
+      chip.style.fontWeight = isKeyActive() ? '600' : 'normal';
+      chip.style.transition = 'all 0.15s ease';
+
+      const label = t(`editor.inspector.fields.${mod.labelKey}`)
+        || en?.editor?.inspector?.fields?.[mod.labelKey]
+        || mod.key;
+      chip.textContent = label;
+
+      EffectPreviewTooltip.getInstance().bindElement(
+        chip,
+        mod.key,
+        PREVIEW_CATEGORIES.OPTICAL_EFFECT
+      );
+
+      chip.addEventListener('click', () => {
+        this.triggerUpdate('beforeChange');
+        const nextState = !isKeyActive();
+
+        if (mod.key === 'burst-smoke') {
+          if (nextState) {
+            targetEvent.burstSmoke = true;
+            targetEvent['burst-smoke'] = true;
+          } else {
+            delete targetEvent.burstSmoke;
+            delete targetEvent['burst-smoke'];
+            delete targetEvent.burst_smoke;
+          }
+        } else if (mod.key === 'pistil') {
+          targetEvent.pistil = nextState;
+        } else if (mod.key === 'apex-hang') {
+          if (nextState) {
+            targetEvent.apexHang = true;
+            targetEvent['apex-hang'] = true;
+          } else {
+            delete targetEvent.apexHang;
+            delete targetEvent['apex-hang'];
+          }
+        } else if (mod.key === 'long-burn') {
+          if (nextState) {
+            targetEvent.longBurn = true;
+            targetEvent['long-burn'] = true;
+          } else {
+            delete targetEvent.longBurn;
+            delete targetEvent['long-burn'];
+          }
+        } else if (mod.key === 'slow-burst') {
+          if (nextState) {
+            targetEvent.slowBurst = true;
+            targetEvent['slow-burst'] = true;
+          } else {
+            delete targetEvent.slowBurst;
+            delete targetEvent['slow-burst'];
+            delete targetEvent.slow_burst;
+          }
+        }
+
+        if (Array.isArray(targetEvent.effects)) {
+          if (nextState) {
+            if (!targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === mod.key)) {
+              targetEvent.effects.push(mod.key);
+            }
+          } else {
+            targetEvent.effects = targetEvent.effects.filter(
+              (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) !== mod.key
+            );
+          }
+        }
+
+        this.triggerUpdate();
+        this.render();
+      });
+
+      chipsRow.appendChild(chip);
+    });
+
+    wrapper.appendChild(chipsRow);
+    parent.appendChild(wrapper);
+  }
+
   renderEffectChips(parent, field) {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
-    const label = document.createElement('label');
-    label.className = 'inspector-label';
-    label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
+    this.renderToggleModifiers(parent, targetEvent);
 
     const container = document.createElement('div');
-    container.className = 'inspector-effect-chips-container';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '8px';
-    container.style.marginTop = '4px';
+    container.className = 'inspector-active-effects-container';
+    container.style.marginTop = '6px';
+    container.style.marginBottom = '6px';
 
-    // 1. Chips wrapper
-    const chipsWrapper = document.createElement('div');
-    chipsWrapper.className = 'inspector-chips-wrapper';
-    chipsWrapper.style.display = 'flex';
-    chipsWrapper.style.flexWrap = 'wrap';
-    chipsWrapper.style.gap = '6px';
-    chipsWrapper.style.minHeight = '24px';
-    chipsWrapper.style.alignItems = 'center';
+    const getBurstLifetime = () => {
+      const baseLife = FIREWORK_CONFIG?.BURST?.baseLife ?? 2.3;
+      const mul = (targetEvent.starLifeMultiplier !== undefined && !isNaN(Number(targetEvent.starLifeMultiplier)))
+        ? Math.max(0.2, Number(targetEvent.starLifeMultiplier))
+        : 1.0;
+      const longBurnMul = targetEvent.longBurn ? (FIREWORK_CONFIG?.BURST?.longBurnMultiplier ?? 2.2) : 1.0;
+      return Math.round(baseLife * mul * longBurnMul * 10) / 10;
+    };
 
-    const currentEffectsList = Array.isArray(targetEvent.effects)
-      ? targetEvent.effects
-      : [];
+    const burstLife = getBurstLifetime();
 
-    const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!targetEvent[eff.key] || currentEffectsList.includes(eff.key);
-    });
+    const getNormalizedEffects = () => {
+      const list = [];
+      const currentList = Array.isArray(targetEvent.effects) ? targetEvent.effects : [];
 
-    if (activeEffects.length === 0) {
-      const emptySpan = document.createElement('span');
-      emptySpan.style.fontSize = '11px';
-      emptySpan.style.color = '#777';
-      emptySpan.style.fontStyle = 'italic';
-      emptySpan.textContent = t('editor.inspector.noActiveEffects') || 'No active effects';
-      chipsWrapper.appendChild(emptySpan);
-    } else {
-      activeEffects.forEach((eff) => {
-        const chip = document.createElement('div');
-        chip.className = 'inspector-effect-chip';
-        chip.style.display = 'inline-flex';
-        chip.style.alignItems = 'center';
-        chip.style.gap = '6px';
-        chip.style.padding = '3px 8px';
-        chip.style.background = 'rgba(0, 200, 255, 0.12)';
-        chip.style.border = '1px solid rgba(0, 200, 255, 0.35)';
-        chip.style.borderRadius = '12px';
-        chip.style.fontSize = '11px';
-        chip.style.color = '#64d2ff';
-        chip.style.userSelect = 'none';
+      currentList.forEach((item) => {
+        const itemType = typeof item === 'string' ? item : (item?.type || item?.key);
+        if (TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === itemType)) {
+          return;
+        }
 
-        const chipText = document.createElement('span');
-        chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
-        chip.appendChild(chipText);
+        if (typeof item === 'string') {
+          list.push({
+            type: item,
+            startRatio: 0.1,
+            endRatio: 0.5,
+            start: Math.round(burstLife * 0.1 * 100) / 100,
+            end: Math.round(burstLife * 0.5 * 100) / 100
+          });
+        } else if (typeof item === 'object' && item !== null) {
+          const type = item.type || item.key;
+          let startRatio = item.startRatio !== undefined ? Number(item.startRatio) : undefined;
+          let endRatio = item.endRatio !== undefined ? Number(item.endRatio) : undefined;
+          let start = item.start !== undefined ? Number(item.start) : undefined;
+          let end = item.end !== undefined ? Number(item.end) : undefined;
 
-        EffectPreviewTooltip.getInstance().bindElement(chip, eff.key, PREVIEW_CATEGORIES.OPTICAL_EFFECT);
-
-        const removeBtn = document.createElement('span');
-        removeBtn.textContent = '×';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.fontSize = '14px';
-        removeBtn.style.lineHeight = '1';
-        removeBtn.style.color = '#ff6b6b';
-        removeBtn.style.fontWeight = 'bold';
-        removeBtn.style.padding = '0 2px';
-        removeBtn.title = t('editor.inspector.removeEffect') || 'Remove effect';
-
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.triggerUpdate('beforeChange');
-          delete targetEvent[eff.key];
-          if (Array.isArray(targetEvent.effects)) {
-            targetEvent.effects = targetEvent.effects.filter((k) => k !== eff.key);
+          if (startRatio === undefined) {
+            startRatio = start !== undefined ? Math.max(0, Math.min(1.0, start / burstLife)) : 0.1;
           }
-          this.triggerUpdate();
-          this.render();
-        });
-
-        chip.appendChild(removeBtn);
-        chipsWrapper.appendChild(chip);
-      });
-    }
-
-    // 2. Add Effect Dropdown Selector
-    const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !targetEvent[eff.key] && !currentEffectsList.includes(eff.key);
-    });
-
-    const addWrapper = document.createElement('div');
-    addWrapper.style.display = 'flex';
-    addWrapper.style.alignItems = 'center';
-    addWrapper.style.gap = '6px';
-
-    const select = document.createElement('select');
-    select.className = 'inspector-input';
-    select.style.fontSize = '11px';
-    select.style.padding = '4px 8px';
-    select.style.cursor = 'pointer';
-
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = availableToAdd.length > 0
-      ? (t('editor.inspector.addEffectPrompt') || '+ Add Effect...')
-      : (t('editor.inspector.allEffectsAdded') || 'All effects added');
-    select.appendChild(defaultOption);
-
-    if (availableToAdd.length === 0) {
-      const disabledPlaceholder = document.createElement('div');
-      disabledPlaceholder.className = 'inspector-input';
-      disabledPlaceholder.style.fontSize = '11px';
-      disabledPlaceholder.style.padding = '4px 8px';
-      disabledPlaceholder.style.opacity = '0.5';
-      disabledPlaceholder.textContent =
-        t('editor.inspector.allEffectsAdded') || 'All effects added';
-      addWrapper.appendChild(disabledPlaceholder);
-    } else {
-      const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
-        const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
-        const labelB = en?.editor?.inspector?.fields?.[b.labelKey] || b.key;
-        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
-      });
-
-      const effectOptions = sortedAvailableToAdd.map((eff) => ({
-        value: eff.key,
-        label: t(`editor.inspector.fields.${eff.labelKey}`) || eff.key
-      }));
-
-      const effectSelect = new CustomSelect({
-        options: effectOptions,
-        placeholder:
-          t('editor.inspector.addEffectPrompt') || '+ Add Effect...',
-        category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
-        fieldName: 'addEffect',
-        enableSearch: false,
-        onChange: (selectedKey) => {
-          if (!selectedKey) return;
-          this.triggerUpdate('beforeChange');
-          targetEvent[selectedKey] = true;
-          if (!Array.isArray(targetEvent.effects)) {
-            targetEvent.effects = [];
+          if (endRatio === undefined) {
+            endRatio = end !== undefined ? Math.max(0, Math.min(1.0, end / burstLife)) : 0.5;
           }
-          if (!targetEvent.effects.includes(selectedKey)) {
-            targetEvent.effects.push(selectedKey);
-          }
-          this.triggerUpdate();
-          this.render();
+
+          start = Math.round(startRatio * burstLife * 100) / 100;
+          end = Math.round(endRatio * burstLife * 100) / 100;
+
+          list.push({
+            type,
+            startRatio: Math.round(startRatio * 100) / 100,
+            endRatio: Math.round(endRatio * 100) / 100,
+            start,
+            end
+          });
         }
       });
 
-      addWrapper.appendChild(effectSelect.element);
-    }
+      if (!Array.isArray(targetEvent.effects)) {
+        TIMED_EFFECT_TAGS.forEach((tag) => {
+          const hasLegacy = Boolean(
+            targetEvent[tag.key]
+            || (tag.key === 'no-trail' && (targetEvent.noTrail || targetEvent.notrail))
+          );
+          if (hasLegacy && !list.some((e) => e.type === tag.key)) {
+            list.push({
+              id: `${tag.key}_${Math.random().toString(36).slice(2, 7)}`,
+              type: tag.key,
+              startRatio: 0.1,
+              endRatio: 0.5,
+              start: Math.round(burstLife * 0.1 * 100) / 100,
+              end: Math.round(burstLife * 0.5 * 100) / 100
+            });
+            delete targetEvent[tag.key];
+            if (tag.key === 'no-trail') {
+              delete targetEvent.noTrail;
+              delete targetEvent.notrail;
+            }
+          }
+        });
+      }
 
-    container.appendChild(chipsWrapper);
-    container.appendChild(addWrapper);
+      return list;
+    };
 
-    parent.appendChild(label);
+    const cleanLegacyTimedFlags = () => {
+      TIMED_EFFECT_TAGS.forEach((tag) => {
+        delete targetEvent[tag.key];
+        if (tag.key === 'no-trail') {
+          delete targetEvent.noTrail;
+          delete targetEvent.notrail;
+        }
+      });
+    };
+
+    new ActiveEffectsTimeline(container, {
+      getDuration: () => {
+        return getBurstLifetime();
+      },
+      getEffects: () => {
+        return getNormalizedEffects();
+      },
+      onChange: (updatedEffects) => {
+        this.triggerUpdate('beforeChange');
+        const existingModifiers = (Array.isArray(targetEvent.effects) ? targetEvent.effects : [])
+          .filter((e) => {
+            const key = typeof e === 'object' && e !== null ? (e.type || e.key) : e;
+            return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
+          });
+        targetEvent.effects = [...updatedEffects, ...existingModifiers];
+        cleanLegacyTimedFlags();
+        this.triggerUpdate();
+      },
+      availableEffectTags: TIMED_EFFECT_TAGS
+    });
+
     parent.appendChild(container);
   }
 
@@ -3319,7 +3497,7 @@ export class PropertyInspector {
       row1.appendChild(dynCol);
       card.appendChild(row1);
 
-      // 3. Row: Structural Modifiers (Pistil & Instant Burst)
+      // 3. Row: Structural Modifiers (Pistil)
       const modRow = document.createElement('div');
       modRow.style.display = 'flex';
       modRow.style.gap = '14px';
@@ -3354,29 +3532,6 @@ export class PropertyInspector {
         PREVIEW_CATEGORIES.OPTICAL_EFFECT
       );
       modRow.appendChild(pistilLabel);
-
-      // Instant Burst
-      const instantLabel = document.createElement('label');
-      instantLabel.className = 'inspector-checkbox-container';
-      instantLabel.style.fontSize = '10px';
-      instantLabel.style.cursor = 'pointer';
-
-      const instantInput = document.createElement('input');
-      instantInput.className = 'inspector-checkbox';
-      instantInput.type = 'checkbox';
-      instantInput.checked = Boolean(activeChild.instantBurst);
-      instantInput.addEventListener('change', (e) => {
-        this.triggerUpdate('beforeChange');
-        activeChild.instantBurst = e.target.checked;
-        this.triggerUpdate();
-      });
-
-      const instantText = document.createElement('span');
-      instantText.textContent = t('editor.inspector.fields.instantBurst') || 'Instant Burst';
-
-      instantLabel.appendChild(instantInput);
-      instantLabel.appendChild(instantText);
-      modRow.appendChild(instantLabel);
 
       card.appendChild(modRow);
 

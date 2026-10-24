@@ -196,30 +196,34 @@ export class SkyLightReactionSystem {
       }
     }
 
+    if (this.sceneManager.cloudSystem && typeof this.sceneManager.cloudSystem.setMultiLights === 'function') {
+      this.sceneManager.cloudSystem.setMultiLights(activeSmokeLights);
+    }
+
     const blendedColor = totalWeight > 0
       ? colorAccumulator.multiplyScalar(1 / totalWeight)
       : this.baseSkyColor.clone();
 
-    // Significantly reduced global light influence to keep the sky dark
+    // Deep dark night sky: heavily dampen global background wash
     const skyMix = THREE.MathUtils.clamp(
-      skyEnergy * 0.005,
+      skyEnergy * 0.0008,
       0,
-      0.008
+      0.0015
     );
     const fogMix = THREE.MathUtils.clamp(
-      skyEnergy * 0.005,
+      skyEnergy * 0.0008,
       0,
-      0.008
+      0.0015
     );
     const ambientBoost = THREE.MathUtils.clamp(
-      skyEnergy * 0.002,
+      skyEnergy * 0.0005,
       0,
-      0.004
+      0.001
     );
     const hemiBoost = THREE.MathUtils.clamp(
-      skyEnergy * 0.002,
+      skyEnergy * 0.0005,
       0,
-      0.004
+      0.001
     );
 
     const skyTarget = this.baseSkyColor.clone().lerp(blendedColor, skyMix);
@@ -344,6 +348,9 @@ export class SkyLightReactionSystem {
           this.smokeSystem.setBurstFlash(null, null, 0);
         }
       }
+    }
+    if (this.sceneManager.cloudSystem && typeof this.sceneManager.cloudSystem.setMultiLights === 'function') {
+      this.sceneManager.cloudSystem.setMultiLights(activeSmokeLights);
     }
     if (this.sceneManager.waterSurface && typeof this.sceneManager.waterSurface.setBurstFlash === 'function') {
       this.sceneManager.waterSurface.setBurstFlash(null, null, 0);

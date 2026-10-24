@@ -95,7 +95,7 @@ export class TimelineEditor {
     this.resizer.style.position = 'absolute';
     this.resizer.style.top = '-4px';
     this.resizer.style.left = '0';
-    this.resizer.style.width = 'calc(100% - 320px)'; // Tránh đè lên phần Property Inspector bên phải
+    this.resizer.style.width = '100%';
     this.resizer.style.height = '8px';
     this.resizer.style.cursor = 'ns-resize';
     this.resizer.style.zIndex = '1002';
@@ -111,6 +111,7 @@ export class TimelineEditor {
       const newHeight = window.innerHeight - e.clientY;
       const boundedHeight = Math.max(100, Math.min(newHeight, window.innerHeight * 0.9));
       this.container.style.height = boundedHeight + 'px';
+      this.updateInspectorPosition();
     });
 
     window.addEventListener('mouseup', () => {
@@ -122,9 +123,10 @@ export class TimelineEditor {
 
     this.container.appendChild(this.resizer);
 
-    // Left side: Toolbar & Tracks
+    // Left side: Toolbar & Tracks (Full width)
     const leftPanel = document.createElement('div');
-    leftPanel.style.width = 'calc(100% - 320px)';
+    leftPanel.style.width = '100%';
+    leftPanel.style.flex = '1 1 auto';
     leftPanel.style.display = 'flex';
     leftPanel.style.flexDirection = 'column';
     leftPanel.style.overflow = 'hidden';
@@ -493,10 +495,10 @@ export class TimelineEditor {
     leftPanel.appendChild(this.trackContainer);
     this.container.appendChild(leftPanel);
 
-    // Right side: Property Inspector
+    // Property Inspector Container (docked to viewport top-right)
     const inspectorContainer = document.createElement('div');
     this.inspectorContainer = inspectorContainer;
-    this.container.appendChild(inspectorContainer);
+    document.body.appendChild(inspectorContainer);
 
     let presetOptions = ['random'];
     if (this.showDirector && this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.shellPresetFactory) {
@@ -518,6 +520,16 @@ export class TimelineEditor {
         }
       }
     );
+
+    const originalInspectorShow = this.inspector.show.bind(this.inspector);
+    this.inspector.show = (event) => {
+      originalInspectorShow(event);
+      this.updateInspectorPosition();
+    };
+
+    window.addEventListener('resize', () => {
+      this.updateInspectorPosition();
+    });
 
     document.body.appendChild(this.container);
 
@@ -742,11 +754,22 @@ export class TimelineEditor {
     document.addEventListener('pointerlockchange', () => {
       if (document.pointerLockElement) {
         this.container.style.display = 'none';
+        if (this.inspector && this.inspector.container) {
+          this.inspector.container.style.display = 'none';
+        }
         if (this.hotkeyManager) {
           this.hotkeyManager.setActiveContext('global');
         }
       } else {
         this.container.style.display = this.visible ? 'flex' : 'none';
+        if (this.inspector && this.inspector.container) {
+          if (this.visible && this.inspector.selectedEvent) {
+            this.inspector.container.style.display = 'block';
+            this.updateInspectorPosition();
+          } else {
+            this.inspector.container.style.display = 'none';
+          }
+        }
         if (
           this.hotkeyManager &&
           this.visible
@@ -1070,6 +1093,14 @@ export class TimelineEditor {
   toggle() {
     this.visible = !this.visible;
     this.container.style.display = this.visible ? 'flex' : 'none';
+    if (this.inspector && this.inspector.container) {
+      if (!this.visible) {
+        this.inspector.container.style.display = 'none';
+      } else if (this.inspector.selectedEvent) {
+        this.inspector.container.style.display = 'block';
+        this.updateInspectorPosition();
+      }
+    }
     if (this.visible && document.pointerLockElement) {
       document.exitPointerLock();
     }
@@ -1082,6 +1113,16 @@ export class TimelineEditor {
       this.tourGuide.promptFirstTimeTour();
     }
     globalEventBus.emit('timeline:toggle', this.visible);
+  }
+
+  updateInspectorPosition() {
+    if (!this.inspector || !this.inspector.container) return;
+    if (this.visible && this.container.style.display !== 'none') {
+      const height = this.container.offsetHeight || (window.innerHeight * 0.35);
+      this.inspector.container.style.bottom = `${height + 12}px`;
+    } else {
+      this.inspector.container.style.bottom = '12px';
+    }
   }
 
   togglePlay() {

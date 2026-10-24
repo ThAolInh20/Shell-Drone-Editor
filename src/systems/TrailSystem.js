@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { globalEventBus } from '../core/EventBus.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
+import { renderingConfig } from '../config/rendering.js';
 
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
@@ -54,6 +55,12 @@ export class TrailSystem {
       this.colorsAttr
     );
 
+    this.trailUniforms = {
+      uEdgeSoftness: {
+        value: renderingConfig.post?.particleEdgeSoftness ?? 0.75
+      }
+    };
+
     this.trailMaterial = new THREE.PointsMaterial({
       size: 8,
       color: 0xffffff,
@@ -65,31 +72,36 @@ export class TrailSystem {
     });
 
     this.trailMaterial.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.uniforms.uEdgeSoftness = this.trailUniforms.uEdgeSoftness;
+      this.trailShader = shader;
+      shader.fragmentShader = `
+        uniform float uEdgeSoftness;
+      ` + shader.fragmentShader.replace(
         '#include <color_fragment>',
         `
         #include <color_fragment>
         
         vec2 coord = gl_PointCoord - vec2(0.5);
         float dist = length(coord) * 2.0;
-        if (dist > 1.0) discard;
+        if (dist > uEdgeSoftness) discard;
         
         vec4 stop0 = vec4(1.0, 1.0, 1.0, 1.0);
         vec4 stop1 = vec4(diffuseColor.rgb, 0.3);
         vec4 stop2 = vec4(diffuseColor.rgb, 0.13);
         vec4 stop3 = vec4(diffuseColor.rgb, 0.0);
         
+        float outerStart = min(0.32, uEdgeSoftness * 0.45);
         vec4 gradientColor;
         if (dist < 0.024) {
             gradientColor = stop0;
-        } else if (dist < 0.125) {
-            float t = (dist - 0.024) / (0.125 - 0.024);
+        } else if (dist < min(0.125, outerStart)) {
+            float t = (dist - 0.024) / max(0.001, min(0.125, outerStart) - 0.024);
             gradientColor = mix(stop0, stop1, t);
-        } else if (dist < 0.32) {
-            float t = (dist - 0.125) / (0.32 - 0.125);
+        } else if (dist < outerStart) {
+            float t = (dist - min(0.125, outerStart)) / max(0.001, outerStart - min(0.125, outerStart));
             gradientColor = mix(stop1, stop2, t);
         } else {
-            float t = (dist - 0.32) / (1.0 - 0.32);
+            float t = (dist - outerStart) / max(0.001, uEdgeSoftness - outerStart);
             gradientColor = mix(stop2, stop3, t);
         }
         
@@ -111,8 +123,26 @@ export class TrailSystem {
       : 'medium';
     this.setGraphicsQuality(savedQuality);
     this.eventSubscriptions.push(
-      globalEventBus.on('graphics:quality', (quality) => this.setGraphicsQuality(quality))
+      globalEventBus.on(
+        'graphics:quality',
+        (quality) => this.setGraphicsQuality(quality)
+      )
     );
+  }
+
+  setParticleEdgeSoftness(value) {
+    if (
+      this.trailUniforms &&
+      this.trailUniforms.uEdgeSoftness
+    ) {
+      this.trailUniforms.uEdgeSoftness.value = value;
+    }
+  }
+
+  getParticleEdgeSoftness() {
+    return this.trailUniforms?.uEdgeSoftness?.value ??
+      renderingConfig.post?.particleEdgeSoftness ??
+      0.75;
   }
 
   setGraphicsQuality(quality) {

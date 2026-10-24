@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LAYER_REFLECTION } from '../config/layers.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { BurstParticleFactory } from '../factories/BurstParticleFactory.js';
 
 const COMET_CORE_SIZE = 1.2;
 
@@ -55,7 +56,9 @@ export class CometEntity {
     this.isFading = false;
 
     // Visual Effect Tags normalization
-    const effects = Array.isArray(preset?.effects) ? preset.effects : [];
+    const rawEffects = Array.isArray(preset?.effects) ? preset.effects : [];
+    const effectKeys = rawEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+    const effects = effectKeys;
     const effectType = preset?.effectType || '';
 
     this.hasLongBurn = Boolean(
@@ -83,6 +86,16 @@ export class CometEntity {
       this.fadeStartTime = Math.max(this.fadeStartTime, this.totalLifetime - this.maxDecayTime);
     }
 
+    this.hasSlowBurst = Boolean(
+      preset?.slowBurst ||
+      preset?.['slow-burst'] ||
+      preset?.slow_burst ||
+      effects.includes('slow-burst') ||
+      effects.includes('slow_burst') ||
+      effectType === 'slow-burst' ||
+      effectType === 'slow_burst'
+    );
+
     this.hasCrackle = Boolean(preset?.crackle || effects.includes('crackle') || effectType === 'crackle');
     this.hasCrossette = Boolean(preset?.crossette || effects.includes('crossette') || effectType === 'crossette');
     this.hasFlow = Boolean(preset?.flow || effects.includes('flow') || effectType === 'flow');
@@ -94,10 +107,16 @@ export class CometEntity {
       effectType === 'ghost-kamuro'
     );
     this.isGhostFlare = this.hasGhostFlare;
+    const noTrailTiming = BurstParticleFactory.getEffectTiming(rawEffects, 'no-trail', this.totalLifetime)
+      || BurstParticleFactory.getEffectTiming(rawEffects, 'notrail', this.totalLifetime)
+      || BurstParticleFactory.getEffectTiming(rawEffects, 'noTrail', this.totalLifetime);
+    this.noTrailTiming = noTrailTiming;
     this.hasNoTrail = Boolean(
       preset?.noTrail ||
       effects.includes('no-trail') ||
+      effects.includes('notrail') ||
       effectType === 'no-trail' ||
+      effectType === 'notrail' ||
       preset?.shellType === 'comet_cluster_notrail'
     );
     this.hasNoBurst = Boolean(preset?.noBurst || effects.includes('no-burst') || effectType === 'no-burst');
