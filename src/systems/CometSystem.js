@@ -910,13 +910,7 @@ export class CometSystem {
       const isSmokeLaunch = comet.preset?.cometTrail === 'smoke'
         || (Boolean(comet.preset?.flightSmoke) && comet.preset?.launchTrail === false)
         || (Boolean(comet.preset?.launchSmoke) && comet.preset?.launchTrail === false);
-      let isNoTrailWindow = false;
-      if (comet.noTrailTiming) {
-        const start = comet.noTrailTiming.start ?? 0;
-        const end = comet.noTrailTiming.end ?? (comet.totalLifetime ?? 9999);
-        isNoTrailWindow = comet.age >= start && comet.age <= end;
-      }
-      const isTrailDisabled = (comet.noTrailTiming ? isNoTrailWindow : Boolean(comet.hasNoTrail))
+      const isTrailDisabled = Boolean(comet.hasNoTrail)
         || comet.preset?.launchTrail === false
         || isSmokeLaunch;
 

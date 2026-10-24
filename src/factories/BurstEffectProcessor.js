@@ -39,8 +39,6 @@ export class BurstEffectProcessor {
     if (
       normDynamics === 'flow' ||
       normDynamics === 'snow' ||
-      normDynamics === 'slow-burst' ||
-      normDynamics === 'slow_burst' ||
       normDynamics === 'wave' ||
       normDynamics === 'falling-leaves' ||
       normDynamics === 'swimming-star' ||
@@ -84,109 +82,6 @@ export class BurstEffectProcessor {
     // 4. Mac dinh la profile standard
     return profiles.standard;
   }
-
-  static isEffectActive(particle, effectName) {
-    if (!particle) return false;
-
-    const age = particle.age ?? 0;
-
-    const normKey = (effectName === 'noTrail' || effectName === 'notrail')
-      ? 'no-trail'
-      : (effectName === 'tadpole_flurry')
-        ? 'tadpole-flurry'
-        : (effectName === 'erratic_dart')
-          ? 'erratic-dart'
-          : effectName;
-
-    // Check multi-interval effectWindows first if attached to particle
-    if (particle.effectWindows && particle.effectWindows[normKey]) {
-      const windows = particle.effectWindows[normKey];
-      for (let i = 0; i < windows.length; i++) {
-        const w = windows[i];
-        if (age >= w.start && age <= w.end) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    if (effectName === 'strobe' || effectName === 'white-strobe' || effectName === 'glitter-strobe') {
-      if (particle.strobeStart !== undefined) {
-        return age >= particle.strobeStart && age <= particle.strobeEnd;
-      }
-    } else if (effectName === 'ghost') {
-      if (particle.ghostStart !== undefined) {
-        return age >= particle.ghostStart && age <= particle.ghostEnd;
-      }
-    } else if (effectName === 'crackle') {
-      if (particle.crackleStart !== undefined) {
-        return age >= particle.crackleStart && age <= particle.crackleEnd;
-      }
-    } else if (effectName === 'tadpole-flurry' || effectName === 'tadpole_flurry') {
-      if (particle.tadpoleStart !== undefined) {
-        return age >= particle.tadpoleStart && age <= particle.tadpoleEnd;
-      }
-    } else if (effectName === 'burst-smoke') {
-      if (particle.burstSmokeStart !== undefined) {
-        return age >= particle.burstSmokeStart && age <= particle.burstSmokeEnd;
-      }
-    } else if (effectName === 'no-trail' || effectName === 'noTrail' || effectName === 'notrail') {
-      if (particle.noTrailStart !== undefined) {
-        return age >= particle.noTrailStart && age <= (particle.noTrailEnd ?? (particle.maxLife ?? 9999));
-      }
-      if (particle.hasNoTrail) {
-        return true;
-      }
-    }
-
-    if (particle.effectType === effectName) {
-      return true;
-    }
-    if ((effectName === 'no-trail' || effectName === 'noTrail' || effectName === 'notrail')
-      && (particle.effectType === 'no-trail' || particle.effectType === 'notrail' || particle.effectType === 'noTrail')) {
-      return true;
-    }
-
-    const effects = Array.isArray(particle.effects) && particle.effects.length > 0
-      ? particle.effects
-      : (Array.isArray(particle.preset?.effects) ? particle.preset.effects : null);
-
-    if (!effects) return false;
-
-    const normTarget = (effectName === 'noTrail' || effectName === 'notrail')
-      ? 'no-trail'
-      : effectName;
-
-    for (let i = 0; i < effects.length; i++) {
-      const eff = effects[i];
-      if (typeof eff === 'string') {
-        const normEff = (eff === 'noTrail' || eff === 'notrail')
-          ? 'no-trail'
-          : eff;
-        if (normEff === normTarget) return true;
-      } else if (eff && typeof eff === 'object') {
-        let type = eff.type || eff.key;
-        if (type === 'noTrail' || type === 'notrail') {
-          type = 'no-trail';
-        }
-        if (type === normTarget) {
-          let start = eff.start !== undefined ? Number(eff.start) : 0;
-          let end = eff.end !== undefined ? Number(eff.end) : (particle.maxLife ?? 9999);
-          if (eff.startRatio !== undefined && !isNaN(eff.startRatio)) {
-            start = Number(eff.startRatio) * (particle.maxLife ?? 1.0);
-          }
-          if (eff.endRatio !== undefined && !isNaN(eff.endRatio)) {
-            end = Number(eff.endRatio) * (particle.maxLife ?? 1.0);
-          }
-          if (age >= start && age <= end) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
-  }
   static SUPPORTED_EFFECTS = new Set([
     'standard',
     'crackle',
@@ -225,13 +120,7 @@ export class BurstEffectProcessor {
     'sparkling-branch-comet',
     'tadpole-spiral',
     'long-burn',
-    'apex-hang',
-    'crysanthemum_discrete_trail',
-    'crysanthemum-discrete-trail',
-    'sphere_rings_wave',
-    'sphere-rings-wave',
-    'slow-burst',
-    'slow_burst'
+    'apex-hang'
   ]);
 
   static effectsRegistry = new Map();
@@ -276,8 +165,7 @@ export class BurstEffectProcessor {
 
   static initialize(effectType, count, preset = null) {
     const normalizedEffect = this.normalizeEffectType(effectType);
-    const rawEffects = Array.isArray(preset?.effects) ? preset.effects : [];
-    const effectsList = rawEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+    const effectsList = Array.isArray(preset?.effects) ? preset.effects : [];
     const strobeEnabled = Boolean(preset?.strobe)
       || effectsList.includes('strobe')
       || effectsList.includes('white-strobe')
@@ -286,31 +174,11 @@ export class BurstEffectProcessor {
     const ghostEnabled = Boolean(preset?.ghost) || effectsList.includes('ghost') || normalizedEffect === 'ghost';
     const flowEnabled = Boolean(preset?.flow) || effectsList.includes('flow') || normalizedEffect === 'flow';
     const crossetteEnabled = Boolean(preset?.crossette) || effectsList.includes('crossette') || normalizedEffect === 'crossette';
-    const slowBurstEnabled = Boolean(preset?.slowBurst)
-      || Boolean(preset?.['slow-burst'])
-      || Boolean(preset?.slow_burst)
-      || effectsList.includes('slow-burst')
-      || effectsList.includes('slow_burst')
-      || normalizedEffect === 'slow-burst'
-      || normalizedEffect === 'slow_burst';
-
-    const noTrailObj = rawEffects.find(
-      (e) => typeof e === 'object'
-        && e !== null
-        && ((e.type || e.key) === 'no-trail' || (e.type || e.key) === 'notrail' || (e.type || e.key) === 'noTrail')
-    );
-    const hasStaticNoTrail = Boolean(preset?.noTrail)
+    const noTrail = Boolean(preset?.noTrail)
       || effectsList.includes('no-trail')
       || effectsList.includes('notrail')
       || normalizedEffect === 'notrail'
       || normalizedEffect === 'no-trail';
-    const noTrailTiming = noTrailObj ? {
-      start: noTrailObj.start !== undefined ? Number(noTrailObj.start) : undefined,
-      end: noTrailObj.end !== undefined ? Number(noTrailObj.end) : undefined,
-      startRatio: noTrailObj.startRatio !== undefined ? Number(noTrailObj.startRatio) : undefined,
-      endRatio: noTrailObj.endRatio !== undefined ? Number(noTrailObj.endRatio) : undefined
-    } : null;
-
     const spin = new Float32Array(count);
     const phase = new Float32Array(count);
     const turbulence = new Float32Array(count);
@@ -342,9 +210,7 @@ export class BurstEffectProcessor {
       ghost: ghostEnabled,
       flow: flowEnabled,
       crossette: crossetteEnabled,
-      slowBurst: slowBurstEnabled,
-      noTrail: hasStaticNoTrail && !noTrailTiming,
-      noTrailTiming,
+      noTrail,
       spin,
       phase,
       turbulence,
@@ -370,7 +236,6 @@ export class BurstEffectProcessor {
     let spawnTrail = false;
     let trailLife = 0.8;
     let trailIntensity = 0.35;
-    let trailSpawnChance = undefined;
     let spawnSmoke = false;
     let smokeLife = 2.5;
     let smokeOpacity = 0.15;
@@ -387,7 +252,6 @@ export class BurstEffectProcessor {
         if (overrides.spawnTrail !== undefined) spawnTrail = overrides.spawnTrail;
         if (overrides.trailLife !== undefined) trailLife = overrides.trailLife;
         if (overrides.trailIntensity !== undefined) trailIntensity = overrides.trailIntensity;
-        if (overrides.trailSpawnChance !== undefined) trailSpawnChance = overrides.trailSpawnChance;
         if (overrides.spawnSmoke !== undefined) spawnSmoke = overrides.spawnSmoke;
         if (overrides.smokeLife !== undefined) smokeLife = overrides.smokeLife;
         if (overrides.smokeOpacity !== undefined) smokeOpacity = overrides.smokeOpacity;
@@ -425,14 +289,6 @@ export class BurstEffectProcessor {
       trailIntensity = Math.max(trailIntensity, 0.3);
     }
 
-    if (effectState?.slowBurst && effectType !== 'snow' && effectType !== 'slow-burst' && effectType !== 'slow_burst') {
-      const drift = Math.sin(age * 2 + (effectState.phase[index] || 0)) * 0.04;
-      velocity.x += drift * deltaTime;
-      velocity.z += drift * deltaTime * 0.7;
-      velocity.multiplyScalar(0.996);
-      gravityScale = Math.min(gravityScale, 0.05);
-    }
-
     // Custom shape logic for half-flash comets (jellyfish tentacles)
     if (effectState?.shapeType === 'half-flash') {
       const numBeams = 4;
@@ -457,17 +313,6 @@ export class BurstEffectProcessor {
 
     if (effectState?.noTrail) {
       spawnTrail = false;
-    } else if (effectState?.noTrailTiming) {
-      const timing = effectState.noTrailTiming;
-      const start = timing.startRatio !== undefined
-        ? timing.startRatio * maxLife
-        : (timing.start ?? 0);
-      const end = timing.endRatio !== undefined
-        ? timing.endRatio * maxLife
-        : (timing.end ?? maxLife);
-      if (age >= start && age <= end) {
-        spawnTrail = false;
-      }
     }
 
     return {
@@ -477,7 +322,6 @@ export class BurstEffectProcessor {
       spawnTrail,
       trailLife,
       trailIntensity,
-      trailSpawnChance,
       spawnSmoke,
       smokeLife,
       smokeOpacity
@@ -491,11 +335,7 @@ export class BurstEffectProcessor {
 
     const dartCfg = FIREWORK_CONFIG.ERRATIC_DART || {};
 
-    const triggerCondition = particle.erraticDartTriggerTime !== undefined
-      ? particle.age >= particle.erraticDartTriggerTime
-      : lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72);
-
-    if (!particle.erraticDartTriggered && triggerCondition) {
+    if (!particle.erraticDartTriggered && lifeRatio >= (particle.erraticDartTriggerRatio ?? 0.72)) {
       particle.erraticDartTriggered = true;
       const minSpeed = dartCfg.dartSpeedMin ?? 36.0;
       const maxSpeed = dartCfg.dartSpeedMax ?? 54.0;
@@ -626,8 +466,6 @@ export class BurstEffectProcessor {
       strobeFreqMultiplier = 1.0,
       isSpiralIgnited = true,
       spiralFlashBonus = 1.0,
-      isRingIgnited = true,
-      ringFlashBonus = 1.0,
       hasGhostFlare = false,
       profile = null
     } = options;
@@ -650,25 +488,28 @@ export class BurstEffectProcessor {
       return { r, g, b };
     }
 
-    const hasStrobeTiming = (particle.effectWindows && (particle.effectWindows.strobe || particle.effectWindows['white-strobe'] || particle.effectWindows['glitter-strobe']))
-      || (Array.isArray(particle.effects) && particle.effects.some((e) => typeof e === 'object' && e !== null && ['strobe', 'white-strobe', 'glitter-strobe'].includes(e.type || e.key)));
+    const hasWhiteStrobe = particle.effectType === 'white-strobe'
+      || (Array.isArray(particle.effects) && particle.effects.includes('white-strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('white-strobe'));
 
-    const hasWhiteStrobe = BurstEffectProcessor.isEffectActive(particle, 'white-strobe');
-
-    const hasGlitterStrobe = BurstEffectProcessor.isEffectActive(particle, 'glitter-strobe')
-      || particle.effectType === 'falling-comets-glitter';
+    const hasGlitterStrobe = particle.effectType === 'glitter-strobe'
+      || particle.effectType === 'falling-comets-glitter'
+      || (Array.isArray(particle.effects) && particle.effects.includes('glitter-strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('glitter-strobe'));
 
     const hasStandardStrobe = (
-      BurstEffectProcessor.isEffectActive(particle, 'strobe')
-      || (!hasStrobeTiming && (particle.preset?.strobe || particle.effectState?.strobe))
+      particle.effectType === 'strobe'
+      || particle.preset?.strobe
+      || particle.effectState?.strobe
+      || (Array.isArray(particle.effects) && particle.effects.includes('strobe'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('strobe'))
     ) && particle.preset?.shellType !== 'crysanthemumNested';
 
-    const hasGhostTiming = (particle.effectWindows && particle.effectWindows.ghost)
-      || (Array.isArray(particle.effects) && particle.effects.some((e) => typeof e === 'object' && e !== null && (e.type || e.key) === 'ghost'));
-
-    const isGhostActive = BurstEffectProcessor.isEffectActive(particle, 'ghost');
-    const hasGhost = isGhostActive
-      || (!hasGhostTiming && (Boolean(particle.preset?.ghost) || particle.preset?.shellType === 'ghost'));
+    const hasGhost = particle.effectType === 'ghost'
+      || (Array.isArray(particle.effects) && particle.effects.includes('ghost'))
+      || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('ghost'))
+      || Boolean(particle.preset?.ghost)
+      || particle.preset?.shellType === 'ghost';
 
     const hasCC = particle.effectType === 'crysanthemum-cc'
       || (Array.isArray(particle.effects) && particle.effects.includes('crysanthemum-cc'))
@@ -691,13 +532,15 @@ export class BurstEffectProcessor {
         }
       }
     } else if (hasWhiteStrobe) {
-      const timeMs = (particle.age + particle.phase) * 1000;
-      const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
-      const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-      const blink = isBlinking ? 1.0 : 0.05;
-      r = blink;
-      g = blink;
-      b = blink;
+      if (lifeRatio > 0.5) {
+        const timeMs = (particle.age + particle.phase) * 1000;
+        const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
+        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+        const blink = isBlinking ? 1.0 : 0.05;
+        r = blink;
+        g = blink;
+        b = blink;
+      }
     } else if (hasGlitterStrobe) {
       const timeMs = (particle.age + particle.phase) * 1000;
       const strobeFreq = 90 * strobeFreqMultiplier;
@@ -721,25 +564,19 @@ export class BurstEffectProcessor {
       g = particle.baseColor.g * blink * coolFactor;
       b = particle.baseColor.b * blink * coolFactor;
     } else if (hasStandardStrobe) {
-      if ((particle.effectType === 'sphere_rings_wave' || particle.effectType === 'sphere-rings-wave') && !isRingIgnited) {
-        r = 0;
-        g = 0;
-        b = 0;
-      } else {
-        const timeMs = (particle.age + particle.phase) * 1000;
-        const strobeFreq = 150 * strobeFreqMultiplier;
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-        const blink = isBlinking ? 1.0 : 0.0;
+      const timeMs = (particle.age + particle.phase) * 1000;
+      const strobeFreq = 150 * strobeFreqMultiplier;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+      const blink = isBlinking ? 1.0 : 0.0;
 
-        if (particle.preset?.shellType === 'strobe') {
-          r = blink;
-          g = blink;
-          b = blink;
-        } else {
-          r = particle.baseColor.r * blink;
-          g = particle.baseColor.g * blink;
-          b = particle.baseColor.b * blink;
-        }
+      if (particle.preset?.shellType === 'strobe') {
+        r = blink;
+        g = blink;
+        b = blink;
+      } else {
+        r = particle.baseColor.r * blink;
+        g = particle.baseColor.g * blink;
+        b = particle.baseColor.b * blink;
       }
     } else if (hasGhost) {
       let intensity = 0.0;
@@ -789,16 +626,6 @@ export class BurstEffectProcessor {
         g = Math.min(2.0, particle.baseColor.g * spiralFlashBonus);
         b = Math.min(2.0, particle.baseColor.b * spiralFlashBonus);
       }
-    } else if (particle.effectType === 'sphere_rings_wave' || particle.effectType === 'sphere-rings-wave') {
-      if (!isRingIgnited) {
-        r = particle.baseColor.r * 0.01;
-        g = particle.baseColor.g * 0.01;
-        b = particle.baseColor.b * 0.01;
-      } else {
-        r = Math.min(2.5, particle.baseColor.r * ringFlashBonus);
-        g = Math.min(2.5, particle.baseColor.g * ringFlashBonus);
-        b = Math.min(2.5, particle.baseColor.b * ringFlashBonus);
-      }
     } else if (hasGhostFlare) {
       if (lifeRatio < 0.32) {
         r = particle.baseColor.r;
@@ -827,18 +654,11 @@ export class BurstEffectProcessor {
       if (particle.isSecondBurstChild) {
         // Second burst child particles: suppress white incandescent flash resonance
         // Preserve rich chromatic saturation instead of bleaching to white
-        const attenuationStart = profile?.attenuationStart ?? 0.35;
         if (lifeRatio < 0.12) {
           const flashT = 1.0 - (lifeRatio / 0.12);
           r = r * (1.0 + flashT * 0.15);
           g = g * (1.0 + flashT * 0.15);
           b = b * (1.0 + flashT * 0.15);
-        } else if (lifeRatio >= attenuationStart && lifeRatio <= 0.65) {
-          const attenProgress = (lifeRatio - attenuationStart) / (0.65 - attenuationStart);
-          const attenFactor = 1.0 - attenProgress * 0.15;
-          r *= attenFactor;
-          g *= attenFactor;
-          b *= attenFactor;
         } else if (lifeRatio > 0.65) {
           if (lifeRatio < 0.90) {
             const coolT = (lifeRatio - 0.65) / 0.25;
@@ -853,98 +673,25 @@ export class BurstEffectProcessor {
           }
         }
       } else {
-        const ignitionEnd = 0.035;
-        const flashEnd = profile?.flashEnd ?? 0.12;
-        const attenuationStart = profile?.attenuationStart ?? 0.35;
-        const coolingStart = profile?.coolingStart ?? 0.55;
-        const emberStart = profile?.emberStart ?? 0.85;
-
-        if (lifeRatio < flashEnd) {
-          let flashT;
-          if (lifeRatio < ignitionEnd) {
-            // Pha 1: Bắt lửa bừng cháy vọt lên đỉnh nhiệt (Ignition flare-up ramp)
-            const igniteProgress = lifeRatio / ignitionEnd;
-            flashT = THREE.MathUtils.smoothstep(
-              igniteProgress,
-              0.0,
-              1.0
-            );
+        if (lifeRatio < 0.12) {
+          const flashT = 1.0 - (lifeRatio / 0.12);
+          r = THREE.MathUtils.lerp(r, Math.max(r, 1.6), flashT);
+          g = THREE.MathUtils.lerp(g, Math.max(g, 1.5), flashT);
+          b = THREE.MathUtils.lerp(b, Math.max(b, 1.3), flashT);
+        } else if (lifeRatio > 0.62) {
+          if (lifeRatio < 0.88) {
+            const coolT = (lifeRatio - 0.62) / 0.26;
+            r = THREE.MathUtils.lerp(r, 1.0, coolT * 0.55);
+            g = THREE.MathUtils.lerp(g, 0.46, coolT * 0.55);
+            b = THREE.MathUtils.lerp(b, 0.08, coolT * 0.78);
           } else {
-            // Pha 2: Chuyển giao mượt mà từ đỉnh chói sang màu sắc hóa học ổn định
-            const decayProgress = (lifeRatio - ignitionEnd) / (flashEnd - ignitionEnd);
-            flashT = 1.0 - decayProgress;
-          }
-          r = THREE.MathUtils.lerp(
-            r,
-            Math.max(r, 1.65),
-            flashT
-          );
-          g = THREE.MathUtils.lerp(
-            g,
-            Math.max(g, 1.55),
-            flashT
-          );
-          b = THREE.MathUtils.lerp(
-            b,
-            Math.max(b, 1.35),
-            flashT
-          );
-        } else if (lifeRatio >= attenuationStart && lifeRatio < coolingStart) {
-          // Giai đoạn bắt đầu đạt đỉnh nở và rơi xuống (Apex to Fall Transition):
-          // Ánh sáng phát ra từ từ dịu bớt khi động năng bung giảm và trọng lực bắt đầu kéo hạt rơi
-          const attenProgress = (lifeRatio - attenuationStart) / (coolingStart - attenuationStart);
-          const attenFactor = 1.0 - attenProgress * 0.20;
-          r *= attenFactor;
-          g *= attenFactor;
-          b *= attenFactor;
-        } else if (lifeRatio >= coolingStart) {
-          if (lifeRatio < emberStart) {
-            const coolT = (lifeRatio - coolingStart) / (emberStart - coolingStart);
-            const baseFactor = 0.80 * (1.0 - coolT * 0.20);
-            r = THREE.MathUtils.lerp(
-              r * baseFactor,
-              1.0 * baseFactor,
-              coolT * 0.55
-            );
-            g = THREE.MathUtils.lerp(
-              g * baseFactor,
-              0.46 * baseFactor,
-              coolT * 0.55
-            );
-            b = THREE.MathUtils.lerp(
-              b * baseFactor,
-              0.08 * baseFactor,
-              coolT * 0.78
-            );
-          } else {
-            const emberT = (lifeRatio - emberStart) / (1.0 - emberStart);
-            r = THREE.MathUtils.lerp(
-              r * 0.64,
-              0.45,
-              emberT
-            );
-            g = THREE.MathUtils.lerp(
-              g * 0.36,
-              0.06,
-              emberT
-            );
-            b = THREE.MathUtils.lerp(
-              b * 0.14,
-              0.01,
-              emberT
-            );
+            const emberT = (lifeRatio - 0.88) / 0.12;
+            r = THREE.MathUtils.lerp(r * 0.82, 0.55, emberT);
+            g = THREE.MathUtils.lerp(g * 0.45, 0.08, emberT);
+            b = THREE.MathUtils.lerp(b * 0.18, 0.02, emberT);
           }
         }
       }
-    }
-
-    // Kích nhiệt ma sát khí động học (Friction Ram Heating):
-    // Khi hạt chịu biến thiên vận tốc đột ngột, lõi hạt nóng sáng rực rỡ (incandescent core boost)
-    if (particle.frictionHeat && particle.frictionHeat > 0.02) {
-      const heat = Math.min(1.0, particle.frictionHeat);
-      r = THREE.MathUtils.lerp(r, Math.max(r, 2.2), heat * 0.75);
-      g = THREE.MathUtils.lerp(g, Math.max(g, 2.1), heat * 0.75);
-      b = THREE.MathUtils.lerp(b, Math.max(b, 1.8), heat * 0.75);
     }
 
     return { r, g, b };
@@ -982,10 +729,6 @@ BurstEffectProcessor.registerEffect('snow', {
     return { gravityScale: 0.05 };
   }
 });
-
-const snowStrategy = BurstEffectProcessor.effectsRegistry.get('snow');
-BurstEffectProcessor.registerEffect('slow-burst', snowStrategy);
-BurstEffectProcessor.registerEffect('slow_burst', snowStrategy);
 
 BurstEffectProcessor.registerEffect('crackle', {
   updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
@@ -1130,38 +873,6 @@ BurstEffectProcessor.registerEffect('crysanthemum-spiral-v2', {
       trailLife: 0.50,
       trailIntensity: 1.0
     };
-  }
-});
-
-BurstEffectProcessor.registerEffect('crysanthemum_discrete_trail', {
-  updateVelocity(velocity, index, deltaTime, age) {
-    // Vận tốc riêng bung nở giảm dần êm dịu theo thời gian
-    velocity.multiplyScalar(0.992);
-
-    // Vừa bung ra vừa chịu trọng lực liên tục ngay từ đầu (~1G tự nhiên)
-    // kết hợp với vận tốc riêng giảm dần để vẽ nên quỹ đạo đường cong rủ xuống mềm mại
-    const gravityScale = 0.32;
-
-    // Vệt đuôi dài (trailLife: 1.45s) nhưng cực kỳ rời rạc (tỷ lệ sinh dao động ngắt quãng)
-    const wave = Math.sin(age * 20.0 + (index * 7.13) % 6.28);
-    const isDropletPulse = wave > 0.55;
-    const trailSpawnChance = isDropletPulse ? 0.42 : 0.04;
-
-    return {
-      gravityScale,
-      dragCoefficient: 0.68,
-      spawnTrail: true,
-      trailLife: 1.45,
-      trailIntensity: 0.90,
-      trailSpawnChance
-    };
-  }
-});
-
-BurstEffectProcessor.registerEffect('crysanthemum-discrete-trail', {
-  updateVelocity(velocity, index, deltaTime, age, maxLife, effectState) {
-    const strategy = BurstEffectProcessor.effectsRegistry.get('crysanthemum_discrete_trail');
-    return strategy.updateVelocity(velocity, index, deltaTime, age, maxLife, effectState);
   }
 });
 

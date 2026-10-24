@@ -9,8 +9,6 @@ global.localStorage = {
 describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
   let PropertyInspector;
   let ACTIVE_EFFECT_TAGS;
-  let TIMED_EFFECT_TAGS;
-  let TOGGLE_MODIFIER_TAGS;
   let FireworkSystem;
 
   const createMockElement = (tag = 'div') => {
@@ -34,15 +32,6 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
         el.children = el.children.filter((c) => c !== child);
         child.parentElement = null;
       },
-      contains: () => false,
-      getBoundingClientRect: () => ({
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        width: 100,
-        height: 30
-      }),
       setAttribute: vi.fn((attr, val) => {
         el[attr] = val;
       }),
@@ -78,23 +67,12 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
   beforeAll(async () => {
     global.document = {
       createElement: (tag) => createMockElement(tag),
-      body: createMockElement('body'),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn()
+      body: createMockElement('body')
     };
-    if (!global.window) {
-      global.window = {};
-    }
-    if (!global.window.addEventListener) {
-      global.window.addEventListener = vi.fn();
-      global.window.removeEventListener = vi.fn();
-    }
 
     const inspectorMod = await import('../../src/ui/PropertyInspector.js');
     PropertyInspector = inspectorMod.PropertyInspector;
     ACTIVE_EFFECT_TAGS = inspectorMod.ACTIVE_EFFECT_TAGS;
-    TIMED_EFFECT_TAGS = inspectorMod.TIMED_EFFECT_TAGS;
-    TOGGLE_MODIFIER_TAGS = inspectorMod.TOGGLE_MODIFIER_TAGS;
 
     const fireworkMod = await import('../../src/systems/FireworkSystem.js');
     FireworkSystem = fireworkMod.FireworkSystem;
@@ -103,81 +81,6 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
   it('should remove long-burn from ACTIVE_EFFECT_TAGS', () => {
     const keys = ACTIVE_EFFECT_TAGS.map((tag) => tag.key);
     expect(keys).not.toContain('long-burn');
-  });
-
-  it('should include flow and no-trail in TIMED_EFFECT_TAGS, and not burst-smoke', () => {
-    const keys = TIMED_EFFECT_TAGS.map((tag) => tag.key);
-    expect(keys).toContain('flow');
-    expect(keys).toContain('no-trail');
-    expect(keys).toContain('strobe');
-    expect(keys).not.toContain('burst-smoke');
-    expect(keys).not.toContain('no-burst');
-    expect(keys).not.toContain('pistil');
-    expect(keys).not.toContain('apex-hang');
-  });
-
-  it('should include burst-smoke, pistil, apex-hang and slow-burst in TOGGLE_MODIFIER_TAGS', () => {
-    const keys = TOGGLE_MODIFIER_TAGS.map((tag) => tag.key);
-    expect(keys).toContain('burst-smoke');
-    expect(keys).toContain('pistil');
-    expect(keys).toContain('apex-hang');
-    expect(keys).toContain('slow-burst');
-    expect(keys).not.toContain('no-burst');
-    expect(keys).not.toContain('flow');
-    expect(keys).not.toContain('no-trail');
-  });
-
-  it('should render toggle modifier chips and toggle event properties on click', () => {
-    const mockContainer = createMockElement('div');
-    const onUpdate = vi.fn();
-    const inspector = new PropertyInspector(mockContainer, onUpdate);
-    const targetEvent = {
-      preset: 'crysanthemum',
-      effects: []
-    };
-    inspector.selectedEvent = targetEvent;
-
-    const parentDiv = createMockElement('div');
-    inspector.renderToggleModifiers(parentDiv, targetEvent);
-
-    const wrapper = parentDiv.children[0];
-    const chips = wrapper.children[1].children;
-    const burstSmokeChip = chips.find((c) => c.dataset.key === 'burst-smoke');
-    const pistilChip = chips.find((c) => c.dataset.key === 'pistil');
-    expect(burstSmokeChip).toBeDefined();
-    expect(pistilChip).toBeDefined();
-
-    // Click burst-smoke chip
-    burstSmokeChip.dispatchEvent({ type: 'click' });
-    expect(targetEvent.burstSmoke).toBe(true);
-    expect(targetEvent['burst-smoke']).toBe(true);
-
-    // Click again to turn off burst-smoke
-    burstSmokeChip.dispatchEvent({ type: 'click' });
-    expect(targetEvent.burstSmoke).toBeUndefined();
-    expect(targetEvent['burst-smoke']).toBeUndefined();
-
-    // Click pistil chip
-    pistilChip.dispatchEvent({ type: 'click' });
-    expect(targetEvent.pistil).toBe(true);
-
-    // Click again to turn off
-    pistilChip.dispatchEvent({ type: 'click' });
-    expect(targetEvent.pistil).toBe(false);
-  });
-
-  it('should not contain instantBurst or pistil as standalone fields in compositionSettings', () => {
-    const mockContainer = createMockElement('div');
-    const inspector = new PropertyInspector(mockContainer, vi.fn());
-    const eventGroups = inspector.getSchema().event;
-    const compGroup = eventGroups.find((g) => g.groupKey === 'compositionSettings');
-    expect(compGroup).toBeDefined();
-    const fieldNames = compGroup.fields.map((f) => f.name);
-    expect(fieldNames).not.toContain('instantBurst');
-    expect(fieldNames).not.toContain('pistil');
-    expect(fieldNames).toContain('shapeType');
-    expect(fieldNames).toContain('dynamicsType');
-    expect(fieldNames).toContain('effects');
   });
 
   it('should configure shellSize and starLifeMultiplier as sliders in visualEffects group', () => {
@@ -196,14 +99,14 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
     expect(shellSizeField).toBeDefined();
     expect(shellSizeField.type).toBe('slider');
     expect(shellSizeField.min).toBe('0.2');
-    expect(shellSizeField.max).toBe('5.0');
+    expect(shellSizeField.max).toBe('2.5');
     expect(shellSizeField.span).toBe(2);
 
     const starLifeField = visualGroup.fields.find((f) => f.name === 'starLifeMultiplier');
     expect(starLifeField).toBeDefined();
     expect(starLifeField.type).toBe('slider');
     expect(starLifeField.min).toBe('0.4');
-    expect(starLifeField.max).toBe('5.0');
+    expect(starLifeField.max).toBe('2.5');
     expect(starLifeField.span).toBe(2);
 
     const cometTrailField = visualGroup.fields.find((f) => f.name === 'cometTrail');
@@ -272,8 +175,7 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 1.0 },
       'test-standard'
     );
-    const standardParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
-    const standardMaxLife = standardParticle.maxLife;
+    const standardMaxLife = fireworkSystem.burstParticles[0].maxLife;
     fireworkSystem.clear();
 
     // Burst with 0.5x starLifeMultiplier
@@ -284,8 +186,7 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 0.5 },
       'test-short'
     );
-    const shortParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
-    const shortMaxLife = shortParticle.maxLife;
+    const shortMaxLife = fireworkSystem.burstParticles[0].maxLife;
     fireworkSystem.clear();
 
     // Burst with 2.0x starLifeMultiplier
@@ -296,27 +197,13 @@ describe('PropertyInspector Sliders and Star Lifetime Multiplier', () => {
       { starLifeMultiplier: 2.0 },
       'test-long'
     );
-    const longParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
-    const longMaxLife = longParticle.maxLife;
-    fireworkSystem.clear();
-
-    // Burst with 5.0x starLifeMultiplier
-    fireworkSystem.createBurst(
-      new THREE.Vector3(0, 100, 0),
-      new THREE.Color(0xffaa00),
-      'sphere',
-      { starLifeMultiplier: 5.0 },
-      'test-5x'
-    );
-    const ultraLongParticle = fireworkSystem.burstParticles.find(p => !p.isDyingEmber) || fireworkSystem.burstParticles[0];
-    const ultraLongMaxLife = ultraLongParticle.maxLife;
+    const longMaxLife = fireworkSystem.burstParticles[0].maxLife;
+    const longParticle = fireworkSystem.burstParticles[0];
     fireworkSystem.clear();
 
     expect(shortMaxLife).toBeLessThan(standardMaxLife * 0.75);
-    expect(longMaxLife).toBeGreaterThan(standardMaxLife * 1.35);
-    expect(ultraLongMaxLife).toBeGreaterThan(standardMaxLife * 3.2);
+    expect(longMaxLife).toBeGreaterThan(standardMaxLife * 1.5);
     expect(longParticle.isLongBurn).toBe(true);
-    expect(ultraLongParticle.isLongBurn).toBe(true);
   });
 
   it('should gracefully fallback to longBurnMultiplier for legacy events with long-burn', () => {

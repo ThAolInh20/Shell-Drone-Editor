@@ -1,27 +1,25 @@
-# Release Notes - v3.1.2
+# Release Notes - v3.1.1
 
 ## Features
-- Added support for multiple time windows on timed firework effects, allowing effects like strobe or crackle to activate across multiple separate intervals.
-- Separated firework modifiers into Instant Triggered Effects and Duration-Based Timed Effects for cleaner editing.
-- Added new firework shapes including Egg and Latitude Ring burst geometries.
-- Added Sphere Rings staggered wave dynamics and gentle floating slow-burst star motion.
-- Added realistic 3D volumetric night clouds that enhance atmospheric depth without washing out dark skies.
-- Added interactive percentage-based active effects timeline editor to fine-tune effect start and end windows.
-- Expanded firework star lifetime multipliers up to 5x for extended willow and cascading displays.
-- Added settings snapshot restore and per-category reset controls to easily restore default editor preferences.
-- Added burst height calibration settings and expanded multi-language interface translations.
+- Added interactive slider controls with live indicators for star lifetime, shell size, and sound volume scale.
+- Added interactive wave curve editor with dynamic height scaling for smooth wave and sweep patterns.
+- Added two-stage second burst fireworks capability allowing shells to deploy secondary fireworks mid-air.
+- Added apex hang effect that suspends particles at their peak with gentle rhythmic expansion.
+- Added erratic darting active effect where stars dart abruptly with sharp zigzag angles before burnout.
+- Added tadpole flurry active effect and presets with swarming wriggling starburst heads.
+- Added timeline grouping tools with context menu actions and shortcuts to group or ungroup blocks.
+- Added dedicated timeline export button, block context menu, and a shortcut to create blank shows.
 
 ## Bug Fixes
-- Fixed an issue where timed effects were behaving like continuous toggle modifiers instead of respecting their timeline start and end windows.
-- Fixed active burst smoke emission to ensure consistent smoke volume across all timeline events.
-- Fixed no-trail effect handling so particle trails are only hidden within the specified timeline interval.
-- Fixed active effect chip labels and state toggles in the property inspector.
+- Fixed unexpected timeline viewport shifting and playhead jumping during playback.
+- Fixed loss of audio waveform display during undo and redo operations.
+- Fixed inspector input race conditions and ensured effect tags cleanly reset when switching presets.
 
 ## Updates
-- Increased the maximum firework shell size limit for larger and more dramatic aerial bursts.
-- Enhanced tadpole burst fireworks with brighter incandescent cores and more dynamic swarming paths.
-- Enhanced launch comet trails with smoother light dissipation and richer color blending.
-- Refined star ignition curves and thermal cooling for authentic pyrotechnic color transitions.
+- Enhanced comet cluster visuals with cleaner detached beam columns and smoother optical fades.
+- Balanced brightness for second burst child fireworks to eliminate unnatural glare.
+- Reorganized property inspector layout for cleaner full-width controls and custom color selection.
+- Refactored shell audio profiles to support per-stage sound volume configuration.
 
 ## Chores
-- Updated test suites with full coverage for multi-window timed effects, particle timing factories, and inspector controls.
+- Updated development rules and project workflow configurations.

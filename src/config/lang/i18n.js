@@ -18,16 +18,12 @@ if (systemLang) {
   }
 }
 
-let currentLanguage = (typeof localStorage !== 'undefined' && localStorage.getItem)
-  ? (localStorage.getItem('app_lang') || defaultLang)
-  : defaultLang;
+let currentLanguage = localStorage.getItem('app_lang') || defaultLang;
 
 export function setLanguage(lang) {
   if (translations[lang]) {
     currentLanguage = lang;
-    if (typeof localStorage !== 'undefined' && localStorage.setItem) {
-      localStorage.setItem('app_lang', lang);
-    }
+    localStorage.setItem('app_lang', lang);
   }
 }
 

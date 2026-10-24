@@ -413,13 +413,7 @@
     "pistil": false,
     "instantBurst": false,
     "effects": [
-      {
-        "type": "flow",
-        "startRatio": 0.1,
-        "endRatio": 0.5,
-        "start": 0.23,
-        "end": 1.15
-      }
+      "flow"
     ],
     "cometTrail": "normal",
     "uiDuration": 0.9,
@@ -442,20 +436,8 @@
     "pistil": false,
     "instantBurst": false,
     "effects": [
-      {
-        "type": "ghost-flare",
-        "startRatio": 0.1,
-        "endRatio": 0.5,
-        "start": 0.23,
-        "end": 1.15
-      },
-      {
-        "type": "burst-smoke",
-        "startRatio": 0.1,
-        "endRatio": 0.5,
-        "start": 0.23,
-        "end": 1.15
-      }
+      "ghost-flare",
+      "burst-smoke"
     ],
     "cometTrail": "normal",
     "uiDuration": 0.9,
@@ -479,20 +461,8 @@
     "pistil": false,
     "instantBurst": false,
     "effects": [
-      {
-        "type": "ghost",
-        "startRatio": 0.1,
-        "endRatio": 0.5,
-        "start": 0.23,
-        "end": 1.15
-      },
-      {
-        "type": "burst-smoke",
-        "startRatio": 0.1,
-        "endRatio": 0.5,
-        "start": 0.23,
-        "end": 1.15
-      }
+      "ghost",
+      "burst-smoke"
     ],
     "cometTrail": "normal",
     "uiDuration": 0.9,
@@ -5053,20 +5023,5 @@
     "_file": {},
     "beats": [],
     "volume": 1
-  },
-  {
-    "time": 22.9,
-    "type": "sequence",
-    "pattern": "sweep-left",
-    "count": 5,
-    "duration": 0.1,
-    "preset": "crysanthemum",
-    "sectorId": "center",
-    "shapeType": "sphere",
-    "dynamicsType": "crysanthemum-trail",
-    "pistil": false,
-    "instantBurst": false,
-    "effects": [],
-    "cometTrail": "normal"
   }
 ]
