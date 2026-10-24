@@ -1443,39 +1443,39 @@ export class PropertyInspector {
         }
       });
 
-      TIMED_EFFECT_TAGS.forEach((tag) => {
-        const hasLegacy = Boolean(
-          targetEvent[tag.key]
-          || (tag.key === 'burst-smoke' && targetEvent.burstSmoke)
-        );
-        if (hasLegacy && !list.some((e) => e.type === tag.key)) {
-          list.push({
-            type: tag.key,
-            startRatio: 0.1,
-            endRatio: 0.5,
-            start: Math.round(burstLife * 0.1 * 100) / 100,
-            end: Math.round(burstLife * 0.5 * 100) / 100
-          });
-        }
-      });
+      if (!Array.isArray(targetEvent.effects)) {
+        TIMED_EFFECT_TAGS.forEach((tag) => {
+          const hasLegacy = Boolean(
+            targetEvent[tag.key]
+            || (tag.key === 'no-trail' && (targetEvent.noTrail || targetEvent.notrail))
+          );
+          if (hasLegacy && !list.some((e) => e.type === tag.key)) {
+            list.push({
+              id: `${tag.key}_${Math.random().toString(36).slice(2, 7)}`,
+              type: tag.key,
+              startRatio: 0.1,
+              endRatio: 0.5,
+              start: Math.round(burstLife * 0.1 * 100) / 100,
+              end: Math.round(burstLife * 0.5 * 100) / 100
+            });
+            delete targetEvent[tag.key];
+            if (tag.key === 'no-trail') {
+              delete targetEvent.noTrail;
+              delete targetEvent.notrail;
+            }
+          }
+        });
+      }
 
-      targetEvent.effects = list;
       return list;
     };
 
-    const syncLegacyFlags = (updatedEffects) => {
-      const activeKeys = new Set(updatedEffects.map((e) => e.type || e.key));
+    const cleanLegacyTimedFlags = () => {
       TIMED_EFFECT_TAGS.forEach((tag) => {
-        if (activeKeys.has(tag.key)) {
-          targetEvent[tag.key] = true;
-          if (tag.key === 'burst-smoke') {
-            targetEvent.burstSmoke = true;
-          }
-        } else {
-          delete targetEvent[tag.key];
-          if (tag.key === 'burst-smoke') {
-            delete targetEvent.burstSmoke;
-          }
+        delete targetEvent[tag.key];
+        if (tag.key === 'no-trail') {
+          delete targetEvent.noTrail;
+          delete targetEvent.notrail;
         }
       });
     };
@@ -1495,7 +1495,7 @@ export class PropertyInspector {
             return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
           });
         targetEvent.effects = [...updatedEffects, ...existingModifiers];
-        syncLegacyFlags(updatedEffects);
+        cleanLegacyTimedFlags();
         this.triggerUpdate();
       },
       availableEffectTags: TIMED_EFFECT_TAGS

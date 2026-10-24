@@ -176,6 +176,41 @@ describe('ActiveEffectsTimeline and Effect Timings', () => {
       timeline.destroy();
     });
 
+    it('should support adding multiple instances of the same timed effect with distinct intervals', () => {
+      let currentEffects = [
+        { id: 'strobe_1', type: 'strobe', startRatio: 0.1, endRatio: 0.4 }
+      ];
+      const onChange = vi.fn((newEffs) => {
+        currentEffects = newEffs;
+      });
+      const timeline = new ActiveEffectsTimeline(mockContainer, {
+        getDuration: () => 2.0,
+        getEffects: () => currentEffects,
+        onChange
+      });
+
+      // Add second strobe
+      timeline.addEffect('strobe');
+      expect(onChange).toHaveBeenCalled();
+      const lastCallArg = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+      const strobes = lastCallArg.filter((e) => e.type === 'strobe');
+      expect(strobes.length).toBe(2);
+      expect(strobes[0].id).toBeDefined();
+      expect(strobes[1].id).toBeDefined();
+      expect(strobes[0].id).not.toBe(strobes[1].id);
+
+      // Verify second strobe starts after first strobe
+      expect(strobes[1].startRatio).toBeGreaterThan(strobes[0].startRatio);
+
+      // Remove only the first strobe
+      timeline.removeEffect(strobes[0]);
+      const afterRemoveCallArg = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+      expect(afterRemoveCallArg.length).toBe(1);
+      expect(afterRemoveCallArg[0].id).toBe(strobes[1].id);
+
+      timeline.destroy();
+    });
+
     it('should open and close expanded timeline modal without errors', () => {
       const timeline = new ActiveEffectsTimeline(mockContainer, {
         getDuration: () => 2.0,

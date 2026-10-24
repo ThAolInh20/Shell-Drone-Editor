@@ -233,4 +233,34 @@ describe('Active Effects Timeline Custom Timing Windows', () => {
 
     system.clear();
   });
+
+  it('should only apply strobe within the configured timing window and not before or after', () => {
+    const particle = BurstParticleFactory.createParticle({
+      effects: [
+        { type: 'strobe', start: 0.5, end: 1.2 }
+      ],
+      maxLife: 2.0,
+      color: new THREE.Color(1, 0, 0),
+      preset: { strobe: true } // Even with legacy preset flag, timing window must take precedence
+    });
+
+    // Before window (age = 0.2s): should not be strobe active
+    particle.age = 0.2;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'strobe')).toBe(false);
+
+    const colorBefore = BurstEffectProcessor.resolveParticleColor(particle, 0.15, {
+      strobeFreqMultiplier: 1.0,
+      profile: { thermalCooling: false }
+    });
+    // When not strobing, it retains normal base color
+    expect(colorBefore.r).toBeCloseTo(1.0);
+
+    // Inside window (age = 0.8s): should be strobe active
+    particle.age = 0.8;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'strobe')).toBe(true);
+
+    // After window (age = 1.6s): should not be strobe active
+    particle.age = 1.6;
+    expect(BurstEffectProcessor.isEffectActive(particle, 'strobe')).toBe(false);
+  });
 });

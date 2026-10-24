@@ -127,6 +127,7 @@ export class ActiveEffectsTimeline {
       end = Math.round(endRatio * duration * 100) / 100;
 
       return {
+        id: e.id || `${type}_${Math.random().toString(36).slice(2, 7)}`,
         type,
         startRatio: Math.round(startRatio * 100) / 100,
         endRatio: Math.round(endRatio * 100) / 100,
@@ -146,6 +147,7 @@ export class ActiveEffectsTimeline {
     });
 
     const exportList = this.effects.map((e) => ({
+      id: e.id,
       type: e.type,
       startRatio: e.startRatio,
       endRatio: e.endRatio,
@@ -166,14 +168,24 @@ export class ActiveEffectsTimeline {
     };
   }
 
-  getEffectLabel(key) {
+  getEffectLabel(key, eff = null) {
     const found = this.options.availableEffectTags?.find((e) => e.key === key);
+    let label = key;
     if (found?.labelKey) {
-      return t(`editor.inspector.fields.${found.labelKey}`) ||
+      label = t(`editor.inspector.fields.${found.labelKey}`) ||
         en?.editor?.inspector?.fields?.[found.labelKey] ||
         key;
     }
-    return key;
+    if (eff && Array.isArray(this.effects)) {
+      const sameType = this.effects.filter((e) => (e.type || e.key) === key);
+      if (sameType.length > 1) {
+        const order = sameType.indexOf(eff) + 1;
+        if (order > 0) {
+          return `${label} #${order}`;
+        }
+      }
+    }
+    return label;
   }
 
   render() {
@@ -351,7 +363,7 @@ export class ActiveEffectsTimeline {
     const startPct = Math.round(eff.startRatio * 100);
     const endPct = Math.round(eff.endRatio * 100);
     const color = this.getEffectColor(type);
-    const label = this.getEffectLabel(type);
+    const label = this.getEffectLabel(type, eff);
 
     const block = document.createElement('div');
     block.className = 'inspector-effect-block';
@@ -534,8 +546,15 @@ export class ActiveEffectsTimeline {
   }
 
   removeEffect(targetEffect) {
-    const type = targetEffect.type || targetEffect.key;
-    this.effects = this.effects.filter((e) => (e.type || e.key) !== type);
+    if (targetEffect?.id) {
+      this.effects = this.effects.filter((e) => e !== targetEffect && e.id !== targetEffect.id);
+    } else {
+      const targetType = targetEffect?.type || targetEffect?.key;
+      const idx = this.effects.findIndex((e) => e === targetEffect || (e.type || e.key) === targetType);
+      if (idx !== -1) {
+        this.effects.splice(idx, 1);
+      }
+    }
     this.commitChanges();
     this.render();
     if (this.expandedModal) {
@@ -545,10 +564,26 @@ export class ActiveEffectsTimeline {
 
   addEffect(type) {
     const duration = Math.max(0.5, Number(this.options.getDuration?.()) || 2.3);
-    const startRatio = 0.10; // 10%
-    const endRatio = 0.50; // 50%
+    const existingSameType = this.effects.filter((e) => (e.type || e.key) === type);
+
+    let startRatio = 0.10;
+    let endRatio = 0.50;
+
+    if (existingSameType.length > 0) {
+      const latestEnd = Math.max(...existingSameType.map((e) => e.endRatio));
+      if (latestEnd < 0.85) {
+        startRatio = Math.min(0.90, Math.round((latestEnd + 0.05) * 100) / 100);
+        endRatio = Math.min(1.0, Math.round((startRatio + 0.30) * 100) / 100);
+      } else {
+        startRatio = 0.20;
+        endRatio = 0.60;
+      }
+    }
+
+    const id = `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
     this.effects.push({
+      id,
       type,
       startRatio,
       endRatio,
@@ -567,11 +602,7 @@ export class ActiveEffectsTimeline {
     const existingMenu = document.querySelector('.active-effects-add-menu');
     if (existingMenu) existingMenu.remove();
 
-    const currentTypes = this.effects.map((e) => e.type || e.key);
-    const available = (this.options.availableEffectTags || []).filter(
-      (tag) => !currentTypes.includes(tag.key)
-    );
-
+    const available = this.options.availableEffectTags || [];
     if (available.length === 0) return;
 
     const menu = document.createElement('div');
@@ -592,6 +623,7 @@ export class ActiveEffectsTimeline {
     menu.style.zIndex = '3000';
 
     available.forEach((tag) => {
+      const count = this.effects.filter((e) => (e.type || e.key) === tag.key).length;
       const item = document.createElement('div');
       item.style.padding = '6px 12px';
       item.style.fontSize = '11px';
@@ -599,8 +631,23 @@ export class ActiveEffectsTimeline {
       item.style.cursor = 'pointer';
       item.style.display = 'flex';
       item.style.alignItems = 'center';
+      item.style.justifyContent = 'space-between';
       item.style.gap = '8px';
-      item.textContent = this.getEffectLabel(tag.key);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = this.getEffectLabel(tag.key);
+      item.appendChild(nameSpan);
+
+      if (count > 0) {
+        const badge = document.createElement('span');
+        badge.style.fontSize = '9px';
+        badge.style.padding = '1px 5px';
+        badge.style.borderRadius = '8px';
+        badge.style.background = 'rgba(56, 189, 248, 0.2)';
+        badge.style.color = '#38bdf8';
+        badge.textContent = `${count}`;
+        item.appendChild(badge);
+      }
 
       item.addEventListener('mouseenter', () => {
         item.style.background = 'rgba(0, 229, 255, 0.15)';
@@ -732,7 +779,7 @@ export class ActiveEffectsTimeline {
       const startPct = Math.round(eff.startRatio * 100);
       const endPct = Math.round(eff.endRatio * 100);
       const color = this.getEffectColor(type);
-      const label = this.getEffectLabel(type);
+      const label = this.getEffectLabel(type, eff);
 
       const trackRow = document.createElement('div');
       trackRow.style.marginBottom = '14px';

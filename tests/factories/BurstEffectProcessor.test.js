@@ -238,5 +238,52 @@ describe('BurstEffectProcessor', () => {
     );
     expect(modularResult.gravityScale).toBeLessThanOrEqual(0.05);
   });
+
+  it('should evaluate isEffectActive across multiple discrete timing windows', () => {
+    const particleWithWindows = {
+      age: 0.3,
+      effectWindows: {
+        strobe: [
+          { start: 0.2, end: 0.5 },
+          { start: 1.0, end: 1.4 }
+        ]
+      }
+    };
+
+    // Age 0.3 is inside window 1
+    expect(BurstEffectProcessor.isEffectActive(particleWithWindows, 'strobe')).toBe(true);
+
+    // Age 0.7 is between window 1 and window 2
+    particleWithWindows.age = 0.7;
+    expect(BurstEffectProcessor.isEffectActive(particleWithWindows, 'strobe')).toBe(false);
+
+    // Age 1.2 is inside window 2
+    particleWithWindows.age = 1.2;
+    expect(BurstEffectProcessor.isEffectActive(particleWithWindows, 'strobe')).toBe(true);
+
+    // Age 1.8 is after window 2
+    particleWithWindows.age = 1.8;
+    expect(BurstEffectProcessor.isEffectActive(particleWithWindows, 'strobe')).toBe(false);
+
+    // Also test multiple objects in particle.effects array directly
+    const particleWithArray = {
+      age: 0.25,
+      maxLife: 2.0,
+      effects: [
+        { type: 'crackle', startRatio: 0.1, endRatio: 0.2 }, // 0.2s - 0.4s
+        { type: 'crackle', startRatio: 0.6, endRatio: 0.8 }  // 1.2s - 1.6s
+      ]
+    };
+    expect(BurstEffectProcessor.isEffectActive(particleWithArray, 'crackle')).toBe(true);
+
+    particleWithArray.age = 0.8;
+    expect(BurstEffectProcessor.isEffectActive(particleWithArray, 'crackle')).toBe(false);
+
+    particleWithArray.age = 1.4;
+    expect(BurstEffectProcessor.isEffectActive(particleWithArray, 'crackle')).toBe(true);
+
+    particleWithArray.age = 1.9;
+    expect(BurstEffectProcessor.isEffectActive(particleWithArray, 'crackle')).toBe(false);
+  });
 });
 

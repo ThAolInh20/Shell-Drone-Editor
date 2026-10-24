@@ -90,6 +90,26 @@ export class BurstEffectProcessor {
 
     const age = particle.age ?? 0;
 
+    const normKey = (effectName === 'noTrail' || effectName === 'notrail')
+      ? 'no-trail'
+      : (effectName === 'tadpole_flurry')
+        ? 'tadpole-flurry'
+        : (effectName === 'erratic_dart')
+          ? 'erratic-dart'
+          : effectName;
+
+    // Check multi-interval effectWindows first if attached to particle
+    if (particle.effectWindows && particle.effectWindows[normKey]) {
+      const windows = particle.effectWindows[normKey];
+      for (let i = 0; i < windows.length; i++) {
+        const w = windows[i];
+        if (age >= w.start && age <= w.end) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     if (effectName === 'strobe' || effectName === 'white-strobe' || effectName === 'glitter-strobe') {
       if (particle.strobeStart !== undefined) {
         return age >= particle.strobeStart && age <= particle.strobeEnd;
@@ -158,7 +178,9 @@ export class BurstEffectProcessor {
           if (eff.endRatio !== undefined && !isNaN(eff.endRatio)) {
             end = Number(eff.endRatio) * (particle.maxLife ?? 1.0);
           }
-          return age >= start && age <= end;
+          if (age >= start && age <= end) {
+            return true;
+          }
         }
       }
     }
@@ -628,20 +650,25 @@ export class BurstEffectProcessor {
       return { r, g, b };
     }
 
+    const hasStrobeTiming = (particle.effectWindows && (particle.effectWindows.strobe || particle.effectWindows['white-strobe'] || particle.effectWindows['glitter-strobe']))
+      || (Array.isArray(particle.effects) && particle.effects.some((e) => typeof e === 'object' && e !== null && ['strobe', 'white-strobe', 'glitter-strobe'].includes(e.type || e.key)));
+
     const hasWhiteStrobe = BurstEffectProcessor.isEffectActive(particle, 'white-strobe');
 
     const hasGlitterStrobe = BurstEffectProcessor.isEffectActive(particle, 'glitter-strobe')
       || particle.effectType === 'falling-comets-glitter';
 
     const hasStandardStrobe = (
-      particle.preset?.strobe
-      || particle.effectState?.strobe
-      || BurstEffectProcessor.isEffectActive(particle, 'strobe')
+      BurstEffectProcessor.isEffectActive(particle, 'strobe')
+      || (!hasStrobeTiming && (particle.preset?.strobe || particle.effectState?.strobe))
     ) && particle.preset?.shellType !== 'crysanthemumNested';
 
-    const hasGhost = BurstEffectProcessor.isEffectActive(particle, 'ghost')
-      || Boolean(particle.preset?.ghost)
-      || particle.preset?.shellType === 'ghost';
+    const hasGhostTiming = (particle.effectWindows && particle.effectWindows.ghost)
+      || (Array.isArray(particle.effects) && particle.effects.some((e) => typeof e === 'object' && e !== null && (e.type || e.key) === 'ghost'));
+
+    const isGhostActive = BurstEffectProcessor.isEffectActive(particle, 'ghost');
+    const hasGhost = isGhostActive
+      || (!hasGhostTiming && (Boolean(particle.preset?.ghost) || particle.preset?.shellType === 'ghost'));
 
     const hasCC = particle.effectType === 'crysanthemum-cc'
       || (Array.isArray(particle.effects) && particle.effects.includes('crysanthemum-cc'))
@@ -664,15 +691,13 @@ export class BurstEffectProcessor {
         }
       }
     } else if (hasWhiteStrobe) {
-      if (lifeRatio > 0.5) {
-        const timeMs = (particle.age + particle.phase) * 1000;
-        const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
-        const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
-        const blink = isBlinking ? 1.0 : 0.05;
-        r = blink;
-        g = blink;
-        b = blink;
-      }
+      const timeMs = (particle.age + particle.phase) * 1000;
+      const strobeFreq = Math.max(150, 450 - (lifeRatio - 0.5) * 600) * strobeFreqMultiplier;
+      const isBlinking = Math.floor(timeMs / strobeFreq) % 3 === 0;
+      const blink = isBlinking ? 1.0 : 0.05;
+      r = blink;
+      g = blink;
+      b = blink;
     } else if (hasGlitterStrobe) {
       const timeMs = (particle.age + particle.phase) * 1000;
       const strobeFreq = 90 * strobeFreqMultiplier;

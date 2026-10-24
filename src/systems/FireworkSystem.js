@@ -3766,22 +3766,30 @@ export class FireworkSystem {
 
       const isChrysanthemumSpiral = p.effectType === 'crysanthemum-spiral'
         || p.effectType === 'crysanthemum-spiral-v2';
-      const hasGhost = p.effectType === 'ghost'
-        || (Array.isArray(p.effects) && p.effects.includes('ghost'))
-        || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
-        || Boolean(p.preset?.ghost)
-        || p.preset?.shellType === 'ghost';
+      const hasGhostTiming = (p.effectWindows && p.effectWindows.ghost)
+        || (Array.isArray(p.effects) && p.effects.some((e) => typeof e === 'object' && e !== null && (e.type || e.key) === 'ghost'));
+      const isGhostActive = BurstEffectProcessor.isEffectActive(p, 'ghost');
+      const hasGhost = isGhostActive
+        || (!hasGhostTiming && (
+          p.effectType === 'ghost'
+          || (Array.isArray(p.effects) && p.effects.includes('ghost'))
+          || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('ghost'))
+          || Boolean(p.preset?.ghost)
+          || p.preset?.shellType === 'ghost'
+        ));
       const hasCC = p.effectType === 'crysanthemum-cc'
         || (Array.isArray(p.effects) && p.effects.includes('crysanthemum-cc'))
         || (Array.isArray(p.preset?.effects) && p.preset.effects.includes('crysanthemum-cc'))
         || p.preset?.shellType === 'crysanthemumCC';
-      const isGhostInvisible = hasGhost && lifeRatio < 0.40;
+      const isGhostInvisible = isGhostActive || (!hasGhostTiming && hasGhost && lifeRatio < 0.40);
       const hasGhostFlare = p.effects?.includes('ghost-flare')
         || p.preset?.effects?.includes('ghost-flare')
         || p.effectType === 'ghost-kamuro';
       const isGhostFlareNoTrail = hasGhostFlare && lifeRatio <= 0.60;
-      const hasNoTrailActive = Boolean(p.preset?.noTrail)
-        || BurstEffectProcessor.isEffectActive(p, 'no-trail')
+      const hasNoTrailTiming = (p.effectWindows && p.effectWindows['no-trail'])
+        || (Array.isArray(p.effects) && p.effects.some((e) => typeof e === 'object' && e !== null && ['no-trail', 'notrail', 'noTrail'].includes(e.type || e.key)));
+      const hasNoTrailActive = BurstEffectProcessor.isEffectActive(p, 'no-trail')
+        || (!hasNoTrailTiming && Boolean(p.preset?.noTrail))
         || p.effectType === 'no-trail'
         || p.effectType === 'notrail';
       const allowTrail = spawnTrail
@@ -4139,9 +4147,9 @@ export class FireworkSystem {
       const baseSize = (p.preset?.particleSize ?? BASE_BURST_POINT_SIZE) * heightProfile.sizeMultiplier;
       let renderSize = baseSize;
       if (hasGhost) {
-        if (lifeRatio < 0.40) {
+        if (hasGhostTiming ? isGhostActive : lifeRatio < 0.40) {
           renderSize = 0;
-        } else if (lifeRatio < 0.48) {
+        } else if (!hasGhostTiming && lifeRatio < 0.48) {
           const t = (lifeRatio - 0.40) / 0.08;
           renderSize = baseSize * THREE.MathUtils.lerp(0.0, 1.0, t);
         }

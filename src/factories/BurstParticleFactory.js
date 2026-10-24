@@ -190,6 +190,40 @@ export class BurstParticleFactory {
     return null;
   }
 
+  static getEffectTimings(effects, effectName, maxLife = 1.0) {
+    if (!Array.isArray(effects)) return [];
+    const list = [];
+    for (let i = 0; i < effects.length; i++) {
+      const eff = effects[i];
+      if (typeof eff === 'object' && eff !== null) {
+        if ((eff.type || eff.key) === effectName) {
+          const startRatio = eff.startRatio !== undefined ? Number(eff.startRatio) : undefined;
+          const endRatio = eff.endRatio !== undefined ? Number(eff.endRatio) : undefined;
+
+          let start = eff.start !== undefined ? Number(eff.start) : 0;
+          let end = eff.end !== undefined ? Number(eff.end) : null;
+
+          if (startRatio !== undefined && !isNaN(startRatio)) {
+            start = startRatio * maxLife;
+          }
+          if (endRatio !== undefined && !isNaN(endRatio)) {
+            end = endRatio * maxLife;
+          }
+
+          list.push({
+            start,
+            end: end !== null ? end : maxLife,
+            startRatio: startRatio !== undefined ? startRatio : (maxLife > 0 ? start / maxLife : 0),
+            endRatio: endRatio !== undefined ? endRatio : (end !== null && maxLife > 0 ? end / maxLife : 1.0)
+          });
+        }
+      } else if (eff === effectName) {
+        list.push({ start: 0, end: maxLife, startRatio: 0, endRatio: 1.0 });
+      }
+    }
+    return list;
+  }
+
   static createParticle(options = {}) {
     const {
       position = new THREE.Vector3(),
@@ -357,6 +391,35 @@ export class BurstParticleFactory {
       ? noTrailTiming.end
       : (effectiveHasNoTrail ? maxLife : undefined);
 
+    const strobeTimings = BurstParticleFactory.getEffectTimings(effectsArray, 'strobe', maxLife);
+    const whiteStrobeTimings = BurstParticleFactory.getEffectTimings(effectsArray, 'white-strobe', maxLife);
+    const glitterStrobeTimings = BurstParticleFactory.getEffectTimings(effectsArray, 'glitter-strobe', maxLife);
+    const ghostTimings = BurstParticleFactory.getEffectTimings(effectsArray, 'ghost', maxLife);
+    const crackleTimings = BurstParticleFactory.getEffectTimings(effectsArray, 'crackle', maxLife);
+    const noTrailTimings = [
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'no-trail', maxLife),
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'notrail', maxLife),
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'noTrail', maxLife)
+    ];
+    const tadpoleTimings = [
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'tadpole-flurry', maxLife),
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'tadpole_flurry', maxLife)
+    ];
+    const dartTimings = [
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'erratic-dart', maxLife),
+      ...BurstParticleFactory.getEffectTimings(effectsArray, 'erratic_dart', maxLife)
+    ];
+
+    const effectWindows = {};
+    if (strobeTimings.length > 0) effectWindows.strobe = strobeTimings;
+    if (whiteStrobeTimings.length > 0) effectWindows['white-strobe'] = whiteStrobeTimings;
+    if (glitterStrobeTimings.length > 0) effectWindows['glitter-strobe'] = glitterStrobeTimings;
+    if (ghostTimings.length > 0) effectWindows.ghost = ghostTimings;
+    if (crackleTimings.length > 0) effectWindows.crackle = crackleTimings;
+    if (noTrailTimings.length > 0) effectWindows['no-trail'] = noTrailTimings;
+    if (tadpoleTimings.length > 0) effectWindows['tadpole-flurry'] = tadpoleTimings;
+    if (dartTimings.length > 0) effectWindows['erratic-dart'] = dartTimings;
+
     return {
       position: position.clone(),
       prevPosition: position.clone(),
@@ -434,6 +497,7 @@ export class BurstParticleFactory {
       hasNoTrail: Boolean(effectiveHasNoTrail),
       noTrailStart,
       noTrailEnd,
+      effectWindows,
       ringIndex: ringIndex !== null ? Number(ringIndex) : null,
       frictionHeat: Number(frictionHeat) || 0.0,
       lastVelocity: velocity ? velocity.clone() : new THREE.Vector3()
