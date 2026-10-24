@@ -1,5 +1,29 @@
 import * as THREE from 'three';
 
+// Cấu hình chuẩn nền tảng cho động lực học (Physics) và quang học (Photometrics) của hạt nổ
+export const BASE_BURST_PROFILE = {
+  // Động lực học (Physics & Kinematics)
+  baseSpeed: 74,
+  baseDrag: 0.46,
+  dragJitter: 0.20,
+  speedJitter: 0.10,
+  lifeJitter: 0.15,
+  hasApexBrake: false,
+  delayedGravity: true,
+  gravityRampStart: 0.32,
+  gravityRampFull: 0.55,
+  minGravity: 0.05,
+  terminalVelocity: -15.0,
+
+  // Quang học và suy giảm độ sáng đồng bộ theo pha (Harmonized Photometrics)
+  flashEnd: 0.12,          // Kết thúc pha lóe sáng bừng nở ban đầu
+  attenuationStart: 0.35,  // Ngưỡng bắt đầu suy giảm độ sáng khi hạt đạt đỉnh nở và bắt đầu rơi
+  dissolveStart: 0.60,     // Ngưỡng tan biến mờ đục dần (dissolve) khi rơi rõ rệt
+  coolingStart: 0.55,      // Ngưỡng bắt đầu chuyển dịch quang phổ nhiệt sang than hồng
+  emberStart: 0.85,        // Ngưỡng chuyển hẳn sang tàn tro than hồng lụi tắt
+  thermalCooling: true
+};
+
 // Cấu hình tập trung cho toàn bộ hệ thống pháo hoa và hạt (particles)
 export const FIREWORK_CONFIG = {
   // Trọng lực tác động lên quỹ đạo bay của quả pháo và hạt tia lửa
@@ -35,19 +59,21 @@ export const FIREWORK_CONFIG = {
   // Thông số mặc định cho pha phát nổ tiêu chuẩn
   BURST: {
     // Vận tốc bung hạt cơ bản khi pháo nổ (mở rộng trang nhã, không quá nhanh)
-    baseSpeed: 74,
+    baseSpeed: BASE_BURST_PROFILE.baseSpeed,
     // Thời gian sống cơ bản của hạt nổ pháo hoa (giây)
     baseLife: 2.3,
     // Ngưỡng tỉ lệ vòng đời bắt đầu thực hiện hiệu ứng mờ dần (dissolve)
-    dissolveStart: 0.62,
+    dissolveStart: BASE_BURST_PROFILE.dissolveStart,
+    // Ngưỡng tỉ lệ vòng đời bắt đầu suy giảm độ sáng đồng bộ với gia tốc rơi
+    attenuationStart: BASE_BURST_PROFILE.attenuationStart,
     // Hệ số lực cản không khí cơ bản giúp hạt hãm phanh êm dịu tự nhiên
-    baseDrag: 0.46,
+    baseDrag: BASE_BURST_PROFILE.baseDrag,
     // Độ phân tán lực cản ngẫu nhiên giữa các hạt
-    dragJitter: 0.20,
+    dragJitter: BASE_BURST_PROFILE.dragJitter,
     // Độ lệch vận tốc nổ ban đầu để phá vỡ khối cầu đồng nhất
-    speedJitter: 0.10,
+    speedJitter: BASE_BURST_PROFILE.speedJitter,
     // Độ phân tán thời gian sống của hạt
-    lifeJitter: 0.15,
+    lifeJitter: BASE_BURST_PROFILE.lifeJitter,
     // Số hạt nổ mặc định cho một quả pháo tiêu chuẩn
     baseParticles: 110,
     // Số hạt nổ tối thiểu cho phép
@@ -71,92 +97,100 @@ export const FIREWORK_CONFIG = {
     // Ngưỡng tỉ lệ vận tốc bung nở bắt đầu chuyển giao sang trọng lực Trái Đất
     apexGravityThreshold: 0.14,
     // Hệ số nhân vận tốc bung nở ban đầu cho hiệu ứng apex-hang (nhịp nhàng)
-    apexSpeedMultiplier: 1.35
+    apexSpeedMultiplier: 1.35,
+    // Vận tốc rơi tự do cực đại chuẩn cho hạt pháo hoa (m/s)
+    terminalVelocity: BASE_BURST_PROFILE.terminalVelocity,
+    // Mốc tỉ lệ vòng đời kết thúc pha bung nở (Phase 1)
+    phaseExpansionEnd: 0.35,
+    // Mốc tỉ lệ vòng đời kết thúc pha lơ lửng đỉnh nở (Phase 2)
+    phaseApexEnd: 0.65,
+    // Hệ số tương tác gió môi trường lên các hạt pháo hoa (đã giảm 75% so với trước đây)
+    windCouplingScale: 0.25,
+    windInfluenceLongBurn: 0.16,
+    windInfluenceDyingEmber: 0.21,
+    windInfluenceFloating: 0.11,
+    // Dao dong ngau nhien vi mo ve kich thuoc hat (+/- 6%)
+    starSizeVariance: 0.06,
+    // Dao dong ngau nhien vi mo ve do sang hat (+/- 10%)
+    starBrightnessVariance: 0.10,
+    // Khoang cach buoc noi suy ly tuong giua 2 hat duoi tren quy dao bay (met)
+    trailStride: 0.45,
+    // So hat noi suy toi da tren moi khung hinh de bao ve FPS
+    maxTrailSubSteps: 3,
+    // Ti le sinh hat duoi co ban trong pha bung no nhanh
+    defaultTrailSpawnChance: 0.95
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
-  // Giúp từng nhóm pháo hoa có vận tốc, lực cản và đường cong chuyển động riêng biệt
+  // Kế thừa từ BASE_BURST_PROFILE và chỉ ghi đè các tham số đặc thù
   DYNAMICS_PROFILES: {
     // Pháo nổ tiêu chuẩn (Chrysanthemum, Peony, Brocade, Sphere, Pistil)
     standard: {
-      baseSpeed: 74,
-      baseDrag: 0.46,
-      dragJitter: 0.20,
-      speedJitter: 0.10,
-      lifeJitter: 0.15,
-      hasApexBrake: false,
-      delayedGravity: true,
-      gravityRampStart: 0.32,
-      gravityRampFull: 0.55,
-      minGravity: 0.05,
-      thermalCooling: true
+      ...BASE_BURST_PROFILE
     },
     // Hình dạng hình học đường viền (Ring, Heart, Star, Smiley, Cat, Fish)
     geometric: {
+      ...BASE_BURST_PROFILE,
       baseSpeed: 54,
       baseDrag: 0.40,
       dragJitter: 0.05,
       speedJitter: 0.04,
       lifeJitter: 0.10,
-      hasApexBrake: false,
-      delayedGravity: true,
       gravityRampStart: 0.35,
       gravityRampFull: 0.60,
       minGravity: 0.08,
-      thermalCooling: true
+      terminalVelocity: -14.0
     },
     // Liễu rủ vàng kim và tàn rơi dài (Willow, Kamuro, Weeping Willow, Falling Comets)
     willow: {
+      ...BASE_BURST_PROFILE,
       baseSpeed: 58,
       baseDrag: 0.20,
       dragJitter: 0.12,
-      speedJitter: 0.10,
       lifeJitter: 0.25,
-      hasApexBrake: false,
-      delayedGravity: true,
       gravityRampStart: 0.20,
       gravityRampFull: 0.45,
       minGravity: 0.10,
+      terminalVelocity: -9.5,
+      attenuationStart: 0.45,
+      dissolveStart: 0.72,
       thermalCooling: false
     },
     // Hạt trôi nổi, bồng bềnh hữu cơ (Flow, Snow, Wave, Falling Leaves, Swimming Star)
     floating: {
+      ...BASE_BURST_PROFILE,
       baseSpeed: 36,
       baseDrag: 0.70,
       dragJitter: 0.16,
       speedJitter: 0.12,
       lifeJitter: 0.20,
-      hasApexBrake: false,
       delayedGravity: false,
+      terminalVelocity: -5.0,
+      attenuationStart: 0.30,
+      dissolveStart: 0.65,
       thermalCooling: false
     },
     // Pháo nổ tách chữ thập (Crossette)
     crossette: {
+      ...BASE_BURST_PROFILE,
       baseSpeed: 62,
       baseDrag: 0.38,
       dragJitter: 0.10,
       speedJitter: 0.08,
       lifeJitter: 0.10,
-      hasApexBrake: false,
-      delayedGravity: true,
-      gravityRampStart: 0.32,
-      gravityRampFull: 0.55,
       minGravity: 0.06,
-      thermalCooling: true
+      terminalVelocity: -14.0
     },
     // Chùm tia sao băng (Bouquet Comet, Comet Ring, Half-Flash, Split-Flash)
     comet: {
+      ...BASE_BURST_PROFILE,
       baseSpeed: 70,
       baseDrag: 0.30,
       dragJitter: 0.14,
-      speedJitter: 0.10,
-      lifeJitter: 0.15,
-      hasApexBrake: false,
-      delayedGravity: true,
       gravityRampStart: 0.28,
       gravityRampFull: 0.52,
       minGravity: 0.06,
-      thermalCooling: true
+      terminalVelocity: -16.0
     }
   },
 
@@ -174,7 +208,12 @@ export const FIREWORK_CONFIG = {
     lightning: 1.16,
     star: 1.14,
     'double-helix': 0.95,
-    'sparkling-branches': 1.0
+    'sparkling-branches': 1.0,
+    'sphere_uniform': 1.15,
+    'sphere-uniform': 1.15,
+    egg: 1.2,
+    sphere_rings: 1.2,
+    'sphere-rings': 1.2
   },
 
   // Hệ số nhân số lượng hạt dựa trên hiệu ứng hình ảnh (Effect)
@@ -199,7 +238,9 @@ export const FIREWORK_CONFIG = {
     crossette: 0.6,
     'sparkle-trail': 1.0,
     'sparkling-branch-comet': 1.0,
-    'sparkle-apex': 1.0
+    'sparkle-apex': 1.0,
+    'crysanthemum_discrete_trail': 1.25,
+    'crysanthemum-discrete-trail': 1.25
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)

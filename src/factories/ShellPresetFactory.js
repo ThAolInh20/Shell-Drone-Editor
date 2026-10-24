@@ -36,7 +36,11 @@ export class ShellPresetFactory {
       'galaxy',
       'upward-spray',
       'double-helix',
-      'sparkling-branches'
+      'sparkling-branches',
+      'sphere_uniform',
+      'sphere-uniform',
+      'egg',
+      'sphere_rings'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -54,6 +58,8 @@ export class ShellPresetFactory {
       'crysanthemum-spiral',
       'crysanthemum-spiral-v2',
       'crysanthemum-cc',
+      'crysanthemum_discrete_trail',
+      'crysanthemum-discrete-trail',
       'ghost',
       'ghost-kamuro',
       'galaxy-spin',
@@ -76,7 +82,9 @@ export class ShellPresetFactory {
       'sparkle-trail',
       'sparkle-apex',
       'sparkling-branch-comet',
-      'tadpole-spiral'
+      'tadpole-spiral',
+      'sphere_rings_wave',
+      'sphere-rings-wave'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -91,6 +99,11 @@ export class ShellPresetFactory {
       { key: 'comet_tadpole_burst', label: 'Comet Tadpole Burst' },
       { key: 'sparkling_comet_branches', label: 'Sparkling Comet Multi Branch' },
       { key: 'crysanthemum', label: 'Chrysanthemum' },
+      { key: 'crysanthemum_sphere_rings', label: 'Chrysanthemum Sphere Rings' },
+      { key: 'sphere_rings_cascade', label: 'Sphere Rings Cascade' },
+      { key: 'sphere_rings_strobe', label: 'Sphere Rings Synchronous Strobe' },
+      { key: 'egg_crysanthemum', label: 'Egg Chrysanthemum' },
+      { key: 'crysanthemum_uniform_sphere', label: 'Chrysanthemum Uniform Sphere' },
       { key: 'crysanthemum_v2', label: 'Chrysanthemum V2' },
       { key: 'crysanthemum_smoke', label: 'Chrysanthemum Smoke' },
       { key: 'crysanthemum_spiral', label: 'Chrysanthemum Spiral' },
@@ -165,6 +178,11 @@ export class ShellPresetFactory {
     };
 
     registerWithAlias('crysanthemum', 'crysanthemum', (size) => this.crysanthemumShell(size));
+    registerWithAlias('crysanthemum_sphere_rings', 'crysanthemumSphereRings', (size) => this.crysanthemumSphereRingsShell(size));
+    registerWithAlias('sphere_rings_cascade', 'sphereRingsCascade', (size) => this.sphereRingsCascadeShell(size));
+    registerWithAlias('sphere_rings_strobe', 'sphereRingsStrobe', (size) => this.sphereRingsStrobeShell(size));
+    registerWithAlias('egg_crysanthemum', 'egg_crysanthemum', (size) => this.eggChrysanthemumShell(size));
+    registerWithAlias('crysanthemum_uniform_sphere', 'crysanthemum_uniform_sphere', (size) => this.crysanthemumUniformSphereShell(size));
     registerWithAlias('crysanthemum_v2', 'crysanthemumV2', (size) => this.crysanthemumV2Shell(size));
     registerWithAlias('crysanthemum_smoke', 'crysanthemumSmoke', (size) => this.crysanthemumSmokeShell(size));
     registerWithAlias('crysanthemum_spiral', 'crysanthemumSpiral', (size) => this.crysanthemumSpiralShell(size));
@@ -318,6 +336,100 @@ export class ShellPresetFactory {
       hearth: false,
       star: false,
       doubleRing: false
+    };
+  }
+
+  eggChrysanthemumShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'egg_crysanthemum',
+      shape: 'egg',
+      shapeType: 'egg',
+      effectType: 'crysanthemum-trail',
+      dynamicsType: 'crysanthemum-trail',
+      launchTrail: true,
+      starLifeMultiplier: 1.15,
+      starLife: 1500 + size * 200,
+      particleCountMultiplier: 1.0,
+      hasBurstSmoke: false,
+      noSmoke: true,
+      pistil: false
+    };
+  }
+
+  crysanthemumSphereRingsShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemum_sphere_rings',
+      shape: 'sphere_rings',
+      shapeType: 'sphere_rings',
+      effectType: 'crysanthemum-trail',
+      dynamicsType: 'crysanthemum-trail',
+      launchTrail: true,
+      ringCount: 5,
+      starLifeMultiplier: 1.2,
+      starLife: 1600 + size * 200,
+      particleCountMultiplier: 1.1,
+      hasBurstSmoke: false,
+      noSmoke: true,
+      pistil: false
+    };
+  }
+
+  sphereRingsCascadeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sphere_rings_cascade',
+      shape: 'sphere_rings',
+      shapeType: 'sphere_rings',
+      effectType: 'sphere_rings_wave',
+      dynamicsType: 'sphere_rings_wave',
+      ringWaveMode: 'equator-outward',
+      ringCount: 5,
+      launchTrail: true,
+      starLifeMultiplier: 1.35,
+      starLife: 1800 + size * 250,
+      particleCountMultiplier: 1.25,
+      hasBurstSmoke: false,
+      noSmoke: true,
+      pistil: false
+    };
+  }
+
+  sphereRingsStrobeShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'sphere_rings_strobe',
+      shape: 'sphere_rings',
+      shapeType: 'sphere_rings',
+      effectType: 'strobe',
+      dynamicsType: 'standard',
+      activeEffects: ['strobe'],
+      strobe: true,
+      ringCount: 5,
+      launchTrail: true,
+      starLifeMultiplier: 1.3,
+      starLife: 1700 + size * 200,
+      particleCountMultiplier: 1.2,
+      hasBurstSmoke: false,
+      noSmoke: true,
+      pistil: false
+    };
+  }
+
+  crysanthemumUniformSphereShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'crysanthemum_uniform_sphere',
+      shapeType: 'sphere_uniform',
+      effectType: 'crysanthemum_discrete_trail',
+      dynamicsType: 'crysanthemum_discrete_trail',
+      launchTrail: true,
+      drag: 0.68,
+      starLifeMultiplier: 1.25,
+      starLife: 1600 + size * 250,
+      particleCountMultiplier: 1.35,
+      pistil: false
     };
   }
 

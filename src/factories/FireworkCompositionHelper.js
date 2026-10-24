@@ -17,7 +17,10 @@ export const AVAILABLE_SHAPES = [
   'half-flash',
   'split-flash',
   'double-helix',
-  'sparkling-branches'
+  'sparkling-branches',
+  'sphere_uniform',
+  'egg',
+  'sphere_rings'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -44,7 +47,9 @@ export const AVAILABLE_DYNAMICS = [
   'crossette',
   'sparkle-trail',
   'sparkling-branch-comet',
-  'tadpole-spiral'
+  'tadpole-spiral',
+  'crysanthemum_discrete_trail',
+  'sphere_rings_wave'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -52,26 +57,41 @@ export const AVAILABLE_MODIFIERS = [
   'instantBurst'
 ];
 
-export const AVAILABLE_EFFECT_TAGS = [
-  'burst-smoke',
+export const TIMED_EFFECT_TAGS = [
+  'no-trail',
+  'flow',
   'strobe',
   'white-strobe',
   'glitter-strobe',
   'crackle',
   'ghost',
   'ghost-flare',
-  'flow',
-  'no-trail',
-  'no-burst',
   'crossette',
   'sparkle-apex',
   'tadpole-flurry',
-  'erratic-dart',
+  'erratic-dart'
+];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  'burst-smoke',
+  'pistil',
+  'apex-hang',
   'long-burn',
-  'apex-hang'
+  'slow-burst'
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
 ];
 
 export const PRESET_TEMPLATES = {
+  egg_crysanthemum: {
+    shape: 'egg',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   random: {
     shape: 'sphere',
     dynamics: 'standard',
@@ -152,6 +172,54 @@ export const PRESET_TEMPLATES = {
   },
   crysanthemum: {
     shape: 'sphere',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_uniform_sphere: {
+    shape: 'sphere_uniform',
+    dynamics: 'crysanthemum_discrete_trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_sphere_rings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemumSphereRings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphere_rings_cascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphereRingsCascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphere_rings_strobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
+  },
+  sphereRingsStrobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
+  },
+  egg_crysanthemum: {
+    shape: 'egg',
     dynamics: 'crysanthemum-trail',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
@@ -610,6 +678,9 @@ export function resolveFireworkComposition(eventOrPreset) {
     }
     if ((eventOrPreset.erraticDart || eventOrPreset.hasErraticDart) && !effects.includes('erratic-dart')) {
       effects.push('erratic-dart');
+    }
+    if ((eventOrPreset.slowBurst || eventOrPreset['slow-burst'] || eventOrPreset.slow_burst) && !effects.includes('slow-burst')) {
+      effects.push('slow-burst');
     }
   }
 

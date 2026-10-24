@@ -55,7 +55,14 @@ export class BurstShapeGenerator {
       case 'galaxy':
       case 'double-helix':
       case 'sparkling-branches':
+      case 'sphere_uniform':
+      case 'egg':
+      case 'sphere_rings':
         return shellType;
+      case 'sphere-rings':
+        return 'sphere_rings';
+      case 'sphere-uniform':
+        return 'sphere_uniform';
       case 'sparkling-comet-branches':
       case 'sparklingCometBranches':
         return 'sparkling-branches';
@@ -481,6 +488,109 @@ export class BurstShapeGenerator {
         Math.cos(angle) * 0.92,
         Math.sin(angle) * 0.92,
         (Math.random() - 0.5) * 0.12
+      ).normalize();
+    }
+
+    if (shape === 'egg') {
+      const safeCount = Math.max(1, count);
+      // Fibonacci spherical lattice: equal-area regular distribution over the spherical surface
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const uY = 1 - (2 * index + 1) / safeCount;
+      const rCircle = Math.sqrt(Math.max(0, 1 - uY * uY));
+      const phi = index * goldenAngle;
+      const uX = Math.cos(phi) * rCircle;
+      const uZ = Math.sin(phi) * rCircle;
+
+      // Asymmetric ovoid/egg deformation:
+      // 1. Tapering factor: Top (uY > 0) is tapered/thinner, bottom (uY < 0) is rounder/plumper
+      const taper = 1.0 - 0.16 * uY;
+      // 2. Vertical elongation: Y axis slightly elongated (1.18x) like a natural egg
+      const elongatedY = uY * 1.18;
+      const eggX = uX * taper;
+      const eggZ = uZ * taper;
+
+      // 3. Subtle surface thickness jitter to create a natural, organic crust
+      const thicknessJitter = 1.0 + (Math.random() - 0.5) * 0.09;
+
+      return new THREE.Vector3(
+        eggX * thicknessJitter,
+        elongatedY * thicknessJitter,
+        eggZ * thicknessJitter
+      );
+    }
+
+    if (shape === 'sphere_rings' || shape === 'sphere-rings') {
+      const safeCount = Math.max(1, count);
+      const ringCount = preset?.ringCount || 5;
+      const maxLat = 58 * (Math.PI / 180);
+      const latitudes = [];
+      const weights = [];
+
+      for (let k = 0; k < ringCount; k++) {
+        const lat = ringCount === 1
+          ? 0
+          : -maxLat + (2 * maxLat * k) / (ringCount - 1);
+        latitudes.push(lat);
+        weights.push(Math.cos(lat));
+      }
+
+      const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+      const ringThresholds = [];
+      let accumulatedCount = 0;
+
+      for (let k = 0; k < ringCount; k++) {
+        const countForRing = Math.max(
+          4,
+          Math.round((safeCount * weights[k]) / totalWeight)
+        );
+        accumulatedCount += countForRing;
+        ringThresholds.push(accumulatedCount);
+      }
+
+      let ringIndex = 0;
+      let ringStartIndex = 0;
+      for (let k = 0; k < ringCount; k++) {
+        if (index < ringThresholds[k] || k === ringCount - 1) {
+          ringIndex = k;
+          ringStartIndex = k === 0 ? 0 : ringThresholds[k - 1];
+          break;
+        }
+      }
+
+      const ringTotal = (ringIndex === ringCount - 1 ? safeCount : ringThresholds[ringIndex]) - ringStartIndex;
+      const ringParticleIndex = index - ringStartIndex;
+      const lat = latitudes[ringIndex];
+      const ringRadius = Math.cos(lat);
+      const y = Math.sin(lat);
+
+      // Golden ratio phase offset per ring to prevent aligned vertical seams
+      const phaseOffset = ringIndex * 1.6180339887;
+      const theta = (ringParticleIndex / Math.max(1, ringTotal)) * Math.PI * 2 + phaseOffset;
+      const thicknessJitter = 1.0 + (Math.random() - 0.5) * 0.04;
+
+      const vec = new THREE.Vector3(
+        ringRadius * Math.cos(theta) * thicknessJitter,
+        y * thicknessJitter,
+        ringRadius * Math.sin(theta) * thicknessJitter
+      );
+      vec.ringIndex = ringIndex;
+      return vec;
+    }
+
+    if (shape === 'sphere_uniform' || shape === 'sphere-uniform') {
+      const safeCount = Math.max(1, count);
+      // Fibonacci sphere distribution: equal-area regular spherical lattice
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~2.399963 radians
+      const y = 1 - (2 * index + 1) / safeCount;
+      const radius = Math.sqrt(Math.max(0, 1 - y * y));
+      const phi = index * goldenAngle;
+      const x = Math.cos(phi) * radius;
+      const z = Math.sin(phi) * radius;
+
+      return new THREE.Vector3(
+        x,
+        y,
+        z
       ).normalize();
     }
 
