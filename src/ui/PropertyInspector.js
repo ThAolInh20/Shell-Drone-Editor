@@ -40,30 +40,30 @@ function getEnglishOptionLabel(fieldName, opt) {
   return formatOptionLabelFallback(opt);
 }
 
-export const AVAILABLE_EFFECT_TAGS = [
+export const TIMED_EFFECT_TAGS = [
   {
-    key: 'apex-hang',
-    labelKey: 'apexHang'
-  },
-  {
-    key: 'burst-smoke',
-    labelKey: 'burstSmoke'
-  },
-  {
-    key: 'crackle',
-    labelKey: 'crackle'
-  },
-  {
-    key: 'crossette',
-    labelKey: 'crossette'
-  },
-  {
-    key: 'erratic-dart',
-    labelKey: 'erraticDart'
+    key: 'no-trail',
+    labelKey: 'noTrail'
   },
   {
     key: 'flow',
     labelKey: 'flow'
+  },
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
+  },
+  {
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
+  },
+  {
+    key: 'crackle',
+    labelKey: 'crackle'
   },
   {
     key: 'ghost',
@@ -74,33 +74,41 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghostFlare'
   },
   {
-    key: 'glitter-strobe',
-    labelKey: 'glitterStrobe'
-  },
-  {
-    key: 'no-burst',
-    labelKey: 'noBurst'
-  },
-  {
-    key: 'no-trail',
-    labelKey: 'noTrail'
-  },
-  {
-    key: 'slow-burst',
-    labelKey: 'slowBurst'
-  },
-  {
-    key: 'strobe',
-    labelKey: 'strobe'
+    key: 'crossette',
+    labelKey: 'crossette'
   },
   {
     key: 'tadpole-flurry',
     labelKey: 'tadpoleFlurry'
   },
   {
-    key: 'white-strobe',
-    labelKey: 'whiteStrobe'
+    key: 'erratic-dart',
+    labelKey: 'erraticDart'
   }
+];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  {
+    key: 'burst-smoke',
+    labelKey: 'burstSmoke'
+  },
+  {
+    key: 'pistil',
+    labelKey: 'pistil'
+  },
+  {
+    key: 'apex-hang',
+    labelKey: 'apexHang'
+  },
+  {
+    key: 'slow-burst',
+    labelKey: 'slowBurst'
+  }
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
 ];
 
 export const ACTIVE_EFFECT_TAGS = AVAILABLE_EFFECT_TAGS;
@@ -354,16 +362,6 @@ export class PropertyInspector {
               type: 'select',
               options: AVAILABLE_DYNAMICS,
               span: 2
-            },
-            {
-              name: 'pistil',
-              labelKey: 'pistil',
-              type: 'checkbox'
-            },
-            {
-              name: 'instantBurst',
-              labelKey: 'instantBurst',
-              type: 'checkbox'
             },
             {
               name: 'effects',
@@ -1232,9 +1230,157 @@ export class PropertyInspector {
     parent.appendChild(slider);
   }
 
+  renderToggleModifiers(parent, targetEvent) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'inspector-toggle-modifiers';
+    wrapper.style.marginBottom = '8px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '4px';
+
+    const title = document.createElement('label');
+    title.className = 'inspector-label';
+    title.style.margin = '0';
+    title.style.fontWeight = '600';
+    title.style.fontSize = '12px';
+    title.style.color = '#e2e8f0';
+    const rawTitle = t('editor.inspector.triggeredEffects')
+      || t('editor.inspector.characteristics');
+    title.textContent = (rawTitle && rawTitle !== 'editor.inspector.triggeredEffects')
+      ? rawTitle
+      : 'Triggered Effects';
+    header.appendChild(title);
+    wrapper.appendChild(header);
+
+    const chipsRow = document.createElement('div');
+    chipsRow.style.display = 'flex';
+    chipsRow.style.flexWrap = 'wrap';
+    chipsRow.style.gap = '6px';
+
+    TOGGLE_MODIFIER_TAGS.forEach((mod) => {
+      const isKeyActive = () => {
+        if (mod.key === 'burst-smoke') {
+          return Boolean(
+            targetEvent.burstSmoke
+            || targetEvent['burst-smoke']
+            || targetEvent.burst_smoke
+            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'))
+          );
+        }
+        if (mod.key === 'pistil') {
+          return Boolean(
+            targetEvent.pistil
+            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'pistil'))
+          );
+        }
+        if (mod.key === 'apex-hang') return Boolean(targetEvent.apexHang || targetEvent['apex-hang']);
+        if (mod.key === 'long-burn') return Boolean(targetEvent.longBurn || targetEvent['long-burn']);
+        if (mod.key === 'slow-burst') return Boolean(targetEvent.slowBurst || targetEvent['slow-burst'] || targetEvent.slow_burst);
+        return Boolean(targetEvent[mod.key]);
+      };
+
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'inspector-modifier-chip';
+      chip.dataset.key = mod.key;
+      chip.style.padding = '3px 8px';
+      chip.style.fontSize = '11px';
+      chip.style.borderRadius = '4px';
+      chip.style.cursor = 'pointer';
+      chip.style.border = isKeyActive()
+        ? '1px solid #38bdf8'
+        : '1px solid rgba(255, 255, 255, 0.15)';
+      chip.style.background = isKeyActive()
+        ? 'rgba(56, 189, 248, 0.25)'
+        : 'rgba(255, 255, 255, 0.05)';
+      chip.style.color = isKeyActive() ? '#ffffff' : '#94a3b8';
+      chip.style.fontWeight = isKeyActive() ? '600' : 'normal';
+      chip.style.transition = 'all 0.15s ease';
+
+      const label = t(`editor.inspector.fields.${mod.labelKey}`)
+        || en?.editor?.inspector?.fields?.[mod.labelKey]
+        || mod.key;
+      chip.textContent = label;
+
+      EffectPreviewTooltip.getInstance().bindElement(
+        chip,
+        mod.key,
+        PREVIEW_CATEGORIES.OPTICAL_EFFECT
+      );
+
+      chip.addEventListener('click', () => {
+        this.triggerUpdate('beforeChange');
+        const nextState = !isKeyActive();
+
+        if (mod.key === 'burst-smoke') {
+          if (nextState) {
+            targetEvent.burstSmoke = true;
+            targetEvent['burst-smoke'] = true;
+          } else {
+            delete targetEvent.burstSmoke;
+            delete targetEvent['burst-smoke'];
+            delete targetEvent.burst_smoke;
+          }
+        } else if (mod.key === 'pistil') {
+          targetEvent.pistil = nextState;
+        } else if (mod.key === 'apex-hang') {
+          if (nextState) {
+            targetEvent.apexHang = true;
+            targetEvent['apex-hang'] = true;
+          } else {
+            delete targetEvent.apexHang;
+            delete targetEvent['apex-hang'];
+          }
+        } else if (mod.key === 'long-burn') {
+          if (nextState) {
+            targetEvent.longBurn = true;
+            targetEvent['long-burn'] = true;
+          } else {
+            delete targetEvent.longBurn;
+            delete targetEvent['long-burn'];
+          }
+        } else if (mod.key === 'slow-burst') {
+          if (nextState) {
+            targetEvent.slowBurst = true;
+            targetEvent['slow-burst'] = true;
+          } else {
+            delete targetEvent.slowBurst;
+            delete targetEvent['slow-burst'];
+            delete targetEvent.slow_burst;
+          }
+        }
+
+        if (Array.isArray(targetEvent.effects)) {
+          if (nextState) {
+            if (!targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === mod.key)) {
+              targetEvent.effects.push(mod.key);
+            }
+          } else {
+            targetEvent.effects = targetEvent.effects.filter(
+              (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) !== mod.key
+            );
+          }
+        }
+
+        this.triggerUpdate();
+        this.render();
+      });
+
+      chipsRow.appendChild(chip);
+    });
+
+    wrapper.appendChild(chipsRow);
+    parent.appendChild(wrapper);
+  }
+
   renderEffectChips(parent, field) {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
+
+    this.renderToggleModifiers(parent, targetEvent);
 
     const container = document.createElement('div');
     container.className = 'inspector-active-effects-container';
@@ -1257,6 +1403,11 @@ export class PropertyInspector {
       const currentList = Array.isArray(targetEvent.effects) ? targetEvent.effects : [];
 
       currentList.forEach((item) => {
+        const itemType = typeof item === 'string' ? item : (item?.type || item?.key);
+        if (TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === itemType)) {
+          return;
+        }
+
         if (typeof item === 'string') {
           list.push({
             type: item,
@@ -1292,7 +1443,7 @@ export class PropertyInspector {
         }
       });
 
-      AVAILABLE_EFFECT_TAGS.forEach((tag) => {
+      TIMED_EFFECT_TAGS.forEach((tag) => {
         const hasLegacy = Boolean(
           targetEvent[tag.key]
           || (tag.key === 'burst-smoke' && targetEvent.burstSmoke)
@@ -1314,7 +1465,7 @@ export class PropertyInspector {
 
     const syncLegacyFlags = (updatedEffects) => {
       const activeKeys = new Set(updatedEffects.map((e) => e.type || e.key));
-      AVAILABLE_EFFECT_TAGS.forEach((tag) => {
+      TIMED_EFFECT_TAGS.forEach((tag) => {
         if (activeKeys.has(tag.key)) {
           targetEvent[tag.key] = true;
           if (tag.key === 'burst-smoke') {
@@ -1338,11 +1489,16 @@ export class PropertyInspector {
       },
       onChange: (updatedEffects) => {
         this.triggerUpdate('beforeChange');
-        targetEvent.effects = updatedEffects;
+        const existingModifiers = (Array.isArray(targetEvent.effects) ? targetEvent.effects : [])
+          .filter((e) => {
+            const key = typeof e === 'object' && e !== null ? (e.type || e.key) : e;
+            return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
+          });
+        targetEvent.effects = [...updatedEffects, ...existingModifiers];
         syncLegacyFlags(updatedEffects);
         this.triggerUpdate();
       },
-      availableEffectTags: AVAILABLE_EFFECT_TAGS
+      availableEffectTags: TIMED_EFFECT_TAGS
     });
 
     parent.appendChild(container);
@@ -3341,7 +3497,7 @@ export class PropertyInspector {
       row1.appendChild(dynCol);
       card.appendChild(row1);
 
-      // 3. Row: Structural Modifiers (Pistil & Instant Burst)
+      // 3. Row: Structural Modifiers (Pistil)
       const modRow = document.createElement('div');
       modRow.style.display = 'flex';
       modRow.style.gap = '14px';
@@ -3376,29 +3532,6 @@ export class PropertyInspector {
         PREVIEW_CATEGORIES.OPTICAL_EFFECT
       );
       modRow.appendChild(pistilLabel);
-
-      // Instant Burst
-      const instantLabel = document.createElement('label');
-      instantLabel.className = 'inspector-checkbox-container';
-      instantLabel.style.fontSize = '10px';
-      instantLabel.style.cursor = 'pointer';
-
-      const instantInput = document.createElement('input');
-      instantInput.className = 'inspector-checkbox';
-      instantInput.type = 'checkbox';
-      instantInput.checked = Boolean(activeChild.instantBurst);
-      instantInput.addEventListener('change', (e) => {
-        this.triggerUpdate('beforeChange');
-        activeChild.instantBurst = e.target.checked;
-        this.triggerUpdate();
-      });
-
-      const instantText = document.createElement('span');
-      instantText.textContent = t('editor.inspector.fields.instantBurst') || 'Instant Burst';
-
-      instantLabel.appendChild(instantInput);
-      instantLabel.appendChild(instantText);
-      modRow.appendChild(instantLabel);
 
       card.appendChild(modRow);
 

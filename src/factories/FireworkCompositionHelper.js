@@ -57,24 +57,32 @@ export const AVAILABLE_MODIFIERS = [
   'instantBurst'
 ];
 
-export const AVAILABLE_EFFECT_TAGS = [
-  'burst-smoke',
+export const TIMED_EFFECT_TAGS = [
+  'no-trail',
+  'flow',
   'strobe',
   'white-strobe',
   'glitter-strobe',
   'crackle',
   'ghost',
   'ghost-flare',
-  'flow',
-  'no-trail',
-  'no-burst',
   'crossette',
   'sparkle-apex',
   'tadpole-flurry',
-  'erratic-dart',
-  'long-burn',
+  'erratic-dart'
+];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  'burst-smoke',
+  'pistil',
   'apex-hang',
+  'long-burn',
   'slow-burst'
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
 ];
 
 export const PRESET_TEMPLATES = {
