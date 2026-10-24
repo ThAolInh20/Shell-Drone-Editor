@@ -100,18 +100,6 @@ describe('BurstParticleFactory', () => {
         effects: []
       });
       expect(presetLongBurnFlags.isLongBurn).toBe(true);
-
-      const slowBurstFlags = BurstParticleFactory.resolveActiveEffectFlags({
-        preset: {},
-        effects: ['slow-burst']
-      });
-      expect(slowBurstFlags.isSlowBurst).toBe(true);
-
-      const presetSlowBurstFlags = BurstParticleFactory.resolveActiveEffectFlags({
-        preset: { slowBurst: true },
-        effects: []
-      });
-      expect(presetSlowBurstFlags.isSlowBurst).toBe(true);
     });
   });
 

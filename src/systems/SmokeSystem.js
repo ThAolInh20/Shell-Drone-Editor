@@ -871,13 +871,7 @@ export class SmokeSystem {
 
     const hasBurstSmoke = Boolean(detail.hasBurstSmoke)
       || Boolean(detail.burstSmoke)
-      || Boolean(detail['burst-smoke'])
-      || (
-        Array.isArray(detail.effects)
-        && detail.effects.some(
-          (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'
-        )
-      );
+      || (Array.isArray(detail.effects) && detail.effects.includes('burst-smoke'));
 
     if (!hasBurstSmoke) {
       return;

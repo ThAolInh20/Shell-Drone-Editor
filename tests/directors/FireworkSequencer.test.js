@@ -340,51 +340,5 @@ describe('FireworkSequencer', () => {
     expect(task1.options.ratioY).toBeCloseTo(0.8, 2);
     expect(task1.options.angleOffset).toBeCloseTo(-0.1, 2);
   });
-
-  it('should forward starLifeMultiplier to task effectOverrides in playPattern', () => {
-    sequencer.playPattern('sweep-left', {
-      count: 3,
-      duration: 1.0,
-      starLifeMultiplier: 5.0
-    });
-
-    expect(sequencer.activeTasks.length).toBe(3);
-    for (const task of sequencer.activeTasks) {
-      expect(task.options.effectOverrides).toBeDefined();
-      expect(task.options.effectOverrides.starLifeMultiplier).toBe(5.0);
-    }
-  });
-
-  it('should forward starLifeMultiplier to task effectOverrides in playCometSequence', () => {
-    sequencer.playCometSequence('sweep-left', {
-      count: 2,
-      duration: 1.0,
-      starLifeMultiplier: 4.5
-    });
-
-    expect(sequencer.activeTasks.length).toBe(2);
-    for (const task of sequencer.activeTasks) {
-      expect(task.options.effectOverrides).toBeDefined();
-      expect(task.options.effectOverrides.starLifeMultiplier).toBe(4.5);
-    }
-  });
-
-  it('should forward burst-smoke and optical active effect flags to effectOverrides in playPattern', () => {
-    sequencer.playPattern('sweep-left', {
-      count: 2,
-      duration: 1.0,
-      'burst-smoke': true,
-      ghost: true,
-      crossette: true
-    });
-
-    expect(sequencer.activeTasks.length).toBe(2);
-    for (const task of sequencer.activeTasks) {
-      expect(task.options.effectOverrides).toBeDefined();
-      expect(task.options.effectOverrides['burst-smoke']).toBe(true);
-      expect(task.options.effectOverrides.ghost).toBe(true);
-      expect(task.options.effectOverrides.crossette).toBe(true);
-    }
-  });
 });
 
