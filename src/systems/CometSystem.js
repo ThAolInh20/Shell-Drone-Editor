@@ -46,6 +46,20 @@ function interpolatePaletteColor(palette, t) {
 }
 
 const _tempSmokeVel = new THREE.Vector3();
+const _tempMoveVec = new THREE.Vector3();
+const _tempMoveDir = new THREE.Vector3();
+const _tempSamplePos = new THREE.Vector3();
+const _tempExhaustVel = new THREE.Vector3();
+const _tempJitter = new THREE.Vector3();
+const _tempSpawnPos = new THREE.Vector3();
+const _tempVelDir = new THREE.Vector3();
+const _tempCracklePos = new THREE.Vector3();
+const _tempDrift = new THREE.Vector3();
+const _tempSmokeColor = new THREE.Color();
+const _tempDefaultSmokeColor = new THREE.Color(0xf2f5f8);
+const _tempParticleColor = new THREE.Color();
+const _tempSparkleColorA = new THREE.Color(0x666666);
+const _tempSparkleColorB = new THREE.Color(0x997700);
 
 export class CometSystem {
   constructor(
@@ -986,66 +1000,82 @@ export class CometSystem {
         comet.hasCrackled = true;
         if (this.trailSystem && typeof this.trailSystem.spawnMicroCrackle === 'function') {
           for (let c = 0; c < 6; c++) {
-            const cracklePos = comet.mesh.position.clone().add(
-              new THREE.Vector3(
-                (Math.random() - 0.5) * 4.5,
-                (Math.random() - 0.5) * 4.5,
-                (Math.random() - 0.5) * 4.5
-              )
+            _tempJitter.set(
+              (Math.random() - 0.5) * 4.5,
+              (Math.random() - 0.5) * 4.5,
+              (Math.random() - 0.5) * 4.5
             );
-            this.trailSystem.spawnMicroCrackle(cracklePos, comet.color);
+            _tempCracklePos.copy(comet.mesh.position).add(_tempJitter);
+            this.trailSystem.spawnMicroCrackle(
+              _tempCracklePos,
+              comet.color
+            );
           }
         }
       }
+
+      const isCluster = Boolean(
+        (comet.preset?.clusterCount && comet.preset.clusterCount > 1) ||
+        comet.preset?.shellType?.startsWith('comet_cluster') ||
+        comet.preset?.type === 'comet_cluster'
+      );
 
       // Thicker trails for comets during launch (before reaching strobe threshold or if not dimmed/ghost-dark/ghost-hidden)
       if (comet.state === CometEntity.STATE.LAUNCHING) {
         if (isSmokeLaunch && !isGhostDark && !isGhostHidden) {
           const prevPos = comet.prevPosition || comet.mesh.position;
           const currPos = comet.mesh.position;
-          const moveVec = new THREE.Vector3().subVectors(currPos, prevPos);
-          const moveDist = moveVec.length();
+          _tempMoveVec.subVectors(
+            currPos,
+            prevPos
+          );
+          const moveDist = _tempMoveVec.length();
 
-          const moveDir = moveDist > 0.001
-            ? moveVec.clone().normalize()
-            : (comet.velocity && comet.velocity.lengthSq() > 0.01
-                ? comet.velocity.clone().normalize()
-                : new THREE.Vector3(0, 1, 0));
+          if (moveDist > 0.001) {
+            _tempMoveDir.copy(_tempMoveVec).normalize();
+          } else if (comet.velocity && comet.velocity.lengthSq() > 0.01) {
+            _tempMoveDir.copy(comet.velocity).normalize();
+          } else {
+            _tempMoveDir.set(0, 1, 0);
+          }
 
           const smokeCfg = FIREWORK_CONFIG.SMOKE;
           const stepDist = smokeCfg?.flightSmokeStepDist || 1.2;
+          const maxSubPoints = isCluster ? 3 : 8;
           const subPoints = Math.max(
             1,
-            Math.min(8, Math.ceil(moveDist / stepDist))
+            Math.min(
+              maxSubPoints,
+              Math.ceil(moveDist / stepDist)
+            )
           );
 
-          const defaultSmokeColor = new THREE.Color(0xf2f5f8);
-          const smokeColor = comet.color
-            ? defaultSmokeColor.clone().lerp(comet.color, 0.22)
-            : defaultSmokeColor;
+          _tempSmokeColor.copy(_tempDefaultSmokeColor);
+          if (comet.color) {
+            _tempSmokeColor.lerp(comet.color, 0.22);
+          }
 
           for (let p = 1; p <= subPoints; p++) {
             const frac = p / subPoints;
-            const samplePos = new THREE.Vector3().lerpVectors(
+            _tempSamplePos.lerpVectors(
               prevPos,
               currPos,
               frac
             );
 
             const taperJitter = (0.2 + 0.35 * (1.0 - frac)) * ((smokeCfg?.flightSmokeScale || 4.8) * 0.12);
-            samplePos.x += (Math.random() - 0.5) * taperJitter;
-            samplePos.y += (Math.random() - 0.5) * taperJitter;
-            samplePos.z += (Math.random() - 0.5) * taperJitter;
+            _tempSamplePos.x += (Math.random() - 0.5) * taperJitter;
+            _tempSamplePos.y += (Math.random() - 0.5) * taperJitter;
+            _tempSamplePos.z += (Math.random() - 0.5) * taperJitter;
 
-            const exhaustVel = moveDir.clone().multiplyScalar(
-              (-1.6 - Math.random() * 1.2) * (0.8 + 0.4 * (1.0 - frac))
-            ).add(
-              new THREE.Vector3(
-                (Math.random() - 0.5) * 0.8,
-                0.3 + Math.random() * 0.8,
-                (Math.random() - 0.5) * 0.8
-              )
+            _tempJitter.set(
+              (Math.random() - 0.5) * 0.8,
+              0.3 + Math.random() * 0.8,
+              (Math.random() - 0.5) * 0.8
             );
+            _tempExhaustVel.copy(_tempMoveDir).multiplyScalar(
+              (-1.6 - Math.random() * 1.2) * (0.8 + 0.4 * (1.0 - frac))
+            ).add(_tempJitter);
 
             const smokeLife = (
               (smokeCfg?.flightSmokeLifeMin || 3.5) +
@@ -1064,21 +1094,21 @@ export class CometSystem {
               buoyancy: smokeCfg?.flightSmokeBuoyancy || 0.38,
               opacity: (smokeCfg?.flightSmokeOpacity || 0.28) *
                 (1.15 - 0.25 * (1.0 - frac)),
-              color: smokeColor
+              color: _tempSmokeColor
             };
 
             if (this.smokeSystem) {
               this.smokeSystem.addSmokePoint(
-                samplePos,
-                exhaustVel,
+                _tempSamplePos,
+                _tempExhaustVel,
                 smokeOptions
               );
             } else {
               globalEventBus.emit(
                 'smoke:spawn',
                 {
-                  position: samplePos,
-                  velocity: exhaustVel,
+                  position: _tempSamplePos.clone(),
+                  velocity: _tempExhaustVel.clone(),
                   options: smokeOptions
                 }
               );
@@ -1142,11 +1172,17 @@ export class CometSystem {
                 if (isDetached) {
                   const vel = comet.velocity;
                   const velSpeed = vel ? vel.length() : 0;
-                  const velDir = velSpeed > 0.1
-                    ? vel.clone().normalize()
-                    : new THREE.Vector3(0, 1, 0);
+                  if (velSpeed > 0.1) {
+                    _tempVelDir.copy(vel).normalize();
+                  } else {
+                    _tempVelDir.set(0, 1, 0);
+                  }
                   const gapDistance = Math.max(16.0, Math.min(28.0, velSpeed * 0.22));
-                  spawnPos = comet.mesh.position.clone().addScaledVector(velDir, -gapDistance);
+                  _tempSpawnPos.copy(comet.mesh.position).addScaledVector(
+                    _tempVelDir,
+                    -gapDistance
+                  );
+                  spawnPos = _tempSpawnPos;
                 }
 
                 if (comet.isTadpole) {
@@ -1162,10 +1198,10 @@ export class CometSystem {
                     false
                   );
                 } else if (isDetached) {
-                  const particleColor = comet.color.clone().offsetHSL(0, -0.15, -0.12);
+                  _tempParticleColor.copy(comet.color).offsetHSL(0, -0.15, -0.12);
                   this.trailSystem.spawnTrailParticle(
                     spawnPos,
-                    particleColor,
+                    _tempParticleColor,
                     0.5,
                     false,
                     customLife * 0.5,
@@ -1224,7 +1260,8 @@ export class CometSystem {
                 );
               }
 
-              if (comet.preset?.launchSmoke && Math.random() < 0.25 && !isDetached) {
+              const launchSmokeChance = isCluster ? 0.10 : 0.25;
+              if (comet.preset?.launchSmoke && Math.random() < launchSmokeChance && !isDetached) {
                 _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
                 const smokeOptions = {
                   life: 1.5 + Math.random() * 0.7,
@@ -1276,19 +1313,23 @@ export class CometSystem {
         }
 
         // Thêm hiệu ứng khói ở đuôi
-        if (this.smokeSystem && comet.preset?.launchSmoke && !isTrailDisabled && Math.random() < 0.2) {
-          const drift = new THREE.Vector3(
+        if (this.smokeSystem && comet.preset?.launchSmoke && !isTrailDisabled && Math.random() < (isCluster ? 0.08 : 0.20)) {
+          _tempDrift.set(
             (Math.random() - 0.5) * 0.5,
             Math.random() * 0.5 + 0.2,
             (Math.random() - 0.5) * 0.5
           );
-          this.smokeSystem.spawnPuff(comet.mesh.position.clone(), drift, {
-            life: 1.0 + Math.random() * 0.5,
-            scale: 2.5 + Math.random() * 2.0,
-            growth: 2.5,
-            opacity: 0.12 + Math.random() * 0.08,
-            color: LAUNCH_SMOKE_COLOR
-          });
+          this.smokeSystem.spawnPuff(
+            comet.mesh.position,
+            _tempDrift,
+            {
+              life: 1.0 + Math.random() * 0.5,
+              scale: 2.5 + Math.random() * 2.0,
+              growth: 2.5,
+              opacity: 0.12 + Math.random() * 0.08,
+              color: LAUNCH_SMOKE_COLOR
+            }
+          );
         }
       }
       if (
@@ -1311,7 +1352,10 @@ export class CometSystem {
             );
           }
           if (comet.hasCrackle) {
-            this.trailSystem.spawnMicroCrackle(comet.mesh.position.clone(), comet.color);
+            this.trailSystem.spawnMicroCrackle(
+              comet.mesh.position,
+              comet.color
+            );
           }
         }
 
@@ -1322,9 +1366,9 @@ export class CometSystem {
               // Tần suất lấp lánh tăng dần theo lũy thừa khi càng về cuối vòng đời
               const sparkleChance = 0.25 + Math.pow(decayRatio - 0.4, 2) * 0.75;
               if (Math.random() < sparkleChance) {
-                const sparkleColor = new THREE.Color(Math.random() < 0.55 ? 0x666666 : 0x997700);
+                const sparkleColor = Math.random() < 0.55 ? _tempSparkleColorA : _tempSparkleColorB;
                 this.trailSystem.spawnEffectSpark(
-                  comet.mesh.position.clone(),
+                  comet.mesh.position,
                   sparkleColor,
                   Boolean(comet.hasStrobe)
                 );
@@ -1334,7 +1378,10 @@ export class CometSystem {
 
           // Crackle lách tách khi đang tàn phai ở đỉnh
           if (comet.hasCrackle && Math.random() < 0.10) {
-            this.trailSystem.spawnMicroCrackle(comet.mesh.position.clone(), comet.color);
+            this.trailSystem.spawnMicroCrackle(
+              comet.mesh.position,
+              comet.color
+            );
           }
         }
       }
@@ -1342,14 +1389,19 @@ export class CometSystem {
       // Water impact collision check at Y <= 0
       if (comet.mesh.position.y <= 0 && comet.age > 0.1) {
         if (this.smokeSystem) {
-          const steamVel = new THREE.Vector3(
+          _tempExhaustVel.set(
             (Math.random() - 0.5) * 0.8,
             1.0 + Math.random() * 0.8,
             (Math.random() - 0.5) * 0.8
           );
+          _tempSamplePos.set(
+            comet.mesh.position.x,
+            0.05,
+            comet.mesh.position.z
+          );
           this.smokeSystem.spawnPuff(
-            new THREE.Vector3(comet.mesh.position.x, 0.05, comet.mesh.position.z),
-            steamVel,
+            _tempSamplePos,
+            _tempExhaustVel,
             {
               life: 0.9 + Math.random() * 0.5,
               scale: 2.8 + Math.random() * 1.5,

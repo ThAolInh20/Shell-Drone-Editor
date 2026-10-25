@@ -9,6 +9,11 @@ const _tempMoveDir = new THREE.Vector3();
 const _tempVelocityDir = new THREE.Vector3();
 const _tempQuaternion = new THREE.Quaternion();
 const _vUp = new THREE.Vector3(0, 1, 0);
+const _vX = new THREE.Vector3(1, 0, 0);
+const _tempTadpoleDir = new THREE.Vector3();
+const _tempTadpoleRight = new THREE.Vector3();
+const _tempTadpoleUp = new THREE.Vector3();
+const _tempTadpoleOffset = new THREE.Vector3();
 
 export class CometEntity {
   static STATE = {
@@ -459,22 +464,28 @@ export class CometEntity {
 
         const velLenSq = this.velocity.lengthSq();
         if (velLenSq > 0.04) {
-          const vDir = this.velocity.clone().normalize();
-          const refUp = Math.abs(vDir.y) > 0.88 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
-          const vRight = new THREE.Vector3().crossVectors(vDir, refUp).normalize();
-          const vUp = new THREE.Vector3().crossVectors(vRight, vDir).normalize();
+          _tempTadpoleDir.copy(this.velocity).normalize();
+          const refUp = Math.abs(_tempTadpoleDir.y) > 0.88 ? _vX : _vUp;
+          _tempTadpoleRight.crossVectors(
+            _tempTadpoleDir,
+            refUp
+          ).normalize();
+          _tempTadpoleUp.crossVectors(
+            _tempTadpoleRight,
+            _tempTadpoleDir
+          ).normalize();
 
-          const offsetVec = new THREE.Vector3()
+          _tempTadpoleOffset.set(0, 0, 0)
             .addScaledVector(
-              vRight,
+              _tempTadpoleRight,
               lateralOffset * Math.cos(this.tadpoleSwayAngle) - depthOffset * Math.sin(this.tadpoleSwayAngle)
             )
             .addScaledVector(
-              vUp,
+              _tempTadpoleUp,
               lateralOffset * Math.sin(this.tadpoleSwayAngle) + depthOffset * Math.cos(this.tadpoleSwayAngle)
             );
 
-          this.mesh.position.copy(this.ballisticPosition).add(offsetVec);
+          this.mesh.position.copy(this.ballisticPosition).add(_tempTadpoleOffset);
         } else {
           this.mesh.position.copy(this.ballisticPosition);
         }
