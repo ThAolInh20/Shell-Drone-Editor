@@ -152,6 +152,17 @@ export class CameraManager {
     }
   }
 
+  toggleLookBehind() {
+    const forward = new THREE.Vector3();
+    this.instance.getWorldDirection(forward);
+
+    if (forward.z < 0) {
+      this.instance.lookAt(0, 9.5, 438);
+    } else {
+      this.instance.lookAt(this.stageTarget);
+    }
+  }
+
   setSpeedMultiplier(multiplier) {
     this.speedMultiplier = Math.max(0.1, parseFloat(multiplier) || 1.0);
   }

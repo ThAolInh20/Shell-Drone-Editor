@@ -23,6 +23,7 @@ export class InputSystem {
     sceneManager = null,
     smokeSystem = null
   ) {
+    this.camera = camera;
     this.controls = new PointerLockControls(
       camera,
       domElement
@@ -961,12 +962,43 @@ export class InputSystem {
 
     if (event.code === 'Escape') {
       event.preventDefault();
+      if (this.controls && this.controls.isLocked) {
+        this.controls.unlock();
+      }
       if (this.timelineEditor && this.timelineEditor.visible) {
         this.timelineEditor.toggle();
       } else {
         this.togglePause();
       }
       return;
+    }
+
+    if (event.code === 'KeyF') {
+      if (this.timelineEditor && this.timelineEditor.visible) {
+        event.preventDefault();
+        this.timelineEditor.toggle();
+        return;
+      }
+      const camPos = this.camera?.position ||
+        (this.controls?.getObject ? this.controls.getObject().position : null);
+      const isNearDesk = this.sceneManager?.isNearWorkstation?.(
+        camPos
+      );
+      if (isNearDesk && this.timelineEditor) {
+        event.preventDefault();
+        if (this.sceneManager.workstationDesk) {
+          this.sceneManager.workstationDesk.interact(
+            this.timelineEditor,
+            this.controls
+          );
+        } else {
+          this.timelineEditor.toggle();
+          if (this.controls && this.controls.isLocked) {
+            this.controls.unlock();
+          }
+        }
+        return;
+      }
     }
 
     if (!this.controls.isLocked || this.paused) return;

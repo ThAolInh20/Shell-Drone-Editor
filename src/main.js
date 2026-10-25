@@ -143,12 +143,20 @@ hotkeyManager.register('global', 'shift+r', () => {
   }
 });
 
+hotkeyManager.register('global', 'h', () => {
+  cameraManager.toggleLookBehind();
+});
+
 function animate() {
   requestAnimationFrame(animate);
 
   clock.update();
   performanceMonitor.update(clock.deltaTime);
-  sceneManager.update(clock.deltaTime);
+  sceneManager.update(
+    clock.deltaTime,
+    cameraManager.instance.position,
+    timelineEditor ? timelineEditor.visible : false
+  );
   
   // Systems update
   if (!inputSystem.isPaused()) {
