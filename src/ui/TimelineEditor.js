@@ -37,6 +37,17 @@ export class TimelineEditor {
     this.redoStack = [];
     this.selectedEvents = [];
     this.clipboardEvents = [];
+    this.blockDomMap = new Map();
+    this.isPotentialMarquee = false;
+    this.isMarqueeSelecting = false;
+    this.marqueeStartX = 0;
+    this.marqueeStartY = 0;
+    this.marqueeStartClientX = 0;
+    this.marqueeStartClientY = 0;
+    this.marqueeIsAdditive = false;
+    this.marqueeInitialSelected = [];
+    this.ctrlClickedSeq = null;
+    this.marqueeBox = null;
     this.autoSaveEnabled = localStorage.getItem('settings_auto_save_enabled') !== 'false';
     this.autoSaveTimer = null;
 
@@ -440,12 +451,22 @@ export class TimelineEditor {
     // Drag events
     window.addEventListener('mousemove', (e) => this.onDrag(e));
     window.addEventListener('mouseup', (e) => this.onDragEnd(e));
-    // Click on empty space to deselect
+    // Click on empty space or drag to marquee select
     this.tracksArea.addEventListener('mousedown', (e) => {
       if (e.target === this.tracksArea) {
-        this.selectedEvents = [];
-        this.inspector.hide();
-        this.renderTracks();
+        if (e.button !== 0) return;
+        this.isPotentialMarquee = true;
+        this.isMarqueeSelecting = false;
+        this.marqueeStartClientX = e.clientX;
+        this.marqueeStartClientY = e.clientY;
+        const rect = this.tracksArea.getBoundingClientRect();
+        this.marqueeStartX = e.clientX - rect.left;
+        this.marqueeStartY = e.clientY - rect.top;
+        this.marqueeIsAdditive = Boolean(e.ctrlKey || e.shiftKey);
+        this.marqueeInitialSelected = this.marqueeIsAdditive
+          ? [...this.selectedEvents]
+          : [];
+        this.ctrlClickedSeq = null;
       }
     });
 
@@ -1378,8 +1399,22 @@ export class TimelineEditor {
     });
   }
 
+  initMarqueeBox() {
+    this.marqueeBox = document.createElement('div');
+    this.marqueeBox.className = 'timeline-marquee-selection-box';
+    this.marqueeBox.style.position = 'absolute';
+    this.marqueeBox.style.border = '1.5px dashed #00ffcc';
+    this.marqueeBox.style.backgroundColor = 'rgba(0, 255, 204, 0.15)';
+    this.marqueeBox.style.borderRadius = '2px';
+    this.marqueeBox.style.boxShadow = '0 0 8px rgba(0, 255, 204, 0.4)';
+    this.marqueeBox.style.pointerEvents = 'none';
+    this.marqueeBox.style.zIndex = '999';
+    this.marqueeBox.style.display = 'none';
+  }
+
   renderTracks() {
     this.tracksArea.innerHTML = '';
+    this.blockDomMap.clear();
     this.assignTracks();
 
     // Clean up selectedEvents to remove any deleted or missing sequences
@@ -1387,6 +1422,7 @@ export class TimelineEditor {
 
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
+      this.blockDomMap.set(seq, block);
       block.className = `timeline-event-block timeline-block-${seq.type}`;
       block.dataset.eventType = seq.type;
       const startX = seq.time * this.pixelsPerSecond;
@@ -1615,6 +1651,17 @@ export class TimelineEditor {
         const isCtrlOrShift = e.ctrlKey || e.shiftKey;
 
         if (isCtrlOrShift) {
+          this.isPotentialMarquee = true;
+          this.isMarqueeSelecting = false;
+          this.marqueeStartClientX = e.clientX;
+          this.marqueeStartClientY = e.clientY;
+          const rect = this.tracksArea.getBoundingClientRect();
+          this.marqueeStartX = e.clientX - rect.left;
+          this.marqueeStartY = e.clientY - rect.top;
+          this.marqueeIsAdditive = true;
+          this.marqueeInitialSelected = [...this.selectedEvents];
+          this.ctrlClickedSeq = seq;
+
           if (this.selectedEvents.includes(seq)) {
             // Remove from selected list
             this.selectedEvents = this.selectedEvents.filter(s => s !== seq);
@@ -1631,14 +1678,16 @@ export class TimelineEditor {
             this.selectedEvents.push(seq);
             this.inspector.show(seq);
           }
-        } else {
-          // If clicked event is not already selected, clear select list and select this one.
-          // If it IS already selected, keep selection (so we can drag them together).
-          if (!this.selectedEvents.includes(seq)) {
-            this.selectedEvents = [seq];
-          }
-          this.inspector.show(seq);
+          this.renderTracks();
+          return;
         }
+
+        // If clicked event is not already selected, clear select list and select this one.
+        // If it IS already selected, keep selection (so we can drag them together).
+        if (!this.selectedEvents.includes(seq)) {
+          this.selectedEvents = [seq];
+        }
+        this.inspector.show(seq);
 
         this.isDragging = true;
         this.draggedEvent = seq;
@@ -1707,9 +1756,94 @@ export class TimelineEditor {
 
       this.tracksArea.appendChild(block);
     });
+
+    if (!this.marqueeBox) {
+      this.initMarqueeBox();
+    }
+    this.tracksArea.appendChild(this.marqueeBox);
   }
 
   onDrag(e) {
+    if (this.isPotentialMarquee) {
+      const dist = Math.hypot(
+        e.clientX - this.marqueeStartClientX,
+        e.clientY - this.marqueeStartClientY
+      );
+      if (dist >= 4) {
+        this.isMarqueeSelecting = true;
+        this.isDragging = false;
+        this.draggedEvent = null;
+        if (this.marqueeBox) {
+          this.marqueeBox.style.display = 'block';
+        }
+        document.body.style.userSelect = 'none';
+      }
+    }
+
+    if (this.isMarqueeSelecting) {
+      const rect = this.tracksArea.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+
+      const boxLeft = Math.min(this.marqueeStartX, currentX);
+      const boxTop = Math.min(this.marqueeStartY, currentY);
+      const boxWidth = Math.abs(currentX - this.marqueeStartX);
+      const boxHeight = Math.abs(currentY - this.marqueeStartY);
+      const boxRight = boxLeft + boxWidth;
+      const boxBottom = boxTop + boxHeight;
+
+      if (this.marqueeBox) {
+        this.marqueeBox.style.left = `${boxLeft}px`;
+        this.marqueeBox.style.top = `${boxTop}px`;
+        this.marqueeBox.style.width = `${boxWidth}px`;
+        this.marqueeBox.style.height = `${boxHeight}px`;
+      }
+
+      const newlySelected = [];
+      this.sequences.filter(s => !s._deleted).forEach((seq) => {
+        const startX = seq.time * this.pixelsPerSecond;
+        const visualDur = seq.uiDuration !== undefined
+          ? seq.uiDuration
+          : (seq.duration || 0);
+        const blockWidth = Math.max(
+          visualDur * this.pixelsPerSecond,
+          this.minBlockWidth
+        );
+        const row = seq._trackRow || 0;
+        const blockLeft = startX;
+        const blockRight = startX + blockWidth;
+        const blockTop = row * (this.rowHeight + 5) + 5;
+        const blockBottom = blockTop + this.rowHeight;
+
+        const intersects = (
+          blockLeft < boxRight &&
+          blockRight > boxLeft &&
+          blockTop < boxBottom &&
+          blockBottom > boxTop
+        );
+
+        const shouldBeSelected = intersects || (
+          this.marqueeIsAdditive &&
+          this.marqueeInitialSelected.includes(seq)
+        );
+        if (shouldBeSelected) {
+          newlySelected.push(seq);
+        }
+
+        const domBlock = this.blockDomMap.get(seq);
+        if (domBlock) {
+          domBlock.style.border = shouldBeSelected
+            ? '2px solid #00ffcc'
+            : (this.inspector.selectedEvent === seq
+                ? '2px solid white'
+                : '1px solid rgba(0,0,0,0.5)');
+        }
+      });
+
+      this.selectedEvents = newlySelected;
+      return;
+    }
+
     if (this.isResizing && this.resizedEvent) {
       const dx = e.clientX - this.resizeOffsetX;
       const dTime = dx / this.pixelsPerSecond;
@@ -1804,6 +1938,34 @@ export class TimelineEditor {
   }
 
   onDragEnd(e) {
+    if (this.isMarqueeSelecting || this.isPotentialMarquee) {
+      if (this.marqueeBox) {
+        this.marqueeBox.style.display = 'none';
+      }
+      document.body.style.userSelect = '';
+
+      const didMarqueeDrag = this.isMarqueeSelecting;
+      this.isMarqueeSelecting = false;
+      this.isPotentialMarquee = false;
+
+      if (didMarqueeDrag) {
+        if (this.selectedEvents.length > 0) {
+          this.inspector.show(
+            this.selectedEvents[this.selectedEvents.length - 1]
+          );
+        } else {
+          this.inspector.hide();
+        }
+        this.renderTracks();
+      } else if (!this.marqueeIsAdditive && !this.ctrlClickedSeq) {
+        // Simple click on empty space without moving: deselect all
+        this.selectedEvents = [];
+        this.inspector.hide();
+        this.renderTracks();
+      }
+      this.ctrlClickedSeq = null;
+    }
+
     this.isDragging = false;
     this.draggedEvent = null;
     this.isResizing = false;
