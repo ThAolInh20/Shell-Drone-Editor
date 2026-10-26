@@ -55,7 +55,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    title: 'Shell Drone Animation Editor',
+    title: 'Firework & Drone Show Studio',
     backgroundColor: '#1a1a1a',
     icon: path.join(__dirname, '../../public/icon2.ico'),
   });
