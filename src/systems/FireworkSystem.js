@@ -1667,7 +1667,7 @@ export class FireworkSystem {
 
     const effectMultiplier = FIREWORK_CONFIG.EFFECT_MULTIPLIERS;
 
-    const presetMultiplier = Math.max(0.7, Math.min(2.2, preset?.particleCountMultiplier ?? 1));
+    const presetMultiplier = Math.max(0.35, Math.min(2.5, preset?.particleCountMultiplier ?? 1));
     const renderModeMultiplier = (
       preset?.shapeRenderMode === 'outline'
       || preset?.shapeRenderMode === 'jupiter'
@@ -1701,7 +1701,13 @@ export class FireworkSystem {
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
-    const baseMin = (isCrossetteActive || isSecondBurstActive) ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES;
+    const isHorsetailActive = shape === 'horsetail'
+      || preset?.shapeType === 'horsetail'
+      || preset?.dynamicsType === 'horsetail'
+      || preset?.shellType === 'horsetail_waterfall';
+    const baseMin = isHorsetailActive
+      ? 16
+      : ((isCrossetteActive || isSecondBurstActive) ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES);
     const minParticles = Math.round(baseMin * this.graphicsQualityMultiplier);
     const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
     const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
@@ -2120,6 +2126,11 @@ export class FireworkSystem {
       } else if (particleShape === 'sphere_rings') {
         const ringsSpeedBand = 0.98 + (Math.random() - 0.5) * 0.04;
         baseSpeed = profileBaseSpeed * ringsSpeedBand;
+      } else if (particleShape === 'horsetail' || particleShape === 'waterfall') {
+        const safeCount = Math.max(particleCount, 1);
+        const t = (particleIndex + 0.5) / safeCount;
+        const speedBand = 0.90 + t * 0.20 + (Math.random() - 0.5) * 0.05;
+        baseSpeed = profileBaseSpeed * speedBand;
       } else if (particleShape === 'sphere' || particleShape === 'half-flash' || particleShape === 'split-flash') {
         const speedBand = (particleShape === 'half-flash' || particleShape === 'split-flash')
           ? (0.97 + Math.random() * 0.06)

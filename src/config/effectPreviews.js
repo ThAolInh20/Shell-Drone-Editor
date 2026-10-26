@@ -79,6 +79,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Heavy Gravity', 'Long Gold Droop'],
     summary: 'Long-lasting glowing trails that droop gracefully toward the ground.'
   },
+  'horsetail': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/horsetail.mp4',
+    tags: ['Waterfall Drop', 'Golden Streamers', 'Vertical Cascade'],
+    summary: 'Soft break burst where heavy golden embers cascade vertically downward like a shining waterfall.'
+  },
   'crossette': {
     name: 'Crossette',
     category: PREVIEW_CATEGORIES.DYNAMICS,
@@ -520,7 +527,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Sphere Rings', 'Harmonic Strobe', 'Synchronized Rings'],
     summary: 'Parallel latitude rings pulsing in synchronized phase-locked harmonic strobing flashes.'
   },
-
+  'horsetail_waterfall': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/horsetail_waterfall.mp4',
+    tags: ['Horsetail', 'Waterfall Cascade', 'Gold Embers'],
+    summary: 'Soft break shell releasing an umbrella of golden embers that plunge vertically like a liquid waterfall.'
+  },
+  'horsetail-waterfall': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/horsetail_waterfall.mp4',
+    tags: ['Horsetail', 'Waterfall Cascade', 'Gold Embers'],
+    summary: 'Soft break shell releasing an umbrella of golden embers that plunge vertically like a liquid waterfall.'
+  },
 
   // Sequence Firing Patterns
   'random': {
@@ -758,7 +778,10 @@ const PREVIEW_ALIASES = {
   'sphere_rings_strobe': 'sphere_rings_strobe',
   'slow-burst': 'slow-burst',
   'slow_burst': 'slow-burst',
-  'slowburst': 'slow-burst'
+  'slowburst': 'slow-burst',
+  'waterfall': 'horsetail',
+  'horsetail_waterfall': 'horsetail_waterfall',
+  'horsetail-waterfall': 'horsetail_waterfall'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

@@ -46,6 +46,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 22 | `sparkle-trail.mp4` | Sparkle Trail | Duong bay tia sao choi vet mong thanh manh | [ ] Chua quay |
 | 23 | `tadpole-spiral.mp4` | Tadpole Spiral | Sao choi boi ngoan ngoeo lech xoan oc bung toa o dinh | [ ] Chua quay |
 | 24 | `crysanthemum_discrete_trail.mp4` | Chrysanthemum Discrete Trail | Trong luc lien tuc va van toc rieng giam dan tao duong cong ru, vet duoi roi rac | [ ] Chua quay |
+| 25 | `horsetail.mp4` | Horsetail Waterfall | Thac nuoc vang ru thang dung | [ ] Chua quay |
 
 ---
 
@@ -71,6 +72,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 14 | `split-flash.mp4` | Split Flash | 4 goc phan tu chop tat | [ ] Chua quay |
 | 15 | `sparkling-branches.mp4` | Sparkling Branches | 4-5 nhanh toa deu moi nhanh 4-5 tia sao choi | [ ] Chua quay |
 | 16 | `sphere_uniform.mp4` | Sphere Uniform | Cau phan bo dong deu Fibonacci khong goc chet | [ ] Chua quay |
+| 17 | `horsetail.mp4` | Horsetail | Chum vom hep huong len truoc khi ru xuong | [ ] Chua quay |
 
 ---
 
@@ -110,6 +112,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
 | 11 | `sphere-erratic-dart.mp4` | Sphere Erratic Dart | Hinh cau bung deu roi dot ngot vut loan xa ve vet sang sac net | [ ] Chua quay |
 | 12 | `crysanthemum_uniform_sphere.mp4` | Chrysanthemum Uniform Sphere | Bung no cau Fibonacci deu dan, uon cong theo trong luc, vet duoi roi rac keo dai | [ ] Chua quay |
+| 13 | `horsetail_waterfall.mp4` | Horsetail Waterfall | Vo cau bung nhe, tan vang ru thang dung nhu thac nuoc | [ ] Chua quay |
 
 ---
 

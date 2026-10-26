@@ -607,7 +607,8 @@ export default {
           sphere_uniform: "Hình cầu đồng đều",
           "sphere-uniform": "Hình cầu đồng đều",
           sphere_rings: "Vành đai cầu vĩ độ",
-          "sphere-rings": "Vành đai cầu vĩ độ"
+          "sphere-rings": "Vành đai cầu vĩ độ",
+          horsetail: "Thác nước đuôi ngựa"
         },
         dynamicsType: {
           standard: "Tỏa đều tiêu chuẩn",
@@ -637,7 +638,8 @@ export default {
           crysanthemum_discrete_trail: "Hoa cúc vệt đuôi rời rạc",
           "crysanthemum-discrete-trail": "Hoa cúc vệt đuôi rời rạc",
           sphere_rings_wave: "Sóng sáng vành đai cầu",
-          "sphere-rings-wave": "Sóng sáng vành đai cầu"
+          "sphere-rings-wave": "Sóng sáng vành đai cầu",
+          horsetail: "Thác nước rủ thẳng đứng"
         },
         pattern: {
           random: "Ngẫu nhiên",
@@ -755,7 +757,8 @@ export default {
           split_flash: "Chớp phân tách",
           galaxy: "Thiên hà xoắn ốc",
           double_helix: "Xoắn kép",
-          crossette: "Chữ thập"
+          crossette: "Chữ thập",
+          horsetail_waterfall: "Thác nước đuôi ngựa"
         },
         nestingMode: {
           concentric: "Đồng tâm nối tiếp Time Cascade",
@@ -772,7 +775,8 @@ export default {
           classic: "Hoa cúc vàng nối tiếp Classic",
           satellite: "Cụm sao vệ tinh Satellite",
           ghost: "Giao hưởng Ghost Strobe",
-          crossette: "Ma trận chữ thập Crossette"
+          crossette: "Ma trận chữ thập Crossette",
+          horsetail_waterfall: "Thác nước đuôi ngựa"
         },
         cometTrail: {
           none: "Không có",

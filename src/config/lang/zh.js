@@ -595,7 +595,8 @@ export default {
           sphere_uniform: "均匀球形",
           "sphere-uniform": "均匀球形",
           sphere_rings: "球形纬度环",
-          "sphere-rings": "球形纬度环"
+          "sphere-rings": "球形纬度环",
+          horsetail: "马尾形"
         },
         dynamicsType: {
           standard: "标准径向放射",
@@ -625,7 +626,8 @@ export default {
           crysanthemum_discrete_trail: "菊花离散尾迹",
           "crysanthemum-discrete-trail": "菊花离散尾迹",
           sphere_rings_wave: "球形纬度环波浪点亮",
-          "sphere-rings-wave": "球形纬度环波浪点亮"
+          "sphere-rings-wave": "球形纬度环波浪点亮",
+          horsetail: "马尾瀑布垂直垂落"
         },
         pattern: {
           random: "随机",
@@ -743,7 +745,8 @@ export default {
           split_flash: "分裂闪光",
           galaxy: "螺旋星系",
           double_helix: "双螺旋烟花",
-          crossette: "十字烟花"
+          crossette: "十字烟花",
+          horsetail_waterfall: "马尾瀑布"
         },
         nestingMode: {
           concentric: "同心时序爆炸 Time Cascade",
@@ -760,7 +763,8 @@ export default {
           classic: "经典层叠菊花 Classic",
           satellite: "卫星星团分散 Satellite",
           ghost: "幽灵闪烁交响 Ghost Strobe",
-          crossette: "十字分裂矩阵 Crossette"
+          crossette: "十字分裂矩阵 Crossette",
+          horsetail_waterfall: "马尾瀑布"
         },
         cometTrail: {
           none: "无",

@@ -58,7 +58,11 @@ export class BurstShapeGenerator {
       case 'sphere_uniform':
       case 'egg':
       case 'sphere_rings':
+      case 'horsetail':
         return shellType;
+      case 'horsetail_waterfall':
+      case 'waterfall':
+        return 'horsetail';
       case 'sphere-rings':
         return 'sphere_rings';
       case 'sphere-uniform':
@@ -591,6 +595,28 @@ export class BurstShapeGenerator {
         x,
         y,
         z
+      ).normalize();
+    }
+
+    if (shape === 'horsetail' || shape === 'waterfall') {
+      // Thác nước / Đuôi ngựa: Chùm vòm nón rộng hướng lên trên và tỏa đều xung quanh
+      const safeCount = Math.max(count || 1, 1);
+      const safeIndex = index !== undefined ? index : Math.floor(Math.random() * safeCount);
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      const uAngle = goldenAngle * safeIndex;
+      const t = (safeIndex + 0.5) / safeCount;
+
+      // Góc nghiêng nón vòm vừa phải từ ~12 độ ở tâm đến ~48 độ ở viền ngoài
+      const spreadAngle = 0.20 + Math.sqrt(t) * 0.64;
+      const dirY = Math.cos(spreadAngle);
+      const sinA = Math.sin(spreadAngle);
+      const dirX = Math.cos(uAngle) * sinA;
+      const dirZ = Math.sin(uAngle) * sinA;
+
+      return new THREE.Vector3(
+        dirX,
+        dirY,
+        dirZ
       ).normalize();
     }
 

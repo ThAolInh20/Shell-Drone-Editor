@@ -607,7 +607,8 @@ export default {
           sphere_uniform: "Uniform Sphere",
           "sphere-uniform": "Uniform Sphere",
           sphere_rings: "Sphere Latitude Rings",
-          "sphere-rings": "Sphere Latitude Rings"
+          "sphere-rings": "Sphere Latitude Rings",
+          horsetail: "Horsetail"
         },
         dynamicsType: {
           standard: "Standard Radial",
@@ -637,7 +638,8 @@ export default {
           crysanthemum_discrete_trail: "Chrysanthemum Discrete Trail",
           "crysanthemum-discrete-trail": "Chrysanthemum Discrete Trail",
           sphere_rings_wave: "Sphere Rings Staggered Wave",
-          "sphere-rings-wave": "Sphere Rings Staggered Wave"
+          "sphere-rings-wave": "Sphere Rings Staggered Wave",
+          horsetail: "Horsetail Waterfall"
         },
         pattern: {
           random: "Random",
@@ -755,7 +757,8 @@ export default {
           split_flash: "Split Sphere Flash",
           galaxy: "Spiral Galaxy",
           double_helix: "Double Helix",
-          crossette: "Crossette"
+          crossette: "Crossette",
+          horsetail_waterfall: "Horsetail Waterfall"
         },
         nestingMode: {
           concentric: "Concentric Time Cascade",
@@ -772,7 +775,8 @@ export default {
           classic: "Classic Brocade Cascade",
           satellite: "Satellite Star Cluster",
           ghost: "Ghost Strobe Symphony",
-          crossette: "Crossette Matrix"
+          crossette: "Crossette Matrix",
+          horsetail_waterfall: "Horsetail Waterfall"
         },
         cometTrail: {
           none: "None",

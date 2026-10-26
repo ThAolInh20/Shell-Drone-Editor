@@ -596,7 +596,8 @@ export default {
           "sphere-uniform": "均一球形",
           sphere_rings: "球体緯度リング",
           "sphere-rings": "球体緯度リング",
-          waterfall: "ウォーターフォール滝"
+          waterfall: "ウォーターフォール滝",
+          horsetail: "馬尾形"
         },
         dynamicsType: {
           standard: "標準放射",
@@ -626,7 +627,8 @@ export default {
           crysanthemum_discrete_trail: "菊咲き離散トレイル",
           "crysanthemum-discrete-trail": "菊咲き離散トレイル",
           sphere_rings_wave: "球体リングウェーブ点灯",
-          "sphere-rings-wave": "球体リングウェーブ点灯"
+          "sphere-rings-wave": "球体リングウェーブ点灯",
+          horsetail: "馬尾の滝垂れ下がり"
         },
         pattern: {
           random: "ランダム",
@@ -744,7 +746,8 @@ export default {
           split_flash: "スプリットフラッシュ",
           galaxy: "スパイラルギャラクシー",
           double_helix: "二重螺旋花火",
-          crossette: "十字花火"
+          crossette: "十字花火",
+          horsetail_waterfall: "馬尾滝"
         },
         nestingMode: {
           concentric: "同心円時系列爆発 Time Cascade",
@@ -761,7 +764,8 @@ export default {
           classic: "クラシック冠菊カスケード Classic",
           satellite: "衛星スタークラスター Satellite",
           ghost: "ゴーストストロボシンフォニー Ghost Strobe",
-          crossette: "クロセットマトリックス Crossette"
+          crossette: "クロセットマトリックス Crossette",
+          horsetail_waterfall: "馬尾滝"
         },
         cometTrail: {
           none: "なし",

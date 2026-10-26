@@ -181,6 +181,23 @@ export const FIREWORK_CONFIG = {
       minGravity: 0.06,
       terminalVelocity: -14.0
     },
+    // Pháo thác nước tuôn rủ (Horsetail Waterfall)
+    horsetail: {
+      ...BASE_BURST_PROFILE,
+      baseSpeed: 38,
+      baseLife: 3.8,
+      baseDrag: 0.18,
+      dragJitter: 0.08,
+      speedJitter: 0.06,
+      lifeJitter: 0.15,
+      gravityRampStart: 0.10,
+      gravityRampFull: 0.32,
+      minGravity: 0.20,
+      terminalVelocity: -17.0,
+      attenuationStart: 0.52,
+      dissolveStart: 0.82,
+      thermalCooling: false
+    },
     // Chùm tia sao băng (Bouquet Comet, Comet Ring, Half-Flash, Split-Flash)
     comet: {
       ...BASE_BURST_PROFILE,
@@ -213,7 +230,8 @@ export const FIREWORK_CONFIG = {
     'sphere-uniform': 1.15,
     egg: 1.2,
     sphere_rings: 1.2,
-    'sphere-rings': 1.2
+    'sphere-rings': 1.2,
+    horsetail: 0.58
   },
 
   // Hệ số nhân số lượng hạt dựa trên hiệu ứng hình ảnh (Effect)
@@ -240,7 +258,8 @@ export const FIREWORK_CONFIG = {
     'sparkling-branch-comet': 1.0,
     'sparkle-apex': 1.0,
     'crysanthemum_discrete_trail': 1.25,
-    'crysanthemum-discrete-trail': 1.25
+    'crysanthemum-discrete-trail': 1.25,
+    horsetail: 1.0
   },
 
   // Cấu hình cụ thể cho các loại pháo chùm/pháo phức hợp (Bouquet Shells)
@@ -585,5 +604,13 @@ export const FIREWORK_CONFIG = {
     trailSpawnChance: 0.40,
     trailLife: 0.30,
     trailIntensity: 0.60
+  },
+
+  // Cấu hình pháo thác nước (Horsetail Waterfall)
+  HORSETAIL: {
+    trailLife: 0.92,
+    trailIntensity: 0.90,
+    horizontalDragFactor: 0.995,
+    gravityScale: 0.38
   }
 };

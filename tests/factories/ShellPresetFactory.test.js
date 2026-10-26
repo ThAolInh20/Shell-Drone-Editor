@@ -230,5 +230,21 @@ describe('ShellPresetFactory', () => {
         strobePreset
       );
     }).not.toThrow();
+
+    const horsetailPreset = factory.createPresetByKey('horsetail_waterfall');
+    expect(horsetailPreset).not.toBeNull();
+    expect(horsetailPreset.shellType).toBe('horsetail_waterfall');
+    expect(horsetailPreset.shapeType).toBe('horsetail');
+    expect(horsetailPreset.dynamicsType).toBe('horsetail');
+    expect(horsetailPreset.burstSmoke).toBe(false);
+    expect(() => {
+      system.createBurst(
+        new THREE.Vector3(0, 120, 0),
+        new THREE.Color(0xfff0c0),
+        'horsetail',
+        horsetailPreset
+      );
+    }).not.toThrow();
   });
 });
+

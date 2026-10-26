@@ -20,7 +20,8 @@ export const AVAILABLE_SHAPES = [
   'sparkling-branches',
   'sphere_uniform',
   'egg',
-  'sphere_rings'
+  'sphere_rings',
+  'horsetail'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -49,7 +50,8 @@ export const AVAILABLE_DYNAMICS = [
   'sparkling-branch-comet',
   'tadpole-spiral',
   'crysanthemum_discrete_trail',
-  'sphere_rings_wave'
+  'sphere_rings_wave',
+  'horsetail'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -86,6 +88,12 @@ export const AVAILABLE_EFFECT_TAGS = [
 ];
 
 export const PRESET_TEMPLATES = {
+  horsetail_waterfall: {
+    shape: 'horsetail',
+    dynamics: 'horsetail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   egg_crysanthemum: {
     shape: 'egg',
     dynamics: 'crysanthemum-trail',

@@ -40,7 +40,8 @@ export class ShellPresetFactory {
       'sphere_uniform',
       'sphere-uniform',
       'egg',
-      'sphere_rings'
+      'sphere_rings',
+      'horsetail'
     ]);
     this.effectRegistry = new Set([
       'standard',
@@ -84,7 +85,9 @@ export class ShellPresetFactory {
       'sparkling-branch-comet',
       'tadpole-spiral',
       'sphere_rings_wave',
-      'sphere-rings-wave'
+      'sphere-rings-wave',
+      'horsetail',
+      'horsetail_waterfall'
     ]);
     this.presetMenuEntries = [
       { key: 'random', label: 'Random' },
@@ -153,7 +156,8 @@ export class ShellPresetFactory {
       { key: 'ghost_kamuro', label: 'Ghost Kamuro' },
       { key: 'double_helix', label: 'Double Helix' },
       { key: 'crossette', label: 'Crossette' },
-      { key: 'sphere_erratic_dart', label: 'Sphere Erratic Dart' }
+      { key: 'sphere_erratic_dart', label: 'Sphere Erratic Dart' },
+      { key: 'horsetail_waterfall', label: 'Horsetail Waterfall' }
     ];
 
     // Registry for dynamic preset strategies (OCP compliance)
@@ -244,6 +248,8 @@ export class ShellPresetFactory {
     registerWithAlias('double_helix', 'doubleHelix', (size) => this.doubleHelixShell(size));
     registerWithAlias('crossette', 'crossette', (size) => this.crossetteShell(size));
     registerWithAlias('sphere_erratic_dart', 'sphereErraticDart', (size) => this.sphereErraticDartShell(size));
+    registerWithAlias('horsetail_waterfall', 'horsetailWaterfall', (size) => this.horsetailWaterfallShell(size));
+    registerWithAlias('horsetail', 'horsetail', (size) => this.horsetailWaterfallShell(size));
   }
 
   randomPreset() {
@@ -1419,6 +1425,24 @@ export class ShellPresetFactory {
       color: this.randomColor({ limitWhite: true }),
       particleCountMultiplier: 1.05,
       starLife: 2600 + size * 300,
+      pistil: false,
+      launchTrail: true,
+      burstSmoke: false
+    };
+  }
+
+  horsetailWaterfallShell(size = 1) {
+    return {
+      ...this.basePreset(size),
+      shellType: 'horsetail_waterfall',
+      shapeType: 'horsetail',
+      dynamicsType: 'horsetail',
+      effectType: 'horsetail',
+      color: 0xffb830,
+      color2: 0xffd275,
+      particleCountMultiplier: 0.20,
+      starLife: 3800 + size * 400,
+      particleSize: 14.0,
       pistil: false,
       launchTrail: true,
       burstSmoke: false

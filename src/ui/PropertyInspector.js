@@ -2389,6 +2389,21 @@ export class PropertyInspector {
             effects: ['glitter-strobe']
           }
         ]
+      },
+      {
+        key: 'horsetail_waterfall',
+        label: t('editor.inspector.options.templates.horsetail_waterfall') || 'Horsetail Waterfall',
+        mode: 'standard',
+        stages: [
+          {
+            shapeType: 'horsetail',
+            dynamicsType: 'horsetail',
+            color: '#ffc83d',
+            delay: 0.0,
+            scale: 1.0,
+            effects: []
+          }
+        ]
       }
     ];
 

@@ -128,4 +128,37 @@ describe('BurstShapeGenerator', () => {
     expect(ringCounts[2]).toBeGreaterThan(ringCounts[0]);
     expect(ringCounts[2]).toBeGreaterThan(ringCounts[4]);
   });
+
+  it('should generate spaced upward dome vectors for horsetail shape', () => {
+    expect(BurstShapeGenerator.resolveShape('horsetail')).toBe('horsetail');
+    expect(BurstShapeGenerator.resolveShape('horsetail_waterfall')).toBe('horsetail');
+
+    const totalCount = 60;
+    const vectors = [];
+
+    for (let i = 0; i < totalCount; i++) {
+      const angle = (i / totalCount) * Math.PI * 2;
+      const dir = BurstShapeGenerator.direction(
+        'horsetail',
+        angle,
+        i,
+        totalCount
+      );
+
+      expect(dir).toBeDefined();
+      expect(Number.isFinite(dir.x)).toBe(true);
+      expect(Number.isFinite(dir.y)).toBe(true);
+      expect(Number.isFinite(dir.z)).toBe(true);
+      expect(dir.y).toBeGreaterThan(0.2); // Upward ejection dome
+      expect(dir.length()).toBeCloseTo(1.0, 3); // Normalized direction vector
+      vectors.push(dir);
+    }
+
+    // Verify wide lateral distribution
+    const lateralDistances = vectors.map((v) => Math.sqrt(v.x * v.x + v.z * v.z));
+    const minLateral = Math.min(...lateralDistances);
+    const maxLateral = Math.max(...lateralDistances);
+    expect(maxLateral).toBeGreaterThan(0.5);
+    expect(maxLateral - minLateral).toBeGreaterThan(0.25);
+  });
 });

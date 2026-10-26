@@ -37,6 +37,14 @@ export class BurstEffectProcessor {
     }
 
     if (
+      normDynamics === 'horsetail' ||
+      normDynamics === 'horsetail_waterfall' ||
+      normDynamics === 'waterfall'
+    ) {
+      return profiles.horsetail;
+    }
+
+    if (
       normDynamics === 'flow' ||
       normDynamics === 'snow' ||
       normDynamics === 'slow-burst' ||
@@ -231,7 +239,9 @@ export class BurstEffectProcessor {
     'sphere_rings_wave',
     'sphere-rings-wave',
     'slow-burst',
-    'slow_burst'
+    'slow_burst',
+    'horsetail',
+    'horsetail_waterfall'
   ]);
 
   static effectsRegistry = new Map();
@@ -1307,6 +1317,32 @@ BurstEffectProcessor.registerEffect('willow', {
       trailLife: 0.85,
       trailIntensity: 0.95
     };
+  }
+});
+
+BurstEffectProcessor.registerEffect('horsetail', {
+  updateVelocity(velocity, index, deltaTime, age, maxLife) {
+    const hDrag = FIREWORK_CONFIG.HORSETAIL?.horizontalDragFactor ?? 0.982;
+    velocity.x *= hDrag;
+    velocity.z *= hDrag;
+
+    const lifeRatio = maxLife > 0 ? age / maxLife : 0;
+    const baseGrav = FIREWORK_CONFIG.HORSETAIL?.gravityScale ?? 0.38;
+    const gravityScale = lifeRatio < 0.12 ? 0.18 : (baseGrav + Math.min(0.35, lifeRatio * 0.40));
+
+    return {
+      gravityScale,
+      spawnTrail: true,
+      trailLife: FIREWORK_CONFIG.HORSETAIL?.trailLife ?? 0.92,
+      trailIntensity: FIREWORK_CONFIG.HORSETAIL?.trailIntensity ?? 0.90,
+      spawnSmoke: false
+    };
+  }
+});
+
+BurstEffectProcessor.registerEffect('horsetail_waterfall', {
+  updateVelocity(...args) {
+    return BurstEffectProcessor.effectsRegistry.get('horsetail').updateVelocity(...args);
   }
 });
 
