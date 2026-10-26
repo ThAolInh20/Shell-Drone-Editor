@@ -543,8 +543,9 @@ export class TimelineEditor {
     );
 
     const originalInspectorShow = this.inspector.show.bind(this.inspector);
-    this.inspector.show = (event) => {
-      originalInspectorShow(event);
+    this.inspector.show = (event, selectedEvents = null) => {
+      const actualSelected = selectedEvents || this.selectedEvents || (event ? [event] : []);
+      originalInspectorShow(event, actualSelected);
       this.updateInspectorPosition();
     };
 
@@ -1665,18 +1666,16 @@ export class TimelineEditor {
           if (this.selectedEvents.includes(seq)) {
             // Remove from selected list
             this.selectedEvents = this.selectedEvents.filter(s => s !== seq);
-            if (this.inspector.selectedEvent === seq) {
-              if (this.selectedEvents.length > 0) {
-                const newPrimary = this.selectedEvents[this.selectedEvents.length - 1];
-                this.inspector.show(newPrimary);
-              } else {
-                this.inspector.hide();
-              }
+            if (this.selectedEvents.length > 0) {
+              const newPrimary = this.selectedEvents[this.selectedEvents.length - 1];
+              this.inspector.show(newPrimary, this.selectedEvents);
+            } else {
+              this.inspector.hide();
             }
           } else {
             // Add to selected list
             this.selectedEvents.push(seq);
-            this.inspector.show(seq);
+            this.inspector.show(seq, this.selectedEvents);
           }
           this.renderTracks();
           return;
@@ -1951,7 +1950,8 @@ export class TimelineEditor {
       if (didMarqueeDrag) {
         if (this.selectedEvents.length > 0) {
           this.inspector.show(
-            this.selectedEvents[this.selectedEvents.length - 1]
+            this.selectedEvents[this.selectedEvents.length - 1],
+            this.selectedEvents
           );
         } else {
           this.inspector.hide();

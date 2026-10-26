@@ -125,6 +125,7 @@ export class PropertyInspector {
     this.presetOptions = presetOptions;
     this.onHelpClick = onHelpClick;
     this.selectedEvent = null;
+    this.selectedEvents = [];
     this.activeStageIndex = 0;
     this.collapsedGroups = {}; // Keep track of open/closed states
     this.showHelpState = {}; // Keep track of help banner visibility states
@@ -174,7 +175,42 @@ export class PropertyInspector {
     this.render();
   }
 
-  show(event) {
+  isBatchMode() {
+    return Array.isArray(this.selectedEvents) && this.selectedEvents.length > 1;
+  }
+
+  getBatchTargets() {
+    if (this.isBatchMode()) {
+      return this.selectedEvents;
+    }
+    return this.selectedEvent ? [this.selectedEvent] : [];
+  }
+
+  getCommonValue(fieldName) {
+    const targets = this.getBatchTargets();
+    if (targets.length === 0) return undefined;
+    const firstVal = targets[0][fieldName];
+    for (let i = 1; i < targets.length; i++) {
+      if (targets[i][fieldName] !== firstVal) {
+        return undefined;
+      }
+    }
+    return firstVal;
+  }
+
+  isMixedValue(fieldName) {
+    const targets = this.getBatchTargets();
+    if (targets.length <= 1) return false;
+    const firstVal = targets[0][fieldName];
+    for (let i = 1; i < targets.length; i++) {
+      if (targets[i][fieldName] !== firstVal) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  show(event, selectedEvents = null) {
     if (this.debounceTimeout) {
       clearTimeout(this.debounceTimeout);
       this.debounceTimeout = null;
@@ -188,6 +224,9 @@ export class PropertyInspector {
     }
     this.isEditing = false;
     this.selectedEvent = event;
+    this.selectedEvents = Array.isArray(selectedEvents) && selectedEvents.length > 0
+      ? selectedEvents
+      : (event ? [event] : []);
     this.container.style.display = 'block';
     this.render();
   }
@@ -206,6 +245,7 @@ export class PropertyInspector {
     }
     this.isEditing = false;
     this.selectedEvent = null;
+    this.selectedEvents = [];
     this.container.style.display = 'none';
   }
 
@@ -577,13 +617,16 @@ export class PropertyInspector {
     headerWrapper.style.paddingBottom = '8px';
     headerWrapper.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
 
+    const isBatch = this.isBatchMode();
     const titleEl = document.createElement('h3');
     titleEl.className = 'inspector-title';
-    titleEl.textContent = t('editor.inspector.title') || 'Thuộc tính';
+    titleEl.textContent = isBatch
+      ? `${t('editor.inspector.batchTitle') || 'Batch Property Inspector'} (${this.selectedEvents.length})`
+      : (t('editor.inspector.title') || 'Property Inspector');
     titleEl.style.margin = '0';
     titleEl.style.fontSize = '14px';
     titleEl.style.fontWeight = 'bold';
-    titleEl.style.color = '#00e5ff';
+    titleEl.style.color = isBatch ? '#ffb703' : '#00e5ff';
 
     const helpBtn = document.createElement('button');
     helpBtn.className = 'inspector-help-btn';
@@ -658,6 +701,34 @@ export class PropertyInspector {
     headerWrapper.appendChild(titleEl);
     headerWrapper.appendChild(headerActions);
     this.container.appendChild(headerWrapper);
+
+    if (isBatch) {
+      const batchBanner = document.createElement('div');
+      batchBanner.className = 'inspector-batch-banner';
+      batchBanner.style.background = 'rgba(255, 183, 3, 0.12)';
+      batchBanner.style.border = '1px solid rgba(255, 183, 3, 0.35)';
+      batchBanner.style.borderRadius = '6px';
+      batchBanner.style.padding = '8px 10px';
+      batchBanner.style.marginBottom = '12px';
+      batchBanner.style.fontSize = '11px';
+      batchBanner.style.color = '#ffb703';
+      batchBanner.style.lineHeight = '1.4';
+
+      const bannerTitle = document.createElement('div');
+      bannerTitle.style.fontWeight = 'bold';
+      const subTemplate = t('editor.inspector.batchSubtitle') || 'Editing {count} selected blocks';
+      bannerTitle.textContent = subTemplate.replace('{count}', this.selectedEvents.length);
+
+      const bannerDesc = document.createElement('div');
+      bannerDesc.style.color = '#cbd5e1';
+      bannerDesc.style.fontSize = '10px';
+      bannerDesc.style.marginTop = '2px';
+      bannerDesc.textContent = t('editor.inspector.batchNote') || 'Changes apply to all selected blocks';
+
+      batchBanner.appendChild(bannerTitle);
+      batchBanner.appendChild(bannerDesc);
+      this.container.appendChild(batchBanner);
+    }
 
     if (!this.selectedEvent) {
       const emptyMsg = document.createElement('div');
@@ -832,10 +903,15 @@ export class PropertyInspector {
     // Delete Button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'inspector-delete-btn';
-    deleteBtn.textContent = t('editor.inspector.deleteBtn');
+    deleteBtn.textContent = isBatch
+      ? `${t('editor.inspector.batchDeleteBtn') || 'Delete Selected Blocks'} (${this.selectedEvents.length})`
+      : (t('editor.inspector.deleteBtn') || 'Delete Sequence');
     deleteBtn.addEventListener('click', () => {
       this.onUpdate('beforeChange');
-      this.selectedEvent._deleted = true;
+      const targets = this.getBatchTargets();
+      targets.forEach((t) => {
+        t._deleted = true;
+      });
       this.onUpdate();
       this.hide();
     });
@@ -846,8 +922,10 @@ export class PropertyInspector {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
-    let currentEventValue = targetEvent[field.name];
-    if (currentEventValue === undefined && targetEvent.sound) {
+    const isBatch = this.isBatchMode();
+    const isMixed = this.isMixedValue(field.name);
+    let currentEventValue = isMixed ? undefined : targetEvent[field.name];
+    if (currentEventValue === undefined && targetEvent.sound && !isMixed) {
       if (field.name === 'launchSound') currentEventValue = targetEvent.sound.launch;
       else if (field.name === 'burstSound') currentEventValue = targetEvent.sound.burst;
       else if (field.name === 'crackleSound') currentEventValue = targetEvent.sound.crackle;
@@ -859,6 +937,21 @@ export class PropertyInspector {
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
     parent.appendChild(label);
 
+    if (field.name === 'time' && isBatch) {
+      const input = document.createElement('input');
+      input.className = 'inspector-input';
+      input.dataset.fieldName = field.name;
+      input.type = 'text';
+      input.disabled = true;
+      input.value = '';
+      input.placeholder = t('editor.inspector.individualTime') || 'Individual Time';
+      input.title = t('editor.inspector.individualTimeTooltip') || 'Timeline positions are preserved. Drag blocks on timeline to move together.';
+      input.style.opacity = '0.6';
+      input.style.cursor = 'not-allowed';
+      parent.appendChild(input);
+      return;
+    }
+
     const handleValueChange = (rawVal) => {
       let val = rawVal;
       if (field.type === 'number') {
@@ -866,100 +959,101 @@ export class PropertyInspector {
       }
 
       this.triggerUpdate('beforeChange');
+      const targets = this.getBatchTargets();
 
-      if (val === '' || val === undefined) {
-        if (field.name === 'sectorId') {
-          targetEvent[field.name] = '';
+      targets.forEach((target) => {
+        if (val === '' || val === undefined) {
+          if (field.name === 'sectorId') {
+            target[field.name] = '';
+          } else {
+            delete target[field.name];
+          }
         } else {
-          delete targetEvent[field.name];
+          target[field.name] = val;
         }
-      } else {
-        targetEvent[field.name] = val;
-      }
 
-      if (
-        field.name === 'launchSound' ||
-        field.name === 'burstSound' ||
-        field.name === 'crackleSound' ||
-        field.name === 'soundVolume'
-      ) {
-        if (!targetEvent.sound) targetEvent.sound = {};
-        if (field.name === 'launchSound') {
+        if (
+          field.name === 'launchSound' ||
+          field.name === 'burstSound' ||
+          field.name === 'crackleSound' ||
+          field.name === 'soundVolume'
+        ) {
+          if (!target.sound) target.sound = {};
+          if (field.name === 'launchSound') {
+            if (val) {
+              target.sound.launch = val;
+              target.launchSound = val;
+            } else {
+              delete target.sound.launch;
+              delete target.launchSound;
+            }
+          } else if (field.name === 'burstSound') {
+            if (val) {
+              target.sound.burst = val;
+              target.burstSound = val;
+            } else {
+              delete target.sound.burst;
+              delete target.burstSound;
+            }
+          } else if (field.name === 'crackleSound') {
+            if (val) {
+              target.sound.crackle = val;
+              target.crackleSound = val;
+            } else {
+              delete target.sound.crackle;
+              delete target.crackleSound;
+            }
+          } else if (field.name === 'soundVolume') {
+            if (val !== undefined && !isNaN(val)) {
+              target.sound.volumeMultiplier = val;
+              target.soundVolume = val;
+            } else {
+              delete target.sound.volumeMultiplier;
+              delete target.soundVolume;
+            }
+          }
+          if (Object.keys(target.sound).length === 0) {
+            delete target.sound;
+          }
+        }
+
+        if (field.name === 'preset') {
+          if (val !== 'multiNested' && val !== 'multi_nested') {
+            delete target.multiNested;
+            delete target.stages;
+            delete target.nestingMode;
+            delete target._selectedTemplateKey;
+          } else {
+            target.multiNested = true;
+          }
+
+          // Clean up all optical effect flags from previous preset
+          AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+            delete target[eff.key];
+          });
+          delete target.strobe;
+          delete target.crackle;
+          delete target.ghost;
+          delete target.ghostFlare;
+          delete target.flow;
+          delete target.noTrail;
+          delete target.noBurst;
+          delete target.crossette;
+
           if (val) {
-            targetEvent.sound.launch = val;
-            targetEvent.launchSound = val;
+            const template = getTemplateForPreset(val);
+            if (template) {
+              target.shapeType = template.shape;
+              target.dynamicsType = template.dynamics;
+              target.pistil = template.modifiers.pistil;
+              target.instantBurst = template.modifiers.instantBurst;
+              target.effects = [...template.effects];
+            }
           } else {
-            delete targetEvent.sound.launch;
-            delete targetEvent.launchSound;
-          }
-        } else if (field.name === 'burstSound') {
-          if (val) {
-            targetEvent.sound.burst = val;
-            targetEvent.burstSound = val;
-          } else {
-            delete targetEvent.sound.burst;
-            delete targetEvent.burstSound;
-          }
-        } else if (field.name === 'crackleSound') {
-          if (val) {
-            targetEvent.sound.crackle = val;
-            targetEvent.crackleSound = val;
-          } else {
-            delete targetEvent.sound.crackle;
-            delete targetEvent.crackleSound;
-          }
-        } else if (field.name === 'soundVolume') {
-          if (val !== undefined && !isNaN(val)) {
-            targetEvent.sound.volumeMultiplier = val;
-            targetEvent.soundVolume = val;
-          } else {
-            delete targetEvent.sound.volumeMultiplier;
-            delete targetEvent.soundVolume;
+            target.effects = [];
           }
         }
-        if (Object.keys(targetEvent.sound).length === 0) {
-          delete targetEvent.sound;
-        }
-      }
-
-      if (field.name === 'preset') {
-        if (val !== 'multiNested' && val !== 'multi_nested') {
-          delete targetEvent.multiNested;
-          delete targetEvent.stages;
-          delete targetEvent.nestingMode;
-          delete targetEvent._selectedTemplateKey;
-        } else {
-          targetEvent.multiNested = true;
-        }
-
-        // Clean up all optical effect flags from previous preset
-        AVAILABLE_EFFECT_TAGS.forEach((eff) => {
-          delete targetEvent[eff.key];
-        });
-        delete targetEvent.strobe;
-        delete targetEvent.crackle;
-        delete targetEvent.ghost;
-        delete targetEvent.ghostFlare;
-        delete targetEvent.flow;
-        delete targetEvent.noTrail;
-        delete targetEvent.noBurst;
-        delete targetEvent.crossette;
-
-        if (val) {
-          const template = getTemplateForPreset(val);
-          if (template) {
-            targetEvent.shapeType = template.shape;
-            targetEvent.dynamicsType = template.dynamics;
-            targetEvent.pistil = template.modifiers.pistil;
-            targetEvent.instantBurst = template.modifiers.instantBurst;
-            targetEvent.effects = [...template.effects];
-            this.triggerUpdate();
-            this.render();
-            return;
-          }
-        }
-        targetEvent.effects = [];
-      }
+      });
 
       this.triggerUpdate();
       if (field.type === 'select') {
@@ -1020,6 +1114,9 @@ export class PropertyInspector {
       const customSelect = new CustomSelect({
         options: optionsList,
         value: currentEventValue !== undefined ? currentEventValue : '',
+        placeholder: isMixed
+          ? (t('editor.inspector.mixedValues') || 'Mixed Values')
+          : undefined,
         category: previewCategory,
         fieldName: field.name,
         onChange: (val) => handleValueChange(val)
@@ -1041,7 +1138,9 @@ export class PropertyInspector {
       if (field.step) input.step = field.step;
       input.value = currentEventValue !== undefined ? currentEventValue : '';
 
-      if (field.name === 'soundVolume') {
+      if (isMixed) {
+        input.placeholder = t('editor.inspector.mixedValues') || 'Mixed Values';
+      } else if (field.name === 'soundVolume') {
         input.placeholder = '1.0';
       }
 
@@ -1055,6 +1154,10 @@ export class PropertyInspector {
       });
 
       input.addEventListener('input', (e) => {
+        handleValueChange(e.target.value);
+      });
+
+      input.addEventListener('change', (e) => {
         handleValueChange(e.target.value);
       });
     }
@@ -1095,6 +1198,7 @@ export class PropertyInspector {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
+    const isMixed = this.isMixedValue(field.name);
     const container = document.createElement('label');
     container.className = 'inspector-checkbox-container';
 
@@ -1102,47 +1206,55 @@ export class PropertyInspector {
     input.className = 'inspector-checkbox';
     input.type = 'checkbox';
     input.dataset.fieldName = field.name;
-    input.checked = !!targetEvent[field.name];
+    input.checked = !isMixed && !!targetEvent[field.name];
+    if (isMixed) {
+      input.indeterminate = true;
+    }
 
     input.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
-      if (e.target.checked) {
-        targetEvent[field.name] = true;
-        if (field.name === 'useAngle' && targetEvent.angle === undefined) {
-          targetEvent.angle = 0;
-        }
-        if (field.name === 'secondBurstEnabled') {
-          if (!targetEvent.secondBurst) {
-            targetEvent.secondBurst = {
-              enabled: true,
-              childShells: [
-                {
-                  ratio: 0.20,
-                  triggerTiming: 0.50,
-                  distributionMode: 'random',
-                  shapeType: 'sphere',
-                  dynamicsType: 'standard',
-                  color: '#ffd700',
-                  scale: 0.35,
-                  effects: ['strobe']
-                }
-              ]
-            };
-          } else {
-            targetEvent.secondBurst.enabled = true;
+      const targets = this.getBatchTargets();
+      const isChecked = e.target.checked;
+
+      targets.forEach((target) => {
+        if (isChecked) {
+          target[field.name] = true;
+          if (field.name === 'useAngle' && target.angle === undefined) {
+            target.angle = 0;
+          }
+          if (field.name === 'secondBurstEnabled') {
+            if (!target.secondBurst) {
+              target.secondBurst = {
+                enabled: true,
+                childShells: [
+                  {
+                    ratio: 0.20,
+                    triggerTiming: 0.50,
+                    distributionMode: 'random',
+                    shapeType: 'sphere',
+                    dynamicsType: 'standard',
+                    color: '#ffd700',
+                    scale: 0.35,
+                    effects: ['strobe']
+                  }
+                ]
+              };
+            } else {
+              target.secondBurst.enabled = true;
+            }
+          }
+        } else {
+          delete target[field.name];
+          if (field.name === 'useAngle') {
+            delete target.angle;
+          }
+          if (field.name === 'secondBurstEnabled') {
+            if (target.secondBurst) {
+              target.secondBurst.enabled = false;
+            }
           }
         }
-      } else {
-        delete targetEvent[field.name];
-        if (field.name === 'useAngle') {
-          delete targetEvent.angle;
-        }
-        if (field.name === 'secondBurstEnabled') {
-          if (targetEvent.secondBurst) {
-            targetEvent.secondBurst.enabled = false;
-          }
-        }
-      }
+      });
       this.onUpdate();
       this.render();
     });
@@ -1163,11 +1275,14 @@ export class PropertyInspector {
     const targetEvent = this.selectedEvent;
     if (!targetEvent) return;
 
+    const isBatch = this.isBatchMode();
+    const isMixed = this.isMixedValue(field.name);
+
     const defVal = field.defaultValue !== undefined
       ? field.defaultValue
       : (parseFloat(field.min) || 0);
-    let rawVal = targetEvent[field.name];
-    if (rawVal === undefined && field.name === 'soundVolume' && targetEvent.sound) {
+    let rawVal = isMixed ? undefined : targetEvent[field.name];
+    if (rawVal === undefined && field.name === 'soundVolume' && targetEvent.sound && !isMixed) {
       rawVal = targetEvent.sound.volumeMultiplier;
     }
     const currentVal = (rawVal !== undefined && !isNaN(Number(rawVal)))
@@ -1187,7 +1302,9 @@ export class PropertyInspector {
     const formatFn = typeof field.formatValue === 'function'
       ? field.formatValue
       : (v) => String(Number(v).toFixed(1));
-    valueBadge.textContent = formatFn(currentVal);
+    valueBadge.textContent = isMixed
+      ? (t('editor.inspector.mixed') || 'Mixed')
+      : formatFn(currentVal);
     header.appendChild(valueBadge);
 
     parent.appendChild(header);
@@ -1206,12 +1323,15 @@ export class PropertyInspector {
     });
 
     const applySliderValue = (val) => {
-      targetEvent[field.name] = val;
-      if (field.name === 'soundVolume') {
-        if (!targetEvent.sound) targetEvent.sound = {};
-        targetEvent.sound.volumeMultiplier = val;
-        targetEvent.soundVolume = val;
-      }
+      const targets = this.getBatchTargets();
+      targets.forEach((target) => {
+        target[field.name] = val;
+        if (field.name === 'soundVolume') {
+          if (!target.sound) target.sound = {};
+          target.sound.volumeMultiplier = val;
+          target.soundVolume = val;
+        }
+      });
     };
 
     slider.addEventListener('input', (e) => {
@@ -1261,26 +1381,31 @@ export class PropertyInspector {
     chipsRow.style.gap = '6px';
 
     TOGGLE_MODIFIER_TAGS.forEach((mod) => {
-      const isKeyActive = () => {
+      const targets = this.getBatchTargets();
+      const checkKeyActive = (evt) => {
         if (mod.key === 'burst-smoke') {
           return Boolean(
-            targetEvent.burstSmoke
-            || targetEvent['burst-smoke']
-            || targetEvent.burst_smoke
-            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'))
+            evt.burstSmoke
+            || evt['burst-smoke']
+            || evt.burst_smoke
+            || (Array.isArray(evt.effects) && evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'))
           );
         }
         if (mod.key === 'pistil') {
           return Boolean(
-            targetEvent.pistil
-            || (Array.isArray(targetEvent.effects) && targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'pistil'))
+            evt.pistil
+            || (Array.isArray(evt.effects) && evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'pistil'))
           );
         }
-        if (mod.key === 'apex-hang') return Boolean(targetEvent.apexHang || targetEvent['apex-hang']);
-        if (mod.key === 'long-burn') return Boolean(targetEvent.longBurn || targetEvent['long-burn']);
-        if (mod.key === 'slow-burst') return Boolean(targetEvent.slowBurst || targetEvent['slow-burst'] || targetEvent.slow_burst);
-        return Boolean(targetEvent[mod.key]);
+        if (mod.key === 'apex-hang') return Boolean(evt.apexHang || evt['apex-hang']);
+        if (mod.key === 'long-burn') return Boolean(evt.longBurn || evt['long-burn']);
+        if (mod.key === 'slow-burst') return Boolean(evt.slowBurst || evt['slow-burst'] || evt.slow_burst);
+        return Boolean(evt[mod.key]);
       };
+
+      const allActive = targets.every(checkKeyActive);
+      const someActive = targets.some(checkKeyActive);
+      const isMixed = someActive && !allActive;
 
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -1290,14 +1415,23 @@ export class PropertyInspector {
       chip.style.fontSize = '11px';
       chip.style.borderRadius = '4px';
       chip.style.cursor = 'pointer';
-      chip.style.border = isKeyActive()
-        ? '1px solid #38bdf8'
-        : '1px solid rgba(255, 255, 255, 0.15)';
-      chip.style.background = isKeyActive()
-        ? 'rgba(56, 189, 248, 0.25)'
-        : 'rgba(255, 255, 255, 0.05)';
-      chip.style.color = isKeyActive() ? '#ffffff' : '#94a3b8';
-      chip.style.fontWeight = isKeyActive() ? '600' : 'normal';
+
+      if (allActive) {
+        chip.style.border = '1px solid #38bdf8';
+        chip.style.background = 'rgba(56, 189, 248, 0.25)';
+        chip.style.color = '#ffffff';
+        chip.style.fontWeight = '600';
+      } else if (isMixed) {
+        chip.style.border = '1px dashed #ffb703';
+        chip.style.background = 'rgba(255, 183, 3, 0.15)';
+        chip.style.color = '#ffb703';
+        chip.style.fontWeight = '600';
+      } else {
+        chip.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+        chip.style.background = 'rgba(255, 255, 255, 0.05)';
+        chip.style.color = '#94a3b8';
+        chip.style.fontWeight = 'normal';
+      }
       chip.style.transition = 'all 0.15s ease';
 
       const label = t(`editor.inspector.fields.${mod.labelKey}`)
@@ -1313,57 +1447,61 @@ export class PropertyInspector {
 
       chip.addEventListener('click', () => {
         this.triggerUpdate('beforeChange');
-        const nextState = !isKeyActive();
+        const currentTargets = this.getBatchTargets();
+        const currentlyAllActive = currentTargets.every(checkKeyActive);
+        const nextState = !currentlyAllActive;
 
-        if (mod.key === 'burst-smoke') {
-          if (nextState) {
-            targetEvent.burstSmoke = true;
-            targetEvent['burst-smoke'] = true;
-          } else {
-            delete targetEvent.burstSmoke;
-            delete targetEvent['burst-smoke'];
-            delete targetEvent.burst_smoke;
-          }
-        } else if (mod.key === 'pistil') {
-          targetEvent.pistil = nextState;
-        } else if (mod.key === 'apex-hang') {
-          if (nextState) {
-            targetEvent.apexHang = true;
-            targetEvent['apex-hang'] = true;
-          } else {
-            delete targetEvent.apexHang;
-            delete targetEvent['apex-hang'];
-          }
-        } else if (mod.key === 'long-burn') {
-          if (nextState) {
-            targetEvent.longBurn = true;
-            targetEvent['long-burn'] = true;
-          } else {
-            delete targetEvent.longBurn;
-            delete targetEvent['long-burn'];
-          }
-        } else if (mod.key === 'slow-burst') {
-          if (nextState) {
-            targetEvent.slowBurst = true;
-            targetEvent['slow-burst'] = true;
-          } else {
-            delete targetEvent.slowBurst;
-            delete targetEvent['slow-burst'];
-            delete targetEvent.slow_burst;
-          }
-        }
-
-        if (Array.isArray(targetEvent.effects)) {
-          if (nextState) {
-            if (!targetEvent.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === mod.key)) {
-              targetEvent.effects.push(mod.key);
+        currentTargets.forEach((evt) => {
+          if (mod.key === 'burst-smoke') {
+            if (nextState) {
+              evt.burstSmoke = true;
+              evt['burst-smoke'] = true;
+            } else {
+              delete evt.burstSmoke;
+              delete evt['burst-smoke'];
+              delete evt.burst_smoke;
             }
-          } else {
-            targetEvent.effects = targetEvent.effects.filter(
-              (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) !== mod.key
-            );
+          } else if (mod.key === 'pistil') {
+            evt.pistil = nextState;
+          } else if (mod.key === 'apex-hang') {
+            if (nextState) {
+              evt.apexHang = true;
+              evt['apex-hang'] = true;
+            } else {
+              delete evt.apexHang;
+              delete evt['apex-hang'];
+            }
+          } else if (mod.key === 'long-burn') {
+            if (nextState) {
+              evt.longBurn = true;
+              evt['long-burn'] = true;
+            } else {
+              delete evt.longBurn;
+              delete evt['long-burn'];
+            }
+          } else if (mod.key === 'slow-burst') {
+            if (nextState) {
+              evt.slowBurst = true;
+              evt['slow-burst'] = true;
+            } else {
+              delete evt.slowBurst;
+              delete evt['slow-burst'];
+              delete evt.slow_burst;
+            }
           }
-        }
+
+          if (Array.isArray(evt.effects)) {
+            if (nextState) {
+              if (!evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === mod.key)) {
+                evt.effects.push(mod.key);
+              }
+            } else {
+              evt.effects = evt.effects.filter(
+                (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) !== mod.key
+              );
+            }
+          }
+        });
 
         this.triggerUpdate();
         this.render();
@@ -1489,13 +1627,22 @@ export class PropertyInspector {
       },
       onChange: (updatedEffects) => {
         this.triggerUpdate('beforeChange');
-        const existingModifiers = (Array.isArray(targetEvent.effects) ? targetEvent.effects : [])
-          .filter((e) => {
-            const key = typeof e === 'object' && e !== null ? (e.type || e.key) : e;
-            return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
+        const targets = this.getBatchTargets();
+        targets.forEach((evt) => {
+          const existingModifiers = (Array.isArray(evt.effects) ? evt.effects : [])
+            .filter((e) => {
+              const key = typeof e === 'object' && e !== null ? (e.type || e.key) : e;
+              return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
+            });
+          evt.effects = [...updatedEffects, ...existingModifiers];
+          TIMED_EFFECT_TAGS.forEach((tag) => {
+            delete evt[tag.key];
+            if (tag.key === 'no-trail') {
+              delete evt.noTrail;
+              delete evt.notrail;
+            }
           });
-        targetEvent.effects = [...updatedEffects, ...existingModifiers];
-        cleanLegacyTimedFlags();
+        });
         this.triggerUpdate();
       },
       availableEffectTags: TIMED_EFFECT_TAGS
@@ -1514,12 +1661,12 @@ export class PropertyInspector {
     parent.appendChild(label);
 
     const COLOR_MAP = editorConfig.colorMap;
-
     const container = document.createElement('div');
     container.className = 'color-badge-container';
 
+    const isMixed = this.isMixedValue('color');
     let activeKey = null;
-    const currentColor = targetEvent.color;
+    const currentColor = isMixed ? undefined : targetEvent.color;
     if (currentColor) {
       const cLower = currentColor.toLowerCase();
       activeKey = Object.keys(COLOR_MAP).find(k => k === cLower || COLOR_MAP[k] === cLower);
@@ -1534,7 +1681,10 @@ export class PropertyInspector {
 
       badge.addEventListener('click', () => {
         this.onUpdate('beforeChange');
-        targetEvent.color = key;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.color = key;
+        });
         this.onUpdate();
         this.render(); // Redraw selection outline
       });
@@ -1551,6 +1701,9 @@ export class PropertyInspector {
     customCb.className = 'inspector-checkbox';
     customCb.id = 'inspector-custom-color-cb';
     customCb.checked = currentColor !== undefined;
+    if (isMixed) {
+      customCb.indeterminate = true;
+    }
 
     const customInput = document.createElement('input');
     customInput.type = 'color';
@@ -1570,12 +1723,17 @@ export class PropertyInspector {
 
     customCb.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
+      const targets = this.getBatchTargets();
       if (e.target.checked) {
         customInput.disabled = false;
-        targetEvent.color = customInput.value;
+        targets.forEach((target) => {
+          target.color = customInput.value;
+        });
       } else {
         customInput.disabled = true;
-        delete targetEvent.color;
+        targets.forEach((target) => {
+          delete target.color;
+        });
       }
       this.onUpdate();
       this.render();
@@ -1584,7 +1742,10 @@ export class PropertyInspector {
     customInput.addEventListener('input', (e) => {
       if (customCb.checked) {
         this.triggerUpdate('beforeChange');
-        targetEvent.color = e.target.value;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.color = e.target.value;
+        });
         this.triggerUpdate();
       }
     });
@@ -1640,10 +1801,14 @@ export class PropertyInspector {
     angleInput.min = '10';
     angleInput.max = '170';
 
-    const rad = targetEvent.angle;
+    const isMixed = this.isMixedValue('angle');
+    const rad = isMixed ? undefined : targetEvent.angle;
     // Map radian to degree input: 90 - (rad * 180 / PI)
     const currentDegVal = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : 90;
-    angleInput.value = currentDegVal;
+    angleInput.value = isMixed ? '' : currentDegVal;
+    if (isMixed) {
+      angleInput.placeholder = t('editor.inspector.mixed') || 'Mixed';
+    }
 
     // Position dial pointer initially
     const currentRad = (rad !== undefined && rad !== null) ? rad : 0;
@@ -1666,7 +1831,10 @@ export class PropertyInspector {
         deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
 
         this.triggerUpdate('beforeChange');
-        targetEvent.angle = deflectionRad;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.angle = deflectionRad;
+        });
         this.triggerUpdate();
 
         dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
@@ -1701,7 +1869,10 @@ export class PropertyInspector {
       const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
       const deflectionRad = (offsetDeg * Math.PI) / 180;
 
-      targetEvent.angle = deflectionRad;
+      const targets = this.getBatchTargets();
+      targets.forEach((target) => {
+        target.angle = deflectionRad;
+      });
       dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
       this.triggerUpdate();
     });
@@ -1719,14 +1890,21 @@ export class PropertyInspector {
   updateValues() {
     if (!this.selectedEvent) return;
 
+    const isBatch = this.isBatchMode();
+
     // Cập nhật các text, number và select inputs
     const inputs = this.container.querySelectorAll('.inspector-input');
     inputs.forEach(input => {
       const fieldName = input.dataset.fieldName;
-      if (fieldName && this.selectedEvent[fieldName] !== undefined) {
-        const currentVal = this.selectedEvent[fieldName];
+      if (fieldName) {
+        if (fieldName === 'time' && isBatch) {
+          input.value = '';
+          return;
+        }
+        const isMixed = this.isMixedValue(fieldName);
+        const currentVal = isMixed ? '' : this.selectedEvent[fieldName];
         if (input.value != currentVal && document.activeElement !== input) {
-          input.value = currentVal;
+          input.value = currentVal !== undefined ? currentVal : '';
         }
       }
     });
@@ -1736,9 +1914,12 @@ export class PropertyInspector {
     checkboxes.forEach(cb => {
       const fieldName = cb.dataset.fieldName;
       if (fieldName) {
-        const currentVal = !!this.selectedEvent[fieldName];
-        if (cb.checked !== currentVal) {
-          cb.checked = currentVal;
+        const isMixed = this.isMixedValue(fieldName);
+        if (isMixed) {
+          cb.indeterminate = true;
+        } else {
+          cb.indeterminate = false;
+          cb.checked = !!this.selectedEvent[fieldName];
         }
       }
     });
@@ -1747,11 +1928,21 @@ export class PropertyInspector {
     const angleInput = this.container.querySelector('.angle-dial-container input');
     const dialLine = this.container.querySelector('.angle-dial-line');
     if (angleInput && dialLine && this.selectedEvent.angle !== undefined) {
-      const rad = this.selectedEvent.angle;
-      const currentDegVal = 90 - Math.round(rad * 180 / Math.PI);
-      if (angleInput.value != currentDegVal && document.activeElement !== angleInput) {
-        angleInput.value = currentDegVal;
+      const isMixed = this.isMixedValue('angle');
+      if (!isMixed) {
+        const rad = this.selectedEvent.angle;
+        const currentDegVal = (rad !== undefined && rad !== null)
+          ? (90 - Math.round(rad * 180 / Math.PI))
+          : 90;
+        if (document.activeElement !== angleInput) {
+          angleInput.value = currentDegVal;
+        }
         dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI / 2}rad)`;
+      } else {
+        if (document.activeElement !== angleInput) {
+          angleInput.value = '';
+          angleInput.placeholder = t('mixed') || 'Mixed';
+        }
       }
     }
 
@@ -1760,18 +1951,25 @@ export class PropertyInspector {
     sliders.forEach(slider => {
       const fieldName = slider.dataset.fieldName;
       if (fieldName) {
-        let currentVal = this.selectedEvent[fieldName];
-        if (currentVal === undefined && fieldName === 'soundVolume' && this.selectedEvent.sound) {
-          currentVal = this.selectedEvent.sound.volumeMultiplier;
-        }
-        if (currentVal !== undefined && slider.value != currentVal && document.activeElement !== slider) {
-          slider.value = currentVal;
-          const parentWrapper = slider.closest('.inspector-field-span-2') || slider.parentElement;
-          const badge = parentWrapper?.querySelector('.inspector-slider-value');
+        const isMixed = this.isMixedValue(fieldName);
+        const parentWrapper = slider.closest('.inspector-field-span-2') || slider.parentElement;
+        const badge = parentWrapper?.querySelector('.inspector-slider-value');
+        if (isMixed) {
           if (badge) {
-            badge.textContent = fieldName === 'shellSize'
-              ? `${Number(currentVal).toFixed(1)}x`
-              : `${Number(currentVal).toFixed(2)}x`;
+            badge.textContent = t('mixed') || 'Mixed';
+          }
+        } else {
+          let currentVal = this.selectedEvent[fieldName];
+          if (currentVal === undefined && fieldName === 'soundVolume' && this.selectedEvent.sound) {
+            currentVal = this.selectedEvent.sound.volumeMultiplier;
+          }
+          if (currentVal !== undefined && slider.value != currentVal && document.activeElement !== slider) {
+            slider.value = currentVal;
+            if (badge) {
+              badge.textContent = fieldName === 'shellSize'
+                ? `${Number(currentVal).toFixed(1)}x`
+                : `${Number(currentVal).toFixed(2)}x`;
+            }
           }
         }
       }
