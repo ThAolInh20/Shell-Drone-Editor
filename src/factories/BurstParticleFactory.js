@@ -518,16 +518,26 @@ export class BurstParticleFactory {
     const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
     const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
 
+    const crossetteCfg = FIREWORK_CONFIG.CROSSETTE || {};
+    const branchSpeedMin = crossetteCfg.branchSpeedMin ?? 8.5;
+    const branchSpeedMax = crossetteCfg.branchSpeedMax ?? 11.0;
+    const forwardSpeedScale = speed * 0.28;
+
     for (let b = 0; b < 4; b++) {
-      const branchVel = dir.clone().multiplyScalar(
-        speed * 0.28
-      ).addScaledVector(
-        branchDirs[b],
-        9.0 + Math.random() * 2.5
+      const branchImpulse = branchSpeedMin + Math.random() * (branchSpeedMax - branchSpeedMin);
+      const bDir = branchDirs[b];
+      const branchVel = new THREE.Vector3(
+        dir.x * forwardSpeedScale + bDir.x * branchImpulse,
+        dir.y * forwardSpeedScale + bDir.y * branchImpulse,
+        dir.z * forwardSpeedScale + bDir.z * branchImpulse
       );
 
       const branchParticle = this.createParticle({
-        position: splitOrigin,
+        position: new THREE.Vector3(
+          splitOrigin.x,
+          splitOrigin.y,
+          splitOrigin.z
+        ),
         velocity: branchVel,
         color: branchColor,
         baseColor: branchColor,
@@ -569,6 +579,13 @@ export class BurstParticleFactory {
         dragCoefficient: parentParticle.dragCoefficient ?? BURST_BASE_DRAG,
         frictionHeat: 0.95
       });
+
+      branchParticle.isCrossetteBranch = true;
+      branchParticle.prevPosition = new THREE.Vector3(
+        splitOrigin.x,
+        splitOrigin.y,
+        splitOrigin.z
+      );
 
       branches.push(branchParticle);
     }

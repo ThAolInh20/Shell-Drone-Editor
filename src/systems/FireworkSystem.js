@@ -34,6 +34,18 @@ const BASE_BURST_POINT_SIZE = FIREWORK_CONFIG.SYSTEM.baseBurstPointSize;
 const DEFAULT_TRAIL_COLOR = FIREWORK_CONFIG.SYSTEM.defaultTrailColor;
 const CRACKLE_SPARK_COLOR = FIREWORK_CONFIG.SYSTEM.crackleSparkColor;
 
+// Tái sử dụng vector đệm để triệt tiêu cấp phát heap GC khi phân nhánh Crossette
+const _crossetteScratchDir = new THREE.Vector3();
+const _crossetteScratchUp = new THREE.Vector3();
+const _crossetteScratchRight = new THREE.Vector3();
+const _crossetteScratchCrossUp = new THREE.Vector3();
+const _crossetteScratchBranchDirs = [
+  new THREE.Vector3(),
+  new THREE.Vector3(),
+  new THREE.Vector3(),
+  new THREE.Vector3()
+];
+
 export class FireworkSystem {
   constructor(scene, trailSystem, smokeSystem = null, shellPresetFactory = null) {
     this.scene = scene;
@@ -1907,12 +1919,14 @@ export class FireworkSystem {
           outerIndices.push(k);
         }
       }
-      const pool = outerIndices.length >= 12
+      const pool = outerIndices.length >= 6
         ? outerIndices
         : Array.from({ length: burstParticleCount }, (_, idx) => idx);
+      const minSplit = FIREWORK_CONFIG.CROSSETTE?.minSplitParticles ?? 6;
+      const maxSplit = FIREWORK_CONFIG.CROSSETTE?.maxSplitParticles ?? 8;
       const targetCrossetteCount = Math.min(
         pool.length,
-        12 + Math.floor(Math.random() * 4) // 12 -> 15 hạt
+        minSplit + Math.floor(Math.random() * (maxSplit - minSplit + 1))
       );
 
       // Fisher-Yates partial shuffle to pick targetCrossetteCount distinct particles
@@ -2430,7 +2444,7 @@ export class FireworkSystem {
 
     const crossetteSplitMap = new Map();
     if (isCrossetteShell && childParticleCount >= 4) {
-      const targetCrossetteCount = Math.max(2, Math.min(6, Math.floor(childParticleCount * 0.4)));
+      const targetCrossetteCount = Math.max(2, Math.min(4, Math.floor(childParticleCount * 0.3)));
       const pool = Array.from({ length: childParticleCount }, (_, idx) => idx);
       for (let k = 0; k < targetCrossetteCount; k++) {
         const randIdx = k + Math.floor(Math.random() * (pool.length - k));
@@ -3305,7 +3319,7 @@ export class FireworkSystem {
       }
 
       // 1. Kinematics Update
-      const {
+      let {
         gravityScale,
         dragCoefficient: effectDragOverride,
         emitSpark,
@@ -3324,6 +3338,15 @@ export class FireworkSystem {
         p.maxLife,
         p.effectState
       );
+
+      // Cân bằng quang học và hạn ngạch hạt đuôi cho các tia nhánh Crossette
+      if (p.isCrossetteBranch) {
+        const crossetteCfg = FIREWORK_CONFIG.CROSSETTE;
+        trailLife = crossetteCfg?.trailLife ?? 0.30;
+        trailIntensity = crossetteCfg?.trailIntensity ?? 0.60;
+        trailSpawnChance = crossetteCfg?.trailSpawnChance ?? 0.40;
+        spawnSmoke = false;
+      }
 
       // Micro crackle trigger
       const crackleStart = p.crackleStart !== undefined ? p.crackleStart : p.maxLife * 0.65;
@@ -3370,22 +3393,27 @@ export class FireworkSystem {
         && (p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01)
       ) {
         p.crossetteSplitDone = true;
-        const v = p.velocity.clone();
-        const speed = v.length();
-        const dir = speed > 0.001 ? v.clone().normalize() : new THREE.Vector3(0, 1, 0);
-        const upVec = Math.abs(dir.y) > 0.85 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
-        const rightVec = new THREE.Vector3().crossVectors(dir, upVec).normalize();
-        const crossUpVec = new THREE.Vector3().crossVectors(dir, rightVec).normalize();
+        const speed = p.velocity.length();
+        if (speed > 0.001) {
+          _crossetteScratchDir.copy(p.velocity).divideScalar(speed);
+        } else {
+          _crossetteScratchDir.set(0, 1, 0);
+        }
 
-        const branchDirs = [
-          rightVec,
-          rightVec.clone().negate(),
-          crossUpVec,
-          crossUpVec.clone().negate()
-        ];
+        if (Math.abs(_crossetteScratchDir.y) > 0.85) {
+          _crossetteScratchUp.set(1, 0, 0);
+        } else {
+          _crossetteScratchUp.set(0, 1, 0);
+        }
 
-        const splitOrigin = p.position.clone();
-        const branchColor = p.baseColor.clone();
+        _crossetteScratchRight.crossVectors(_crossetteScratchDir, _crossetteScratchUp).normalize();
+        _crossetteScratchCrossUp.crossVectors(_crossetteScratchDir, _crossetteScratchRight).normalize();
+
+        _crossetteScratchBranchDirs[0].copy(_crossetteScratchRight);
+        _crossetteScratchBranchDirs[1].copy(_crossetteScratchRight).negate();
+        _crossetteScratchBranchDirs[2].copy(_crossetteScratchCrossUp);
+        _crossetteScratchBranchDirs[3].copy(_crossetteScratchCrossUp).negate();
+
         const remainingLife = Math.max(0.65, p.maxLife - p.age);
 
         const hasNoTrail = Boolean(p.preset?.noTrail)
@@ -3394,16 +3422,13 @@ export class FireworkSystem {
           || p.effectType === 'no-trail'
           || p.effectType === 'notrail';
 
-        const branchEffectType = hasNoTrail ? 'no-trail' : 'crysanthemum-trail';
-        const branchEffects = hasNoTrail ? ['no-trail'] : ['crysanthemum-trail'];
-
         const branches = BurstParticleFactory.createCrossetteBranches({
           parentParticle: p,
-          branchDirs,
+          branchDirs: _crossetteScratchBranchDirs,
           speed,
-          dir,
-          splitOrigin,
-          branchColor,
+          dir: _crossetteScratchDir,
+          splitOrigin: p.position,
+          branchColor: p.baseColor,
           remainingLife,
           hasNoTrail
         });
@@ -3412,6 +3437,9 @@ export class FireworkSystem {
         }
 
         p.baseColor.setRGB(0, 0, 0);
+        p.renderOpacity = 0;
+        p.age = p.maxLife;
+        continue;
       }
 
       // Second burst trigger
@@ -3902,11 +3930,13 @@ export class FireworkSystem {
         }
       }
 
-      const isStarBurstSmoke = p.hasBurstSmoke && (
-        p.burstSmokeEnd !== undefined
-          ? (p.age >= (p.burstSmokeStart ?? 0) && p.age <= p.burstSmokeEnd)
-          : (lifeRatio <= (p.burstSmokeLimit ?? 0.33))
-      );
+      const isStarBurstSmoke = p.hasBurstSmoke
+        && !p.isCrossetteBranch
+        && (
+          p.burstSmokeEnd !== undefined
+            ? (p.age >= (p.burstSmokeStart ?? 0) && p.age <= p.burstSmokeEnd)
+            : (lifeRatio <= (p.burstSmokeLimit ?? 0.33))
+        );
       const shouldEmitSmoke = (spawnSmoke || isStarBurstSmoke)
         && p.baseColor.r + p.baseColor.g + p.baseColor.b > 0.01;
 

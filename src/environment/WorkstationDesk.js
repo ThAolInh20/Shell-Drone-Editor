@@ -368,13 +368,13 @@ export class WorkstationDesk {
     const screenGeo = new THREE.PlaneGeometry(1.12, 0.72);
     const screenMat = this.screenTexture
       ? new THREE.MeshBasicMaterial({
-          map: this.screenTexture,
-          toneMapped: false,
-          side: THREE.DoubleSide
-        })
+        map: this.screenTexture,
+        toneMapped: false,
+        side: THREE.DoubleSide
+      })
       : new THREE.MeshBasicMaterial({
-          color: 0x00f0ff
-        });
+        color: 0x00f0ff
+      });
     const screenMesh = new THREE.Mesh(screenGeo, screenMat);
     // Face forward towards operator
     screenMesh.position.set(0, 0.4, 0.015);
@@ -461,7 +461,32 @@ export class WorkstationDesk {
       keycapF.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.4)';
       keycapF.textContent = 'F';
 
-      // Action Text [ F ]
+      // "or" label
+      const orText = document.createElement('span');
+      orText.style.color = 'rgba(255, 255, 255, 0.55)';
+      orText.style.fontFamily = '"Segoe UI", Roboto, sans-serif';
+      orText.style.fontSize = '13px';
+      orText.style.fontWeight = '500';
+      orText.textContent = '/';
+
+      // Keycap Badge [ Ctrl + T ]
+      const keycapCtrlT = document.createElement('span');
+      keycapCtrlT.style.display = 'inline-flex';
+      keycapCtrlT.style.alignItems = 'center';
+      keycapCtrlT.style.justifyContent = 'center';
+      keycapCtrlT.style.padding = '0 10px';
+      keycapCtrlT.style.height = '34px';
+      keycapCtrlT.style.background = 'rgba(0, 240, 255, 0.18)';
+      keycapCtrlT.style.border = '2px solid #00f0ff';
+      keycapCtrlT.style.borderRadius = '8px';
+      keycapCtrlT.style.color = '#ffffff';
+      keycapCtrlT.style.fontFamily = 'monospace';
+      keycapCtrlT.style.fontSize = '14px';
+      keycapCtrlT.style.fontWeight = 'bold';
+      keycapCtrlT.style.boxShadow = '0 0 10px rgba(0, 240, 255, 0.4)';
+      keycapCtrlT.textContent = 'Ctrl + T';
+
+      // Action Text [ F / Ctrl + T ]
       const textF = document.createElement('span');
       textF.style.color = '#e2f1ff';
       textF.style.fontFamily = '"Segoe UI", Roboto, sans-serif';
@@ -503,6 +528,8 @@ export class WorkstationDesk {
       textEsc.textContent = 'Unlock Mouse';
 
       prompt.appendChild(keycapF);
+      prompt.appendChild(orText);
+      prompt.appendChild(keycapCtrlT);
       prompt.appendChild(textF);
       prompt.appendChild(sep);
       prompt.appendChild(keycapEsc);

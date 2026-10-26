@@ -973,7 +973,10 @@ export class InputSystem {
       return;
     }
 
-    if (event.code === 'KeyF') {
+    const isTimelineKey = event.code === 'KeyF' ||
+      ((event.ctrlKey || event.metaKey) && event.code === 'KeyT');
+
+    if (isTimelineKey) {
       if (this.timelineEditor && this.timelineEditor.visible) {
         event.preventDefault();
         this.timelineEditor.toggle();

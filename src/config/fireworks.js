@@ -574,5 +574,16 @@ export const FIREWORK_CONFIG = {
     maxConcurrentChildParticles: 35000,
     audioThrottleMs: 45,
     maxAudioTriggersPerWindow: 3
+  },
+
+  // Cấu hình pháo tách chữ thập (Crossette)
+  CROSSETTE: {
+    minSplitParticles: 6,
+    maxSplitParticles: 8,
+    branchSpeedMin: 8.5,
+    branchSpeedMax: 11.0,
+    trailSpawnChance: 0.40,
+    trailLife: 0.30,
+    trailIntensity: 0.60
   }
 };
