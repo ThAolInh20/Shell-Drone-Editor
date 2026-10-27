@@ -1,27 +1,24 @@
-# Release Notes - v3.1.2
+# Release Notes - v3.1.3
+
+## Downloads
+- Windows Installer (.exe): [DroneShellEditor Setup 3.1.3.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/DroneShellEditor%20Setup%203.1.3.exe)
+- Portable Archive (.zip / .rar): [DroneShellEditor-3.1.3-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/DroneShellEditor-3.1.3-win.zip)
+- All Release Assets: [GitHub Releases v3.1.3](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.3)
 
 ## Features
-- Added support for multiple time windows on timed firework effects, allowing effects like strobe or crackle to activate across multiple separate intervals.
-- Separated firework modifiers into Instant Triggered Effects and Duration-Based Timed Effects for cleaner editing.
-- Added new firework shapes including Egg and Latitude Ring burst geometries.
-- Added Sphere Rings staggered wave dynamics and gentle floating slow-burst star motion.
-- Added realistic 3D volumetric night clouds that enhance atmospheric depth without washing out dark skies.
-- Added interactive percentage-based active effects timeline editor to fine-tune effect start and end windows.
-- Expanded firework star lifetime multipliers up to 5x for extended willow and cascading displays.
-- Added settings snapshot restore and per-category reset controls to easily restore default editor preferences.
-- Added burst height calibration settings and expanded multi-language interface translations.
+- Added Horsetail Waterfall firework preset with realistic downward cascading embers.
+- Added realistic water surface reflections with real-time planar mirror rendering.
+- Added an interactive 3D workstation desk and in-world floating control billboard in the scene.
+- Added multi-selection capabilities to select and edit multiple timeline blocks simultaneously using Ctrl+Click.
+- Added batch editing in the property inspector to adjust parameters across multiple selected items at once.
 
 ## Bug Fixes
-- Fixed an issue where timed effects were behaving like continuous toggle modifiers instead of respecting their timeline start and end windows.
-- Fixed active burst smoke emission to ensure consistent smoke volume across all timeline events.
-- Fixed no-trail effect handling so particle trails are only hidden within the specified timeline interval.
-- Fixed active effect chip labels and state toggles in the property inspector.
+- Fixed application packaging icon size to ensure proper desktop and taskbar icon display.
 
 ## Updates
-- Increased the maximum firework shell size limit for larger and more dramatic aerial bursts.
-- Enhanced tadpole burst fireworks with brighter incandescent cores and more dynamic swarming paths.
-- Enhanced launch comet trails with smoother light dissipation and richer color blending.
-- Refined star ignition curves and thermal cooling for authentic pyrotechnic color transitions.
+- Improved rendering performance and eliminated micro-stutters during heavy firework particle bursts.
+- Optimized smoke emission rates for large particle clusters to maintain smooth frame rates.
+- Rebranded desktop application to Firework & Drone Show Studio.
 
 ## Chores
-- Updated test suites with full coverage for multi-window timed effects, particle timing factories, and inspector controls.
+- Added comprehensive unit tests for water reflections, planar reflectors, and timeline multi-selection controls.

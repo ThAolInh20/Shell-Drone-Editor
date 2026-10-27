@@ -32,11 +32,26 @@ Categorize the fetched commits into the following standard groups:
 - **Updates** (`refactor`, `perf`, `update`, optimizations)
 - **Chores** (`docs`, `chore`, `test`, maintenance)
 
-## 4. Format the Release Notes
+## 4. Determine Download Links
+Determine the download URLs for `.exe` (Windows Installer) and `.zip`/`.rar` (Portable Archive):
+1. **User-Provided Link**: If the user provided a download URL or draft release hash in their message, use that exact base path and file names.
+2. **Inspect `dist-electron`**: Check the `dist-electron` directory to detect the build artifact filenames.
+3. **Standard Canonical Release URL Structure**: The standard asset naming convention on GitHub Releases is:
+   - Base URL: `https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/`
+   - Windows Installer (.exe): `[DroneShellEditor Setup <version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor%20Setup%20<version>.exe)`
+   - Portable Archive (.zip / .rar): `[DroneShellEditor-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor-<version>-win.zip)`
+   - All Release Assets: `[GitHub Releases [New Version Tag]](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/[New Version Tag])`
+
+## 5. Format the Release Notes
 Structure the output using Markdown IN ENGLISH. Use exactly this structure:
 
 ```markdown
 # Release Notes - [New Version Tag]
+
+## Downloads
+- Windows Installer (.exe): [DroneShellEditor Setup <version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor%20Setup%20<version>.exe)
+- Portable Archive (.zip / .rar): [DroneShellEditor-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor-<version>-win.zip)
+- All Release Assets: [GitHub Releases [New Version Tag]](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/[New Version Tag])
 
 ## Features
 - [Short description of the new feature in English]
@@ -55,16 +70,17 @@ Structure the output using Markdown IN ENGLISH. Use exactly this structure:
 - ...
 ```
 
-## 5. Update package.json Version
+## 6. Update package.json Version
 - Update the `"version"` field in the project's `package.json` file to match the new version tag (e.g. if the new version is `v2.1.1`, update it to `"2.1.1"` without the `"v"` prefix).
 
-## 6. Save the Release Notes File
+## 7. Save the Release Notes File
 Use the appropriate file writing tool to save the release notes.
 - Completely OVERWRITE the existing `RELEASE_NOTES.md` file so that it ONLY contains the release notes for the new version. Do NOT append or insert content. The file should only reflect the latest tag.
 
-## 7. Stage, Commit, and Auto-Create Git Tag
-After the files are successfully saved, automatically stage, commit, and create/push the new git tag:
-- Run `git add package.json RELEASE_NOTES.md`
-- Run `git commit -m "docs: release <new_version>"`
-- Run `git tag <new_version>`
-- Run `git push origin <new_version>` (or `git push --tags`)
+## 8. Stage, Commit, and Git Tag (When Explicitly Requested)
+- Note: Follow the workspace rule on git operations. NEVER commit or push automatically unless the user explicitly commands it in their prompt (e.g., `/ds-commit` or explicit request to commit and tag).
+- When explicitly requested:
+  - Run `git add package.json RELEASE_NOTES.md`
+  - Run `git commit -m "docs: release <new_version>"`
+  - Run `git tag <new_version>`
+  - Run `git push origin <new_version>` (or `git push --tags`)
