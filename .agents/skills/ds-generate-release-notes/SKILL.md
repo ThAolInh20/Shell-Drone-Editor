@@ -77,10 +77,10 @@ Structure the output using Markdown IN ENGLISH. Use exactly this structure:
 Use the appropriate file writing tool to save the release notes.
 - Completely OVERWRITE the existing `RELEASE_NOTES.md` file so that it ONLY contains the release notes for the new version. Do NOT append or insert content. The file should only reflect the latest tag.
 
-## 8. Stage, Commit, and Git Tag (When Explicitly Requested)
-- Note: Follow the workspace rule on git operations. NEVER commit or push automatically unless the user explicitly commands it in their prompt (e.g., `/ds-commit` or explicit request to commit and tag).
-- When explicitly requested:
-  - Run `git add package.json RELEASE_NOTES.md`
-  - Run `git commit -m "docs: release <new_version>"`
-  - Run `git tag <new_version>`
-  - Run `git push origin <new_version>` (or `git push --tags`)
+## 8. Stage, Commit, Auto-Create Git Tag, and Push
+After the files are successfully saved, automatically stage, commit, create the new git tag, and push to remote:
+- Run `git add package.json RELEASE_NOTES.md`
+- Run `git commit -m "docs: release <new_version>"`
+- Run `git tag <new_version>`
+- Run `git push origin <new_version>`
+- Run `git push origin HEAD`
