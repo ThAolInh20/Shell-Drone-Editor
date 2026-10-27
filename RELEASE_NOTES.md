@@ -22,3 +22,4 @@
 
 ## Chores
 - Added comprehensive unit tests for water reflections, planar reflectors, and timeline multi-selection controls.
+- Updated release notes automation skill with standardized download asset URLs.
