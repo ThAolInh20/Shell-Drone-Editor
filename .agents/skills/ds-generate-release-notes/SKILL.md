@@ -38,8 +38,8 @@ Determine the download URLs for `.exe` (Windows Installer) and `.zip`/`.rar` (Po
 2. **Inspect `dist-electron`**: Check the `dist-electron` directory to detect the build artifact filenames.
 3. **Standard Canonical Release URL Structure**: The standard asset naming convention on GitHub Releases is:
    - Base URL: `https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/`
-   - Windows Installer (.exe): `[DroneShellEditor Setup <version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor%20Setup%20<version>.exe)`
-   - Portable Archive (.zip / .rar): `[DroneShellEditor-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor-<version>-win.zip)`
+   - Windows Installer (.exe): `[Firework.Drone.Show.Studio.Setup.<version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/Firework.Drone.Show.Studio.Setup.<version>.exe)`
+   - Portable Archive (.zip / .rar): `[Firework.Drone.Show.Studio-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/Firework.Drone.Show.Studio-<version>-win.zip)`
    - All Release Assets: `[GitHub Releases [New Version Tag]](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/[New Version Tag])`
 
 ## 5. Format the Release Notes
@@ -49,8 +49,8 @@ Structure the output using Markdown IN ENGLISH. Use exactly this structure:
 # Release Notes - [New Version Tag]
 
 ## Downloads
-- Windows Installer (.exe): [DroneShellEditor Setup <version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor%20Setup%20<version>.exe)
-- Portable Archive (.zip / .rar): [DroneShellEditor-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/DroneShellEditor-<version>-win.zip)
+- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.<version>.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/Firework.Drone.Show.Studio.Setup.<version>.exe)
+- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-<version>-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/[New Version Tag]/Firework.Drone.Show.Studio-<version>-win.zip)
 - All Release Assets: [GitHub Releases [New Version Tag]](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/[New Version Tag])
 
 ## Features

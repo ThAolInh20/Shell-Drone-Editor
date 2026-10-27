@@ -1,8 +1,8 @@
 # Release Notes - v3.1.3
 
 ## Downloads
-- Windows Installer (.exe): [DroneShellEditor Setup 3.1.3.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/DroneShellEditor%20Setup%203.1.3.exe)
-- Portable Archive (.zip / .rar): [DroneShellEditor-3.1.3-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/DroneShellEditor-3.1.3-win.zip)
+- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.1.3.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio.Setup.3.1.3.exe)
+- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.1.3-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio-3.1.3-win.zip)
 - All Release Assets: [GitHub Releases v3.1.3](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.3)
 
 ## Features
