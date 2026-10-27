@@ -1,8 +1,8 @@
-# 3D Firework & Drone Animation Simulation - Shell Drone Animation
+# Firework & Drone Show Studio
 
 [English](README.md) | [Tiếng Việt](README-vn.md) | [日本語](README-ja.md) | [简体中文](README-zh.md)
 
-**Drone Shell Editor** is a 3D simulation software for fireworks and drones. The software supports firework choreography scripting, drone formation design, and complete choreography for combined drone and firework shows.
+**Firework & Drone Show Studio** is a 3D simulation software for fireworks and drones. The software supports firework choreography scripting, drone formation design, and complete choreography for combined drone and firework shows.
 
 ---
 

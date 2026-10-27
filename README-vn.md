@@ -1,8 +1,8 @@
-# Mô phỏng và Trình diễn Drone Pháo hoa 3D - Shell Drone Animation
+# Firework & Drone Show Studio (Mô phỏng và Trình diễn Drone Pháo hoa 3D)
 
 [English](README.md) | [Tiếng Việt](README-vn.md) | [日本語](README-ja.md) | [简体中文](README-zh.md)
 
-**Drone shell editor** là phần mềm mô phỏng 3D cho pháo hoa và drone. Phần mềm hộ trợ biên kịch kịch bản pháo hoa, thiết kế đội hình drone, biên đạo đầy đủ cho 1 show trình diễn drone kết hợp với pháo hoa
+**Firework & Drone Show Studio** là phần mềm mô phỏng 3D cho pháo hoa và drone. Phần mềm hỗ trợ biên kịch kịch bản pháo hoa, thiết kế đội hình drone, biên đạo đầy đủ cho 1 show trình diễn drone kết hợp với pháo hoa
 
 ---
 

@@ -1,8 +1,8 @@
-# 3D 烟花与无人机表演模拟器 - Shell Drone Animation
+# Firework & Drone Show Studio (3D 烟花与无人机表演模拟器)
 
 [English](README.md) | [Tiếng Việt](README-vn.md) | [日本語](README-ja.md) | [简体中文](README-zh.md)
 
-**Drone Shell Editor** 是一款专为烟花与无人机打造的 3D 模拟软件。支持烟花剧本编排、无人机编队设计，以及无人机与烟花结合表演的完整舞台编导。
+**Firework & Drone Show Studio** 是一款专为烟花与无人机打造的 3D 模拟软件。支持烟花剧本编排、无人机编队设计，以及无人机与烟花结合表演的完整舞台编导。
 
 ---
 

@@ -1,8 +1,8 @@
-# 3D花火＆ドローンショーシミュレーション - Shell Drone Animation
+# Firework & Drone Show Studio (3D花火＆ドローンショーシミュレーション)
 
 [English](README.md) | [Tiếng Việt](README-vn.md) | [日本語](README-ja.md) | [简体中文](README-zh.md)
 
-**Drone Shell Editor**は、花火とドローンのための3Dシミュレーションソフトウェアです。花火の演出脚本の作成、ドローン編隊の設計、花火とドローンを融合させたショー全体の総合的な演出・振付をサポートします。
+**Firework & Drone Show Studio**は、花火とドローンのための3Dシミュレーションソフトウェアです。花火の演出脚本の作成、ドローン編隊の設計、花火とドローンを融合させたショー全体の総合的な演出・振付をサポートします。
 
 ---
 
