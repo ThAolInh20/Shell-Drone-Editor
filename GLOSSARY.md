@@ -1,6 +1,6 @@
-# Thuật Ngữ Dự Án: Drone Formation Editor
+# Thuật Ngữ Dự Án: Firework & Drone Show Studio
 
-Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ nghiệp vụ được sử dụng thống nhất trong codebase của dự án Drone Formation Editor, đặc biệt là các thành phần trên màn hình Editor (Timeline & Inspector).
+Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ nghiệp vụ được sử dụng thống nhất trong codebase của dự án Firework & Drone Show Studio, đặc biệt là các thành phần trên màn hình Editor (Timeline & Inspector).
 
 ## 1. Các Thành phần trên Timeline (Timeline Components)
 

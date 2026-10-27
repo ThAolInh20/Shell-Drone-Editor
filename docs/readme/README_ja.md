@@ -1,8 +1,8 @@
-# 3D花火＆ドローンアニメーションシミュレーション (Shell Drone Animation)
+# Firework & Drone Show Studio (3D花火＆ドローンアニメーションシミュレーション)
 
 **Languages:** [English](README_en.md) | [Tiếng Việt](README_vi.md) | [日本語](README_ja.md) | [中文](README_zh.md)
 
-このプロジェクトは、**Three.js** と **Vite** を使用して構築され、**Electron** を利用してプロフェッショナルなデスクトップソフトウェアを構築した3D花火およびドローンアニメーションのシミュレーションおよび編集アプリケーションです。
+Firework & Drone Show Studio は、**Three.js** と **Vite** を使用して構築され、**Electron** を利用してプロフェッショナルなデスクトップソフトウェアを構築した3D花火およびドローンアニメーションのシミュレーションおよび編集アプリケーションです。
 
 ---
 

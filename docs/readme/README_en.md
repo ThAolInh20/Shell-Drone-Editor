@@ -1,8 +1,8 @@
-# 3D Firework & Drone Animation Simulation (Shell Drone Animation)
+# Firework & Drone Show Studio
 
 **Languages:** [English](README_en.md) | [Tiếng Việt](README_vi.md) | [日本語](README_ja.md) | [中文](README_zh.md)
 
-This project is a 3D firework & drone animation simulation and editing application built with **Three.js** and **Vite**, utilizing **Electron** to build professional Desktop software.
+Firework & Drone Show Studio is a 3D firework & drone animation simulation and editing application built with **Three.js** and **Vite**, utilizing **Electron** to build professional Desktop software.
 
 ---
 

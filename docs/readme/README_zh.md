@@ -1,8 +1,8 @@
-# 3D烟花与无人机动画模拟 (Shell Drone Animation)
+# Firework & Drone Show Studio (3D烟花与无人机动画模拟)
 
 **Languages:** [English](README_en.md) | [Tiếng Việt](README_vi.md) | [日本語](README_ja.md) | [中文](README_zh.md)
 
-本项目是一个3D烟花和无人机动画模拟及编辑应用程序，使用 **Three.js** 和 **Vite** 构建，并利用 **Electron** 构建专业的桌面软件。
+Firework & Drone Show Studio 是一个3D烟花和无人机动画模拟及编辑应用程序，使用 **Three.js** 和 **Vite** 构建，并利用 **Electron** 构建专业的桌面软件。
 
 ---
 
