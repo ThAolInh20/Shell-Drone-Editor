@@ -680,6 +680,20 @@ export class BurstEffectProcessor {
     const hasGhost = isGhostActive
       || (!hasGhostTiming && (Boolean(particle.preset?.ghost) || particle.preset?.shellType === 'ghost'));
 
+    const isBreathingActive = BurstEffectProcessor.isEffectActive(particle, 'breathing-pulse')
+      || BurstEffectProcessor.isEffectActive(particle, 'breathing_pulse')
+      || (Array.isArray(particle.effects) && (particle.effects.includes('breathing-pulse') || particle.effects.includes('breathing_pulse')))
+      || Boolean(particle.preset?.breathingPulse)
+      || Boolean(particle.preset?.['breathing-pulse'])
+      || Boolean(particle.preset?.breathing_pulse);
+
+    const isScintillationActive = BurstEffectProcessor.isEffectActive(particle, 'diamond-scintillation')
+      || BurstEffectProcessor.isEffectActive(particle, 'diamond_scintillation')
+      || (Array.isArray(particle.effects) && (particle.effects.includes('diamond-scintillation') || particle.effects.includes('diamond_scintillation')))
+      || Boolean(particle.preset?.diamondScintillation)
+      || Boolean(particle.preset?.['diamond-scintillation'])
+      || Boolean(particle.preset?.diamond_scintillation);
+
     const hasCC = particle.effectType === 'crysanthemum-cc'
       || (Array.isArray(particle.effects) && particle.effects.includes('crysanthemum-cc'))
       || (Array.isArray(particle.preset?.effects) && particle.preset.effects.includes('crysanthemum-cc'))
@@ -767,6 +781,49 @@ export class BurstEffectProcessor {
       r = particle.baseColor.r * intensity;
       g = particle.baseColor.g * intensity;
       b = particle.baseColor.b * intensity;
+    } else if (isScintillationActive) {
+      const jewelColors = [
+        0xff1744, // Ruby
+        0x2979ff, // Sapphire
+        0x00e676, // Emerald
+        0xd500f9, // Amethyst
+        0xffd600, // Topaz
+        0x00e5ff, // Aquamarine
+        0xffffff  // Diamond White
+      ];
+      const pIdx = particle.particleIndex !== undefined ? particle.particleIndex : 0;
+      const timeSlot = Math.floor(particle.age * 4.5) + pIdx;
+      const chosenHex = jewelColors[Math.abs(timeSlot) % jewelColors.length];
+      const jR = ((chosenHex >> 16) & 255) / 255;
+      const jG = ((chosenHex >> 8) & 255) / 255;
+      const jB = (chosenHex & 255) / 255;
+
+      const isSpike = Math.floor((particle.age * 6.5) + (pIdx * 3)) % 4 === 0;
+      let sparkleBoost = isSpike ? 2.5 : 1.1;
+
+      if (isBreathingActive) {
+        const breathFreq = 1.35;
+        const phaseOffset = (particle.phase || 0) + (particle.particleIndex % 7) * 0.15;
+        const breathWave = Math.sin((particle.age * breathFreq + phaseOffset) * Math.PI * 2);
+        const normBreath = (breathWave + 1.0) * 0.5;
+        sparkleBoost *= THREE.MathUtils.lerp(0.3, 1.8, normBreath);
+      }
+
+      r = jR * sparkleBoost;
+      g = jG * sparkleBoost;
+      b = jB * sparkleBoost;
+    } else if (isBreathingActive) {
+      const breathFreq = 1.35;
+      const phaseOffset = (particle.phase || 0) + (particle.particleIndex % 7) * 0.15;
+      const breathWave = Math.sin((particle.age * breathFreq + phaseOffset) * Math.PI * 2);
+      const normBreath = (breathWave + 1.0) * 0.5;
+      const breathEase = normBreath * normBreath * (3.0 - 2.0 * normBreath);
+      const breathIntensity = THREE.MathUtils.lerp(0.22, 2.35, breathEase);
+      const hotCore = normBreath > 0.72 ? (normBreath - 0.72) / 0.28 * 0.60 : 0.0;
+
+      r = Math.min(3.0, (particle.baseColor.r + hotCore) * breathIntensity);
+      g = Math.min(3.0, (particle.baseColor.g + hotCore) * breathIntensity);
+      b = Math.min(3.0, (particle.baseColor.b + hotCore) * breathIntensity);
     } else if (hasCC && particle.color2) {
       if (lifeRatio < 0.40) {
         r = particle.baseColor.r;

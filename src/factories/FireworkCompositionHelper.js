@@ -71,7 +71,9 @@ export const TIMED_EFFECT_TAGS = [
   'crossette',
   'sparkle-apex',
   'tadpole-flurry',
-  'erratic-dart'
+  'erratic-dart',
+  'breathing-pulse',
+  'diamond-scintillation'
 ];
 
 export const TOGGLE_MODIFIER_TAGS = [
@@ -88,6 +90,18 @@ export const AVAILABLE_EFFECT_TAGS = [
 ];
 
 export const PRESET_TEMPLATES = {
+  strobe_breathing_pulse: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['breathing-pulse']
+  },
+  glitter_diamond_scintillation: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['diamond-scintillation']
+  },
   horsetail_waterfall: {
     shape: 'horsetail',
     dynamics: 'horsetail',

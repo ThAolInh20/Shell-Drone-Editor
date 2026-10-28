@@ -142,6 +142,34 @@ export class BurstParticleFactory {
       || preset?.effectType === 'slow_burst'
     );
 
+    const hasBreathingPulse = Boolean(
+      preset?.breathingPulse
+      || preset?.['breathing-pulse']
+      || preset?.breathing_pulse
+      || effectsList.includes('breathing-pulse')
+      || effectsList.includes('breathing_pulse')
+      || (Array.isArray(preset?.effects) && (
+        preset.effects.includes('breathing-pulse') ||
+        preset.effects.includes('breathing_pulse')
+      ))
+      || normDynamics === 'breathing-pulse'
+      || normDynamics === 'breathing_pulse'
+    );
+
+    const hasDiamondScintillation = Boolean(
+      preset?.diamondScintillation
+      || preset?.['diamond-scintillation']
+      || preset?.diamond_scintillation
+      || effectsList.includes('diamond-scintillation')
+      || effectsList.includes('diamond_scintillation')
+      || (Array.isArray(preset?.effects) && (
+        preset.effects.includes('diamond-scintillation') ||
+        preset.effects.includes('diamond_scintillation')
+      ))
+      || normDynamics === 'diamond-scintillation'
+      || normDynamics === 'diamond_scintillation'
+    );
+
     return {
       isCrossetteShell,
       isTadpoleFlurryShell,
@@ -153,6 +181,8 @@ export class BurstParticleFactory {
       isApexHang,
       isSlowBurst,
       hasNoTrail,
+      hasBreathingPulse,
+      hasDiamondScintillation,
       effectsList
     };
   }

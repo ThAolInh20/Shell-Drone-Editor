@@ -84,6 +84,14 @@ export const TIMED_EFFECT_TAGS = [
   {
     key: 'erratic-dart',
     labelKey: 'erraticDart'
+  },
+  {
+    key: 'breathing-pulse',
+    labelKey: 'breathingPulse'
+  },
+  {
+    key: 'diamond-scintillation',
+    labelKey: 'diamondScintillation'
   }
 ];
 
