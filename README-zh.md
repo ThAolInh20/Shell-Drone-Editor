@@ -52,6 +52,12 @@
 
 ![drone-animation](/public/preview/drone-animation.png)
 
+### 5. 系统控制与快捷键指南
+- 内置屏幕实时 HUD 参考指南，方便在剧目编排与场景漫游时快速查阅快捷键及控制指令。
+- 全面涵盖时间线播放控制、数据块多选与编辑、以及 3D 摄像机飞行与视角漫游的完整快捷操作。
+
+![key-guide](/public/preview/key-guide.png)
+
 ---
 
 ## 下载与安装

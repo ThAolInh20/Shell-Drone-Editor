@@ -52,6 +52,12 @@
 
 ![drone-animation](/public/preview/drone-animation.png)
 
+### 5. System Controls & Shortcut Guide
+- Integrated live HUD reference displaying hotkeys for quick access during show design and playback.
+- Comprehensive shortcut mapping across timeline playback, multi-block editing, and 3D camera navigation.
+
+![key-guide](/public/preview/key-guide.png)
+
 ---
 
 ## Download & Installation

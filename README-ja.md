@@ -52,6 +52,12 @@
 
 ![drone-animation](/public/preview/drone-animation.png)
 
+### 5. システム操作＆ショートカットガイド
+- 演出制作や再生中にいつでも確認できる、画面組み込み型のライブHUD操作リファレンス。
+- タイムライン再生制御、ブロックの一括選択・編集、3Dカメラの空間飛行など網羅的なショートカットを体系化。
+
+![key-guide](/public/preview/key-guide.png)
+
 ---
 
 ## ダウンロードとインストール

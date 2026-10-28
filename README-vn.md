@@ -52,6 +52,12 @@
 
 ![drone-animation](/public/preview/drone-animation.png)
 
+### 5. Hướng dẫn Phím tắt & Điều khiển Hệ thống
+- Tích hợp bảng tra cứu HUD trực tiếp trên màn hình, giúp tra cứu nhanh phím tắt và thao tác điều hướng khi dàn dựng.
+- Danh mục phím tắt chi tiết cho điều khiển timeline/playback, chọn & chỉnh sửa khối kịch bản, và chuyển động camera 3D trong không gian.
+
+![key-guide](/public/preview/key-guide.png)
+
 ---
 
 ## Tải về và Cài đặt
