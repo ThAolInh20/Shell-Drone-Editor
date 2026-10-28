@@ -104,7 +104,7 @@ The packaged installer will be saved in the `dist-electron` directory.
 ## Quick Keyboard Shortcuts
 
 - **Space:** Play or pause the show simulation.
-- **Ctrl + S:** Save scenario changes directly to the source file in Desktop mode.
+- **Ctrl + T:** Open the timeline editor.
 - **Ctrl + 1:** Switch to the Main Timeline Choreography Editor.
 - **Ctrl + 2:** Switch to the 3D Static Drone Formation Studio.
 - **Ctrl + 3:** Switch to the Drone Step & Transition Editor.
