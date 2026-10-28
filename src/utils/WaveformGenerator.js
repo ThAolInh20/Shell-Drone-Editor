@@ -107,7 +107,27 @@ export class WaveformGenerator {
    * @param {Float32Array|number[]} peaks - Extracted peak amplitudes
    * @param {Object} options - Rendering options
    */
-  static renderWaveform(canvas, peaks, options = {}) {
+  static renderWaveform(canvas, rawPeaks, options = {}) {
+    let peaks = rawPeaks;
+    if (
+      peaks &&
+      !(peaks instanceof Float32Array) &&
+      !Array.isArray(peaks) &&
+      typeof peaks === 'object'
+    ) {
+      const keys = Object.keys(peaks);
+      if (keys.length > 0 && !isNaN(Number(keys[0]))) {
+        const len = keys.length;
+        const arr = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
+          arr[i] = peaks[i] !== undefined
+            ? peaks[i]
+            : (peaks[String(i)] || 0);
+        }
+        peaks = arr;
+      }
+    }
+
     if (!canvas || !peaks || peaks.length === 0) {
       return;
     }

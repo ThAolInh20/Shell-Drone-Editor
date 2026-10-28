@@ -287,4 +287,104 @@ describe('FireworkSequencer', () => {
     expect(task2.options.spiral.phase).toBe(0);
     expect(task3.options.spiral.phase).toBeCloseTo(Math.PI, 4);
   });
+
+  it('should interpolate heights and angles along custom wave curve points in playPattern', () => {
+    const wavePoints = [
+      { x: 0.0, y: 0.3, angle: 0.25 },
+      { x: 0.5, y: 0.9, angle: 0.0 },
+      { x: 1.0, y: 0.3, angle: -0.25 }
+    ];
+
+    sequencer.playPattern('sweep-custom-curve', {
+      count: 3,
+      duration: 2.0,
+      wavePoints
+    });
+
+    expect(sequencer.activeTasks.length).toBe(3);
+
+    const task0 = sequencer.activeTasks[0];
+    const task1 = sequencer.activeTasks[1];
+    const task2 = sequencer.activeTasks[2];
+
+    expect(task0.options.ratioY).toBeCloseTo(0.3, 2);
+    expect(task0.options.angleOffset).toBeCloseTo(0.25, 2);
+
+    expect(task1.options.ratioY).toBeCloseTo(0.9, 2);
+    expect(task1.options.angleOffset).toBeCloseTo(0.0, 2);
+
+    expect(task2.options.ratioY).toBeCloseTo(0.3, 2);
+    expect(task2.options.angleOffset).toBeCloseTo(-0.25, 2);
+  });
+
+  it('should apply custom wave curve points to comet sequences', () => {
+    const wavePoints = [
+      { x: 0.0, y: 0.4, angle: 0.1 },
+      { x: 1.0, y: 0.8, angle: -0.1 }
+    ];
+
+    sequencer.playCometSequence('sweep-custom-curve', {
+      count: 2,
+      duration: 1.0,
+      wavePoints
+    });
+
+    expect(sequencer.activeTasks.length).toBe(2);
+
+    const task0 = sequencer.activeTasks[0];
+    const task1 = sequencer.activeTasks[1];
+
+    expect(task0.options.ratioY).toBeCloseTo(0.4, 2);
+    expect(task0.options.angleOffset).toBeCloseTo(0.1, 2);
+
+    expect(task1.options.ratioY).toBeCloseTo(0.8, 2);
+    expect(task1.options.angleOffset).toBeCloseTo(-0.1, 2);
+  });
+
+  it('should forward starLifeMultiplier to task effectOverrides in playPattern', () => {
+    sequencer.playPattern('sweep-left', {
+      count: 3,
+      duration: 1.0,
+      starLifeMultiplier: 5.0
+    });
+
+    expect(sequencer.activeTasks.length).toBe(3);
+    for (const task of sequencer.activeTasks) {
+      expect(task.options.effectOverrides).toBeDefined();
+      expect(task.options.effectOverrides.starLifeMultiplier).toBe(5.0);
+    }
+  });
+
+  it('should forward starLifeMultiplier to task effectOverrides in playCometSequence', () => {
+    sequencer.playCometSequence('sweep-left', {
+      count: 2,
+      duration: 1.0,
+      starLifeMultiplier: 4.5
+    });
+
+    expect(sequencer.activeTasks.length).toBe(2);
+    for (const task of sequencer.activeTasks) {
+      expect(task.options.effectOverrides).toBeDefined();
+      expect(task.options.effectOverrides.starLifeMultiplier).toBe(4.5);
+    }
+  });
+
+  it('should forward burst-smoke and optical active effect flags to effectOverrides in playPattern', () => {
+    sequencer.playPattern('sweep-left', {
+      count: 2,
+      duration: 1.0,
+      'burst-smoke': true,
+      ghost: true,
+      crossette: true
+    });
+
+    expect(sequencer.activeTasks.length).toBe(2);
+    for (const task of sequencer.activeTasks) {
+      expect(task.options.effectOverrides).toBeDefined();
+      expect(task.options.effectOverrides['burst-smoke']).toBe(true);
+      expect(task.options.effectOverrides.ghost).toBe(true);
+      expect(task.options.effectOverrides.crossette).toBe(true);
+    }
+  });
 });
+

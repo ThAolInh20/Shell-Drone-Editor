@@ -50,11 +50,14 @@ export class AudioSystem {
       },
       crackleSmall: {
         volume: AUDIO_CONFIG.volumes.crackleSmall,
-        playbackRateMin: 1,
-        playbackRateMax: 1,
-        fileNames: ['crackle-sm-1.mp3']
+        playbackRateMin: 0.95,
+        playbackRateMax: 1.1,
+        fileNames: ['crackle-sm-1.mp3', 'crackle-sm-2.mp3']
       }
     };
+
+    this.stages = AUDIO_CONFIG.stages || {};
+    this.bufferCache = new Map();
 
     this._lastSmallBurstTime = 0;
     this._lastCrackleTime = 0;
@@ -67,7 +70,8 @@ export class AudioSystem {
     this.eventSubscriptions.push(
       this.eventBus.on('firework:launch', (detail) => this.handleLaunch(detail)),
       this.eventBus.on('firework:burst', (detail) => this.handleBurst(detail)),
-      this.eventBus.on('firework:crackle', (detail) => this.handleCrackle(detail))
+      this.eventBus.on('firework:crackle', (detail) => this.handleCrackle(detail)),
+      this.eventBus.on('audio:preview', (detail) => this.handlePreview(detail))
     );
   }
 
@@ -79,7 +83,6 @@ export class AudioSystem {
 
   async preload() {
     if (!this.ctx) return Promise.resolve();
-    const allFilePromises = [];
 
     const checkStatus = (response) => {
       if (response.status >= 200 && response.status < 300) {
@@ -88,30 +91,47 @@ export class AudioSystem {
       throw new Error(response.statusText);
     };
 
-    const types = Object.keys(this.sources);
-    for (const type of types) {
-      const source = this.sources[type];
-      const filePromises = source.fileNames.map(fileName => {
-        const fileURL = this.baseURL + fileName;
-        const promise = fetch(fileURL)
-          .then(checkStatus)
-          .then(response => response.arrayBuffer())
-          .then(data => new Promise((resolve, reject) => {
-            this.ctx.decodeAudioData(data, resolve, reject);
-          }));
-        return promise;
-      });
-
-      allFilePromises.push(...filePromises);
-
-      Promise.all(filePromises).then(buffers => {
-        source.buffers = buffers;
-      });
-    }
-
-    return Promise.all(allFilePromises).catch(err => {
-      console.error('AudioSystem: Failed to preload sounds', err);
+    const uniqueFiles = new Set();
+    Object.values(this.sources).forEach(s => s.fileNames?.forEach(f => uniqueFiles.add(f)));
+    Object.values(this.stages).forEach(stage => {
+      Object.values(stage).forEach(profile => profile.fileNames?.forEach(f => uniqueFiles.add(f)));
     });
+
+    const filePromises = Array.from(uniqueFiles).map(fileName => {
+      const fileURL = this.baseURL + fileName;
+      return fetch(fileURL)
+        .then(checkStatus)
+        .then(response => response.arrayBuffer())
+        .then(data => new Promise((resolve, reject) => {
+          this.ctx.decodeAudioData(data, resolve, reject);
+        }))
+        .then(buffer => {
+          this.bufferCache.set(fileName, buffer);
+          return buffer;
+        });
+    });
+
+    try {
+      await Promise.all(filePromises);
+
+      // Link buffers to sources
+      for (const source of Object.values(this.sources)) {
+        source.buffers = (source.fileNames || [])
+          .map(name => this.bufferCache.get(name))
+          .filter(Boolean);
+      }
+
+      // Link buffers to stages
+      for (const stage of Object.values(this.stages)) {
+        for (const profile of Object.values(stage)) {
+          profile.buffers = (profile.fileNames || [])
+            .map(name => this.bufferCache.get(name))
+            .filter(Boolean);
+        }
+      }
+    } catch (err) {
+      console.error('AudioSystem: Failed to preload sounds', err);
+    }
   }
 
   resume() {
@@ -251,14 +271,156 @@ export class AudioSystem {
     }
   }
 
+  playSoundProfile(
+    stage,
+    profileName,
+    volumeScale = 1,
+    playbackRateScale = 1,
+    delay = 0,
+    position = null,
+    bufferIndex = null
+  ) {
+    if (!this.ctx) return;
+    const profile = this.stages?.[stage]?.[profileName];
+    if (!profile) return;
+    if (profileName === 'silent' || profile.volume <= 0) return;
+    if (!profile.buffers || profile.buffers.length === 0) return;
+
+    const masterVolume = AUDIO_CONFIG.volumes.master ?? 1.0;
+    const initialVolume = profile.volume ?? 1.0;
+    const minRate = profile.playbackRateMin ?? 1.0;
+    const maxRate = profile.playbackRateMax ?? 1.0;
+    const initialPlaybackRate = this.random(minRate, maxRate);
+
+    const scaledVolume = initialVolume * volumeScale * masterVolume;
+    const scaledPlaybackRate = initialPlaybackRate * playbackRateScale;
+
+    if (volumeScale > 0 && scaledVolume < 0.01) return;
+
+    let buffer = null;
+    if (bufferIndex !== null && bufferIndex >= 0 && bufferIndex < profile.buffers.length) {
+      buffer = profile.buffers[bufferIndex];
+    } else {
+      buffer = this.randomChoice(profile.buffers);
+    }
+    if (!buffer) return;
+
+    const playLogic = () => {
+      const gainNode = this.ctx.createGain();
+      gainNode.gain.value = scaledVolume;
+
+      const bufferSource = this.ctx.createBufferSource();
+      bufferSource.playbackRate.value = scaledPlaybackRate;
+      bufferSource.buffer = buffer;
+
+      if (this.ctx.createStereoPanner && position) {
+        const pannerNode = this.ctx.createStereoPanner();
+        pannerNode.pan.value = this.calculatePan(position);
+        bufferSource.connect(pannerNode);
+        pannerNode.connect(gainNode);
+      } else {
+        bufferSource.connect(gainNode);
+      }
+
+      gainNode.connect(this.ctx.destination);
+      bufferSource.start(0);
+    };
+
+    if (delay > 0) {
+      const gainNode = this.ctx.createGain();
+      gainNode.gain.value = scaledVolume;
+
+      const bufferSource = this.ctx.createBufferSource();
+      bufferSource.playbackRate.value = scaledPlaybackRate;
+      bufferSource.buffer = buffer;
+
+      if (this.ctx.createStereoPanner && position) {
+        const pannerNode = this.ctx.createStereoPanner();
+        pannerNode.pan.value = this.calculatePan(position);
+        bufferSource.connect(pannerNode);
+        pannerNode.connect(gainNode);
+      } else {
+        bufferSource.connect(gainNode);
+      }
+
+      gainNode.connect(this.ctx.destination);
+      bufferSource.start(this.ctx.currentTime + delay);
+    } else {
+      playLogic();
+    }
+  }
+
+  handlePreview(detail) {
+    if (!detail) return;
+    const { stage, profile } = detail;
+    this.previewSound(stage, profile);
+  }
+
+  previewSound(stage, profile) {
+    if (!this.ctx || !stage || !profile || profile === 'silent' || profile === 'default') {
+      return;
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    if (this.stages?.[stage]?.[profile]) {
+      this.playSoundProfile(
+        stage,
+        profile,
+        1,
+        1,
+        0,
+        null
+      );
+    } else if (this.sources[profile]) {
+      this.playSoundBase(
+        profile,
+        1,
+        1,
+        0,
+        null
+      );
+    }
+  }
+
   handleLaunch(detail) {
-    const { position } = detail;
-    const { delay, scale } = this.calculatePositionalAudioParams(position, 1);
-    this.playSoundBase('lift', scale, 1, delay, position);
+    const soundConfig = detail?.sound || {};
+    const profile = soundConfig.launch || detail?.launchSound || 'standard';
+    if (profile === 'silent' || soundConfig.noLaunchSound) {
+      return;
+    }
+
+    const { position } = detail || {};
+    const volMult = soundConfig.volumeMultiplier ?? 1;
+    const pitchMult = soundConfig.pitchMultiplier ?? 1;
+    const { delay, scale } = this.calculatePositionalAudioParams(
+      position,
+      volMult
+    );
+
+    if (profile !== 'standard' && this.stages?.launch?.[profile]) {
+      this.playSoundProfile(
+        'launch',
+        profile,
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+    } else {
+      this.playSoundBase(
+        'lift',
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+    }
   }
 
   handleBurst(detail) {
     if (
+      !detail ||
       detail.noBurstSound ||
       detail.noBurst ||
       (Array.isArray(detail.effects) && detail.effects.includes('no-burst'))
@@ -266,11 +428,56 @@ export class AudioSystem {
       return;
     }
 
-    const { position, intensity } = detail;
-    const { delay, scale } = this.calculatePositionalAudioParams(position, intensity * 2);
+    const soundConfig = detail.sound || {};
+    const profile = soundConfig.burst || detail.burstSound || 'standard';
+    if (profile === 'silent' || soundConfig.noBurstSound) {
+      return;
+    }
 
-    // Scale down volume for smaller intensity, but speed up playback
-    const playbackRateScale = this.clamp(2 - scale, 1, 1.5);
+    const { position, intensity = 0.5 } = detail;
+    const volMult = soundConfig.volumeMultiplier ?? 1;
+    const pitchMult = soundConfig.pitchMultiplier ?? 1;
+    const { delay, scale } = this.calculatePositionalAudioParams(
+      position,
+      intensity * 2 * volMult
+    );
+
+    const playbackRateScale = this.clamp(
+      2 - (scale / Math.max(volMult, 0.01)),
+      1,
+      1.5
+    ) * pitchMult;
+
+    const isSmallBurst = Boolean(
+      detail.isSubBurst ||
+      detail.isSecondBurst ||
+      soundConfig.isSubBurst ||
+      profile === 'burstSmall' ||
+      profile === 'small'
+    );
+
+    if (isSmallBurst) {
+      this.playSoundBase(
+        'burstSmall',
+        scale,
+        playbackRateScale,
+        delay,
+        position
+      );
+      return;
+    }
+
+    if (profile !== 'standard' && this.stages?.burst?.[profile]) {
+      this.playSoundProfile(
+        'burst',
+        profile,
+        scale,
+        playbackRateScale,
+        delay,
+        position
+      );
+      return;
+    }
 
     const minBurstY = LAUNCH_ZONE_CONFIG.minBurstY;
     const maxBurstY = LAUNCH_ZONE_CONFIG.maxBurstY;
@@ -301,8 +508,13 @@ export class AudioSystem {
   }
 
   handleCrackle(detail) {
-    const { position } = detail;
+    const soundConfig = detail?.sound || {};
+    const profile = soundConfig.crackle || detail?.crackleSound || 'standard';
+    if (profile === 'silent' || soundConfig.noCrackleSound) {
+      return;
+    }
 
+    const { position } = detail || {};
     const now = Date.now();
     // Throttle crackles: only allow 1 per 50ms globally to avoid destroying eardrums
     if (now - this._lastCrackleTime < 50) {
@@ -310,7 +522,50 @@ export class AudioSystem {
     }
     this._lastCrackleTime = now;
 
-    const { delay, scale } = this.calculatePositionalAudioParams(position, 0.8);
-    this.playSoundBase('crackle', scale, 1, delay, position);
+    const volMult = soundConfig.volumeMultiplier ?? 1;
+    const pitchMult = soundConfig.pitchMultiplier ?? 1;
+    const { delay, scale } = this.calculatePositionalAudioParams(
+      position,
+      0.8 * volMult
+    );
+
+    const isSmallCrackle = Boolean(
+      detail?.isSubBurst ||
+      detail?.isSecondBurst ||
+      soundConfig?.isSubBurst ||
+      profile === 'crackleSmall' ||
+      profile === 'small' ||
+      detail?.source === 'burst-particle'
+    );
+
+    if (isSmallCrackle) {
+      this.playSoundBase(
+        'crackleSmall',
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+      return;
+    }
+
+    if (profile !== 'standard' && this.stages?.crackle?.[profile]) {
+      this.playSoundProfile(
+        'crackle',
+        profile,
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+    } else {
+      this.playSoundBase(
+        'crackle',
+        scale,
+        pitchMult,
+        delay,
+        position
+      );
+    }
   }
 }

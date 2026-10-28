@@ -53,6 +53,40 @@ describe('SmokeSystem', () => {
     expect(firstPuff.life).toBeLessThanOrEqual(FIREWORK_CONFIG.SMOKE.burstLifeMax);
   });
 
+  it('should spawn sub-cluster volumetric smoke clouds onBurst when burst-smoke is present in object effects format', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff4500,
+      intensity: 0.8,
+      effects: [
+        {
+          type: 'burst-smoke',
+          start: 0.1,
+          end: 0.6
+        }
+      ]
+    });
+
+    expect(smokeSystem.puffs.length).toBeGreaterThan(0);
+  });
+
+  it('should spawn sub-cluster volumetric smoke clouds onBurst when burstSmoke or burst-smoke flag is true', () => {
+    smokeSystem.setQuality('medium');
+    smokeSystem.clear();
+
+    smokeSystem.onBurst({
+      position: { x: 0, y: 150, z: 0 },
+      colorHex: 0xff4500,
+      intensity: 0.8,
+      burstSmoke: true
+    });
+
+    expect(smokeSystem.puffs.length).toBeGreaterThan(0);
+  });
+
   it('should NOT spawn smoke onBurst by default when burst-smoke is absent', () => {
     smokeSystem.setQuality('medium');
     smokeSystem.clear();

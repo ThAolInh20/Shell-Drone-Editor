@@ -24,33 +24,72 @@ export class ShowEventDispatcher {
       if (
         evt.instantBurst !== undefined
         || evt.shellSize !== undefined
+        || evt.starLifeMultiplier !== undefined
         || evt.shapeType !== undefined
         || evt.dynamicsType !== undefined
         || evt.pistil !== undefined
         || evt.effects !== undefined
         || evt.strobe !== undefined
+        || evt['white-strobe'] !== undefined
+        || evt['glitter-strobe'] !== undefined
         || evt.crackle !== undefined
+        || evt.ghost !== undefined
+        || evt['ghost-flare'] !== undefined
+        || evt.ghostFlare !== undefined
         || evt.flow !== undefined
+        || evt.crossette !== undefined
         || evt.noTrail !== undefined
+        || evt['no-trail'] !== undefined
+        || evt.noBurst !== undefined
+        || evt['no-burst'] !== undefined
+        || evt['sparkle-apex'] !== undefined
+        || evt['burst-smoke'] !== undefined
+        || evt.burstSmoke !== undefined
+        || evt['apex-hang'] !== undefined
+        || evt.apexHang !== undefined
+        || evt['slow-burst'] !== undefined
+        || evt.slowBurst !== undefined
         || evt.cometTrail !== undefined
         || evt.stages !== undefined
         || evt.nestingMode !== undefined
         || evt.multiNested !== undefined
+        || evt.secondBurst !== undefined
+        || evt.secondBurstEnabled !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
         if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
+        if (evt.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = evt.starLifeMultiplier;
         if (evt.shapeType !== undefined) overrides.shapeType = evt.shapeType;
         if (evt.dynamicsType !== undefined) overrides.dynamicsType = evt.dynamicsType;
         if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
         if (evt.effects !== undefined) overrides.effects = evt.effects;
         if (evt.strobe !== undefined) overrides.strobe = evt.strobe;
+        if (evt['white-strobe'] !== undefined) overrides['white-strobe'] = evt['white-strobe'];
+        if (evt['glitter-strobe'] !== undefined) overrides['glitter-strobe'] = evt['glitter-strobe'];
         if (evt.crackle !== undefined) overrides.crackle = evt.crackle;
+        if (evt.ghost !== undefined) overrides.ghost = evt.ghost;
+        if (evt['ghost-flare'] !== undefined) overrides['ghost-flare'] = evt['ghost-flare'];
+        if (evt.ghostFlare !== undefined) overrides['ghost-flare'] = evt.ghostFlare;
         if (evt.flow !== undefined) overrides.flow = evt.flow;
         if (evt.noTrail !== undefined) overrides.noTrail = evt.noTrail;
+        if (evt['no-trail'] !== undefined) overrides.noTrail = evt['no-trail'];
+        if (evt['no-burst'] !== undefined) overrides.noBurst = evt['no-burst'];
+        if (evt.noBurst !== undefined) overrides.noBurst = evt.noBurst;
+        if (evt.crossette !== undefined) overrides.crossette = evt.crossette;
+        if (evt['sparkle-apex'] !== undefined) overrides['sparkle-apex'] = evt['sparkle-apex'];
+        if (evt['burst-smoke'] !== undefined) overrides['burst-smoke'] = evt['burst-smoke'];
+        if (evt.burstSmoke !== undefined) overrides['burst-smoke'] = evt.burstSmoke;
+        if (evt['apex-hang'] !== undefined) overrides['apex-hang'] = evt['apex-hang'];
+        if (evt.apexHang !== undefined) overrides['apex-hang'] = evt.apexHang;
+        if (evt['slow-burst'] !== undefined) overrides['slow-burst'] = evt['slow-burst'];
+        if (evt.slowBurst !== undefined) overrides['slow-burst'] = evt.slowBurst;
+        if (evt.slow_burst !== undefined) overrides['slow-burst'] = evt.slow_burst;
         if (evt.stages !== undefined) overrides.stages = evt.stages;
         if (evt.nestingMode !== undefined) overrides.nestingMode = evt.nestingMode;
         if (evt.multiNested !== undefined) overrides.multiNested = evt.multiNested;
+        if (evt.secondBurst !== undefined) overrides.secondBurst = evt.secondBurst;
+        if (evt.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = evt.secondBurstEnabled;
         if (evt.cometTrail !== undefined) {
           if (evt.cometTrail === 'none') {
             overrides.launchTrail = false;
@@ -96,6 +135,17 @@ export class ShowEventDispatcher {
         }
         if (evt.ascentSubShellType !== undefined) overrides.ascentSubShellType = evt.ascentSubShellType;
         if (evt.ascentBurstCount !== undefined) overrides.ascentBurstCount = parseInt(evt.ascentBurstCount, 10);
+        if (evt.sound || evt.launchSound || evt.burstSound || evt.crackleSound || evt.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: evt.sound?.launch || evt.launchSound || undefined,
+            burst: evt.sound?.burst || evt.burstSound || undefined,
+            crackle: evt.sound?.crackle || evt.crackleSound || undefined,
+            volumeMultiplier: evt.sound?.volumeMultiplier !== undefined
+              ? evt.sound.volumeMultiplier
+              : (evt.soundVolume !== undefined ? evt.soundVolume : undefined),
+            pitchMultiplier: evt.sound?.pitchMultiplier
+          };
+        }
       }
 
       const isComet = (evt.preset && (evt.preset.type === 'comet_cluster' || evt.preset.type === 'comet' || evt.preset.type?.startsWith('comet'))) 

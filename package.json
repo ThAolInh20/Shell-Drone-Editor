@@ -1,7 +1,7 @@
 {
   "name": "shell-drone-animation",
-  "version": "2.4.5",
-  "description": "Editor show Drone and Firework",
+  "version": "3.1.3",
+  "description": "Firework & Drone Show Studio",
   "author": "ThaoLinn20",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "com.droneshell.editor",
-    "productName": "DroneShellEditor",
+    "productName": "Firework & Drone Show Studio",
     "copyright": "Copyright © 2026 ThaoLinn20",
     "directories": {
       "output": "dist-electron"
@@ -51,7 +51,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Drone Shell Editor",
+      "shortcutName": "Firework & Drone Show Studio",
       "displayLanguageSelector": true,
       "license": "LICENSE"
     }

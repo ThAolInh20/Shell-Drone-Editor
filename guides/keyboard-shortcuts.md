@@ -1,6 +1,6 @@
 # Bảng Tổng hợp Phím tắt Toàn hệ thống
 
-Tài liệu này tổng hợp toàn bộ phím tắt thao tác nhanh trong phần mềm **Drone Shell Editor**, hỗ trợ tối ưu hóa tốc độ biên đạo, điều hướng dòng thời gian, điều khiển không gian 3D và tinh chỉnh biến đổi hình học.
+Tài liệu này tổng hợp toàn bộ phím tắt thao tác nhanh trong phần mềm **Firework & Drone Show Studio**, hỗ trợ tối ưu hóa tốc độ biên đạo, điều hướng dòng thời gian, điều khiển không gian 3D và tinh chỉnh biến đổi hình học.
 
 ---
 

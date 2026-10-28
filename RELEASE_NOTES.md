@@ -1,16 +1,25 @@
-# Release Notes - v2.4.5
+# Release Notes - v3.1.3
+
+## Downloads
+- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.1.3.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio.Setup.3.1.3.exe)
+- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.1.3-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio-3.1.3-win.zip)
+- All Release Assets: [GitHub Releases v3.1.3](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.3)
 
 ## Features
-- Added audio waveform visualization on the timeline and automatic audio track loading when importing show scenarios.
-- Added interactive onboarding tours for the timeline editor and inspector panel with target auto-scrolling.
-- Added quick keyboard shortcut guide overlay for fast reference within the editor.
-- Added realistic particle dynamics and thermal cooling for natural spark deceleration and glowing color transitions.
-- Added unified environmental physics linking wind, smoke dispersion, explosion blast waves, and drone light.
-- Added sustained star radiance and dynamic multi-burst illumination on smoke clouds.
+- Added Horsetail Waterfall firework preset with realistic downward cascading embers.
+- Added realistic water surface reflections with real-time planar mirror rendering.
+- Added an interactive 3D workstation desk and in-world floating control billboard in the scene.
+- Added multi-selection capabilities to select and edit multiple timeline blocks simultaneously using Ctrl+Click.
+- Added batch editing in the property inspector to adjust parameters across multiple selected items at once.
+
+## Bug Fixes
+- Fixed application packaging icon size to ensure proper desktop and taskbar icon display.
 
 ## Updates
-- Optimized firework particle density scaling and stabilized ring geometry across quality presets.
-- Improved water reflection dynamics and eliminated repetitive texture patterns on water surfaces.
-- Refined explosion burst smoke generation and balanced smoke particle budgets for smoother performance.
-- Streamlined guided tour navigation and step ordering for new users.
-- Updated the built-in demo show scenario.
+- Improved rendering performance and eliminated micro-stutters during heavy firework particle bursts.
+- Optimized smoke emission rates for large particle clusters to maintain smooth frame rates.
+- Rebranded desktop application to Firework & Drone Show Studio.
+
+## Chores
+- Added comprehensive unit tests for water reflections, planar reflectors, and timeline multi-selection controls.
+- Updated release notes automation skill with standardized download asset URLs.

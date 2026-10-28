@@ -37,6 +37,7 @@ const smokeSystem = new SmokeSystem(sceneManager);
 const fireworkSystem = new FireworkSystem(sceneManager.instance, trailSystem, smokeSystem);
 const skyLightReactionSystem = new SkyLightReactionSystem(sceneManager, smokeSystem);
 const cometSystem = new CometSystem(sceneManager.instance, trailSystem, smokeSystem);
+fireworkSystem.cometSystem = cometSystem;
 const audioSystem = new AudioSystem(cameraManager);
 audioSystem.preload();
 const postProcessing = renderingConfig.post.enabled
@@ -142,12 +143,20 @@ hotkeyManager.register('global', 'shift+r', () => {
   }
 });
 
+hotkeyManager.register('global', 'h', () => {
+  cameraManager.toggleLookBehind();
+});
+
 function animate() {
   requestAnimationFrame(animate);
 
   clock.update();
   performanceMonitor.update(clock.deltaTime);
-  sceneManager.update(clock.deltaTime);
+  sceneManager.update(
+    clock.deltaTime,
+    cameraManager.instance.position,
+    timelineEditor ? timelineEditor.visible : false
+  );
   
   // Systems update
   if (!inputSystem.isPaused()) {

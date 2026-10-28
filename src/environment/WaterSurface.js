@@ -273,33 +273,49 @@ export class WaterSurface {
                           spatialModulation *
                           distFactor;
 
-        // Multi-tap anisotropic reflection sampling to simulate water surface roughness / blur
-        // Eliminates harsh pixel jitter and softens reflected firework particles
+        // Multi-tap anisotropic reflection sampling with capillary wave blur
+        // Disperses sharp reflections into soft nocturnal river light spreads
+        vec2 blurSpread = (vec2(abs(normal.x) * 0.0075, abs(normal.z) * 0.016) + vec2(0.0022, 0.0055)) *
+                          spatialModulation *
+                          clamp(600.0 / (distToCam + 150.0), 0.25, 1.5);
+
         vec2 reflUVCenter = clamp(baseCoord + distortion, vec2(0.001), vec2(0.999));
-        vec2 reflUVUp = clamp(baseCoord + distortion * vec2(0.85, 1.45), vec2(0.001), vec2(0.999));
-        vec2 reflUVDown = clamp(baseCoord + distortion * vec2(0.85, 0.55), vec2(0.001), vec2(0.999));
+        vec2 reflUVUp = clamp(baseCoord + distortion * vec2(0.85, 1.45) + vec2(0.0, blurSpread.y), vec2(0.001), vec2(0.999));
+        vec2 reflUVDown = clamp(baseCoord + distortion * vec2(0.85, 0.55) - vec2(0.0, blurSpread.y), vec2(0.001), vec2(0.999));
+        vec2 reflUVLeft = clamp(baseCoord + distortion * vec2(0.65, 1.0) - vec2(blurSpread.x, 0.0), vec2(0.001), vec2(0.999));
+        vec2 reflUVRight = clamp(baseCoord + distortion * vec2(0.65, 1.0) + vec2(blurSpread.x, 0.0), vec2(0.001), vec2(0.999));
+        vec2 reflUVFarUp = clamp(baseCoord + distortion * vec2(0.70, 2.10) + vec2(0.0, blurSpread.y * 2.2), vec2(0.001), vec2(0.999));
+        vec2 reflUVFarDown = clamp(baseCoord + distortion * vec2(0.70, 0.15) - vec2(0.0, blurSpread.y * 2.2), vec2(0.001), vec2(0.999));
 
         vec4 reflSampleCenter = texture2D(uReflectionTexture, reflUVCenter);
         vec4 reflSampleUp = texture2D(uReflectionTexture, reflUVUp);
         vec4 reflSampleDown = texture2D(uReflectionTexture, reflUVDown);
-        vec3 reflectionColor = (reflSampleCenter.rgb * 0.52) + (reflSampleUp.rgb + reflSampleDown.rgb) * 0.24;
+        vec4 reflSampleLeft = texture2D(uReflectionTexture, reflUVLeft);
+        vec4 reflSampleRight = texture2D(uReflectionTexture, reflUVRight);
+        vec4 reflSampleFarUp = texture2D(uReflectionTexture, reflUVFarUp);
+        vec4 reflSampleFarDown = texture2D(uReflectionTexture, reflUVFarDown);
+
+        vec3 reflectionColor = (reflSampleCenter.rgb * 0.32) +
+                               (reflSampleUp.rgb + reflSampleDown.rgb) * 0.18 +
+                               (reflSampleLeft.rgb + reflSampleRight.rgb) * 0.11 +
+                               (reflSampleFarUp.rgb + reflSampleFarDown.rgb) * 0.05;
 
         // Schlick Fresnel
         float NdotV = max(dot(viewDir, normal), 0.0);
         float R0 = 0.04;
         float fresnel = R0 + (1.0 - R0) * pow(1.0 - NdotV, 5.0);
 
-        // Deep river body water color
-        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.30);
+        // Deep river body water color with nocturnal turbidity
+        vec3 baseWater = mix(uWaterColor, uFresnelColor, fresnel * 0.25);
 
-        // Specular Mirror Reflection Component:
-        // Capped reflection ceiling (max ~0.62) and dark water transmission tint
-        // Prevents water from competing with sky brightness and provides nocturnal river depth
+        // Subdued Natural Reflection Component:
+        // Capped reflection ceiling and dark murky water absorption
+        // Softens mirror sharpness and provides authentic nocturnal lake depth
         vec3 finalColor = baseWater;
         if (uMirrorEnabled > 0.5) {
-          float reflWeight = clamp(fresnel * 0.82, 0.04, 0.62);
-          vec3 tintedRefl = reflectionColor * vec3(0.82, 0.88, 0.94);
-          finalColor = mix(baseWater, baseWater * 0.35 + tintedRefl * 0.85, reflWeight);
+          float reflWeight = clamp(fresnel * 0.58, 0.02, 0.42);
+          vec3 tintedRefl = reflectionColor * vec3(0.68, 0.76, 0.82);
+          finalColor = mix(baseWater, baseWater * 0.50 + tintedRefl * 0.45, reflWeight);
         }
 
         // Moonlight Specular Highlight and Shimmer Column

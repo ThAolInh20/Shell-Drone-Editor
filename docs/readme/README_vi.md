@@ -1,8 +1,8 @@
-# Mô phỏng Trình diễn Drone và Pháo hoa 3D (Shell Drone Animation)
+# Firework & Drone Show Studio (Mô phỏng Trình diễn Drone và Pháo hoa 3D)
 
 **Languages:** [English](README_en.md) | [Tiếng Việt](README_vi.md) | [日本語](README_ja.md) | [中文](README_zh.md)
 
-Dự án này là một ứng dụng mô phỏng và biên tập trình diễn pháo hoa & drone 3D, được xây dựng bằng **Three.js** và **Vite**, Sử dụng **Electron** để build phần mềm Desktop chuyên nghiệp.
+Firework & Drone Show Studio là ứng dụng mô phỏng và biên tập trình diễn pháo hoa & drone 3D, được xây dựng bằng **Three.js** và **Vite**, sử dụng **Electron** để build phần mềm Desktop chuyên nghiệp.
 
 ---
 

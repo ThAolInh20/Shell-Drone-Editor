@@ -144,6 +144,11 @@ export default {
       addDroneOpt: "ドローン/シェル追加",
       addAudioOpt: "音声追加",
       importBtn: "シナリオ読み込み",
+      newBtn: "新規作成",
+      newBtnTooltip: "新しい空のスクリプトを作成 Ctrl+Alt+N",
+      newScriptTitle: "新しいスクリプト",
+      newScriptConfirm: "新しいスクリプトを作成するとタイムラインがリセットされます。未保存のすべてのブロックとオーディオが消去されます。続行しますか？",
+      newScriptCreated: "新しい空のスクリプトが作成されました",
       saveBtn: "保存",
       exportBtn: "別名で保存...",
       exportAll: "すべてのブロックをエクスポート",
@@ -167,7 +172,18 @@ export default {
       eventBlock: "{preset} ({count})",
       playLabel: "再生",
       pauseLabel: "一時停止",
-      addStepBtn: "ステップ追加 +"
+      addStepBtn: "ステップ追加 +",
+      groupBtn: "グループ化",
+      ungroupBtn: "グループ解除",
+      groupBlockName: "イベントグループ",
+      playBtnTooltip: "再生または一時停止 Space",
+      followTooltip: "再生ヘッドへの自動追従を切り替え",
+      addSequenceTooltip: "アンカーヘッドの位置に新しいシーケンスイベントを追加",
+      importBtnTooltip: "JSON ファイルからショーシナリオをインポート",
+      exportBtnTooltip: "全シーケンスを JSON ファイルとして書き出し",
+      addDroneAudioTooltip: "ドローン JSON または音声 MP3 WAV ファイルをシナリオに追加",
+      groupBtnTooltip: "選択したブロックをひとつのグループにまとめる",
+      ungroupBtnTooltip: "選択したグループを個別のブロックに解除"
     },
     timelineTour: {
       helpBtn: "ガイド",
@@ -184,7 +200,7 @@ export default {
       step1Desc: "再生停止、再生ヘッド追従の切り替え、新規シーケンスの追加を行います。",
       step1Shortcut: "ショートカット: Spaceキーで再生または一時停止",
       step2Title: "データ追加とインポート",
-      step2Desc: "これら3つのボタンでアンカーヘッド位置への新規花火挿入、プロジェクトファイル読込、MP3楽曲やドローン飛行データの読込を行います。",
+      step2Desc: "これら4つのボタンで新しい空のスクリプト作成、アンカーヘッド位置への新規花火挿入、プロジェクトファイル読込、MP3楽曲やドローン飛行データの読込を行います。",
       step2Shortcut: "ヒント: ドローン音声追加ボタンからBGMや航線データをインポート",
       step3Title: "トラックエリア",
       step3Desc: "音声シーケンス、ドローンショーシーケンス、花火エフェクトを配置します。ドラッグで移動、端を引いて継続時間を変更できます。",
@@ -332,6 +348,10 @@ export default {
     settingsResume: "再開",
     settingsReset: "リセット",
     settingsResetAll: "すべての設定をリセット",
+    settingsRevertChanges: "変更を元に戻す",
+    settingsResetCategory: "このタブをリセット",
+    settingsConfirmResetAll: "すべての設定をデフォルトに戻してもよろしいですか？",
+    settingsConfirmResetCategory: "このカテゴリの設定をリセットしてもよろしいですか？",
     settingsTimeline: "タイムライン Ctrl+T",
     settingsTools: "ツールとエディタ",
     settingsTimelineEditor: "タイムラインエディタ",
@@ -360,6 +380,7 @@ export default {
     bloom_strength: "ブルーム強度",
     bloom_radius: "ブルーム半径",
     bloom_threshold: "ブルームしきい値",
+    particle_edge_softness: "パーティクルエッジのぼかし",
     lake_mirror_reflection: "水面反射",
     lake_reflection_resolution: "水面反射解像度",
     lake_reflection_resolution_low: "低",
@@ -417,12 +438,40 @@ export default {
     smokeWindSpeed: "スモーク風速",
     inspector: {
       title: "属性インスペクタ",
+      batchTitle: "一括属性編集",
+      batchSubtitle: "選択中の {count} 個のブロックを一括編集中",
+      batchNote: "変更は選択されたすべてのブロックに適用されます",
+      mixedValues: "複数の値",
+      mixed: "混在",
+      individualTime: "個別時間",
+      individualTimeTooltip: "各ブロックの時間位置は保持されます。タイムライン上でドラッグしてまとめて移動します。",
+      batchDeleteBtn: "選択したブロックを削除",
       empty: "オブジェクトが選択されていません。",
       deleteBtn: "イベント削除",
       addEffectPrompt: "+ エフェクトを追加...",
+      activeEffects: "タイムエフェクト",
+      characteristics: "トリガーエフェクト",
+      triggeredEffects: "トリガーエフェクト",
+      timedEffects: "タイムエフェクト",
+      addActiveEffect: "タイムエフェクトを追加",
       noActiveEffects: "有効なエフェクトはありません",
       allEffectsAdded: "すべてのエフェクトが追加されました",
       removeEffect: "エフェクトを削除",
+      expandTimeline: "タイムラインを拡大",
+      expandActiveEffectsTimeline: "タイムラインを展開",
+      collapseTimeline: "タイムラインを折りたたむ",
+      expandedTimelineTitle: "アクティブエフェクトタイムライン",
+      auditionSoundTooltip: "サウンド試聴",
+      auditionSoundBtn: "試聴",
+      waveCurve: {
+        addPoint: "+ 頂点を追加",
+        deletePoint: "- 頂点を削除",
+        arch: "アーチ",
+        doublePeak: "ダブルピーク",
+        wave: "ウェーブ",
+        slope: "スロープ",
+        hint: "ポイントをドラッグして位置と高さを調整し、ハンドルで発射角度を変更します。ボタンで頂点の追加や削除が可能です。"
+      },
       groups: {
         audioSettings: "音声設定",
         coreSettings: "コア設定",
@@ -430,9 +479,12 @@ export default {
         cometConfig: "Comet 設定",
         angleConfig: "発射角度",
         visualEffects: "ライトエフェクト",
+        soundSettings: "ステージサウンド設定",
         nestedStages: "多重ネスト花火設定",
+        secondBurst: "二次炸裂 Second Burst",
         geometryOffsets: "座標とオフセット",
-        beatSettings: "Beat Editor"
+        beatSettings: "Beat Editor",
+        waveCurveSettings: "ウェーブ曲線エディター"
       },
       fields: {
         time: "開始時間",
@@ -454,6 +506,7 @@ export default {
         color: "花火カラー",
         customColor: "カスタム色",
         shellSize: "花火サイズ",
+        starLifeMultiplier: "燃焼時間",
         pistil: "芯付 Pistil",
         instantBurst: "即時爆発",
         burstSmoke: "バーストスモーク",
@@ -467,7 +520,16 @@ export default {
         crossette: "クロセット十字分裂",
         noTrail: "トレイルなし",
         noBurst: "無音即時爆発",
+        tadpoleFlurry: "タドポールアロー噴射",
+        erraticDart: "乱舞ダート",
+        longBurn: "ロングバーン",
+        apexHang: "エイペックスハング",
+        slowBurst: "スローバースト浮遊",
         activeEffects: "有効エフェクト",
+        launchSound: "発射サウンド",
+        burstSound: "炸裂サウンド",
+        crackleSound: "パチパチ音",
+        soundVolume: "音量スケール",
         ratioX: "比率 X",
         ratioY: "比率 Y",
         x1: "X1",
@@ -490,7 +552,17 @@ export default {
         templates: "プリセットテンプレート",
         delay: "爆発遅延",
         stageScale: "スケール倍率",
-        nestingMode: "ネストモード"
+        nestingMode: "ネストモード",
+        secondBurst: "二次炸裂 Second Burst",
+        secondBurstEnabled: "二次炸裂 Second Burst",
+        secondBurstRatio: "粒子変換比率",
+        secondBurstTiming: "炸裂タイミング",
+        secondBurstMode: "炸裂分散モード",
+        secondBurstHint: "華麗な演出と 60 FPS の安定性を保つため比率は 20% から 35% を推奨します",
+        childShell: "子花火タイプ",
+        addChildShell: "子花火を追加",
+        removeChildShell: "この子花火を削除",
+        childShellScale: "子花火スケール"
       },
       options: {
         type: {
@@ -512,6 +584,7 @@ export default {
           galaxy: "銀河スパイラル",
           lightning: "雷光",
           oval: "オーバル",
+          egg: "エッグシェル",
           "upward-spray": "上方スプレー",
           willow: "柳形",
           "willow-up": "上方噴射柳",
@@ -519,7 +592,12 @@ export default {
           "split-flash": "赤道分割フラッシュ",
           "double-helix": "二重螺旋 Double Helix",
           "sparkling-branches": "多方向スパークル分岐",
-          waterfall: "ウォーターフォール滝"
+          sphere_uniform: "均一球形",
+          "sphere-uniform": "均一球形",
+          sphere_rings: "球体緯度リング",
+          "sphere-rings": "球体緯度リング",
+          waterfall: "ウォーターフォール滝",
+          horsetail: "馬尾形"
         },
         dynamicsType: {
           standard: "標準放射",
@@ -544,7 +622,13 @@ export default {
           "double-helix": "二重螺旋旋回 Double Helix",
           crossette: "クロセット十字分裂",
           "sparkle-trail": "スパークルトレイル",
-          "sparkling-branch-comet": "多方向分岐スパークル彗星"
+          "sparkling-branch-comet": "多方向分岐スパークル彗星",
+          "tadpole-spiral": "オタマジャクシ螺旋遊泳",
+          crysanthemum_discrete_trail: "菊咲き離散トレイル",
+          "crysanthemum-discrete-trail": "菊咲き離散トレイル",
+          sphere_rings_wave: "球体リングウェーブ点灯",
+          "sphere-rings-wave": "球体リングウェーブ点灯",
+          horsetail: "馬尾の滝垂れ下がり"
         },
         pattern: {
           random: "ランダム",
@@ -565,6 +649,8 @@ export default {
           diverge: "発散",
           zigzag: "ジグザグ",
           continuous: "連続",
+          "sweep-custom-curve": "* カスタム曲線スイープ",
+          "sweep-wave": "ウェーブ波形スイープ",
           "sweep-left": "左スイープ",
           "sweep-right": "右スイープ",
           "sweep-random-tilt-left": "左スイープ ランダム傾斜",
@@ -603,15 +689,22 @@ export default {
           comet_cluster_cascade: "カスケード階層彗星群",
           comet_single: "単発超高輝度彗星ビーム",
           comet_single_beam: "単発超高輝度彗星ビーム",
+          comet_tadpole_burst: "オタマジャクシ彗星",
           sparkling_comet: "頂点スパークル彗星",
           sparkling_comet_branches: "多方向スパークル彗星",
           crysanthemum: "菊花",
+          crysanthemum_sphere_rings: "球体緯度リング菊",
+          sphere_rings_cascade: "球体緯度リングカスケード",
+          sphere_rings_strobe: "球体緯度リング同期ストロボ",
+          crysanthemum_uniform_sphere: "均一球形菊",
           crysanthemum_v2: "菊花 V2",
           crysanthemum_smoke: "スモーク菊花",
           crysanthemum_spiral: "スパイラル菊花",
           crysanthemum_spiral_v2: "スパイラル菊花 V2",
           crysanthemum_cc: "変色菊花",
           crysanthemum_nested: "多重ネスト菊花",
+          egg_crysanthemum: "エッグ菊",
+          chrysanthemum_tadpole_burst: "菊咲きオタマジャクシ彗星",
           multi_nested: "★ 多重ネスト花火",
           strobe: "ストロボ",
           strobe_dying_embers: "残火ストロボ",
@@ -653,11 +746,17 @@ export default {
           split_flash: "スプリットフラッシュ",
           galaxy: "スパイラルギャラクシー",
           double_helix: "二重螺旋花火",
-          crossette: "十字花火"
+          crossette: "十字花火",
+          horsetail_waterfall: "馬尾滝"
         },
         nestingMode: {
           concentric: "同心円時系列爆発 Time Cascade",
           satellite: "衛星分散爆発 Satellite Dispersion"
+        },
+        distributionMode: {
+          random: "ランダムジッター",
+          sequential: "順次ウェーブ",
+          simultaneous: "同時炸裂"
         },
         templates: {
           custom: "カスタム設定",
@@ -665,7 +764,8 @@ export default {
           classic: "クラシック冠菊カスケード Classic",
           satellite: "衛星スタークラスター Satellite",
           ghost: "ゴーストストロボシンフォニー Ghost Strobe",
-          crossette: "クロセットマトリックス Crossette"
+          crossette: "クロセットマトリックス Crossette",
+          horsetail_waterfall: "馬尾滝"
         },
         cometTrail: {
           none: "なし",
@@ -687,6 +787,28 @@ export default {
           star: "星",
           flow: "遊泳",
           sparking: "火花"
+        },
+        launchSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準発射",
+          heavy: "重砲発射",
+          soft: "ソフト発射",
+          silent: "ミュート"
+        },
+        burstSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準爆発",
+          heavy: "重砲炸裂",
+          soft: "ソフトポップ",
+          crisp: "クリスプ爆発",
+          silent: "ミュート"
+        },
+        crackleSound: {
+          empty: "デフォルトプリセット",
+          standard: "標準パチパチ",
+          dense: "密集パチパチ",
+          soft: "ソフトパチパチ",
+          silent: "ミュート"
         }
       },
       colors: {

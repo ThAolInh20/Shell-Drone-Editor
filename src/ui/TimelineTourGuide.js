@@ -161,7 +161,7 @@ export class TimelineTourGuide {
         id: 'dataActions',
         title: t('editor.timelineTour.step2Title') || 'Thêm và Nhập dữ liệu',
         desc: t('editor.timelineTour.step2Desc') ||
-          'Cụm 3 nút giúp bạn chèn sự kiện pháo hoa mới tại Anchor Head, mở kịch bản từ tệp JSON dự án hoặc nạp tệp nhạc nền MP3 và dữ liệu drone.',
+          'Cụm 4 nút giúp bạn tạo mới kịch bản rỗng, chèn sự kiện pháo hoa mới tại Anchor Head, mở kịch bản từ tệp JSON dự án hoặc nạp tệp nhạc nền MP3 và dữ liệu drone.',
         shortcut: t('editor.timelineTour.step2Shortcut') ||
           'Gợi ý: Dùng nút Thêm Drone Audio để nạp nhạc nền hoặc dữ liệu bay',
         getTarget: () => this.timelineEditor.dataActionsGroup || this.timelineEditor.toolbar

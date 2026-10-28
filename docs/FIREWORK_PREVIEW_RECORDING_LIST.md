@@ -44,6 +44,9 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 20 | `double-helix.mp4` | Double Helix | Xoan kep ADN 3D | [ ] Chua quay |
 | 21 | `flow.mp4` | Flow | Dong chay hat lien tuc | [ ] Chua quay |
 | 22 | `sparkle-trail.mp4` | Sparkle Trail | Duong bay tia sao choi vet mong thanh manh | [ ] Chua quay |
+| 23 | `tadpole-spiral.mp4` | Tadpole Spiral | Sao choi boi ngoan ngoeo lech xoan oc bung toa o dinh | [ ] Chua quay |
+| 24 | `crysanthemum_discrete_trail.mp4` | Chrysanthemum Discrete Trail | Trong luc lien tuc va van toc rieng giam dan tao duong cong ru, vet duoi roi rac | [ ] Chua quay |
+| 25 | `horsetail.mp4` | Horsetail Waterfall | Thac nuoc vang ru thang dung | [ ] Chua quay |
 
 ---
 
@@ -68,6 +71,8 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 13 | `half-flash.mp4` | Half Flash | Nua phat sang doi lap | [ ] Chua quay |
 | 14 | `split-flash.mp4` | Split Flash | 4 goc phan tu chop tat | [ ] Chua quay |
 | 15 | `sparkling-branches.mp4` | Sparkling Branches | 4-5 nhanh toa deu moi nhanh 4-5 tia sao choi | [ ] Chua quay |
+| 16 | `sphere_uniform.mp4` | Sphere Uniform | Cau phan bo dong deu Fibonacci khong goc chet | [ ] Chua quay |
+| 17 | `horsetail.mp4` | Horsetail | Chum vom hep huong len truoc khi ru xuong | [ ] Chua quay |
 
 ---
 
@@ -85,6 +90,7 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 6 | `ghost-flare.mp4` | Ghost Flare | Loe sang cuc dai truoc khi tat | [ ] Chua quay |
 | 7 | `pistil.mp4` | Pistil Inner Core | Loi phu nho ben trong vo cau lon | [ ] Chua quay |
 | 8 | `sparkle-apex.mp4` | Sparkle Apex | Chop sang ruc ro tai dinh tan | [ ] Chua quay |
+| 9 | `erratic-dart.mp4` | Erratic Darting | Tang toc doi huong bat ngo ve vet sang o cuoi | [ ] Chua quay |
 
 ---
 
@@ -103,6 +109,10 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 7 | `bouquet_cluster.mp4` | Bouquet Cluster | Chum sao choi phong len dong loat | [ ] Chua quay |
 | 8 | `kamuro_ghost.mp4` | Kamuro Ghost | Tan rong doi mau am anh | [ ] Chua quay |
 | 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
+| 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
+| 11 | `sphere-erratic-dart.mp4` | Sphere Erratic Dart | Hinh cau bung deu roi dot ngot vut loan xa ve vet sang sac net | [ ] Chua quay |
+| 12 | `crysanthemum_uniform_sphere.mp4` | Chrysanthemum Uniform Sphere | Bung no cau Fibonacci deu dan, uon cong theo trong luc, vet duoi roi rac keo dai | [ ] Chua quay |
+| 13 | `horsetail_waterfall.mp4` | Horsetail Waterfall | Vo cau bung nhe, tan vang ru thang dung nhu thac nuoc | [ ] Chua quay |
 
 ---
 

@@ -124,7 +124,7 @@ describe('PlanarReflector and Water Reflection Optimizations', () => {
     expect(fragmentShader).toContain('reflSampleDown');
 
     // Check reflection ceiling damping
-    expect(fragmentShader).toContain('reflWeight = clamp(fresnel * 0.82, 0.04, 0.62)');
+    expect(fragmentShader).toContain('reflWeight = clamp(fresnel * 0.58, 0.02, 0.42)');
 
     waterSurface.dispose();
   });

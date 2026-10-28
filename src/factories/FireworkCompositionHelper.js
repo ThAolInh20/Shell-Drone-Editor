@@ -17,7 +17,11 @@ export const AVAILABLE_SHAPES = [
   'half-flash',
   'split-flash',
   'double-helix',
-  'sparkling-branches'
+  'sparkling-branches',
+  'sphere_uniform',
+  'egg',
+  'sphere_rings',
+  'horsetail'
 ];
 
 export const AVAILABLE_DYNAMICS = [
@@ -43,7 +47,11 @@ export const AVAILABLE_DYNAMICS = [
   'double-helix',
   'crossette',
   'sparkle-trail',
-  'sparkling-branch-comet'
+  'sparkling-branch-comet',
+  'tadpole-spiral',
+  'crysanthemum_discrete_trail',
+  'sphere_rings_wave',
+  'horsetail'
 ];
 
 export const AVAILABLE_MODIFIERS = [
@@ -51,22 +59,47 @@ export const AVAILABLE_MODIFIERS = [
   'instantBurst'
 ];
 
-export const AVAILABLE_EFFECT_TAGS = [
-  'burst-smoke',
+export const TIMED_EFFECT_TAGS = [
+  'no-trail',
+  'flow',
   'strobe',
   'white-strobe',
   'glitter-strobe',
   'crackle',
   'ghost',
   'ghost-flare',
-  'flow',
-  'no-trail',
-  'no-burst',
   'crossette',
-  'sparkle-apex'
+  'sparkle-apex',
+  'tadpole-flurry',
+  'erratic-dart'
+];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  'burst-smoke',
+  'pistil',
+  'apex-hang',
+  'long-burn',
+  'slow-burst'
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
 ];
 
 export const PRESET_TEMPLATES = {
+  horsetail_waterfall: {
+    shape: 'horsetail',
+    dynamics: 'horsetail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  egg_crysanthemum: {
+    shape: 'egg',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
   random: {
     shape: 'sphere',
     dynamics: 'standard',
@@ -83,7 +116,7 @@ export const PRESET_TEMPLATES = {
     shape: 'sphere',
     dynamics: 'standard',
     modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    effects: ['no-trail']
   },
   comet_cluster_cc: {
     shape: 'sphere',
@@ -101,7 +134,7 @@ export const PRESET_TEMPLATES = {
     shape: 'sphere',
     dynamics: 'bouquet-comet',
     modifiers: { pistil: false, instantBurst: false },
-    effects: []
+    effects: ['no-trail']
   },
   comet_cluster_cascade: {
     shape: 'sphere',
@@ -121,8 +154,80 @@ export const PRESET_TEMPLATES = {
     modifiers: { pistil: false, instantBurst: false },
     effects: []
   },
+  comet_tadpole_burst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  cometTadpoleBurst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  chrysanthemum_tadpole_burst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['tadpole-flurry']
+  },
+  chrysanthemumTadpoleBurst: {
+    shape: 'sphere',
+    dynamics: 'tadpole-spiral',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['tadpole-flurry']
+  },
   crysanthemum: {
     shape: 'sphere',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_uniform_sphere: {
+    shape: 'sphere_uniform',
+    dynamics: 'crysanthemum_discrete_trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemum_sphere_rings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  crysanthemumSphereRings: {
+    shape: 'sphere_rings',
+    dynamics: 'crysanthemum-trail',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphere_rings_cascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphereRingsCascade: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  sphere_rings_strobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
+  },
+  sphereRingsStrobe: {
+    shape: 'sphere_rings',
+    dynamics: 'sphere_rings_wave',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['strobe']
+  },
+  egg_crysanthemum: {
+    shape: 'egg',
     dynamics: 'crysanthemum-trail',
     modifiers: { pistil: false, instantBurst: false },
     effects: []
@@ -468,6 +573,48 @@ export const PRESET_TEMPLATES = {
     dynamics: 'sparkling-branch-comet',
     modifiers: { pistil: false, instantBurst: false },
     effects: ['sparkle-apex']
+  },
+  sphere_erratic_dart: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['erratic-dart']
+  },
+  sphereErraticDart: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['erratic-dart']
+  },
+  peony: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  willow: {
+    shape: 'sphere',
+    dynamics: 'willow',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: []
+  },
+  dahlia: {
+    shape: 'sphere',
+    dynamics: 'standard',
+    modifiers: { pistil: false, instantBurst: true },
+    effects: []
+  },
+  brocade_crown: {
+    shape: 'sphere',
+    dynamics: 'willow',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['glitter-strobe']
+  },
+  brocadeCrown: {
+    shape: 'sphere',
+    dynamics: 'willow',
+    modifiers: { pistil: false, instantBurst: false },
+    effects: ['glitter-strobe']
   }
 };
 
@@ -534,6 +681,15 @@ export function resolveFireworkComposition(eventOrPreset) {
     if (eventOrPreset.ghostFlare && !effects.includes('ghost-flare')) effects.push('ghost-flare');
     if (eventOrPreset.flow && !effects.includes('flow')) effects.push('flow');
     if (eventOrPreset.noTrail && !effects.includes('no-trail')) effects.push('no-trail');
+    if ((eventOrPreset.tadpoleFlurry || eventOrPreset.isTadpole) && !effects.includes('tadpole-flurry')) {
+      effects.push('tadpole-flurry');
+    }
+    if ((eventOrPreset.erraticDart || eventOrPreset.hasErraticDart) && !effects.includes('erratic-dart')) {
+      effects.push('erratic-dart');
+    }
+    if ((eventOrPreset.slowBurst || eventOrPreset['slow-burst'] || eventOrPreset.slow_burst) && !effects.includes('slow-burst')) {
+      effects.push('slow-burst');
+    }
   }
 
   return {
@@ -543,3 +699,162 @@ export function resolveFireworkComposition(eventOrPreset) {
     effects
   };
 }
+
+export const AVAILABLE_CHILD_PRESETS = [
+  'custom',
+  'peony',
+  'crysanthemum',
+  'willow',
+  'crossette',
+  'strobe',
+  'strobe_white',
+  'strobe_glitter',
+  'dahlia',
+  'brocade_crown',
+  'crackle',
+  'ghost_flare',
+  'ring',
+  'flow'
+];
+
+export const DEFAULT_SECOND_BURST_CHILD_CONFIG = {
+  ratio: 0.20,
+  triggerTiming: 0.50,
+  distributionMode: 'random',
+  preset: 'custom',
+  shapeType: 'sphere',
+  dynamicsType: 'standard',
+  pistil: false,
+  pistilColor: '#ffffff',
+  instantBurst: false,
+  color: '#ffd700',
+  scale: 0.35,
+  effects: ['strobe'],
+  burstSound: 'standard'
+};
+
+export const DEFAULT_SECOND_BURST_CONFIG = {
+  enabled: false,
+  childShells: [
+    { ...DEFAULT_SECOND_BURST_CHILD_CONFIG }
+  ]
+};
+
+export function resolveSecondBurstConfig(eventOrPreset) {
+  if (!eventOrPreset) {
+    return {
+      ...DEFAULT_SECOND_BURST_CONFIG,
+      enabled: false
+    };
+  }
+
+  const rawConfig = eventOrPreset.secondBurst
+    || (eventOrPreset.secondBurstEnabled ? DEFAULT_SECOND_BURST_CONFIG : null);
+
+  if (!rawConfig) {
+    return {
+      ...DEFAULT_SECOND_BURST_CONFIG,
+      enabled: false
+    };
+  }
+
+  const enabled = eventOrPreset.secondBurstEnabled !== undefined
+    ? Boolean(eventOrPreset.secondBurstEnabled)
+    : Boolean(rawConfig.enabled);
+
+  const fallbackRatio = typeof rawConfig.ratio === 'number'
+    ? Math.max(0.01, Math.min(1.0, rawConfig.ratio))
+    : 0.20;
+
+  const fallbackTiming = typeof rawConfig.triggerTiming === 'number'
+    ? Math.max(0.15, Math.min(0.90, rawConfig.triggerTiming))
+    : 0.50;
+
+  const validModes = ['random', 'sequential', 'simultaneous'];
+  const fallbackMode = validModes.includes(rawConfig.distributionMode)
+    ? rawConfig.distributionMode
+    : 'random';
+
+  let childShells = [];
+  if (Array.isArray(rawConfig.childShells) && rawConfig.childShells.length > 0) {
+    childShells = rawConfig.childShells.map((child) => {
+      const childRatio = typeof child.ratio === 'number'
+        ? Math.max(0.01, Math.min(1.0, child.ratio))
+        : fallbackRatio;
+
+      const childTiming = typeof child.triggerTiming === 'number'
+        ? Math.max(0.15, Math.min(0.90, child.triggerTiming))
+        : fallbackTiming;
+
+      const childMode = validModes.includes(child.distributionMode)
+        ? child.distributionMode
+        : fallbackMode;
+
+      const template = child.preset && child.preset !== 'custom'
+        ? getTemplateForPreset(child.preset)
+        : null;
+
+      const shapeType = child.shapeType
+        || template?.shape
+        || 'sphere';
+
+      const dynamicsType = child.dynamicsType
+        || template?.dynamics
+        || 'standard';
+
+      const pistil = child.pistil !== undefined
+        ? Boolean(child.pistil)
+        : (template?.modifiers?.pistil ?? false);
+
+      const instantBurst = child.instantBurst !== undefined
+        ? Boolean(child.instantBurst)
+        : (template?.modifiers?.instantBurst ?? false);
+
+      const effects = Array.isArray(child.effects)
+        ? [...child.effects]
+        : (template?.effects ? [...template.effects] : ['strobe']);
+
+      return {
+        ratio: childRatio,
+        triggerTiming: childTiming,
+        distributionMode: childMode,
+        preset: child.preset || 'custom',
+        shapeType,
+        dynamicsType,
+        pistil,
+        pistilColor: child.pistilColor || '#ffffff',
+        instantBurst,
+        color: child.color || '#ffd700',
+        scale: typeof child.scale === 'number'
+          ? Math.max(0.15, Math.min(0.8, child.scale))
+          : 0.35,
+        effects,
+        burstSound: child.burstSound || 'standard'
+      };
+    });
+  } else {
+    childShells = [
+      {
+        ratio: fallbackRatio,
+        triggerTiming: fallbackTiming,
+        distributionMode: fallbackMode,
+        preset: 'custom',
+        shapeType: 'sphere',
+        dynamicsType: 'standard',
+        pistil: false,
+        pistilColor: '#ffffff',
+        instantBurst: false,
+        color: '#ffd700',
+        scale: 0.35,
+        effects: ['strobe'],
+        burstSound: 'standard'
+      }
+    ];
+  }
+
+  return {
+    enabled,
+    childShells
+  };
+}
+

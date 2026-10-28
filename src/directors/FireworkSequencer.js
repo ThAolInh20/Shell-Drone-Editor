@@ -1,3 +1,5 @@
+import { evaluateWaveCurve } from '../utils/SplineMath.js';
+
 export class FireworkSequencer {
   constructor(fireworkSystem, cometSystem) {
     this.fireworkSystem = fireworkSystem;
@@ -63,6 +65,18 @@ export class FireworkSequencer {
       let angleOffset = (Math.random() - 0.5) * 2 * 0.28;
 
       switch (pattern) {
+        case 'sweep-custom-curve':
+        case 'sweep-wave': {
+          const defaultX1 = 0.0;
+          const defaultX2 = 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const evaluated = evaluateWaveCurve(config.wavePoints, progress);
+          ratioX = startX + evaluated.x * (endX - startX);
+          ratioY = evaluated.y;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : evaluated.angle;
+          break;
+        }
         case 'sweep':
         case 'sweep-right':
         case 'sweep-left': {
@@ -344,7 +358,9 @@ export class FireworkSequencer {
 
       // Allow config overrides
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
+        if (pattern === 'sweep-custom-curve' || pattern === 'sweep-wave') {
+          // Keep custom curve height
+        } else if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);
@@ -392,31 +408,94 @@ export class FireworkSequencer {
       }
       if (instantBurst !== undefined 
         || shellSize !== undefined 
+        || config.starLifeMultiplier !== undefined
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
         || config.pistil !== undefined
         || config.effects !== undefined
         || config.strobe !== undefined 
+        || config['white-strobe'] !== undefined
+        || config['glitter-strobe'] !== undefined
         || config.crackle !== undefined
+        || config.ghost !== undefined
+        || config['ghost-flare'] !== undefined
+        || config.ghostFlare !== undefined
         || config.flow !== undefined
+        || config.crossette !== undefined
+        || config['no-trail'] !== undefined
+        || config.noTrail !== undefined
+        || config['no-burst'] !== undefined
+        || config.noBurst !== undefined
+        || config['sparkle-apex'] !== undefined
+        || config['burst-smoke'] !== undefined
+        || config.burstSmoke !== undefined
+        || config['apex-hang'] !== undefined
+        || config.apexHang !== undefined
+        || config['slow-burst'] !== undefined
+        || config.slowBurst !== undefined
+        || config['tadpole-flurry'] !== undefined
+        || config.tadpoleFlurry !== undefined
+        || config['erratic-dart'] !== undefined
+        || config.erraticDart !== undefined
+        || config['long-burn'] !== undefined
+        || config.longBurn !== undefined
         || config.cometTrail !== undefined
         || config.stages !== undefined
         || config.nestingMode !== undefined
-        || config.multiNested !== undefined) 
+        || config.multiNested !== undefined
+        || config.secondBurst !== undefined
+        || config.secondBurstEnabled !== undefined) 
       {
         overrides = { ...(overrides || {}) };
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
         if (shellSize !== undefined) overrides.shellSize = shellSize;
+        if (config.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = config.starLifeMultiplier;
         if (config.shapeType !== undefined) overrides.shapeType = config.shapeType;
         if (config.dynamicsType !== undefined) overrides.dynamicsType = config.dynamicsType;
         if (config.pistil !== undefined) overrides.pistil = config.pistil;
         if (config.effects !== undefined) overrides.effects = config.effects;
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
+        if (config['white-strobe'] !== undefined) overrides['white-strobe'] = config['white-strobe'];
+        if (config['glitter-strobe'] !== undefined) overrides['glitter-strobe'] = config['glitter-strobe'];
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
+        if (config.ghost !== undefined) overrides.ghost = config.ghost;
+        if (config['ghost-flare'] !== undefined) overrides['ghost-flare'] = config['ghost-flare'];
+        if (config.ghostFlare !== undefined) overrides['ghost-flare'] = config.ghostFlare;
         if (config.flow !== undefined) overrides.flow = config.flow;
+        if (config.crossette !== undefined) overrides.crossette = config.crossette;
+        if (config['no-trail'] !== undefined) overrides.noTrail = config['no-trail'];
+        if (config.noTrail !== undefined) overrides.noTrail = config.noTrail;
+        if (config['no-burst'] !== undefined) overrides.noBurst = config['no-burst'];
+        if (config.noBurst !== undefined) overrides.noBurst = config.noBurst;
+        if (config['sparkle-apex'] !== undefined) overrides['sparkle-apex'] = config['sparkle-apex'];
+        if (config['burst-smoke'] !== undefined) overrides['burst-smoke'] = config['burst-smoke'];
+        if (config.burstSmoke !== undefined) overrides['burst-smoke'] = config.burstSmoke;
+        if (config['apex-hang'] !== undefined) overrides['apex-hang'] = config['apex-hang'];
+        if (config.apexHang !== undefined) overrides['apex-hang'] = config.apexHang;
+        if (config['slow-burst'] !== undefined) overrides['slow-burst'] = config['slow-burst'];
+        if (config.slowBurst !== undefined) overrides['slow-burst'] = config.slowBurst;
+        if (config['tadpole-flurry'] !== undefined) overrides['tadpole-flurry'] = config['tadpole-flurry'];
+        if (config.tadpoleFlurry !== undefined) overrides['tadpole-flurry'] = config.tadpoleFlurry;
+        if (config['erratic-dart'] !== undefined) overrides['erratic-dart'] = config['erratic-dart'];
+        if (config.erraticDart !== undefined) overrides['erratic-dart'] = config.erraticDart;
+        if (config['long-burn'] !== undefined) overrides['long-burn'] = config['long-burn'];
+        if (config.longBurn !== undefined) overrides['long-burn'] = config.longBurn;
         if (config.stages !== undefined) overrides.stages = config.stages;
         if (config.nestingMode !== undefined) overrides.nestingMode = config.nestingMode;
         if (config.multiNested !== undefined) overrides.multiNested = config.multiNested;
+        if (config.secondBurst !== undefined) overrides.secondBurst = config.secondBurst;
+        if (config.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = config.secondBurstEnabled;
+        if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: config.sound?.launch || config.launchSound || undefined,
+            burst: config.sound?.burst || config.burstSound || undefined,
+            crackle: config.sound?.crackle || config.crackleSound || undefined,
+            volumeMultiplier: config.sound?.volumeMultiplier !== undefined
+              ? config.sound.volumeMultiplier
+              : (config.soundVolume !== undefined ? config.soundVolume : undefined),
+            pitchMultiplier: config.sound?.pitchMultiplier
+          };
+        }
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;
@@ -588,6 +667,18 @@ export class FireworkSequencer {
           ratioZ = 0.5 + Math.sin(angleRad) * radius;
           ratioY = 0.35 + (Math.sin(progress * Math.PI) * 0.15) + (baseRatioY - 0.35) * 0.5;
           angleOffset = Math.cos(angleRad) * maxAngleOffset * 0.6 * progress;
+          break;
+        }
+        case 'sweep-custom-curve':
+        case 'sweep-wave': {
+          const defaultX1 = 0.0;
+          const defaultX2 = 1.0;
+          const startX = x1 !== undefined ? x1 : defaultX1;
+          const endX = x2 !== undefined ? x2 : defaultX2;
+          const evaluated = evaluateWaveCurve(config.wavePoints, progress);
+          ratioX = startX + evaluated.x * (endX - startX);
+          ratioY = evaluated.y;
+          angleOffset = resolvedAngle !== undefined ? resolvedAngle : evaluated.angle;
           break;
         }
         case 'sweep':
@@ -778,7 +869,9 @@ export class FireworkSequencer {
 
       // Map ratioY to [y1, y2] range if provided
       if (y1 !== undefined && y2 !== undefined) {
-        if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
+        if (pattern === 'sweep-custom-curve' || pattern === 'sweep-wave') {
+          // Keep custom curve height
+        } else if (pattern.startsWith('sweep') && !pattern.startsWith('sweep-arc')) {
           const minY = Math.min(y1, y2);
           const maxY = Math.max(y1, y2);
           ratioY = minY + Math.random() * (maxY - minY);
@@ -825,6 +918,7 @@ export class FireworkSequencer {
       if (
         config.instantBurst !== undefined 
         || config.shellSize !== undefined 
+        || config.starLifeMultiplier !== undefined
         || config.shapeType !== undefined
         || config.dynamicsType !== undefined
         || config.pistil !== undefined
@@ -836,10 +930,13 @@ export class FireworkSequencer {
         || config.thickTrail !== undefined 
         || config.thinTrail !== undefined 
         || config.launchTrail !== undefined
+        || config.secondBurst !== undefined
+        || config.secondBurstEnabled !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
         if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
+        if (config.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = config.starLifeMultiplier;
         if (config.shapeType !== undefined) overrides.shapeType = config.shapeType;
         if (config.dynamicsType !== undefined) overrides.dynamicsType = config.dynamicsType;
         if (config.pistil !== undefined) overrides.pistil = config.pistil;
@@ -847,6 +944,19 @@ export class FireworkSequencer {
         if (config.strobe !== undefined) overrides.strobe = config.strobe;
         if (config.crackle !== undefined) overrides.crackle = config.crackle;
         if (config.flow !== undefined) overrides.flow = config.flow;
+        if (config.secondBurst !== undefined) overrides.secondBurst = config.secondBurst;
+        if (config.secondBurstEnabled !== undefined) overrides.secondBurstEnabled = config.secondBurstEnabled;
+        if (config.sound || config.launchSound || config.burstSound || config.crackleSound || config.soundVolume !== undefined) {
+          overrides.sound = {
+            launch: config.sound?.launch || config.launchSound || undefined,
+            burst: config.sound?.burst || config.burstSound || undefined,
+            crackle: config.sound?.crackle || config.crackleSound || undefined,
+            volumeMultiplier: config.sound?.volumeMultiplier !== undefined
+              ? config.sound.volumeMultiplier
+              : (config.soundVolume !== undefined ? config.soundVolume : undefined),
+            pitchMultiplier: config.sound?.pitchMultiplier
+          };
+        }
         if (config.cometTrail !== undefined) {
           if (config.cometTrail === 'none') {
             overrides.launchTrail = false;

@@ -5,7 +5,10 @@ import { t } from '../config/lang/i18n.js';
 import {
   SETTINGS_DEFINITION,
   applySetting,
-  resetSettings
+  resetSettings,
+  resetCategorySettings,
+  getSettingsSnapshot,
+  revertSettings
 } from '../config/settings.js';
 import { DOCS_CONFIG } from '../config/docs.js';
 
@@ -20,6 +23,7 @@ export class InputSystem {
     sceneManager = null,
     smokeSystem = null
   ) {
+    this.camera = camera;
     this.controls = new PointerLockControls(
       camera,
       domElement
@@ -139,17 +143,23 @@ export class InputSystem {
     this.instructions.style.display = 'none';
 
     this.statusOverlay = document.createElement('div');
-    this.statusOverlay.style.position = 'absolute';
-    this.statusOverlay.style.top = '12px';
+    this.statusOverlay.className = 'system-status-overlay';
+    this.statusOverlay.style.position = 'fixed';
+    this.statusOverlay.style.top = '112px';
     this.statusOverlay.style.left = '12px';
+    this.statusOverlay.style.width = '240px';
+    this.statusOverlay.style.boxSizing = 'border-box';
     this.statusOverlay.style.padding = '8px 12px';
-    this.statusOverlay.style.background = 'rgba(0, 0, 0, 0.55)';
+    this.statusOverlay.style.background = 'rgba(12, 16, 24, 0.85)';
+    this.statusOverlay.style.backdropFilter = 'blur(10px)';
+    this.statusOverlay.style.border = '1px solid rgba(255, 255, 255, 0.12)';
     this.statusOverlay.style.color = '#fff';
     this.statusOverlay.style.fontFamily = 'monospace';
     this.statusOverlay.style.fontSize = '12px';
     this.statusOverlay.style.lineHeight = '1.4';
     this.statusOverlay.style.borderRadius = '8px';
-    this.statusOverlay.style.zIndex = '100';
+    this.statusOverlay.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.35)';
+    this.statusOverlay.style.zIndex = '999';
     this.statusOverlay.style.pointerEvents = 'none';
     document.body.appendChild(this.statusOverlay);
     this.updateStatusOverlay();
@@ -243,6 +253,7 @@ export class InputSystem {
     const contentArea = document.createElement('div');
     contentArea.className = 'settings-tabs-content';
 
+    this.activeSettingsTab = 'system';
     this.switchSettingsTab = (tabKey) => {
       this.activeSettingsTab = tabKey;
       for (const btn of tabButtons) {
@@ -289,6 +300,53 @@ export class InputSystem {
       const pane = document.createElement('div');
       pane.className = 'settings-tab-pane' + (i === 0 ? ' active' : '');
       pane.dataset.tab = tabDef.key;
+
+      if (tabDef.key !== 'tools') {
+        const paneHeader = document.createElement('div');
+        paneHeader.className = 'settings-pane-header';
+
+        const paneTitle = document.createElement('div');
+        paneTitle.className = 'settings-pane-title';
+        paneTitle.textContent = tabDef.label;
+
+        const tabResetBtn = document.createElement('button');
+        tabResetBtn.type = 'button';
+        tabResetBtn.className = 'settings-tab-reset-btn';
+        tabResetBtn.textContent = t('editor.settingsResetCategory') || 'Reset Current Tab';
+        tabResetBtn.addEventListener('click', () => {
+          const confirmMsg = t('editor.settingsConfirmResetCategory')
+            || 'Are you sure you want to reset settings in this category?';
+          if (
+            typeof window !== 'undefined' &&
+            window.confirm &&
+            !window.confirm(confirmMsg)
+          ) {
+            return;
+          }
+          resetCategorySettings(
+            tabDef.key,
+            this.settingsContext
+          );
+          if (tabDef.key === 'system') {
+            if (this.qualitySelect) {
+              this.qualitySelect.value = 'medium';
+              localStorage.setItem(
+                'graphics_quality',
+                'medium'
+              );
+              globalEventBus.emit(
+                'graphics:quality',
+                'medium'
+              );
+            }
+          }
+          this.updateSettingsUI();
+        });
+
+        paneHeader.appendChild(paneTitle);
+        paneHeader.appendChild(tabResetBtn);
+        pane.appendChild(paneHeader);
+      }
 
       if (tabDef.key === 'tools') {
         const toolsList = [
@@ -489,28 +547,79 @@ export class InputSystem {
     const sidebarFooter = document.createElement('div');
     sidebarFooter.className = 'settings-sidebar-footer';
 
-    const resetBtn = document.createElement('button');
-    resetBtn.type = 'button';
-    resetBtn.className = 'settings-reset-btn';
-    resetBtn.textContent = t('editor.settingsResetAll') || t('editor.settingsReset') || 'Reset All Settings';
-    resetBtn.addEventListener('click', () => {
-      resetSettings(this.settingsContext);
+    const revertBtn = document.createElement('button');
+    revertBtn.type = 'button';
+    revertBtn.className = 'settings-footer-btn settings-revert-btn';
+    revertBtn.textContent = t('editor.settingsRevertChanges') || 'Revert Changes';
+    revertBtn.addEventListener('click', () => {
+      if (this.initialSettingsSnapshot) {
+        revertSettings(
+          this.initialSettingsSnapshot,
+          this.settingsContext
+        );
+        if (this.initialSettingsSnapshot.graphicsQuality) {
+          globalEventBus.emit(
+            'graphics:quality',
+            this.initialSettingsSnapshot.graphicsQuality
+          );
+        }
+        this.updateSettingsUI();
+      }
+    });
 
-      for (const item of SETTINGS_DEFINITION) {
-        if (item.type === 'slider' && item.inputElement) {
-          item.inputElement.value = item.default;
-          if (item.valueDisplayElement) {
-            const isInt = item.step >= 1;
-            item.valueDisplayElement.textContent = isInt
-              ? Math.round(item.default).toString()
-              : item.default.toFixed(2);
-          }
-        } else if (item.type === 'checkbox' && item.inputElement) {
-          item.inputElement.checked = item.default;
-        } else if (item.type === 'select' && item.inputElement) {
-          item.inputElement.value = item.default;
+    const resetCategoryBtn = document.createElement('button');
+    resetCategoryBtn.type = 'button';
+    resetCategoryBtn.className = 'settings-footer-btn settings-reset-category-btn';
+    resetCategoryBtn.textContent = t('editor.settingsResetCategory') || 'Reset Current Tab';
+    resetCategoryBtn.addEventListener('click', () => {
+      const activeTab = this.activeSettingsTab || 'system';
+      if (activeTab === 'tools') {
+        return;
+      }
+      const confirmMsg = t('editor.settingsConfirmResetCategory')
+        || 'Are you sure you want to reset settings in this category?';
+      if (
+        typeof window !== 'undefined' &&
+        window.confirm &&
+        !window.confirm(confirmMsg)
+      ) {
+        return;
+      }
+      resetCategorySettings(
+        activeTab,
+        this.settingsContext
+      );
+      if (activeTab === 'system') {
+        if (this.qualitySelect) {
+          this.qualitySelect.value = 'medium';
+          localStorage.setItem(
+            'graphics_quality',
+            'medium'
+          );
+          globalEventBus.emit(
+            'graphics:quality',
+            'medium'
+          );
         }
       }
+      this.updateSettingsUI();
+    });
+
+    const resetAllBtn = document.createElement('button');
+    resetAllBtn.type = 'button';
+    resetAllBtn.className = 'settings-footer-btn settings-reset-all-btn';
+    resetAllBtn.textContent = t('editor.settingsResetAll') || t('editor.settingsReset') || 'Reset All Settings';
+    resetAllBtn.addEventListener('click', () => {
+      const confirmMsg = t('editor.settingsConfirmResetAll')
+        || 'Are you sure you want to reset all settings to defaults?';
+      if (
+        typeof window !== 'undefined' &&
+        window.confirm &&
+        !window.confirm(confirmMsg)
+      ) {
+        return;
+      }
+      resetSettings(this.settingsContext);
 
       if (this.qualitySelect) {
         this.qualitySelect.value = 'medium';
@@ -523,9 +632,12 @@ export class InputSystem {
           'medium'
         );
       }
+      this.updateSettingsUI();
     });
 
-    sidebarFooter.appendChild(resetBtn);
+    sidebarFooter.appendChild(revertBtn);
+    sidebarFooter.appendChild(resetCategoryBtn);
+    sidebarFooter.appendChild(resetAllBtn);
     sidebar.appendChild(navList);
     sidebar.appendChild(sidebarFooter);
 
@@ -763,13 +875,11 @@ export class InputSystem {
     }
   }
 
-  showPauseMenu() {
-    if (!this.pauseOverlay) {
-      return;
-    }
-
+  updateSettingsUI() {
     for (const item of SETTINGS_DEFINITION) {
-      const saved = localStorage.getItem(`settings_${item.key}`);
+      const saved = typeof localStorage !== 'undefined'
+        ? localStorage.getItem(`settings_${item.key}`)
+        : null;
       let currentVal = item.default;
       if (saved !== null) {
         currentVal = item.type === 'checkbox'
@@ -792,9 +902,18 @@ export class InputSystem {
       }
     }
 
-    if (this.qualitySelect) {
+    if (this.qualitySelect && typeof localStorage !== 'undefined') {
       this.qualitySelect.value = localStorage.getItem('graphics_quality') || 'medium';
     }
+  }
+
+  showPauseMenu() {
+    if (!this.pauseOverlay) {
+      return;
+    }
+
+    this.initialSettingsSnapshot = getSettingsSnapshot();
+    this.updateSettingsUI();
 
     this.pauseOverlay.style.display = 'flex';
   }
@@ -843,12 +962,46 @@ export class InputSystem {
 
     if (event.code === 'Escape') {
       event.preventDefault();
+      if (this.controls && this.controls.isLocked) {
+        this.controls.unlock();
+      }
       if (this.timelineEditor && this.timelineEditor.visible) {
         this.timelineEditor.toggle();
       } else {
         this.togglePause();
       }
       return;
+    }
+
+    const isTimelineKey = event.code === 'KeyF' ||
+      ((event.ctrlKey || event.metaKey) && event.code === 'KeyT');
+
+    if (isTimelineKey) {
+      if (this.timelineEditor && this.timelineEditor.visible) {
+        event.preventDefault();
+        this.timelineEditor.toggle();
+        return;
+      }
+      const camPos = this.camera?.position ||
+        (this.controls?.getObject ? this.controls.getObject().position : null);
+      const isNearDesk = this.sceneManager?.isNearWorkstation?.(
+        camPos
+      );
+      if (isNearDesk && this.timelineEditor) {
+        event.preventDefault();
+        if (this.sceneManager.workstationDesk) {
+          this.sceneManager.workstationDesk.interact(
+            this.timelineEditor,
+            this.controls
+          );
+        } else {
+          this.timelineEditor.toggle();
+          if (this.controls && this.controls.isLocked) {
+            this.controls.unlock();
+          }
+        }
+        return;
+      }
     }
 
     if (!this.controls.isLocked || this.paused) return;

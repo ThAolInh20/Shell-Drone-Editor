@@ -6,6 +6,7 @@ export const renderingConfig = {
   },
   post: {
     enabled: true,
+    particleEdgeSoftness: 0.75,
     bloom: {
       enabled: true,
       strength: 0.24,

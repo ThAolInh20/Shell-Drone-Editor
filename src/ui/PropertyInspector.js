@@ -6,6 +6,7 @@ import {
   AVAILABLE_DYNAMICS,
   AVAILABLE_MODIFIERS,
   PRESET_TEMPLATES,
+  AVAILABLE_CHILD_PRESETS,
   getTemplateForPreset,
   resolveFireworkComposition
 } from '../factories/FireworkCompositionHelper.js';
@@ -13,6 +14,10 @@ import { EffectPreviewTooltip } from './EffectPreviewTooltip.js';
 import { CustomSelect } from './CustomSelect.js';
 import { PREVIEW_CATEGORIES } from '../config/effectPreviews.js';
 import { globalEventBus } from '../core/EventBus.js';
+import { WaveCurveEditor } from './WaveCurveEditor.js';
+import { DEFAULT_WAVE_POINTS } from '../utils/SplineMath.js';
+import { ActiveEffectsTimeline } from './ActiveEffectsTimeline.js';
+import { FIREWORK_CONFIG } from '../config/fireworks.js';
 
 function formatOptionLabelFallback(rawKey) {
   if (rawKey === '' || rawKey === undefined || rawKey === null) return '';
@@ -35,22 +40,30 @@ function getEnglishOptionLabel(fieldName, opt) {
   return formatOptionLabelFallback(opt);
 }
 
-export const AVAILABLE_EFFECT_TAGS = [
+export const TIMED_EFFECT_TAGS = [
   {
-    key: 'burst-smoke',
-    labelKey: 'burstSmoke'
-  },
-  {
-    key: 'crackle',
-    labelKey: 'crackle'
-  },
-  {
-    key: 'crossette',
-    labelKey: 'crossette'
+    key: 'no-trail',
+    labelKey: 'noTrail'
   },
   {
     key: 'flow',
     labelKey: 'flow'
+  },
+  {
+    key: 'strobe',
+    labelKey: 'strobe'
+  },
+  {
+    key: 'white-strobe',
+    labelKey: 'whiteStrobe'
+  },
+  {
+    key: 'glitter-strobe',
+    labelKey: 'glitterStrobe'
+  },
+  {
+    key: 'crackle',
+    labelKey: 'crackle'
   },
   {
     key: 'ghost',
@@ -61,26 +74,44 @@ export const AVAILABLE_EFFECT_TAGS = [
     labelKey: 'ghostFlare'
   },
   {
-    key: 'glitter-strobe',
-    labelKey: 'glitterStrobe'
+    key: 'crossette',
+    labelKey: 'crossette'
   },
   {
-    key: 'no-burst',
-    labelKey: 'noBurst'
+    key: 'tadpole-flurry',
+    labelKey: 'tadpoleFlurry'
   },
   {
-    key: 'no-trail',
-    labelKey: 'noTrail'
-  },
-  {
-    key: 'strobe',
-    labelKey: 'strobe'
-  },
-  {
-    key: 'white-strobe',
-    labelKey: 'whiteStrobe'
+    key: 'erratic-dart',
+    labelKey: 'erraticDart'
   }
 ];
+
+export const TOGGLE_MODIFIER_TAGS = [
+  {
+    key: 'burst-smoke',
+    labelKey: 'burstSmoke'
+  },
+  {
+    key: 'pistil',
+    labelKey: 'pistil'
+  },
+  {
+    key: 'apex-hang',
+    labelKey: 'apexHang'
+  },
+  {
+    key: 'slow-burst',
+    labelKey: 'slowBurst'
+  }
+];
+
+export const AVAILABLE_EFFECT_TAGS = [
+  ...TIMED_EFFECT_TAGS,
+  ...TOGGLE_MODIFIER_TAGS
+];
+
+export const ACTIVE_EFFECT_TAGS = AVAILABLE_EFFECT_TAGS;
 
 export class PropertyInspector {
   constructor(
@@ -94,19 +125,27 @@ export class PropertyInspector {
     this.presetOptions = presetOptions;
     this.onHelpClick = onHelpClick;
     this.selectedEvent = null;
+    this.selectedEvents = [];
     this.activeStageIndex = 0;
     this.collapsedGroups = {}; // Keep track of open/closed states
     this.showHelpState = {}; // Keep track of help banner visibility states
 
-    this.container.style.position = 'relative';
-    this.container.style.width = '320px';
+    this.container.className = 'property-inspector-panel';
+    this.container.style.position = 'fixed';
+    this.container.style.top = '12px';
+    this.container.style.right = '12px';
+    this.container.style.width = '350px';
     this.container.style.minWidth = '320px';
-    this.container.style.flexShrink = '0';
-    this.container.style.height = '100%';
-    this.container.style.background = 'rgba(15, 20, 25, 0.95)';
-    this.container.style.borderLeft = '1px solid rgba(255, 255, 255, 0.1)';
-    this.container.style.boxShadow = '-4px 0 16px rgba(0,0,0,0.5)';
-    this.container.style.padding = '15px';
+    this.container.style.maxWidth = '420px';
+    this.container.style.bottom = 'calc(35% + 12px)';
+    this.container.style.height = 'auto';
+    this.container.style.background = 'rgba(12, 16, 24, 0.94)';
+    this.container.style.backdropFilter = 'blur(16px)';
+    this.container.style.webkitBackdropFilter = 'blur(16px)';
+    this.container.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+    this.container.style.borderRadius = '12px';
+    this.container.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.6)';
+    this.container.style.padding = '16px';
     this.container.style.boxSizing = 'border-box';
     this.container.style.color = '#fff';
     this.container.style.fontFamily = 'monospace';
@@ -114,20 +153,99 @@ export class PropertyInspector {
     this.container.style.display = 'none';
     this.container.style.zIndex = '1001';
 
+    // Prevent orbit controls interaction while mouse is over inspector
+    if (typeof this.container.addEventListener === 'function') {
+      this.container.addEventListener(
+        'mouseenter',
+        () => {
+          globalEventBus.emit('timeline:hover', true);
+        }
+      );
+      this.container.addEventListener(
+        'mouseleave',
+        () => {
+          globalEventBus.emit('timeline:hover', false);
+        }
+      );
+    }
+
     this.debounceTimeout = null;
     this.isEditing = false;
 
     this.render();
   }
 
-  show(event) {
+  isBatchMode() {
+    return Array.isArray(this.selectedEvents) && this.selectedEvents.length > 1;
+  }
+
+  getBatchTargets() {
+    if (this.isBatchMode()) {
+      return this.selectedEvents;
+    }
+    return this.selectedEvent ? [this.selectedEvent] : [];
+  }
+
+  getCommonValue(fieldName) {
+    const targets = this.getBatchTargets();
+    if (targets.length === 0) return undefined;
+    const firstVal = targets[0][fieldName];
+    for (let i = 1; i < targets.length; i++) {
+      if (targets[i][fieldName] !== firstVal) {
+        return undefined;
+      }
+    }
+    return firstVal;
+  }
+
+  isMixedValue(fieldName) {
+    const targets = this.getBatchTargets();
+    if (targets.length <= 1) return false;
+    const firstVal = targets[0][fieldName];
+    for (let i = 1; i < targets.length; i++) {
+      if (targets[i][fieldName] !== firstVal) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  show(event, selectedEvents = null) {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = event;
+    this.selectedEvents = Array.isArray(selectedEvents) && selectedEvents.length > 0
+      ? selectedEvents
+      : (event ? [event] : []);
     this.container.style.display = 'block';
     this.render();
   }
 
   hide() {
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = null;
+    }
+    if (
+      document.activeElement &&
+      this.container.contains(document.activeElement) &&
+      typeof document.activeElement.blur === 'function'
+    ) {
+      document.activeElement.blur();
+    }
+    this.isEditing = false;
     this.selectedEvent = null;
+    this.selectedEvents = [];
     this.container.style.display = 'none';
   }
 
@@ -234,6 +352,7 @@ export class PropertyInspector {
               options: [
                 'random',
                 'sweep',
+                'sweep-custom-curve',
                 'sweep-arc',
                 'sweep-arc-out',
                 'cascade-slope',
@@ -285,22 +404,34 @@ export class PropertyInspector {
               span: 2
             },
             {
-              name: 'pistil',
-              labelKey: 'pistil',
-              type: 'checkbox'
-            },
-            {
-              name: 'instantBurst',
-              labelKey: 'instantBurst',
-              type: 'checkbox'
-            },
-            {
               name: 'effects',
               labelKey: 'activeEffects',
               type: 'effect-chips',
               span: 2
+            },
+            {
+              name: 'secondBurstEnabled',
+              labelKey: 'secondBurstEnabled',
+              type: 'checkbox',
+              span: 2
             }
           ]
+        },
+        {
+          groupKey: 'secondBurst',
+          visibleIf: (event) => Boolean(
+            event?.secondBurst?.enabled
+            || event?.secondBurstEnabled
+          ),
+          customRender: true
+        },
+        {
+          groupKey: 'waveCurveSettings',
+          visibleIf: (event) => (
+            event?.pattern === 'sweep-custom-curve'
+            || event?.pattern === 'sweep-wave'
+          ),
+          customRender: true
         },
         {
           groupKey: 'nestedStages',
@@ -336,13 +467,30 @@ export class PropertyInspector {
             {
               name: 'color',
               labelKey: 'color',
-              type: 'color-badges'
+              type: 'color-badges',
+              span: 2
             },
             {
               name: 'shellSize',
               labelKey: 'shellSize',
-              type: 'number',
-              step: '0.1'
+              type: 'slider',
+              min: '0.2',
+              max: '5.0',
+              step: '0.1',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(1)}x`,
+              span: 2
+            },
+            {
+              name: 'starLifeMultiplier',
+              labelKey: 'starLifeMultiplier',
+              type: 'slider',
+              min: '0.4',
+              max: '5.0',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
             },
             {
               name: 'cometTrail',
@@ -356,7 +504,8 @@ export class PropertyInspector {
                 'smoke',
                 'none',
                 'ascent-bursts'
-              ]
+              ],
+              span: 2
             },
             {
               name: 'ascentSubShellType',
@@ -382,6 +531,62 @@ export class PropertyInspector {
               type: 'number',
               step: '1',
               visibleIf: (event) => event?.cometTrail === 'ascent-bursts' || Boolean(event?.ascentBursts)
+            }
+          ]
+        },
+        {
+          groupKey: 'soundSettings',
+          fields: [
+            {
+              name: 'soundVolume',
+              labelKey: 'soundVolume',
+              type: 'slider',
+              min: '0.0',
+              max: '2.0',
+              step: '0.05',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2
+            },
+            {
+              name: 'launchSound',
+              labelKey: 'launchSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'burstSound',
+              labelKey: 'burstSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'heavy',
+                'soft',
+                'crisp',
+                'silent'
+              ],
+              span: 2
+            },
+            {
+              name: 'crackleSound',
+              labelKey: 'crackleSound',
+              type: 'select',
+              options: [
+                '',
+                'standard',
+                'dense',
+                'soft',
+                'silent'
+              ],
+              span: 2
             }
           ]
         },
@@ -412,13 +617,16 @@ export class PropertyInspector {
     headerWrapper.style.paddingBottom = '8px';
     headerWrapper.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
 
+    const isBatch = this.isBatchMode();
     const titleEl = document.createElement('h3');
     titleEl.className = 'inspector-title';
-    titleEl.textContent = t('editor.inspector.title') || 'Thuộc tính';
+    titleEl.textContent = isBatch
+      ? `${t('editor.inspector.batchTitle') || 'Batch Property Inspector'} (${this.selectedEvents.length})`
+      : (t('editor.inspector.title') || 'Property Inspector');
     titleEl.style.margin = '0';
     titleEl.style.fontSize = '14px';
     titleEl.style.fontWeight = 'bold';
-    titleEl.style.color = '#00e5ff';
+    titleEl.style.color = isBatch ? '#ffb703' : '#00e5ff';
 
     const helpBtn = document.createElement('button');
     helpBtn.className = 'inspector-help-btn';
@@ -451,9 +659,76 @@ export class PropertyInspector {
       }
     });
 
+    const headerActions = document.createElement('div');
+    headerActions.style.display = 'flex';
+    headerActions.style.alignItems = 'center';
+    headerActions.style.gap = '8px';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'inspector-close-btn';
+    closeBtn.textContent = '×';
+    closeBtn.title = t('common.close') || 'Close';
+    closeBtn.style.background = 'transparent';
+    closeBtn.style.border = 'none';
+    closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+    closeBtn.style.fontSize = '18px';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.lineHeight = '1';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.padding = '0 4px';
+    closeBtn.addEventListener(
+      'mouseenter',
+      () => {
+        closeBtn.style.color = '#fff';
+      }
+    );
+    closeBtn.addEventListener(
+      'mouseleave',
+      () => {
+        closeBtn.style.color = 'rgba(255, 255, 255, 0.6)';
+      }
+    );
+    closeBtn.addEventListener(
+      'click',
+      (e) => {
+        e.stopPropagation();
+        this.hide();
+      }
+    );
+
+    headerActions.appendChild(helpBtn);
+    headerActions.appendChild(closeBtn);
     headerWrapper.appendChild(titleEl);
-    headerWrapper.appendChild(helpBtn);
+    headerWrapper.appendChild(headerActions);
     this.container.appendChild(headerWrapper);
+
+    if (isBatch) {
+      const batchBanner = document.createElement('div');
+      batchBanner.className = 'inspector-batch-banner';
+      batchBanner.style.background = 'rgba(255, 183, 3, 0.12)';
+      batchBanner.style.border = '1px solid rgba(255, 183, 3, 0.35)';
+      batchBanner.style.borderRadius = '6px';
+      batchBanner.style.padding = '8px 10px';
+      batchBanner.style.marginBottom = '12px';
+      batchBanner.style.fontSize = '11px';
+      batchBanner.style.color = '#ffb703';
+      batchBanner.style.lineHeight = '1.4';
+
+      const bannerTitle = document.createElement('div');
+      bannerTitle.style.fontWeight = 'bold';
+      const subTemplate = t('editor.inspector.batchSubtitle') || 'Editing {count} selected blocks';
+      bannerTitle.textContent = subTemplate.replace('{count}', this.selectedEvents.length);
+
+      const bannerDesc = document.createElement('div');
+      bannerDesc.style.color = '#cbd5e1';
+      bannerDesc.style.fontSize = '10px';
+      bannerDesc.style.marginTop = '2px';
+      bannerDesc.textContent = t('editor.inspector.batchNote') || 'Changes apply to all selected blocks';
+
+      batchBanner.appendChild(bannerTitle);
+      batchBanner.appendChild(bannerDesc);
+      this.container.appendChild(batchBanner);
+    }
 
     if (!this.selectedEvent) {
       const emptyMsg = document.createElement('div');
@@ -585,6 +860,10 @@ export class PropertyInspector {
             this.renderBeatSettings(content);
           } else if (group.groupKey === 'nestedStages') {
             this.renderNestedStages(content);
+          } else if (group.groupKey === 'secondBurst') {
+            this.renderSecondBurst(content);
+          } else if (group.groupKey === 'waveCurveSettings') {
+            this.renderWaveCurveEditor(content);
           }
         } else if (group.fields) {
           group.fields.forEach(field => {
@@ -605,6 +884,8 @@ export class PropertyInspector {
               this.renderCheckbox(fieldWrapper, field);
             } else if (field.type === 'effect-chips') {
               this.renderEffectChips(fieldWrapper, field);
+            } else if (field.type === 'slider') {
+              this.renderSlider(fieldWrapper, field);
             } else {
               this.renderStandardInput(fieldWrapper, field);
             }
@@ -622,10 +903,15 @@ export class PropertyInspector {
     // Delete Button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'inspector-delete-btn';
-    deleteBtn.textContent = t('editor.inspector.deleteBtn');
+    deleteBtn.textContent = isBatch
+      ? `${t('editor.inspector.batchDeleteBtn') || 'Delete Selected Blocks'} (${this.selectedEvents.length})`
+      : (t('editor.inspector.deleteBtn') || 'Delete Sequence');
     deleteBtn.addEventListener('click', () => {
       this.onUpdate('beforeChange');
-      this.selectedEvent._deleted = true;
+      const targets = this.getBatchTargets();
+      targets.forEach((t) => {
+        t._deleted = true;
+      });
       this.onUpdate();
       this.hide();
     });
@@ -633,9 +919,38 @@ export class PropertyInspector {
   }
 
   renderStandardInput(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    const isBatch = this.isBatchMode();
+    const isMixed = this.isMixedValue(field.name);
+    let currentEventValue = isMixed ? undefined : targetEvent[field.name];
+    if (currentEventValue === undefined && targetEvent.sound && !isMixed) {
+      if (field.name === 'launchSound') currentEventValue = targetEvent.sound.launch;
+      else if (field.name === 'burstSound') currentEventValue = targetEvent.sound.burst;
+      else if (field.name === 'crackleSound') currentEventValue = targetEvent.sound.crackle;
+      else if (field.name === 'soundVolume') currentEventValue = targetEvent.sound.volumeMultiplier;
+    }
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    parent.appendChild(label);
+
+    if (field.name === 'time' && isBatch) {
+      const input = document.createElement('input');
+      input.className = 'inspector-input';
+      input.dataset.fieldName = field.name;
+      input.type = 'text';
+      input.disabled = true;
+      input.value = '';
+      input.placeholder = t('editor.inspector.individualTime') || 'Individual Time';
+      input.title = t('editor.inspector.individualTimeTooltip') || 'Timeline positions are preserved. Drag blocks on timeline to move together.';
+      input.style.opacity = '0.6';
+      input.style.cursor = 'not-allowed';
+      parent.appendChild(input);
+      return;
+    }
 
     const handleValueChange = (rawVal) => {
       let val = rawVal;
@@ -644,40 +959,101 @@ export class PropertyInspector {
       }
 
       this.triggerUpdate('beforeChange');
+      const targets = this.getBatchTargets();
 
-      if (val === '' || val === undefined) {
-        if (field.name === 'sectorId') {
-          this.selectedEvent[field.name] = '';
+      targets.forEach((target) => {
+        if (val === '' || val === undefined) {
+          if (field.name === 'sectorId') {
+            target[field.name] = '';
+          } else {
+            delete target[field.name];
+          }
         } else {
-          delete this.selectedEvent[field.name];
+          target[field.name] = val;
         }
-      } else {
-        this.selectedEvent[field.name] = val;
-      }
 
-      if (field.name === 'preset') {
-        if (val !== 'multiNested' && val !== 'multi_nested') {
-          delete this.selectedEvent.multiNested;
-          delete this.selectedEvent.stages;
-          delete this.selectedEvent.nestingMode;
-          delete this.selectedEvent._selectedTemplateKey;
-        } else {
-          this.selectedEvent.multiNested = true;
-        }
-        if (val) {
-          const template = getTemplateForPreset(val);
-          if (template) {
-            this.selectedEvent.shapeType = template.shape;
-            this.selectedEvent.dynamicsType = template.dynamics;
-            this.selectedEvent.pistil = template.modifiers.pistil;
-            this.selectedEvent.instantBurst = template.modifiers.instantBurst;
-            this.selectedEvent.effects = [...template.effects];
-            this.triggerUpdate();
-            this.render();
-            return;
+        if (
+          field.name === 'launchSound' ||
+          field.name === 'burstSound' ||
+          field.name === 'crackleSound' ||
+          field.name === 'soundVolume'
+        ) {
+          if (!target.sound) target.sound = {};
+          if (field.name === 'launchSound') {
+            if (val) {
+              target.sound.launch = val;
+              target.launchSound = val;
+            } else {
+              delete target.sound.launch;
+              delete target.launchSound;
+            }
+          } else if (field.name === 'burstSound') {
+            if (val) {
+              target.sound.burst = val;
+              target.burstSound = val;
+            } else {
+              delete target.sound.burst;
+              delete target.burstSound;
+            }
+          } else if (field.name === 'crackleSound') {
+            if (val) {
+              target.sound.crackle = val;
+              target.crackleSound = val;
+            } else {
+              delete target.sound.crackle;
+              delete target.crackleSound;
+            }
+          } else if (field.name === 'soundVolume') {
+            if (val !== undefined && !isNaN(val)) {
+              target.sound.volumeMultiplier = val;
+              target.soundVolume = val;
+            } else {
+              delete target.sound.volumeMultiplier;
+              delete target.soundVolume;
+            }
+          }
+          if (Object.keys(target.sound).length === 0) {
+            delete target.sound;
           }
         }
-      }
+
+        if (field.name === 'preset') {
+          if (val !== 'multiNested' && val !== 'multi_nested') {
+            delete target.multiNested;
+            delete target.stages;
+            delete target.nestingMode;
+            delete target._selectedTemplateKey;
+          } else {
+            target.multiNested = true;
+          }
+
+          // Clean up all optical effect flags from previous preset
+          AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+            delete target[eff.key];
+          });
+          delete target.strobe;
+          delete target.crackle;
+          delete target.ghost;
+          delete target.ghostFlare;
+          delete target.flow;
+          delete target.noTrail;
+          delete target.noBurst;
+          delete target.crossette;
+
+          if (val) {
+            const template = getTemplateForPreset(val);
+            if (template) {
+              target.shapeType = template.shape;
+              target.dynamicsType = template.dynamics;
+              target.pistil = template.modifiers.pistil;
+              target.instantBurst = template.modifiers.instantBurst;
+              target.effects = [...template.effects];
+            }
+          } else {
+            target.effects = [];
+          }
+        }
+      });
 
       this.triggerUpdate();
       if (field.type === 'select') {
@@ -737,7 +1113,10 @@ export class PropertyInspector {
 
       const customSelect = new CustomSelect({
         options: optionsList,
-        value: this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '',
+        value: currentEventValue !== undefined ? currentEventValue : '',
+        placeholder: isMixed
+          ? (t('editor.inspector.mixedValues') || 'Mixed Values')
+          : undefined,
         category: previewCategory,
         fieldName: field.name,
         onChange: (val) => handleValueChange(val)
@@ -757,7 +1136,13 @@ export class PropertyInspector {
       input.dataset.fieldName = field.name;
       input.type = field.type;
       if (field.step) input.step = field.step;
-      input.value = this.selectedEvent[field.name] !== undefined ? this.selectedEvent[field.name] : '';
+      input.value = currentEventValue !== undefined ? currentEventValue : '';
+
+      if (isMixed) {
+        input.placeholder = t('editor.inspector.mixedValues') || 'Mixed Values';
+      } else if (field.name === 'soundVolume') {
+        input.placeholder = '1.0';
+      }
 
       input.addEventListener('focus', () => {
         this.isEditing = true;
@@ -771,13 +1156,49 @@ export class PropertyInspector {
       input.addEventListener('input', (e) => {
         handleValueChange(e.target.value);
       });
+
+      input.addEventListener('change', (e) => {
+        handleValueChange(e.target.value);
+      });
     }
 
-    parent.appendChild(label);
+    if (
+      field.name === 'launchSound' ||
+      field.name === 'burstSound' ||
+      field.name === 'crackleSound'
+    ) {
+      const inputGroup = document.createElement('div');
+      inputGroup.className = 'inspector-input-group';
+      inputGroup.appendChild(input);
+
+      const testBtn = document.createElement('button');
+      testBtn.type = 'button';
+      testBtn.className = 'inspector-sound-test-btn';
+      testBtn.textContent = t('editor.inspector.auditionSoundBtn') || 'Test';
+      testBtn.title = t('editor.inspector.auditionSoundTooltip') || 'Play sound preview';
+      testBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const stage = field.name.replace('Sound', '');
+        const profile = currentEventValue || 'standard';
+        globalEventBus.emit('audio:preview', {
+          stage,
+          profile
+        });
+      });
+      inputGroup.appendChild(testBtn);
+      parent.appendChild(inputGroup);
+      return;
+    }
+
     parent.appendChild(input);
   }
 
   renderCheckbox(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    const isMixed = this.isMixedValue(field.name);
     const container = document.createElement('label');
     container.className = 'inspector-checkbox-container';
 
@@ -785,21 +1206,55 @@ export class PropertyInspector {
     input.className = 'inspector-checkbox';
     input.type = 'checkbox';
     input.dataset.fieldName = field.name;
-    input.checked = !!this.selectedEvent[field.name];
+    input.checked = !isMixed && !!targetEvent[field.name];
+    if (isMixed) {
+      input.indeterminate = true;
+    }
 
     input.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
-      if (e.target.checked) {
-        this.selectedEvent[field.name] = true;
-        if (field.name === 'useAngle' && this.selectedEvent.angle === undefined) {
-          this.selectedEvent.angle = 0;
+      const targets = this.getBatchTargets();
+      const isChecked = e.target.checked;
+
+      targets.forEach((target) => {
+        if (isChecked) {
+          target[field.name] = true;
+          if (field.name === 'useAngle' && target.angle === undefined) {
+            target.angle = 0;
+          }
+          if (field.name === 'secondBurstEnabled') {
+            if (!target.secondBurst) {
+              target.secondBurst = {
+                enabled: true,
+                childShells: [
+                  {
+                    ratio: 0.20,
+                    triggerTiming: 0.50,
+                    distributionMode: 'random',
+                    shapeType: 'sphere',
+                    dynamicsType: 'standard',
+                    color: '#ffd700',
+                    scale: 0.35,
+                    effects: ['strobe']
+                  }
+                ]
+              };
+            } else {
+              target.secondBurst.enabled = true;
+            }
+          }
+        } else {
+          delete target[field.name];
+          if (field.name === 'useAngle') {
+            delete target.angle;
+          }
+          if (field.name === 'secondBurstEnabled') {
+            if (target.secondBurst) {
+              target.secondBurst.enabled = false;
+            }
+          }
         }
-      } else {
-        delete this.selectedEvent[field.name];
-        if (field.name === 'useAngle') {
-          delete this.selectedEvent.angle;
-        }
-      }
+      });
       this.onUpdate();
       this.render();
     });
@@ -816,178 +1271,402 @@ export class PropertyInspector {
     parent.appendChild(container);
   }
 
-  renderEffectChips(parent, field) {
+  renderSlider(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
+    const isBatch = this.isBatchMode();
+    const isMixed = this.isMixedValue(field.name);
+
+    const defVal = field.defaultValue !== undefined
+      ? field.defaultValue
+      : (parseFloat(field.min) || 0);
+    let rawVal = isMixed ? undefined : targetEvent[field.name];
+    if (rawVal === undefined && field.name === 'soundVolume' && targetEvent.sound && !isMixed) {
+      rawVal = targetEvent.sound.volumeMultiplier;
+    }
+    const currentVal = (rawVal !== undefined && !isNaN(Number(rawVal)))
+      ? Number(rawVal)
+      : defVal;
+
+    const header = document.createElement('div');
+    header.className = 'inspector-slider-header';
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
-    label.textContent = t(`editor.inspector.fields.${field.labelKey}`) || 'Active Effects';
+    label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
+    header.appendChild(label);
 
-    const container = document.createElement('div');
-    container.className = 'inspector-effect-chips-container';
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.gap = '8px';
-    container.style.marginTop = '4px';
+    const valueBadge = document.createElement('span');
+    valueBadge.className = 'inspector-slider-value';
+    const formatFn = typeof field.formatValue === 'function'
+      ? field.formatValue
+      : (v) => String(Number(v).toFixed(1));
+    valueBadge.textContent = isMixed
+      ? (t('editor.inspector.mixed') || 'Mixed')
+      : formatFn(currentVal);
+    header.appendChild(valueBadge);
 
-    // 1. Chips wrapper
-    const chipsWrapper = document.createElement('div');
-    chipsWrapper.className = 'inspector-chips-wrapper';
-    chipsWrapper.style.display = 'flex';
-    chipsWrapper.style.flexWrap = 'wrap';
-    chipsWrapper.style.gap = '6px';
-    chipsWrapper.style.minHeight = '24px';
-    chipsWrapper.style.alignItems = 'center';
+    parent.appendChild(header);
 
-    const currentEffectsList = Array.isArray(this.selectedEvent.effects)
-      ? this.selectedEvent.effects
-      : [];
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'inspector-slider';
+    slider.dataset.fieldName = field.name;
+    slider.min = field.min || '0';
+    slider.max = field.max || '100';
+    slider.step = field.step || '1';
+    slider.value = String(currentVal);
 
-    const activeEffects = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !!this.selectedEvent[eff.key] || currentEffectsList.includes(eff.key);
+    slider.addEventListener('pointerdown', () => {
+      this.triggerUpdate('beforeChange');
     });
 
-    if (activeEffects.length === 0) {
-      const emptySpan = document.createElement('span');
-      emptySpan.style.fontSize = '11px';
-      emptySpan.style.color = '#777';
-      emptySpan.style.fontStyle = 'italic';
-      emptySpan.textContent = t('editor.inspector.noActiveEffects') || 'No active effects';
-      chipsWrapper.appendChild(emptySpan);
-    } else {
-      activeEffects.forEach((eff) => {
-        const chip = document.createElement('div');
-        chip.className = 'inspector-effect-chip';
-        chip.style.display = 'inline-flex';
-        chip.style.alignItems = 'center';
-        chip.style.gap = '6px';
-        chip.style.padding = '3px 8px';
-        chip.style.background = 'rgba(0, 200, 255, 0.12)';
-        chip.style.border = '1px solid rgba(0, 200, 255, 0.35)';
-        chip.style.borderRadius = '12px';
-        chip.style.fontSize = '11px';
-        chip.style.color = '#64d2ff';
-        chip.style.userSelect = 'none';
+    const applySliderValue = (val) => {
+      const targets = this.getBatchTargets();
+      targets.forEach((target) => {
+        target[field.name] = val;
+        if (field.name === 'soundVolume') {
+          if (!target.sound) target.sound = {};
+          target.sound.volumeMultiplier = val;
+          target.soundVolume = val;
+        }
+      });
+    };
 
-        const chipText = document.createElement('span');
-        chipText.textContent = t(`editor.inspector.fields.${eff.labelKey}`) || eff.key;
-        chip.appendChild(chipText);
+    slider.addEventListener('input', (e) => {
+      const liveVal = parseFloat(e.target.value);
+      valueBadge.textContent = formatFn(liveVal);
+      applySliderValue(liveVal);
+      this.triggerUpdate();
+    });
 
-        EffectPreviewTooltip.getInstance().bindElement(chip, eff.key, PREVIEW_CATEGORIES.OPTICAL_EFFECT);
+    slider.addEventListener('change', (e) => {
+      const finalVal = parseFloat(e.target.value);
+      applySliderValue(finalVal);
+      this.triggerUpdate();
+    });
 
-        const removeBtn = document.createElement('span');
-        removeBtn.textContent = '×';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.fontSize = '14px';
-        removeBtn.style.lineHeight = '1';
-        removeBtn.style.color = '#ff6b6b';
-        removeBtn.style.fontWeight = 'bold';
-        removeBtn.style.padding = '0 2px';
-        removeBtn.title = t('editor.inspector.removeEffect') || 'Remove effect';
+    parent.appendChild(slider);
+  }
 
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.triggerUpdate('beforeChange');
-          delete this.selectedEvent[eff.key];
-          if (Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = this.selectedEvent.effects.filter((k) => k !== eff.key);
+  renderToggleModifiers(parent, targetEvent) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'inspector-toggle-modifiers';
+    wrapper.style.marginBottom = '8px';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '4px';
+
+    const title = document.createElement('label');
+    title.className = 'inspector-label';
+    title.style.margin = '0';
+    title.style.fontWeight = '600';
+    title.style.fontSize = '12px';
+    title.style.color = '#e2e8f0';
+    const rawTitle = t('editor.inspector.triggeredEffects')
+      || t('editor.inspector.characteristics');
+    title.textContent = (rawTitle && rawTitle !== 'editor.inspector.triggeredEffects')
+      ? rawTitle
+      : 'Triggered Effects';
+    header.appendChild(title);
+    wrapper.appendChild(header);
+
+    const chipsRow = document.createElement('div');
+    chipsRow.style.display = 'flex';
+    chipsRow.style.flexWrap = 'wrap';
+    chipsRow.style.gap = '6px';
+
+    TOGGLE_MODIFIER_TAGS.forEach((mod) => {
+      const targets = this.getBatchTargets();
+      const checkKeyActive = (evt) => {
+        if (mod.key === 'burst-smoke') {
+          return Boolean(
+            evt.burstSmoke
+            || evt['burst-smoke']
+            || evt.burst_smoke
+            || (Array.isArray(evt.effects) && evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'burst-smoke'))
+          );
+        }
+        if (mod.key === 'pistil') {
+          return Boolean(
+            evt.pistil
+            || (Array.isArray(evt.effects) && evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === 'pistil'))
+          );
+        }
+        if (mod.key === 'apex-hang') return Boolean(evt.apexHang || evt['apex-hang']);
+        if (mod.key === 'long-burn') return Boolean(evt.longBurn || evt['long-burn']);
+        if (mod.key === 'slow-burst') return Boolean(evt.slowBurst || evt['slow-burst'] || evt.slow_burst);
+        return Boolean(evt[mod.key]);
+      };
+
+      const allActive = targets.every(checkKeyActive);
+      const someActive = targets.some(checkKeyActive);
+      const isMixed = someActive && !allActive;
+
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'inspector-modifier-chip';
+      chip.dataset.key = mod.key;
+      chip.style.padding = '3px 8px';
+      chip.style.fontSize = '11px';
+      chip.style.borderRadius = '4px';
+      chip.style.cursor = 'pointer';
+
+      if (allActive) {
+        chip.style.border = '1px solid #38bdf8';
+        chip.style.background = 'rgba(56, 189, 248, 0.25)';
+        chip.style.color = '#ffffff';
+        chip.style.fontWeight = '600';
+      } else if (isMixed) {
+        chip.style.border = '1px dashed #ffb703';
+        chip.style.background = 'rgba(255, 183, 3, 0.15)';
+        chip.style.color = '#ffb703';
+        chip.style.fontWeight = '600';
+      } else {
+        chip.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+        chip.style.background = 'rgba(255, 255, 255, 0.05)';
+        chip.style.color = '#94a3b8';
+        chip.style.fontWeight = 'normal';
+      }
+      chip.style.transition = 'all 0.15s ease';
+
+      const label = t(`editor.inspector.fields.${mod.labelKey}`)
+        || en?.editor?.inspector?.fields?.[mod.labelKey]
+        || mod.key;
+      chip.textContent = label;
+
+      EffectPreviewTooltip.getInstance().bindElement(
+        chip,
+        mod.key,
+        PREVIEW_CATEGORIES.OPTICAL_EFFECT
+      );
+
+      chip.addEventListener('click', () => {
+        this.triggerUpdate('beforeChange');
+        const currentTargets = this.getBatchTargets();
+        const currentlyAllActive = currentTargets.every(checkKeyActive);
+        const nextState = !currentlyAllActive;
+
+        currentTargets.forEach((evt) => {
+          if (mod.key === 'burst-smoke') {
+            if (nextState) {
+              evt.burstSmoke = true;
+              evt['burst-smoke'] = true;
+            } else {
+              delete evt.burstSmoke;
+              delete evt['burst-smoke'];
+              delete evt.burst_smoke;
+            }
+          } else if (mod.key === 'pistil') {
+            evt.pistil = nextState;
+          } else if (mod.key === 'apex-hang') {
+            if (nextState) {
+              evt.apexHang = true;
+              evt['apex-hang'] = true;
+            } else {
+              delete evt.apexHang;
+              delete evt['apex-hang'];
+            }
+          } else if (mod.key === 'long-burn') {
+            if (nextState) {
+              evt.longBurn = true;
+              evt['long-burn'] = true;
+            } else {
+              delete evt.longBurn;
+              delete evt['long-burn'];
+            }
+          } else if (mod.key === 'slow-burst') {
+            if (nextState) {
+              evt.slowBurst = true;
+              evt['slow-burst'] = true;
+            } else {
+              delete evt.slowBurst;
+              delete evt['slow-burst'];
+              delete evt.slow_burst;
+            }
           }
-          this.triggerUpdate();
-          this.render();
+
+          if (Array.isArray(evt.effects)) {
+            if (nextState) {
+              if (!evt.effects.some((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) === mod.key)) {
+                evt.effects.push(mod.key);
+              }
+            } else {
+              evt.effects = evt.effects.filter(
+                (e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e) !== mod.key
+              );
+            }
+          }
         });
 
-        chip.appendChild(removeBtn);
-        chipsWrapper.appendChild(chip);
+        this.triggerUpdate();
+        this.render();
       });
-    }
 
-    // 2. Add Effect Dropdown Selector
-    const availableToAdd = AVAILABLE_EFFECT_TAGS.filter((eff) => {
-      return !this.selectedEvent[eff.key] && !currentEffectsList.includes(eff.key);
+      chipsRow.appendChild(chip);
     });
 
-    const addWrapper = document.createElement('div');
-    addWrapper.style.display = 'flex';
-    addWrapper.style.alignItems = 'center';
-    addWrapper.style.gap = '6px';
+    wrapper.appendChild(chipsRow);
+    parent.appendChild(wrapper);
+  }
 
-    const select = document.createElement('select');
-    select.className = 'inspector-input';
-    select.style.fontSize = '11px';
-    select.style.padding = '4px 8px';
-    select.style.cursor = 'pointer';
+  renderEffectChips(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
 
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = availableToAdd.length > 0
-      ? (t('editor.inspector.addEffectPrompt') || '+ Add Effect...')
-      : (t('editor.inspector.allEffectsAdded') || 'All effects added');
-    select.appendChild(defaultOption);
+    this.renderToggleModifiers(parent, targetEvent);
 
-    if (availableToAdd.length === 0) {
-      const disabledPlaceholder = document.createElement('div');
-      disabledPlaceholder.className = 'inspector-input';
-      disabledPlaceholder.style.fontSize = '11px';
-      disabledPlaceholder.style.padding = '4px 8px';
-      disabledPlaceholder.style.opacity = '0.5';
-      disabledPlaceholder.textContent =
-        t('editor.inspector.allEffectsAdded') || 'All effects added';
-      addWrapper.appendChild(disabledPlaceholder);
-    } else {
-      const sortedAvailableToAdd = [...availableToAdd].sort((a, b) => {
-        const labelA = en?.editor?.inspector?.fields?.[a.labelKey] || a.key;
-        const labelB = en?.editor?.inspector?.fields?.[b.labelKey] || b.key;
-        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
-      });
+    const container = document.createElement('div');
+    container.className = 'inspector-active-effects-container';
+    container.style.marginTop = '6px';
+    container.style.marginBottom = '6px';
 
-      const effectOptions = sortedAvailableToAdd.map((eff) => ({
-        value: eff.key,
-        label: t(`editor.inspector.fields.${eff.labelKey}`) || eff.key
-      }));
+    const getBurstLifetime = () => {
+      const baseLife = FIREWORK_CONFIG?.BURST?.baseLife ?? 2.3;
+      const mul = (targetEvent.starLifeMultiplier !== undefined && !isNaN(Number(targetEvent.starLifeMultiplier)))
+        ? Math.max(0.2, Number(targetEvent.starLifeMultiplier))
+        : 1.0;
+      const longBurnMul = targetEvent.longBurn ? (FIREWORK_CONFIG?.BURST?.longBurnMultiplier ?? 2.2) : 1.0;
+      return Math.round(baseLife * mul * longBurnMul * 10) / 10;
+    };
 
-      const effectSelect = new CustomSelect({
-        options: effectOptions,
-        placeholder:
-          t('editor.inspector.addEffectPrompt') || '+ Add Effect...',
-        category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
-        fieldName: 'addEffect',
-        enableSearch: false,
-        onChange: (selectedKey) => {
-          if (!selectedKey) return;
-          this.triggerUpdate('beforeChange');
-          this.selectedEvent[selectedKey] = true;
-          if (!Array.isArray(this.selectedEvent.effects)) {
-            this.selectedEvent.effects = [];
+    const burstLife = getBurstLifetime();
+
+    const getNormalizedEffects = () => {
+      const list = [];
+      const currentList = Array.isArray(targetEvent.effects) ? targetEvent.effects : [];
+
+      currentList.forEach((item) => {
+        const itemType = typeof item === 'string' ? item : (item?.type || item?.key);
+        if (TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === itemType)) {
+          return;
+        }
+
+        if (typeof item === 'string') {
+          list.push({
+            type: item,
+            startRatio: 0.1,
+            endRatio: 0.5,
+            start: Math.round(burstLife * 0.1 * 100) / 100,
+            end: Math.round(burstLife * 0.5 * 100) / 100
+          });
+        } else if (typeof item === 'object' && item !== null) {
+          const type = item.type || item.key;
+          let startRatio = item.startRatio !== undefined ? Number(item.startRatio) : undefined;
+          let endRatio = item.endRatio !== undefined ? Number(item.endRatio) : undefined;
+          let start = item.start !== undefined ? Number(item.start) : undefined;
+          let end = item.end !== undefined ? Number(item.end) : undefined;
+
+          if (startRatio === undefined) {
+            startRatio = start !== undefined ? Math.max(0, Math.min(1.0, start / burstLife)) : 0.1;
           }
-          if (!this.selectedEvent.effects.includes(selectedKey)) {
-            this.selectedEvent.effects.push(selectedKey);
+          if (endRatio === undefined) {
+            endRatio = end !== undefined ? Math.max(0, Math.min(1.0, end / burstLife)) : 0.5;
           }
-          this.triggerUpdate();
-          this.render();
+
+          start = Math.round(startRatio * burstLife * 100) / 100;
+          end = Math.round(endRatio * burstLife * 100) / 100;
+
+          list.push({
+            type,
+            startRatio: Math.round(startRatio * 100) / 100,
+            endRatio: Math.round(endRatio * 100) / 100,
+            start,
+            end
+          });
         }
       });
 
-      addWrapper.appendChild(effectSelect.element);
-    }
+      if (!Array.isArray(targetEvent.effects)) {
+        TIMED_EFFECT_TAGS.forEach((tag) => {
+          const hasLegacy = Boolean(
+            targetEvent[tag.key]
+            || (tag.key === 'no-trail' && (targetEvent.noTrail || targetEvent.notrail))
+          );
+          if (hasLegacy && !list.some((e) => e.type === tag.key)) {
+            list.push({
+              id: `${tag.key}_${Math.random().toString(36).slice(2, 7)}`,
+              type: tag.key,
+              startRatio: 0.1,
+              endRatio: 0.5,
+              start: Math.round(burstLife * 0.1 * 100) / 100,
+              end: Math.round(burstLife * 0.5 * 100) / 100
+            });
+            delete targetEvent[tag.key];
+            if (tag.key === 'no-trail') {
+              delete targetEvent.noTrail;
+              delete targetEvent.notrail;
+            }
+          }
+        });
+      }
 
-    container.appendChild(chipsWrapper);
-    container.appendChild(addWrapper);
+      return list;
+    };
 
-    parent.appendChild(label);
+    const cleanLegacyTimedFlags = () => {
+      TIMED_EFFECT_TAGS.forEach((tag) => {
+        delete targetEvent[tag.key];
+        if (tag.key === 'no-trail') {
+          delete targetEvent.noTrail;
+          delete targetEvent.notrail;
+        }
+      });
+    };
+
+    new ActiveEffectsTimeline(container, {
+      getDuration: () => {
+        return getBurstLifetime();
+      },
+      getEffects: () => {
+        return getNormalizedEffects();
+      },
+      onChange: (updatedEffects) => {
+        this.triggerUpdate('beforeChange');
+        const targets = this.getBatchTargets();
+        targets.forEach((evt) => {
+          const existingModifiers = (Array.isArray(evt.effects) ? evt.effects : [])
+            .filter((e) => {
+              const key = typeof e === 'object' && e !== null ? (e.type || e.key) : e;
+              return TOGGLE_MODIFIER_TAGS.some((mod) => mod.key === key);
+            });
+          evt.effects = [...updatedEffects, ...existingModifiers];
+          TIMED_EFFECT_TAGS.forEach((tag) => {
+            delete evt[tag.key];
+            if (tag.key === 'no-trail') {
+              delete evt.noTrail;
+              delete evt.notrail;
+            }
+          });
+        });
+        this.triggerUpdate();
+      },
+      availableEffectTags: TIMED_EFFECT_TAGS
+    });
+
     parent.appendChild(container);
   }
 
   renderColorBadges(parent) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t('editor.inspector.fields.color');
     parent.appendChild(label);
 
     const COLOR_MAP = editorConfig.colorMap;
-
     const container = document.createElement('div');
     container.className = 'color-badge-container';
 
+    const isMixed = this.isMixedValue('color');
     let activeKey = null;
-    const currentColor = this.selectedEvent.color;
+    const currentColor = isMixed ? undefined : targetEvent.color;
     if (currentColor) {
       const cLower = currentColor.toLowerCase();
       activeKey = Object.keys(COLOR_MAP).find(k => k === cLower || COLOR_MAP[k] === cLower);
@@ -1002,7 +1681,10 @@ export class PropertyInspector {
 
       badge.addEventListener('click', () => {
         this.onUpdate('beforeChange');
-        this.selectedEvent.color = key;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.color = key;
+        });
         this.onUpdate();
         this.render(); // Redraw selection outline
       });
@@ -1019,6 +1701,9 @@ export class PropertyInspector {
     customCb.className = 'inspector-checkbox';
     customCb.id = 'inspector-custom-color-cb';
     customCb.checked = currentColor !== undefined;
+    if (isMixed) {
+      customCb.indeterminate = true;
+    }
 
     const customInput = document.createElement('input');
     customInput.type = 'color';
@@ -1038,12 +1723,17 @@ export class PropertyInspector {
 
     customCb.addEventListener('change', (e) => {
       this.onUpdate('beforeChange');
+      const targets = this.getBatchTargets();
       if (e.target.checked) {
         customInput.disabled = false;
-        this.selectedEvent.color = customInput.value;
+        targets.forEach((target) => {
+          target.color = customInput.value;
+        });
       } else {
         customInput.disabled = true;
-        delete this.selectedEvent.color;
+        targets.forEach((target) => {
+          delete target.color;
+        });
       }
       this.onUpdate();
       this.render();
@@ -1052,7 +1742,10 @@ export class PropertyInspector {
     customInput.addEventListener('input', (e) => {
       if (customCb.checked) {
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.color = e.target.value;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.color = e.target.value;
+        });
         this.triggerUpdate();
       }
     });
@@ -1077,6 +1770,9 @@ export class PropertyInspector {
   }
 
   renderAngleDial(parent, field) {
+    const targetEvent = this.selectedEvent;
+    if (!targetEvent) return;
+
     const label = document.createElement('label');
     label.className = 'inspector-label';
     label.textContent = t(`editor.inspector.fields.${field.labelKey}`);
@@ -1105,10 +1801,14 @@ export class PropertyInspector {
     angleInput.min = '10';
     angleInput.max = '170';
 
-    const rad = this.selectedEvent.angle;
+    const isMixed = this.isMixedValue('angle');
+    const rad = isMixed ? undefined : targetEvent.angle;
     // Map radian to degree input: 90 - (rad * 180 / PI)
     const currentDegVal = (rad !== undefined && rad !== null) ? (90 - Math.round(rad * 180 / Math.PI)) : 90;
-    angleInput.value = currentDegVal;
+    angleInput.value = isMixed ? '' : currentDegVal;
+    if (isMixed) {
+      angleInput.placeholder = t('editor.inspector.mixed') || 'Mixed';
+    }
 
     // Position dial pointer initially
     const currentRad = (rad !== undefined && rad !== null) ? rad : 0;
@@ -1131,7 +1831,10 @@ export class PropertyInspector {
         deflectionRad = Math.min(maxLimitRad, Math.max(-maxLimitRad, deflectionRad));
 
         this.triggerUpdate('beforeChange');
-        this.selectedEvent.angle = deflectionRad;
+        const targets = this.getBatchTargets();
+        targets.forEach((target) => {
+          target.angle = deflectionRad;
+        });
         this.triggerUpdate();
 
         dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
@@ -1166,7 +1869,10 @@ export class PropertyInspector {
       const offsetDeg = Math.min(80, Math.max(-80, 90 - val));
       const deflectionRad = (offsetDeg * Math.PI) / 180;
 
-      this.selectedEvent.angle = deflectionRad;
+      const targets = this.getBatchTargets();
+      targets.forEach((target) => {
+        target.angle = deflectionRad;
+      });
       dialLine.style.transform = `translate(-50%, -50%) rotate(${deflectionRad - Math.PI / 2}rad)`;
       this.triggerUpdate();
     });
@@ -1184,14 +1890,21 @@ export class PropertyInspector {
   updateValues() {
     if (!this.selectedEvent) return;
 
+    const isBatch = this.isBatchMode();
+
     // Cập nhật các text, number và select inputs
     const inputs = this.container.querySelectorAll('.inspector-input');
     inputs.forEach(input => {
       const fieldName = input.dataset.fieldName;
-      if (fieldName && this.selectedEvent[fieldName] !== undefined) {
-        const currentVal = this.selectedEvent[fieldName];
+      if (fieldName) {
+        if (fieldName === 'time' && isBatch) {
+          input.value = '';
+          return;
+        }
+        const isMixed = this.isMixedValue(fieldName);
+        const currentVal = isMixed ? '' : this.selectedEvent[fieldName];
         if (input.value != currentVal && document.activeElement !== input) {
-          input.value = currentVal;
+          input.value = currentVal !== undefined ? currentVal : '';
         }
       }
     });
@@ -1201,9 +1914,12 @@ export class PropertyInspector {
     checkboxes.forEach(cb => {
       const fieldName = cb.dataset.fieldName;
       if (fieldName) {
-        const currentVal = !!this.selectedEvent[fieldName];
-        if (cb.checked !== currentVal) {
-          cb.checked = currentVal;
+        const isMixed = this.isMixedValue(fieldName);
+        if (isMixed) {
+          cb.indeterminate = true;
+        } else {
+          cb.indeterminate = false;
+          cb.checked = !!this.selectedEvent[fieldName];
         }
       }
     });
@@ -1212,13 +1928,52 @@ export class PropertyInspector {
     const angleInput = this.container.querySelector('.angle-dial-container input');
     const dialLine = this.container.querySelector('.angle-dial-line');
     if (angleInput && dialLine && this.selectedEvent.angle !== undefined) {
-      const rad = this.selectedEvent.angle;
-      const currentDegVal = 90 - Math.round(rad * 180 / Math.PI);
-      if (angleInput.value != currentDegVal && document.activeElement !== angleInput) {
-        angleInput.value = currentDegVal;
+      const isMixed = this.isMixedValue('angle');
+      if (!isMixed) {
+        const rad = this.selectedEvent.angle;
+        const currentDegVal = (rad !== undefined && rad !== null)
+          ? (90 - Math.round(rad * 180 / Math.PI))
+          : 90;
+        if (document.activeElement !== angleInput) {
+          angleInput.value = currentDegVal;
+        }
         dialLine.style.transform = `translate(-50%, -50%) rotate(${rad - Math.PI / 2}rad)`;
+      } else {
+        if (document.activeElement !== angleInput) {
+          angleInput.value = '';
+          angleInput.placeholder = t('mixed') || 'Mixed';
+        }
       }
     }
+
+    // Cập nhật các sliders
+    const sliders = this.container.querySelectorAll('.inspector-slider');
+    sliders.forEach(slider => {
+      const fieldName = slider.dataset.fieldName;
+      if (fieldName) {
+        const isMixed = this.isMixedValue(fieldName);
+        const parentWrapper = slider.closest('.inspector-field-span-2') || slider.parentElement;
+        const badge = parentWrapper?.querySelector('.inspector-slider-value');
+        if (isMixed) {
+          if (badge) {
+            badge.textContent = t('mixed') || 'Mixed';
+          }
+        } else {
+          let currentVal = this.selectedEvent[fieldName];
+          if (currentVal === undefined && fieldName === 'soundVolume' && this.selectedEvent.sound) {
+            currentVal = this.selectedEvent.sound.volumeMultiplier;
+          }
+          if (currentVal !== undefined && slider.value != currentVal && document.activeElement !== slider) {
+            slider.value = currentVal;
+            if (badge) {
+              badge.textContent = fieldName === 'shellSize'
+                ? `${Number(currentVal).toFixed(1)}x`
+                : `${Number(currentVal).toFixed(2)}x`;
+            }
+          }
+        }
+      }
+    });
   }
 
   renderBeatSettings(parent) {
@@ -1632,6 +2387,21 @@ export class PropertyInspector {
             delay: 1.20,
             scale: 0.50,
             effects: ['glitter-strobe']
+          }
+        ]
+      },
+      {
+        key: 'horsetail_waterfall',
+        label: t('editor.inspector.options.templates.horsetail_waterfall') || 'Horsetail Waterfall',
+        mode: 'standard',
+        stages: [
+          {
+            shapeType: 'horsetail',
+            dynamicsType: 'horsetail',
+            color: '#ffc83d',
+            delay: 0.0,
+            scale: 1.0,
+            effects: []
           }
         ]
       }
@@ -2383,6 +3153,806 @@ export class PropertyInspector {
           }
         );
 
+        chipsWrapper.appendChild(chip);
+      });
+
+      effectsWrapper.appendChild(effLbl);
+      effectsWrapper.appendChild(chipsWrapper);
+      card.appendChild(effectsWrapper);
+
+      container.appendChild(card);
+    }
+
+    parent.appendChild(container);
+  }
+
+  renderWaveCurveEditor(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!Array.isArray(event.wavePoints) || event.wavePoints.length === 0) {
+      event.wavePoints = DEFAULT_WAVE_POINTS.map(p => ({ ...p }));
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+
+    const editor = new WaveCurveEditor({
+      points: event.wavePoints,
+      shellCount: Number(event.count) || 12,
+      onChange: (newPoints) => {
+        this.triggerUpdate('beforeChange');
+        event.wavePoints = newPoints;
+        this.triggerUpdate();
+      }
+    });
+
+    container.appendChild(editor.getElement());
+    parent.appendChild(container);
+  }
+
+  renderSecondBurst(parent) {
+    const event = this.selectedEvent;
+    if (!event) return;
+
+    if (!event.secondBurst || typeof event.secondBurst !== 'object') {
+      event.secondBurst = {
+        enabled: true,
+        childShells: [
+          {
+            ratio: 0.20,
+            triggerTiming: 0.50,
+            distributionMode: 'random',
+            shapeType: 'sphere',
+            dynamicsType: 'standard',
+            color: '#ffd700',
+            scale: 0.35,
+            effects: ['strobe']
+          }
+        ]
+      };
+    }
+
+    const sb = event.secondBurst;
+    if (!Array.isArray(sb.childShells) || sb.childShells.length === 0) {
+      sb.childShells = [
+        {
+          ratio: 0.20,
+          triggerTiming: 0.50,
+          distributionMode: 'random',
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: '#ffd700',
+          scale: 0.35,
+          effects: ['strobe']
+        }
+      ];
+    }
+
+    const childShells = sb.childShells;
+    if (typeof this.activeChildShellIndex !== 'number' || this.activeChildShellIndex >= childShells.length) {
+      this.activeChildShellIndex = 0;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'inspector-field-span-2';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '10px';
+
+    // Summary header: Total conversion ratio
+    const totalAllocated = childShells.reduce((sum, c) => {
+      return sum + (typeof c.ratio === 'number' ? c.ratio : 0.20);
+    }, 0);
+
+    const summaryRow = document.createElement('div');
+    summaryRow.style.display = 'flex';
+    summaryRow.style.justifyContent = 'space-between';
+    summaryRow.style.alignItems = 'center';
+    summaryRow.style.padding = '4px 6px';
+    summaryRow.style.background = 'rgba(255, 255, 255, 0.04)';
+    summaryRow.style.borderRadius = '4px';
+
+    const summaryLabel = document.createElement('span');
+    summaryLabel.style.fontSize = '11px';
+    summaryLabel.style.fontWeight = 'bold';
+    summaryLabel.style.color = '#ffffff';
+    const localizedBurstTitle = t('editor.inspector.fields.secondBurst');
+    summaryLabel.textContent =
+      localizedBurstTitle && localizedBurstTitle !== 'editor.inspector.fields.secondBurst'
+        ? localizedBurstTitle
+        : (t('editor.inspector.groups.secondBurst') || 'Second Burst');
+
+    const summaryPercent = document.createElement('span');
+    summaryPercent.style.fontSize = '11px';
+    summaryPercent.style.color = totalAllocated > 0.6 ? '#f39c12' : '#3498db';
+    summaryPercent.style.whiteSpace = 'nowrap';
+    summaryPercent.style.marginLeft = '8px';
+    summaryPercent.textContent = `${Math.round(totalAllocated * 100)}% Total Active`;
+
+    summaryRow.appendChild(summaryLabel);
+    summaryRow.appendChild(summaryPercent);
+    container.appendChild(summaryRow);
+
+    // Performance guidance note
+    const hintText = document.createElement('div');
+    hintText.style.fontSize = '10px';
+    hintText.style.lineHeight = '1.3';
+    hintText.style.color = totalAllocated > 0.6 ? '#f39c12' : '#7f8c8d';
+    hintText.style.padding = '3px 6px';
+    hintText.style.background = 'rgba(255, 255, 255, 0.02)';
+    hintText.style.borderRadius = '3px';
+    hintText.style.border = '1px dashed rgba(255, 255, 255, 0.08)';
+    hintText.textContent = t('editor.inspector.fields.secondBurstHint') ||
+      'Keep ratio between 20% and 35% for optimal density and 60 FPS performance';
+    container.appendChild(hintText);
+
+    // 1. Child Shells Tabs Bar
+    const tabsWrapper = document.createElement('div');
+    tabsWrapper.style.display = 'flex';
+    tabsWrapper.style.gap = '4px';
+    tabsWrapper.style.alignItems = 'center';
+    tabsWrapper.style.overflowX = 'auto';
+    tabsWrapper.style.paddingBottom = '4px';
+    tabsWrapper.style.marginTop = '4px';
+
+    childShells.forEach((child, idx) => {
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      const isSelected = idx === this.activeChildShellIndex;
+      tabBtn.style.display = 'flex';
+      tabBtn.style.alignItems = 'center';
+      tabBtn.style.gap = '5px';
+      tabBtn.style.padding = '5px 8px';
+      tabBtn.style.fontSize = '11px';
+      tabBtn.style.borderRadius = '4px';
+      tabBtn.style.cursor = 'pointer';
+      tabBtn.style.border = isSelected
+        ? '1px solid #3498db'
+        : '1px solid rgba(255, 255, 255, 0.12)';
+      tabBtn.style.background = isSelected
+        ? 'rgba(52, 152, 219, 0.3)'
+        : 'rgba(255, 255, 255, 0.04)';
+      tabBtn.style.color = isSelected ? '#ffffff' : '#8a9ba8';
+      tabBtn.style.fontWeight = isSelected ? 'bold' : 'normal';
+
+      const dot = document.createElement('span');
+      dot.style.width = '7px';
+      dot.style.height = '7px';
+      dot.style.borderRadius = '50%';
+      dot.style.background = child.color || '#ffd700';
+      dot.style.flexShrink = '0';
+      tabBtn.appendChild(dot);
+
+      const childRatio = typeof child.ratio === 'number' ? child.ratio : 0.20;
+      const tabText = document.createElement('span');
+      tabText.textContent = `${t('editor.inspector.fields.childShell') || 'Type'} ${idx + 1}: ${Math.round(childRatio * 100)}%`;
+      tabBtn.appendChild(tabText);
+
+      tabBtn.addEventListener('click', () => {
+        this.activeChildShellIndex = idx;
+        this.render();
+      });
+      tabsWrapper.appendChild(tabBtn);
+    });
+
+    if (childShells.length < 5) {
+      const addTabBtn = document.createElement('button');
+      addTabBtn.type = 'button';
+      addTabBtn.style.padding = '5px 8px';
+      addTabBtn.style.fontSize = '11px';
+      addTabBtn.style.borderRadius = '4px';
+      addTabBtn.style.cursor = 'pointer';
+      addTabBtn.style.border = '1px dashed rgba(255, 255, 255, 0.25)';
+      addTabBtn.style.background = 'rgba(255, 255, 255, 0.04)';
+      addTabBtn.style.color = '#3498db';
+      addTabBtn.textContent = '+ ' + (t('editor.inspector.fields.addChildShell') || 'Add Type');
+
+      addTabBtn.addEventListener('click', () => {
+        this.triggerUpdate('beforeChange');
+        const fallbackColors = ['#ffd700', '#00e5ff', '#ff3366', '#ffffff', '#a855f7'];
+        childShells.push({
+          ratio: 0.20,
+          triggerTiming: 0.50,
+          distributionMode: 'random',
+          shapeType: 'sphere',
+          dynamicsType: 'standard',
+          color: fallbackColors[childShells.length % fallbackColors.length],
+          scale: 0.35,
+          effects: ['strobe']
+        });
+        this.activeChildShellIndex = childShells.length - 1;
+        this.triggerUpdate();
+        this.render();
+      });
+      tabsWrapper.appendChild(addTabBtn);
+    }
+
+    container.appendChild(tabsWrapper);
+
+    // 2. Active Child Shell Editor Card
+    const currentIdx = this.activeChildShellIndex;
+    const activeChild = childShells[currentIdx];
+
+    if (activeChild) {
+      const card = document.createElement('div');
+      card.style.background = 'rgba(255, 255, 255, 0.03)';
+      card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '10px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.gap = '8px';
+
+      // Card Header
+      const cardHeader = document.createElement('div');
+      cardHeader.style.display = 'flex';
+      cardHeader.style.justifyContent = 'space-between';
+      cardHeader.style.alignItems = 'center';
+
+      const titleGroup = document.createElement('div');
+      titleGroup.style.display = 'flex';
+      titleGroup.style.alignItems = 'center';
+      titleGroup.style.gap = '6px';
+
+      const colorSwatch = document.createElement('div');
+      colorSwatch.style.width = '10px';
+      colorSwatch.style.height = '10px';
+      colorSwatch.style.borderRadius = '50%';
+      colorSwatch.style.background = activeChild.color || '#ffd700';
+
+      const title = document.createElement('span');
+      title.style.fontWeight = 'bold';
+      title.style.fontSize = '12px';
+      title.style.color = '#ffffff';
+      title.textContent = `${t('editor.inspector.fields.childShell') || 'Child Shell'} ${currentIdx + 1} / ${childShells.length}`;
+
+      titleGroup.appendChild(colorSwatch);
+      titleGroup.appendChild(title);
+      cardHeader.appendChild(titleGroup);
+
+      if (childShells.length > 1) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.style.background = 'rgba(231, 76, 60, 0.15)';
+        delBtn.style.border = '1px solid rgba(231, 76, 60, 0.3)';
+        delBtn.style.color = '#ff6b6b';
+        delBtn.style.borderRadius = '3px';
+        delBtn.style.padding = '2px 6px';
+        delBtn.style.fontSize = '10px';
+        delBtn.style.cursor = 'pointer';
+        delBtn.textContent = t('editor.inspector.fields.removeChildShell') || 'Delete';
+
+        delBtn.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          childShells.splice(currentIdx, 1);
+          this.activeChildShellIndex = Math.max(0, currentIdx - 1);
+          this.triggerUpdate();
+          this.render();
+        });
+        cardHeader.appendChild(delBtn);
+      }
+
+      card.appendChild(cardHeader);
+
+      // Section A: Activation Parameters (Ratio, Timing, Mode)
+      // 1. Particle Ratio Slider for this child
+      const ratioWrapper = document.createElement('div');
+      ratioWrapper.style.display = 'flex';
+      ratioWrapper.style.flexDirection = 'column';
+      ratioWrapper.style.gap = '2px';
+
+      const ratioHeader = document.createElement('div');
+      ratioHeader.style.display = 'flex';
+      ratioHeader.style.justifyContent = 'space-between';
+
+      const ratioLbl = document.createElement('label');
+      ratioLbl.className = 'inspector-label';
+      ratioLbl.style.fontSize = '10px';
+      ratioLbl.textContent = t('editor.inspector.fields.secondBurstRatio') || 'Particle Ratio';
+
+      const currentRatio = typeof activeChild.ratio === 'number' ? activeChild.ratio : 0.20;
+      const ratioValText = document.createElement('span');
+      ratioValText.style.fontSize = '11px';
+      ratioValText.style.color = '#3498db';
+      ratioValText.textContent = `${Math.round(currentRatio * 100)}%`;
+
+      ratioHeader.appendChild(ratioLbl);
+      ratioHeader.appendChild(ratioValText);
+      ratioWrapper.appendChild(ratioHeader);
+
+      const ratioSlider = document.createElement('input');
+      ratioSlider.type = 'range';
+      ratioSlider.min = '0.05';
+      ratioSlider.max = '0.80';
+      ratioSlider.step = '0.05';
+      ratioSlider.value = currentRatio;
+      ratioSlider.style.width = '100%';
+
+      ratioSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.20;
+        activeChild.ratio = val;
+        ratioValText.textContent = `${Math.round(val * 100)}%`;
+        this.triggerUpdate();
+      });
+
+      ratioSlider.addEventListener('change', () => {
+        this.render();
+      });
+
+      ratioWrapper.appendChild(ratioSlider);
+      card.appendChild(ratioWrapper);
+
+      // 2. Trigger Timing Slider for this child
+      const timingWrapper = document.createElement('div');
+      timingWrapper.style.display = 'flex';
+      timingWrapper.style.flexDirection = 'column';
+      timingWrapper.style.gap = '2px';
+
+      const timingHeader = document.createElement('div');
+      timingHeader.style.display = 'flex';
+      timingHeader.style.justifyContent = 'space-between';
+
+      const timingLbl = document.createElement('label');
+      timingLbl.className = 'inspector-label';
+      timingLbl.style.fontSize = '10px';
+      timingLbl.textContent = t('editor.inspector.fields.secondBurstTiming') || 'Trigger Timing';
+
+      const currentTiming = typeof activeChild.triggerTiming === 'number' ? activeChild.triggerTiming : 0.50;
+      const timingValText = document.createElement('span');
+      timingValText.style.fontSize = '11px';
+      timingValText.style.color = '#3498db';
+      timingValText.textContent = `${Math.round(currentTiming * 100)}%`;
+
+      timingHeader.appendChild(timingLbl);
+      timingHeader.appendChild(timingValText);
+      timingWrapper.appendChild(timingHeader);
+
+      const timingSlider = document.createElement('input');
+      timingSlider.type = 'range';
+      timingSlider.min = '0.15';
+      timingSlider.max = '0.85';
+      timingSlider.step = '0.05';
+      timingSlider.value = currentTiming;
+      timingSlider.style.width = '100%';
+
+      timingSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.50;
+        activeChild.triggerTiming = val;
+        timingValText.textContent = `${Math.round(val * 100)}%`;
+        this.triggerUpdate();
+      });
+
+      timingWrapper.appendChild(timingSlider);
+      card.appendChild(timingWrapper);
+
+      // 3. Distribution Mode Segmented Buttons for this child
+      const modeWrapper = document.createElement('div');
+      modeWrapper.style.display = 'flex';
+      modeWrapper.style.flexDirection = 'column';
+      modeWrapper.style.gap = '4px';
+
+      const modeLabel = document.createElement('label');
+      modeLabel.className = 'inspector-label';
+      modeLabel.style.fontSize = '10px';
+      modeLabel.textContent = t('editor.inspector.fields.secondBurstMode') || 'Distribution Mode';
+
+      const modeButtonGroup = document.createElement('div');
+      modeButtonGroup.style.display = 'grid';
+      modeButtonGroup.style.gridTemplateColumns = '1fr 1fr 1fr';
+      modeButtonGroup.style.gap = '4px';
+
+      const currentDistMode = activeChild.distributionMode || 'random';
+      const distModes = [
+        {
+          key: 'random',
+          label: t('editor.inspector.options.distributionMode.random') || 'Random'
+        },
+        {
+          key: 'sequential',
+          label: t('editor.inspector.options.distributionMode.sequential') || 'Sequential'
+        },
+        {
+          key: 'simultaneous',
+          label: t('editor.inspector.options.distributionMode.simultaneous') || 'Simultaneous'
+        }
+      ];
+
+      distModes.forEach((m) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isActive = currentDistMode === m.key;
+        btn.style.padding = '5px 3px';
+        btn.style.fontSize = '10px';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.style.border = isActive
+          ? '1px solid #3498db'
+          : '1px solid rgba(255, 255, 255, 0.12)';
+        btn.style.background = isActive
+          ? 'rgba(52, 152, 219, 0.25)'
+          : 'rgba(255, 255, 255, 0.04)';
+        btn.style.color = isActive ? '#ffffff' : '#8a9ba8';
+        btn.style.fontWeight = isActive ? 'bold' : 'normal';
+        btn.textContent = m.label;
+
+        btn.addEventListener('click', () => {
+          if (activeChild.distributionMode !== m.key) {
+            this.triggerUpdate('beforeChange');
+            activeChild.distributionMode = m.key;
+            this.triggerUpdate();
+            this.render();
+          }
+        });
+        modeButtonGroup.appendChild(btn);
+      });
+
+      modeWrapper.appendChild(modeLabel);
+      modeWrapper.appendChild(modeButtonGroup);
+      card.appendChild(modeWrapper);
+
+      // Section B: Composition Details (Template, Shape, Dynamics, Modifiers, Color, Scale, Sound, Effects)
+      // 1. Preset Template Selector
+      const templateWrapper = document.createElement('div');
+      templateWrapper.style.display = 'flex';
+      templateWrapper.style.flexDirection = 'column';
+      templateWrapper.style.gap = '2px';
+
+      const templateLbl = document.createElement('label');
+      templateLbl.className = 'inspector-label';
+      templateLbl.style.fontSize = '10px';
+      templateLbl.textContent = t('editor.inspector.fields.templates') || 'Preset Template';
+
+      const templateCustom = new CustomSelect({
+        options: AVAILABLE_CHILD_PRESETS.map((presetKey) => ({
+          value: presetKey,
+          label: presetKey === 'custom'
+            ? (t('editor.inspector.options.templates.custom') || 'Custom')
+            : (t(`editor.inspector.options.preset.${presetKey}`) || formatOptionLabelFallback(presetKey))
+        })),
+        value: activeChild.preset || 'custom',
+        category: PREVIEW_CATEGORIES.PRESET,
+        fieldName: 'preset',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.preset = val;
+          if (val !== 'custom') {
+            const tmpl = getTemplateForPreset(val);
+            if (tmpl) {
+              activeChild.shapeType = tmpl.shape;
+              activeChild.dynamicsType = tmpl.dynamics;
+              activeChild.pistil = tmpl.modifiers.pistil;
+              activeChild.instantBurst = tmpl.modifiers.instantBurst;
+              activeChild.effects = [...tmpl.effects];
+            }
+          }
+          this.triggerUpdate();
+          this.render();
+        }
+      });
+
+      templateWrapper.appendChild(templateLbl);
+      templateWrapper.appendChild(templateCustom.element);
+      card.appendChild(templateWrapper);
+
+      // 2. Row: Shape & Dynamics
+      const row1 = document.createElement('div');
+      row1.style.display = 'grid';
+      row1.style.gridTemplateColumns = '1fr 1fr';
+      row1.style.gap = '6px';
+
+      // Shape
+      const shapeCol = document.createElement('div');
+      const shapeLbl = document.createElement('label');
+      shapeLbl.className = 'inspector-label';
+      shapeLbl.style.fontSize = '10px';
+      shapeLbl.textContent = t('editor.inspector.fields.shapeType') || 'Shape';
+
+      const sortedShapes = [...AVAILABLE_SHAPES].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('shapeType', a);
+        const labelB = getEnglishOptionLabel('shapeType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      const shapeCustom = new CustomSelect({
+        options: sortedShapes.map((sh) => ({
+          value: sh,
+          label: t(`editor.inspector.options.shapeType.${sh}`) || sh
+        })),
+        value: activeChild.shapeType || 'sphere',
+        category: PREVIEW_CATEGORIES.SHAPE,
+        fieldName: 'shapeType',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.shapeType = val;
+          this.triggerUpdate();
+        }
+      });
+
+      shapeCol.appendChild(shapeLbl);
+      shapeCol.appendChild(shapeCustom.element);
+
+      // Dynamics
+      const dynCol = document.createElement('div');
+      const dynLbl = document.createElement('label');
+      dynLbl.className = 'inspector-label';
+      dynLbl.style.fontSize = '10px';
+      dynLbl.textContent = t('editor.inspector.fields.dynamicsType') || 'Dynamics';
+
+      const sortedDynamics = [...AVAILABLE_DYNAMICS].sort((a, b) => {
+        const labelA = getEnglishOptionLabel('dynamicsType', a);
+        const labelB = getEnglishOptionLabel('dynamicsType', b);
+        return labelA.localeCompare(labelB, 'en', { sensitivity: 'base' });
+      });
+
+      const dynCustom = new CustomSelect({
+        options: sortedDynamics.map((dyn) => ({
+          value: dyn,
+          label: t(`editor.inspector.options.dynamicsType.${dyn}`) || dyn
+        })),
+        value: activeChild.dynamicsType || 'standard',
+        category: PREVIEW_CATEGORIES.DYNAMICS,
+        fieldName: 'dynamicsType',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.dynamicsType = val;
+          this.triggerUpdate();
+        }
+      });
+
+      dynCol.appendChild(dynLbl);
+      dynCol.appendChild(dynCustom.element);
+
+      row1.appendChild(shapeCol);
+      row1.appendChild(dynCol);
+      card.appendChild(row1);
+
+      // 3. Row: Structural Modifiers (Pistil)
+      const modRow = document.createElement('div');
+      modRow.style.display = 'flex';
+      modRow.style.gap = '14px';
+      modRow.style.alignItems = 'center';
+      modRow.style.padding = '2px 0';
+
+      // Pistil
+      const pistilLabel = document.createElement('label');
+      pistilLabel.className = 'inspector-checkbox-container';
+      pistilLabel.style.fontSize = '10px';
+      pistilLabel.style.cursor = 'pointer';
+
+      const pistilInput = document.createElement('input');
+      pistilInput.className = 'inspector-checkbox';
+      pistilInput.type = 'checkbox';
+      pistilInput.checked = Boolean(activeChild.pistil);
+      pistilInput.addEventListener('change', (e) => {
+        this.triggerUpdate('beforeChange');
+        activeChild.pistil = e.target.checked;
+        this.triggerUpdate();
+        this.render();
+      });
+
+      const pistilText = document.createElement('span');
+      pistilText.textContent = t('editor.inspector.fields.pistil') || 'Pistil';
+
+      pistilLabel.appendChild(pistilInput);
+      pistilLabel.appendChild(pistilText);
+      EffectPreviewTooltip.getInstance().bindElement(
+        pistilLabel,
+        'pistil',
+        PREVIEW_CATEGORIES.OPTICAL_EFFECT
+      );
+      modRow.appendChild(pistilLabel);
+
+      card.appendChild(modRow);
+
+      // Row: Color Palette Swatches & Custom Picker
+      const colorWrapper = document.createElement('div');
+      colorWrapper.style.display = 'flex';
+      colorWrapper.style.flexDirection = 'column';
+      colorWrapper.style.gap = '4px';
+
+      const colorLbl = document.createElement('label');
+      colorLbl.className = 'inspector-label';
+      colorLbl.style.fontSize = '10px';
+      colorLbl.textContent = t('editor.inspector.fields.color') || 'Color';
+
+      const colorPaletteRow = document.createElement('div');
+      colorPaletteRow.style.display = 'flex';
+      colorPaletteRow.style.alignItems = 'center';
+      colorPaletteRow.style.flexWrap = 'wrap';
+      colorPaletteRow.style.gap = '5px';
+
+      const COLOR_PALETTE = [
+        { key: 'red', hex: '#ff3333' },
+        { key: 'gold', hex: '#ffd700' },
+        { key: 'white', hex: '#ffffff' },
+        { key: 'blue', hex: '#007aff' },
+        { key: 'green', hex: '#34c759' },
+        { key: 'purple', hex: '#af52de' },
+        { key: 'pink', hex: '#ff2d55' },
+        { key: 'aqua', hex: '#00e5ff' }
+      ];
+
+      COLOR_PALETTE.forEach((c) => {
+        const swatch = document.createElement('div');
+        const isActiveColor = (activeChild.color || '').toLowerCase() === c.hex.toLowerCase();
+        swatch.style.width = '18px';
+        swatch.style.height = '18px';
+        swatch.style.borderRadius = '50%';
+        swatch.style.background = c.hex;
+        swatch.style.cursor = 'pointer';
+        swatch.style.border = isActiveColor
+          ? '2px solid #ffffff'
+          : '1px solid rgba(0, 0, 0, 0.4)';
+        swatch.style.boxShadow = isActiveColor
+          ? '0 0 6px rgba(255, 255, 255, 0.8)'
+          : 'none';
+        swatch.title = c.key;
+
+        swatch.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          activeChild.color = c.hex;
+          this.triggerUpdate();
+          this.render();
+        });
+        colorPaletteRow.appendChild(swatch);
+      });
+
+      const customColorInput = document.createElement('input');
+      customColorInput.type = 'color';
+      customColorInput.value = activeChild.color || '#ffd700';
+      customColorInput.style.width = '20px';
+      customColorInput.style.height = '20px';
+      customColorInput.style.border = 'none';
+      customColorInput.style.borderRadius = '3px';
+      customColorInput.style.cursor = 'pointer';
+      customColorInput.style.background = 'transparent';
+
+      customColorInput.addEventListener('change', (e) => {
+        this.triggerUpdate('beforeChange');
+        activeChild.color = e.target.value;
+        this.triggerUpdate();
+        this.render();
+      });
+      colorPaletteRow.appendChild(customColorInput);
+
+      colorWrapper.appendChild(colorLbl);
+      colorWrapper.appendChild(colorPaletteRow);
+      card.appendChild(colorWrapper);
+
+      // Row: Scale Slider
+      const scaleWrapper = document.createElement('div');
+      scaleWrapper.style.display = 'flex';
+      scaleWrapper.style.flexDirection = 'column';
+      scaleWrapper.style.gap = '2px';
+
+      const scaleHeader = document.createElement('div');
+      scaleHeader.style.display = 'flex';
+      scaleHeader.style.justifyContent = 'space-between';
+
+      const scaleLbl = document.createElement('label');
+      scaleLbl.className = 'inspector-label';
+      scaleLbl.style.fontSize = '10px';
+      scaleLbl.textContent = t('editor.inspector.fields.childShellScale') || 'Scale';
+
+      const currentScale = typeof activeChild.scale === 'number' ? activeChild.scale : 0.35;
+      const scaleValText = document.createElement('span');
+      scaleValText.style.fontSize = '11px';
+      scaleValText.style.color = '#3498db';
+      scaleValText.textContent = `${currentScale.toFixed(2)}x`;
+
+      scaleHeader.appendChild(scaleLbl);
+      scaleHeader.appendChild(scaleValText);
+      scaleWrapper.appendChild(scaleHeader);
+
+      const scaleSlider = document.createElement('input');
+      scaleSlider.type = 'range';
+      scaleSlider.min = '0.15';
+      scaleSlider.max = '0.80';
+      scaleSlider.step = '0.05';
+      scaleSlider.value = currentScale;
+      scaleSlider.style.width = '100%';
+
+      scaleSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0.35;
+        activeChild.scale = val;
+        scaleValText.textContent = `${val.toFixed(2)}x`;
+        this.triggerUpdate();
+      });
+
+      scaleWrapper.appendChild(scaleSlider);
+      card.appendChild(scaleWrapper);
+
+      // Row: Child Burst Sound
+      const soundWrapper = document.createElement('div');
+      soundWrapper.style.display = 'flex';
+      soundWrapper.style.flexDirection = 'column';
+      soundWrapper.style.gap = '2px';
+
+      const soundLbl = document.createElement('label');
+      soundLbl.className = 'inspector-label';
+      soundLbl.style.fontSize = '10px';
+      soundLbl.textContent = t('editor.inspector.fields.burstSound') || 'Burst Sound';
+
+      const SOUND_OPTIONS = ['standard', 'heavy', 'soft', 'silent'];
+      const soundCustom = new CustomSelect({
+        options: SOUND_OPTIONS.map((snd) => ({
+          value: snd,
+          label: t(`editor.inspector.options.burstSound.${snd}`) || formatOptionLabelFallback(snd)
+        })),
+        value: activeChild.burstSound || 'standard',
+        fieldName: 'burstSound',
+        onChange: (val) => {
+          this.triggerUpdate('beforeChange');
+          activeChild.burstSound = val;
+          this.triggerUpdate();
+        }
+      });
+
+      soundWrapper.appendChild(soundLbl);
+      soundWrapper.appendChild(soundCustom.element);
+      card.appendChild(soundWrapper);
+
+      // Row: Active Effects Chips
+      const effectsWrapper = document.createElement('div');
+      effectsWrapper.style.display = 'flex';
+      effectsWrapper.style.flexDirection = 'column';
+      effectsWrapper.style.gap = '4px';
+
+      const effLbl = document.createElement('label');
+      effLbl.className = 'inspector-label';
+      effLbl.style.fontSize = '10px';
+      effLbl.textContent = t('editor.inspector.fields.activeEffects') || 'Active Effects';
+
+      const chipsWrapper = document.createElement('div');
+      chipsWrapper.style.display = 'flex';
+      chipsWrapper.style.flexWrap = 'wrap';
+      chipsWrapper.style.gap = '4px';
+
+      const currentChildEffects = Array.isArray(activeChild.effects) ? activeChild.effects : [];
+      AVAILABLE_EFFECT_TAGS.forEach((eff) => {
+        const isEffectActive = currentChildEffects.includes(eff.key);
+        const chip = document.createElement('span');
+        chip.className = 'effect-chip';
+        chip.style.fontSize = '10px';
+        chip.style.padding = '3px 7px';
+        chip.style.cursor = 'pointer';
+        chip.style.borderRadius = '4px';
+        chip.style.userSelect = 'none';
+        chip.style.border = isEffectActive
+          ? '1px solid #3498db'
+          : '1px solid rgba(255, 255, 255, 0.15)';
+        chip.style.background = isEffectActive
+          ? 'rgba(52, 152, 219, 0.25)'
+          : 'rgba(255, 255, 255, 0.04)';
+        chip.style.color = isEffectActive ? '#ffffff' : '#8a9ba8';
+        chip.style.fontWeight = isEffectActive ? 'bold' : 'normal';
+        const labelKeyPath = `editor.inspector.fields.${eff.labelKey}`;
+        const translatedLabel = t(labelKeyPath);
+        chip.textContent =
+          translatedLabel && translatedLabel !== labelKeyPath
+            ? translatedLabel
+            : formatOptionLabelFallback(eff.key);
+
+        EffectPreviewTooltip.getInstance().bindElement(
+          chip,
+          eff.key,
+          PREVIEW_CATEGORIES.OPTICAL_EFFECT
+        );
+
+        chip.addEventListener('click', () => {
+          this.triggerUpdate('beforeChange');
+          if (isEffectActive) {
+            activeChild.effects = currentChildEffects.filter((k) => k !== eff.key);
+          } else {
+            activeChild.effects = [...currentChildEffects, eff.key];
+          }
+          this.triggerUpdate();
+          this.render();
+        });
         chipsWrapper.appendChild(chip);
       });
 

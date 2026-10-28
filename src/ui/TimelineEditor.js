@@ -4,10 +4,14 @@ import demoShow from '../config/sequences/demoShow.json';
 import { t } from '../config/lang/i18n.js';
 import { globalEventBus } from '../core/EventBus.js';
 import { fileStorage } from '../core/FileStorageAdapter.js';
-import { customChoicePrompt } from '../editor/ui/utils/Modal.js';
+import {
+  customChoicePrompt,
+  customConfirm
+} from '../editor/ui/utils/Modal.js';
 import { showToast } from '../utils/Toast.js';
 import { WaveformGenerator } from '../utils/WaveformGenerator.js';
 import { TimelineTourGuide } from './TimelineTourGuide.js';
+import { TimelineContextMenu } from './TimelineContextMenu.js';
 
 
 export class TimelineEditor {
@@ -33,9 +37,21 @@ export class TimelineEditor {
     this.redoStack = [];
     this.selectedEvents = [];
     this.clipboardEvents = [];
+    this.blockDomMap = new Map();
+    this.isPotentialMarquee = false;
+    this.isMarqueeSelecting = false;
+    this.marqueeStartX = 0;
+    this.marqueeStartY = 0;
+    this.marqueeStartClientX = 0;
+    this.marqueeStartClientY = 0;
+    this.marqueeIsAdditive = false;
+    this.marqueeInitialSelected = [];
+    this.ctrlClickedSeq = null;
+    this.marqueeBox = null;
     this.autoSaveEnabled = localStorage.getItem('settings_auto_save_enabled') !== 'false';
     this.autoSaveTimer = null;
 
+    this.contextMenu = new TimelineContextMenu(this);
     this.initDOM();
     this.tourGuide = new TimelineTourGuide(this);
     this.renderTracks();
@@ -90,7 +106,7 @@ export class TimelineEditor {
     this.resizer.style.position = 'absolute';
     this.resizer.style.top = '-4px';
     this.resizer.style.left = '0';
-    this.resizer.style.width = 'calc(100% - 320px)'; // Tránh đè lên phần Property Inspector bên phải
+    this.resizer.style.width = '100%';
     this.resizer.style.height = '8px';
     this.resizer.style.cursor = 'ns-resize';
     this.resizer.style.zIndex = '1002';
@@ -106,6 +122,7 @@ export class TimelineEditor {
       const newHeight = window.innerHeight - e.clientY;
       const boundedHeight = Math.max(100, Math.min(newHeight, window.innerHeight * 0.9));
       this.container.style.height = boundedHeight + 'px';
+      this.updateInspectorPosition();
     });
 
     window.addEventListener('mouseup', () => {
@@ -117,9 +134,10 @@ export class TimelineEditor {
 
     this.container.appendChild(this.resizer);
 
-    // Left side: Toolbar & Tracks
+    // Left side: Toolbar & Tracks (Full width)
     const leftPanel = document.createElement('div');
-    leftPanel.style.width = 'calc(100% - 320px)';
+    leftPanel.style.width = '100%';
+    leftPanel.style.flex = '1 1 auto';
     leftPanel.style.display = 'flex';
     leftPanel.style.flexDirection = 'column';
     leftPanel.style.overflow = 'hidden';
@@ -135,10 +153,14 @@ export class TimelineEditor {
 
     const playBtn = document.createElement('button');
     playBtn.textContent = t('editor.timelinePanel.playBtn');
+    playBtn.title = t('editor.timelinePanel.playBtnTooltip') ||
+      'Play or pause script Space';
     playBtn.addEventListener('click', () => this.togglePlay());
 
     this.followBtn = document.createElement('button');
     this.followBtn.textContent = t('editor.timelinePanel.followOn');
+    this.followBtn.title = t('editor.timelinePanel.followTooltip') ||
+      'Toggle auto scroll following Playhead';
     this.followBtn.style.background = '#4CAF50';
     this.followBtn.style.color = 'white';
     this.followBtn.addEventListener('click', () => {
@@ -148,12 +170,28 @@ export class TimelineEditor {
     });
 
 
+    const newBtn = document.createElement('button');
+    newBtn.textContent = t('editor.timelinePanel.newBtn') || 'New';
+    newBtn.title = t('editor.timelinePanel.newBtnTooltip') || 'New blank script Ctrl+Alt+N';
+    newBtn.style.background = '#2e7d32';
+    newBtn.style.color = 'white';
+    newBtn.addEventListener(
+      'click',
+      () => {
+        this.createNewScript();
+      }
+    );
+
     const addBtn = document.createElement('button');
     addBtn.textContent = t('editor.timelinePanel.addSequence');
+    addBtn.title = t('editor.timelinePanel.addSequenceTooltip') ||
+      'Add sequence event at Anchor Head time';
     addBtn.addEventListener('click', () => this.addSequence(this.anchorTime));
 
     const importBtn = document.createElement('button');
     importBtn.textContent = t('editor.timelinePanel.importBtn');
+    importBtn.title = t('editor.timelinePanel.importBtnTooltip') ||
+      'Import show script from JSON file';
 
     importBtn.style.background = '#1976d2';
     importBtn.style.color = 'white';
@@ -164,6 +202,19 @@ export class TimelineEditor {
         this.fileInput.click();
       }
     });
+
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = t('editor.timelinePanel.exportBtn') || 'Export';
+    exportBtn.title = t('editor.timelinePanel.exportBtnTooltip') ||
+      'Export all sequences to JSON file';
+    exportBtn.style.background = '#0288d1';
+    exportBtn.style.color = 'white';
+    exportBtn.addEventListener(
+      'click',
+      () => {
+        this.exportSequence(false);
+      }
+    );
 
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
@@ -195,6 +246,8 @@ export class TimelineEditor {
 
     const addFileBtn = document.createElement('button');
     addFileBtn.textContent = t('editor.timelinePanel.addDroneAudio') + ' ▾';
+    addFileBtn.title = t('editor.timelinePanel.addDroneAudioTooltip') ||
+      'Add Drone JSON or Audio MP3 WAV file to script';
     addFileBtn.style.background = '#e65100';
     addFileBtn.style.color = 'white';
 
@@ -284,29 +337,12 @@ export class TimelineEditor {
     this.updateFileIndicator();
     this.setSaveStatus('saved');
 
-    const groupBtn = document.createElement('button');
-    groupBtn.textContent = t('editor.timelinePanel.groupBtn') || 'Group';
-    groupBtn.addEventListener(
-      'click',
-      () => {
-        this.groupSelected();
-      }
-    );
-
-    const ungroupBtn = document.createElement('button');
-    ungroupBtn.textContent = t('editor.timelinePanel.ungroupBtn') || 'Ungroup';
-    ungroupBtn.addEventListener(
-      'click',
-      () => {
-        this.ungroupSelected();
-      }
-    );
-
     this.toolbar = toolbar;
 
     const helpBtn = document.createElement('button');
-    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Hướng dẫn';
-    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') || 'Xem hướng dẫn thao tác cơ bản trên Timeline';
+    helpBtn.textContent = t('editor.timelineTour.helpBtn') || 'Guide';
+    helpBtn.title = t('editor.timelineTour.helpBtnTooltip') ||
+      'View basic Timeline guide';
     helpBtn.style.background = '#273544';
     helpBtn.style.color = '#00e5ff';
     helpBtn.style.border = '1px solid #486581';
@@ -324,16 +360,16 @@ export class TimelineEditor {
     dataActionsGroup.style.display = 'inline-flex';
     dataActionsGroup.style.alignItems = 'center';
     dataActionsGroup.style.gap = '10px';
+    dataActionsGroup.appendChild(newBtn);
     dataActionsGroup.appendChild(addBtn);
     dataActionsGroup.appendChild(importBtn);
+    dataActionsGroup.appendChild(exportBtn);
     dataActionsGroup.appendChild(addFileDropdownContainer);
     this.dataActionsGroup = dataActionsGroup;
 
     toolbar.appendChild(playBtn);
     toolbar.appendChild(this.followBtn);
     toolbar.appendChild(dataActionsGroup);
-    toolbar.appendChild(groupBtn);
-    toolbar.appendChild(ungroupBtn);
     toolbar.appendChild(this.fileIndicatorContainer);
     toolbar.appendChild(this.fileInput);
     toolbar.appendChild(this.mediaFileInput);
@@ -415,12 +451,22 @@ export class TimelineEditor {
     // Drag events
     window.addEventListener('mousemove', (e) => this.onDrag(e));
     window.addEventListener('mouseup', (e) => this.onDragEnd(e));
-    // Click on empty space to deselect
+    // Click on empty space or drag to marquee select
     this.tracksArea.addEventListener('mousedown', (e) => {
       if (e.target === this.tracksArea) {
-        this.selectedEvents = [];
-        this.inspector.hide();
-        this.renderTracks();
+        if (e.button !== 0) return;
+        this.isPotentialMarquee = true;
+        this.isMarqueeSelecting = false;
+        this.marqueeStartClientX = e.clientX;
+        this.marqueeStartClientY = e.clientY;
+        const rect = this.tracksArea.getBoundingClientRect();
+        this.marqueeStartX = e.clientX - rect.left;
+        this.marqueeStartY = e.clientY - rect.top;
+        this.marqueeIsAdditive = Boolean(e.ctrlKey || e.shiftKey);
+        this.marqueeInitialSelected = this.marqueeIsAdditive
+          ? [...this.selectedEvents]
+          : [];
+        this.ctrlClickedSeq = null;
       }
     });
 
@@ -470,10 +516,10 @@ export class TimelineEditor {
     leftPanel.appendChild(this.trackContainer);
     this.container.appendChild(leftPanel);
 
-    // Right side: Property Inspector
+    // Property Inspector Container (docked to viewport top-right)
     const inspectorContainer = document.createElement('div');
     this.inspectorContainer = inspectorContainer;
-    this.container.appendChild(inspectorContainer);
+    document.body.appendChild(inspectorContainer);
 
     let presetOptions = ['random'];
     if (this.showDirector && this.showDirector.fireworkSystem && this.showDirector.fireworkSystem.shellPresetFactory) {
@@ -496,6 +542,17 @@ export class TimelineEditor {
       }
     );
 
+    const originalInspectorShow = this.inspector.show.bind(this.inspector);
+    this.inspector.show = (event, selectedEvents = null) => {
+      const actualSelected = selectedEvents || this.selectedEvents || (event ? [event] : []);
+      originalInspectorShow(event, actualSelected);
+      this.updateInspectorPosition();
+    };
+
+    window.addEventListener('resize', () => {
+      this.updateInspectorPosition();
+    });
+
     document.body.appendChild(this.container);
 
     // Global Hotkeys
@@ -505,6 +562,24 @@ export class TimelineEditor {
         'ctrl+t',
         () => {
           this.toggle();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'global',
+        'ctrl+alt+n',
+        () => {
+          if (this.visible) {
+            this.createNewScript();
+          }
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+alt+n',
+        () => {
+          this.createNewScript();
         }
       );
 
@@ -614,6 +689,32 @@ export class TimelineEditor {
 
       this.hotkeyManager.register(
         'timeline',
+        'ctrl+g',
+        () => {
+          if (
+            this.selectedEvents &&
+            this.selectedEvents.some((s) => s.type === 'group')
+          ) {
+            this.ungroupSelected();
+          } else if (
+            this.selectedEvents &&
+            this.selectedEvents.length >= 2
+          ) {
+            this.groupSelected();
+          }
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
+        'ctrl+shift+g',
+        () => {
+          this.ungroupSelected();
+        }
+      );
+
+      this.hotkeyManager.register(
+        'timeline',
         'g',
         () => {
           this.groupSelected();
@@ -675,11 +776,22 @@ export class TimelineEditor {
     document.addEventListener('pointerlockchange', () => {
       if (document.pointerLockElement) {
         this.container.style.display = 'none';
+        if (this.inspector && this.inspector.container) {
+          this.inspector.container.style.display = 'none';
+        }
         if (this.hotkeyManager) {
           this.hotkeyManager.setActiveContext('global');
         }
       } else {
         this.container.style.display = this.visible ? 'flex' : 'none';
+        if (this.inspector && this.inspector.container) {
+          if (this.visible && this.inspector.selectedEvent) {
+            this.inspector.container.style.display = 'block';
+            this.updateInspectorPosition();
+          } else {
+            this.inspector.container.style.display = 'none';
+          }
+        }
         if (
           this.hotkeyManager &&
           this.visible
@@ -742,7 +854,14 @@ export class TimelineEditor {
     this.renderTracks();
     this.inspector.show(groupBlock);
 
+    const currentTime = this.showDirector ? this.showDirector.elapsedTime : 0;
     this.showDirector.loadScript(this.getFlattenedSequences());
+    if (this.showDirector) {
+      this.showDirector.seek(currentTime);
+    }
+    if (this.playhead) {
+      this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    }
   }
 
   ungroupSelected() {
@@ -794,7 +913,14 @@ export class TimelineEditor {
       this.inspector.hide();
     }
 
+    const currentTime = this.showDirector ? this.showDirector.elapsedTime : 0;
     this.showDirector.loadScript(this.getFlattenedSequences());
+    if (this.showDirector) {
+      this.showDirector.seek(currentTime);
+    }
+    if (this.playhead) {
+      this.playhead.style.left = (currentTime * this.pixelsPerSecond) + 'px';
+    }
   }
 
   changeZoom() {
@@ -989,6 +1115,14 @@ export class TimelineEditor {
   toggle() {
     this.visible = !this.visible;
     this.container.style.display = this.visible ? 'flex' : 'none';
+    if (this.inspector && this.inspector.container) {
+      if (!this.visible) {
+        this.inspector.container.style.display = 'none';
+      } else if (this.inspector.selectedEvent) {
+        this.inspector.container.style.display = 'block';
+        this.updateInspectorPosition();
+      }
+    }
     if (this.visible && document.pointerLockElement) {
       document.exitPointerLock();
     }
@@ -1001,6 +1135,16 @@ export class TimelineEditor {
       this.tourGuide.promptFirstTimeTour();
     }
     globalEventBus.emit('timeline:toggle', this.visible);
+  }
+
+  updateInspectorPosition() {
+    if (!this.inspector || !this.inspector.container) return;
+    if (this.visible && this.container.style.display !== 'none') {
+      const height = this.container.offsetHeight || (window.innerHeight * 0.35);
+      this.inspector.container.style.bottom = `${height + 12}px`;
+    } else {
+      this.inspector.container.style.bottom = '12px';
+    }
   }
 
   togglePlay() {
@@ -1256,8 +1400,22 @@ export class TimelineEditor {
     });
   }
 
+  initMarqueeBox() {
+    this.marqueeBox = document.createElement('div');
+    this.marqueeBox.className = 'timeline-marquee-selection-box';
+    this.marqueeBox.style.position = 'absolute';
+    this.marqueeBox.style.border = '1.5px dashed #00ffcc';
+    this.marqueeBox.style.backgroundColor = 'rgba(0, 255, 204, 0.15)';
+    this.marqueeBox.style.borderRadius = '2px';
+    this.marqueeBox.style.boxShadow = '0 0 8px rgba(0, 255, 204, 0.4)';
+    this.marqueeBox.style.pointerEvents = 'none';
+    this.marqueeBox.style.zIndex = '999';
+    this.marqueeBox.style.display = 'none';
+  }
+
   renderTracks() {
     this.tracksArea.innerHTML = '';
+    this.blockDomMap.clear();
     this.assignTracks();
 
     // Clean up selectedEvents to remove any deleted or missing sequences
@@ -1265,6 +1423,7 @@ export class TimelineEditor {
 
     this.sequences.filter(s => !s._deleted).forEach(seq => {
       const block = document.createElement('div');
+      this.blockDomMap.set(seq, block);
       block.className = `timeline-event-block timeline-block-${seq.type}`;
       block.dataset.eventType = seq.type;
       const startX = seq.time * this.pixelsPerSecond;
@@ -1387,8 +1546,31 @@ export class TimelineEditor {
           );
         };
 
+        let normalizedPeaks = null;
         if (seq._waveformPeaks) {
-          renderWave(seq._waveformPeaks);
+          if (
+            seq._waveformPeaks instanceof Float32Array ||
+            Array.isArray(seq._waveformPeaks)
+          ) {
+            normalizedPeaks = seq._waveformPeaks;
+          } else if (typeof seq._waveformPeaks === 'object') {
+            const keys = Object.keys(seq._waveformPeaks);
+            if (keys.length > 0 && !isNaN(Number(keys[0]))) {
+              const len = keys.length;
+              const arr = new Float32Array(len);
+              for (let i = 0; i < len; i++) {
+                arr[i] = seq._waveformPeaks[i] !== undefined
+                  ? seq._waveformPeaks[i]
+                  : (seq._waveformPeaks[String(i)] || 0);
+              }
+              seq._waveformPeaks = arr;
+              normalizedPeaks = arr;
+            }
+          }
+        }
+
+        if (normalizedPeaks && normalizedPeaks.length > 0) {
+          renderWave(normalizedPeaks);
         } else {
           const audioSrc = seq._blobUrl ||
             seq._file ||
@@ -1399,6 +1581,9 @@ export class TimelineEditor {
               .then((peaks) => {
                 seq._waveformPeaks = peaks;
                 delete seq._waveformPromise;
+                if (typeof this.updateAudioStateCache === 'function') {
+                  this.updateAudioStateCache();
+                }
                 this.renderTracks();
               })
               .catch((err) => {
@@ -1460,36 +1645,48 @@ export class TimelineEditor {
 
 
       block.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
         e.stopPropagation();
         this.saveHistoryState();
 
         const isCtrlOrShift = e.ctrlKey || e.shiftKey;
 
         if (isCtrlOrShift) {
+          this.isPotentialMarquee = true;
+          this.isMarqueeSelecting = false;
+          this.marqueeStartClientX = e.clientX;
+          this.marqueeStartClientY = e.clientY;
+          const rect = this.tracksArea.getBoundingClientRect();
+          this.marqueeStartX = e.clientX - rect.left;
+          this.marqueeStartY = e.clientY - rect.top;
+          this.marqueeIsAdditive = true;
+          this.marqueeInitialSelected = [...this.selectedEvents];
+          this.ctrlClickedSeq = seq;
+
           if (this.selectedEvents.includes(seq)) {
             // Remove from selected list
             this.selectedEvents = this.selectedEvents.filter(s => s !== seq);
-            if (this.inspector.selectedEvent === seq) {
-              if (this.selectedEvents.length > 0) {
-                const newPrimary = this.selectedEvents[this.selectedEvents.length - 1];
-                this.inspector.show(newPrimary);
-              } else {
-                this.inspector.hide();
-              }
+            if (this.selectedEvents.length > 0) {
+              const newPrimary = this.selectedEvents[this.selectedEvents.length - 1];
+              this.inspector.show(newPrimary, this.selectedEvents);
+            } else {
+              this.inspector.hide();
             }
           } else {
             // Add to selected list
             this.selectedEvents.push(seq);
-            this.inspector.show(seq);
+            this.inspector.show(seq, this.selectedEvents);
           }
-        } else {
-          // If clicked event is not already selected, clear select list and select this one.
-          // If it IS already selected, keep selection (so we can drag them together).
-          if (!this.selectedEvents.includes(seq)) {
-            this.selectedEvents = [seq];
-          }
-          this.inspector.show(seq);
+          this.renderTracks();
+          return;
         }
+
+        // If clicked event is not already selected, clear select list and select this one.
+        // If it IS already selected, keep selection (so we can drag them together).
+        if (!this.selectedEvents.includes(seq)) {
+          this.selectedEvents = [seq];
+        }
+        this.inspector.show(seq);
 
         this.isDragging = true;
         this.draggedEvent = seq;
@@ -1534,11 +1731,118 @@ export class TimelineEditor {
 
       block.appendChild(resizeHandle);
 
+      block.addEventListener(
+        'contextmenu',
+        (e) => {
+          if (
+            this.selectedEvents &&
+            this.selectedEvents.includes(seq)
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.contextMenu.show(
+              e.clientX,
+              e.clientY,
+              {
+                targetEvent: seq,
+                selectedEvents: this.selectedEvents,
+                timelineEditor: this
+              }
+            );
+          }
+        }
+      );
+
       this.tracksArea.appendChild(block);
     });
+
+    if (!this.marqueeBox) {
+      this.initMarqueeBox();
+    }
+    this.tracksArea.appendChild(this.marqueeBox);
   }
 
   onDrag(e) {
+    if (this.isPotentialMarquee) {
+      const dist = Math.hypot(
+        e.clientX - this.marqueeStartClientX,
+        e.clientY - this.marqueeStartClientY
+      );
+      if (dist >= 4) {
+        this.isMarqueeSelecting = true;
+        this.isDragging = false;
+        this.draggedEvent = null;
+        if (this.marqueeBox) {
+          this.marqueeBox.style.display = 'block';
+        }
+        document.body.style.userSelect = 'none';
+      }
+    }
+
+    if (this.isMarqueeSelecting) {
+      const rect = this.tracksArea.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+
+      const boxLeft = Math.min(this.marqueeStartX, currentX);
+      const boxTop = Math.min(this.marqueeStartY, currentY);
+      const boxWidth = Math.abs(currentX - this.marqueeStartX);
+      const boxHeight = Math.abs(currentY - this.marqueeStartY);
+      const boxRight = boxLeft + boxWidth;
+      const boxBottom = boxTop + boxHeight;
+
+      if (this.marqueeBox) {
+        this.marqueeBox.style.left = `${boxLeft}px`;
+        this.marqueeBox.style.top = `${boxTop}px`;
+        this.marqueeBox.style.width = `${boxWidth}px`;
+        this.marqueeBox.style.height = `${boxHeight}px`;
+      }
+
+      const newlySelected = [];
+      this.sequences.filter(s => !s._deleted).forEach((seq) => {
+        const startX = seq.time * this.pixelsPerSecond;
+        const visualDur = seq.uiDuration !== undefined
+          ? seq.uiDuration
+          : (seq.duration || 0);
+        const blockWidth = Math.max(
+          visualDur * this.pixelsPerSecond,
+          this.minBlockWidth
+        );
+        const row = seq._trackRow || 0;
+        const blockLeft = startX;
+        const blockRight = startX + blockWidth;
+        const blockTop = row * (this.rowHeight + 5) + 5;
+        const blockBottom = blockTop + this.rowHeight;
+
+        const intersects = (
+          blockLeft < boxRight &&
+          blockRight > boxLeft &&
+          blockTop < boxBottom &&
+          blockBottom > boxTop
+        );
+
+        const shouldBeSelected = intersects || (
+          this.marqueeIsAdditive &&
+          this.marqueeInitialSelected.includes(seq)
+        );
+        if (shouldBeSelected) {
+          newlySelected.push(seq);
+        }
+
+        const domBlock = this.blockDomMap.get(seq);
+        if (domBlock) {
+          domBlock.style.border = shouldBeSelected
+            ? '2px solid #00ffcc'
+            : (this.inspector.selectedEvent === seq
+                ? '2px solid white'
+                : '1px solid rgba(0,0,0,0.5)');
+        }
+      });
+
+      this.selectedEvents = newlySelected;
+      return;
+    }
+
     if (this.isResizing && this.resizedEvent) {
       const dx = e.clientX - this.resizeOffsetX;
       const dTime = dx / this.pixelsPerSecond;
@@ -1633,6 +1937,35 @@ export class TimelineEditor {
   }
 
   onDragEnd(e) {
+    if (this.isMarqueeSelecting || this.isPotentialMarquee) {
+      if (this.marqueeBox) {
+        this.marqueeBox.style.display = 'none';
+      }
+      document.body.style.userSelect = '';
+
+      const didMarqueeDrag = this.isMarqueeSelecting;
+      this.isMarqueeSelecting = false;
+      this.isPotentialMarquee = false;
+
+      if (didMarqueeDrag) {
+        if (this.selectedEvents.length > 0) {
+          this.inspector.show(
+            this.selectedEvents[this.selectedEvents.length - 1],
+            this.selectedEvents
+          );
+        } else {
+          this.inspector.hide();
+        }
+        this.renderTracks();
+      } else if (!this.marqueeIsAdditive && !this.ctrlClickedSeq) {
+        // Simple click on empty space without moving: deselect all
+        this.selectedEvents = [];
+        this.inspector.hide();
+        this.renderTracks();
+      }
+      this.ctrlClickedSeq = null;
+    }
+
     this.isDragging = false;
     this.draggedEvent = null;
     this.isResizing = false;
@@ -1650,8 +1983,8 @@ export class TimelineEditor {
       const x = time * this.pixelsPerSecond;
       this.playhead.style.left = x + 'px';
 
-      // Auto-scroll
-      if (this.autoScrollEnabled) {
+      // Auto-scroll only during playback
+      if (this.autoScrollEnabled && this.showDirector.isPlaying) {
         const containerRect = this.trackContainer.getBoundingClientRect();
         const scrollLeft = this.trackContainer.scrollLeft;
         if (x > scrollLeft + containerRect.width - 100) {
@@ -1720,13 +2053,35 @@ export class TimelineEditor {
           attachAudio(data);
         }
 
+        const savedScrollLeft = this.trackContainer
+          ? this.trackContainer.scrollLeft
+          : 0;
+        const savedAnchorTime = this.anchorTime || 0;
+        const savedTime = this.showDirector
+          ? this.showDirector.elapsedTime
+          : 0;
+
         this.sequences = data;
         this.filename = filename;
         this.currentFilePath = filePath;
+        this.selectedEvents = [];
+        if (this.inspector) {
+          this.inspector.hide();
+        }
         this.updateFileIndicator();
         this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
+        if (this.showDirector) {
+          this.showDirector.seek(savedTime);
+        }
+        if (this.trackContainer) {
+          this.trackContainer.scrollLeft = savedScrollLeft;
+        }
+        this.anchorTime = savedAnchorTime;
+        if (this.anchorHead) {
+          this.anchorHead.style.left = (savedAnchorTime * this.pixelsPerSecond) + 'px';
+        }
         alert(t('editor.timelinePanel.importSuccess', { filename }));
       }
 
@@ -1756,6 +2111,62 @@ export class TimelineEditor {
     }, 2500);
   }
 
+  async createNewScript() {
+    if (this.sequences && this.sequences.length > 0) {
+      const confirmed = await customConfirm(
+        t('editor.timelinePanel.newScriptConfirm') ||
+          'Tạo kịch bản mới sẽ làm mới timeline. Mọi block và audio chưa lưu sẽ bị xóa. Bạn có chắc chắn muốn tiếp tục?',
+        t('editor.timelinePanel.newScriptTitle') ||
+          'Tạo kịch bản mới'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.saveHistoryState();
+
+    if (this.showDirector && this.showDirector.isPlaying) {
+      this.togglePlay();
+    }
+
+    this.isDragging = false;
+    this.draggedEvent = null;
+    this.isResizing = false;
+    this.resizedEvent = null;
+
+    this.sequences = [];
+    this.selectedEvents = [];
+    this.currentFilePath = null;
+    this.filename = 'untitled.json';
+    this.updateFileIndicator();
+    this.setSaveStatus('saved');
+
+    if (this.inspector) {
+      this.inspector.hide();
+    }
+
+    this.anchorTime = 0;
+    if (this.anchorHead) {
+      this.anchorHead.style.left = '0px';
+    }
+
+    if (this.showDirector) {
+      this.showDirector.loadScript([]);
+      this.showDirector.seek(0);
+    }
+
+    if (this.playhead) {
+      this.playhead.style.left = '0px';
+    }
+
+    this.renderTracks();
+    showToast(
+      t('editor.timelinePanel.newScriptCreated') ||
+        'Đã tạo kịch bản mới rỗng'
+    );
+  }
+
   async saveDirectly() {
     await this.saveSequence({
       silent: true,
@@ -1778,13 +2189,35 @@ export class TimelineEditor {
         const data = JSON.parse(event.target.result);
         if (!Array.isArray(data)) throw new Error("File JSON không hợp lệ (cần là một mảng).");
 
+        const savedScrollLeft = this.trackContainer
+          ? this.trackContainer.scrollLeft
+          : 0;
+        const savedAnchorTime = this.anchorTime || 0;
+        const savedTime = this.showDirector
+          ? this.showDirector.elapsedTime
+          : 0;
+
         this.sequences = data;
         this.filename = file.name;
+        this.selectedEvents = [];
+        if (this.inspector) {
+          this.inspector.hide();
+        }
         this.updateFileIndicator();
         this.setSaveStatus('saved');
         this.renderTracks();
         this.showDirector.loadScript(this.getFlattenedSequences());
-        alert("Import thành công!");
+        if (this.showDirector) {
+          this.showDirector.seek(savedTime);
+        }
+        if (this.trackContainer) {
+          this.trackContainer.scrollLeft = savedScrollLeft;
+        }
+        this.anchorTime = savedAnchorTime;
+        if (this.anchorHead) {
+          this.anchorHead.style.left = (savedAnchorTime * this.pixelsPerSecond) + 'px';
+        }
+        alert(t('editor.timelinePanel.importSuccess', { filename: file.name }) || "Import thành công!");
       } catch (err) {
         alert("Lỗi khi đọc file JSON: " + err.message);
       }
@@ -1968,10 +2401,65 @@ export class TimelineEditor {
     }
   }
 
+  updateAudioStateCache() {
+    if (!this.audioStateCache) {
+      this.audioStateCache = new Map();
+    }
+    const checkAudio = (list) => {
+      list.forEach((item) => {
+        if (item.type === 'audio') {
+          const key = item.url || item.name;
+          if (key) {
+            const existing = this.audioStateCache.get(key) || {};
+            this.audioStateCache.set(key, {
+              blobUrl: item._blobUrl || existing.blobUrl,
+              file: item._file || existing.file,
+              peaks: (item._waveformPeaks instanceof Float32Array || Array.isArray(item._waveformPeaks))
+                ? item._waveformPeaks
+                : existing.peaks
+            });
+          }
+        }
+        if (item.type === 'group' && Array.isArray(item.children)) {
+          checkAudio(item.children);
+        }
+      });
+    };
+    if (Array.isArray(this.sequences)) {
+      checkAudio(this.sequences);
+    }
+  }
+
+  restoreAudioStateCache() {
+    if (!this.audioStateCache || this.audioStateCache.size === 0) return;
+    const restoreAudio = (list) => {
+      list.forEach((item) => {
+        if (item.type === 'audio') {
+          const key = item.url || item.name;
+          if (key && this.audioStateCache.has(key)) {
+            const cached = this.audioStateCache.get(key);
+            if (!item._blobUrl && cached.blobUrl) item._blobUrl = cached.blobUrl;
+            if (!item._file && cached.file) item._file = cached.file;
+            if (cached.peaks && (!item._waveformPeaks || !(item._waveformPeaks instanceof Float32Array || Array.isArray(item._waveformPeaks)))) {
+              item._waveformPeaks = cached.peaks;
+            }
+          }
+        }
+        if (item.type === 'group' && Array.isArray(item.children)) {
+          restoreAudio(item.children);
+        }
+      });
+    };
+    if (Array.isArray(this.sequences)) {
+      restoreAudio(this.sequences);
+    }
+  }
+
   saveHistoryState() {
     if (this.undoStack.length >= 50) {
       this.undoStack.shift();
     }
+    this.updateAudioStateCache();
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.redoStack = [];
     this.setSaveStatus('unsaved');
@@ -1981,8 +2469,10 @@ export class TimelineEditor {
   undo() {
     if (!this.undoStack || this.undoStack.length === 0) return;
 
+    this.updateAudioStateCache();
     this.redoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.undoStack.pop();
+    this.restoreAudioStateCache();
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();
@@ -2006,8 +2496,10 @@ export class TimelineEditor {
   redo() {
     if (!this.redoStack || this.redoStack.length === 0) return;
 
+    this.updateAudioStateCache();
     this.undoStack.push(JSON.parse(JSON.stringify(this.sequences)));
     this.sequences = this.redoStack.pop();
+    this.restoreAudioStateCache();
 
     const currentTime = this.showDirector.elapsedTime;
     this.renderTracks();

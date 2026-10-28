@@ -40,6 +40,10 @@ export class ShellEntity {
     this.basePosition = position.clone();
     this.prevPosition = position.clone();
     this.initialY = position.y;
+    // Độ lệch tâm của vệt khói/đuôi do khí xả cháy không đều (wake displacement)
+    this.trailOffset = new THREE.Vector3(0, 0, 0);
+    this.prevTrailOffset = new THREE.Vector3(0, 0, 0);
+    this.sputterKick = new THREE.Vector3(0, 0, 0);
     const ascentCfg = FIREWORK_CONFIG.ASCENT;
     this.wobbleEnabled = ascentCfg?.wobbleEnabled !== false;
     this.wobblePhase = Math.random() * Math.PI * 2;
@@ -117,6 +121,7 @@ export class ShellEntity {
     this.nextSputterTime = this.sputterIntervalMin + Math.random() * (this.sputterIntervalMax - this.sputterIntervalMin);
     this.sputterDurationMin = phaseCfg?.sputterDurationMin ?? 0.035;
     this.sputterDurationMax = phaseCfg?.sputterDurationMax ?? 0.075;
+    this.sputterKickAmp = phaseCfg?.sputterKickAmp ?? 0.85;
     this.currentSputterRemaining = 0;
     this.isSputtering = false;
     this.endFlicker = phaseCfg?.endFlicker !== false;
@@ -146,7 +151,7 @@ export class ShellEntity {
       ? color.clone().offsetHSL(0, 0.05, 0.30).multiplyScalar(8.5)
       : (isThin
         ? color.clone().offsetHSL(0, 0.05, 0.22).multiplyScalar(3.5)
-        : color);
+        : color.clone().multiplyScalar(3.2));
 
     const coreMaterial = new THREE.MeshBasicMaterial({
       color: coreColor,
@@ -160,20 +165,19 @@ export class ShellEntity {
     this.mesh.add(this.coreMesh);
 
     // Lõi trung tâm siêu sáng (hot white core) làm nổi bật rực rỡ đầu hạt
-    if (isThin || isDetached) {
-      const innerSizeRatio = isDetached ? 0.70 : 0.55;
-      const innerGeometry = new THREE.SphereGeometry(coreSize * innerSizeRatio, 8, 8);
-      const innerMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0xffffff).multiplyScalar(isDetached ? 10.0 : 4.0),
-        transparent: true,
-        opacity: 1.0,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        toneMapped: false
-      });
-      this.innerCoreMesh = new THREE.Mesh(innerGeometry, innerMaterial);
-      this.mesh.add(this.innerCoreMesh);
-    }
+    const innerSizeRatio = isDetached ? 0.70 : (isThin ? 0.55 : 0.50);
+    const innerMultiplier = isDetached ? 10.0 : (isThin ? 4.0 : 3.5);
+    const innerGeometry = new THREE.SphereGeometry(coreSize * innerSizeRatio, 8, 8);
+    const innerMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0xffffff).multiplyScalar(innerMultiplier),
+      transparent: true,
+      opacity: 1.0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false
+    });
+    this.innerCoreMesh = new THREE.Mesh(innerGeometry, innerMaterial);
+    this.mesh.add(this.innerCoreMesh);
 
     const haloCount = isDetached ? 28 : (isThin ? 18 : SHELL_HALO_COUNT);
     const haloPositions = new Float32Array(haloCount * 3);
@@ -203,7 +207,7 @@ export class ShellEntity {
         (Math.random() - 0.5) * 0.14
       );
 
-      const colorMultiplier = isDetached ? 7.0 : (isThin ? 3.2 : 1.0);
+      const colorMultiplier = isDetached ? 7.0 : (isThin ? 3.2 : 2.2);
       haloColors[i * 3] = haloColor.r * colorMultiplier;
       haloColors[i * 3 + 1] = haloColor.g * colorMultiplier;
       haloColors[i * 3 + 2] = haloColor.b * colorMultiplier;
@@ -257,6 +261,11 @@ export class ShellEntity {
     this.age += deltaTime;
 
     this.prevPosition.copy(this.mesh.position);
+    this.prevTrailOffset.copy(this.trailOffset);
+
+    if (this.sputterKick.lengthSq() > 0.0001) {
+      this.sputterKick.multiplyScalar(Math.max(0, 1.0 - deltaTime * 3.5));
+    }
 
     const progress = this.getProgress();
 
@@ -269,6 +278,19 @@ export class ShellEntity {
           this.sputterTimer = 0;
           this.nextSputterTime = this.sputterIntervalMin +
             Math.random() * (this.sputterIntervalMax - this.sputterIntervalMin);
+
+          // Cú giật lệch hướng sau khi bắt cháy trở lại (asymmetric combustion kick tạo vệt lệch đường)
+          this.spinAngle += (0.6 + Math.random() * 0.9) * Math.PI * (Math.random() < 0.5 ? 1 : -1);
+          this.driftPhaseX = Math.random() * Math.PI * 2;
+          this.driftPhaseZ = Math.random() * Math.PI * 2;
+          this.harmonicPhase = Math.random() * Math.PI * 2;
+          const kickAmp = this.sputterKickAmp * this.wobbleMaxAmp;
+          const kickAngle = Math.random() * Math.PI * 2;
+          this.sputterKick.set(
+            Math.cos(kickAngle) * kickAmp,
+            0,
+            Math.sin(kickAngle) * kickAmp
+          );
         }
       } else {
         this.sputterTimer += deltaTime;
@@ -354,20 +376,25 @@ export class ShellEntity {
 
       const wobbleX = Math.cos(this.spinAngle) * rx +
         Math.sin(harmonicAngle) * harmonicAmp +
-        driftX;
+        driftX +
+        this.sputterKick.x;
 
       const wobbleZ = Math.sin(this.spinAngle) * rz +
         Math.cos(harmonicAngle) * harmonicAmp +
-        driftZ;
+        driftZ +
+        this.sputterKick.z;
 
-      this.mesh.position.set(
-        this.basePosition.x + wobbleX,
-        this.basePosition.y,
-        this.basePosition.z + wobbleZ
+      this.trailOffset.set(
+        wobbleX,
+        0,
+        wobbleZ
       );
     } else {
-      this.mesh.position.copy(this.basePosition);
+      this.trailOffset.set(0, 0, 0);
     }
+
+    // Đầu hạt sáng bay thẳng tuyệt đối theo quỹ đạo đạn đạo chuẩn xác (không bị lắc)
+    this.mesh.position.copy(this.basePosition);
 
     const isSparkleEndActive = Boolean(this.preset?.sparkleAtEnd && progress > 0.60);
     const shouldStrobe = (this.isStrobe && !this.preset?.sparkleAtEnd) || isSparkleEndActive;

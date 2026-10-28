@@ -43,12 +43,48 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Dual Vortex', 'Dense Trails'],
     summary: 'Enhanced helical vortex with high density spinning particle streamers.'
   },
+  'crysanthemum_discrete_trail': {
+    name: 'Chrysanthemum Discrete Trail',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/crysanthemum_discrete_trail.mp4',
+    tags: ['Curved Arc Trajectory', 'Discrete Trails', 'Decelerating Velocity'],
+    summary: 'Continuous gravity and decelerating radial velocity trace graceful curved trails with long sporadic droplet sparks.'
+  },
+  'crysanthemum-discrete-trail': {
+    name: 'Chrysanthemum Discrete Trail',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/crysanthemum_discrete_trail.mp4',
+    tags: ['Curved Arc Trajectory', 'Discrete Trails', 'Decelerating Velocity'],
+    summary: 'Continuous gravity and decelerating radial velocity trace graceful curved trails with long sporadic droplet sparks.'
+  },
+  'sphere_rings_wave': {
+    name: 'Sphere Rings Staggered Wave',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sphere_rings_wave.mp4',
+    tags: ['Equator to Poles', 'Sequential Wave', 'Stealth Delayed Flash'],
+    summary: 'Staggered outward ring ignition wave starting at the equator and cascading toward the polar latitude rings.'
+  },
+  'sphere-rings-wave': {
+    name: 'Sphere Rings Staggered Wave',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/sphere_rings_wave.mp4',
+    tags: ['Equator to Poles', 'Sequential Wave', 'Stealth Delayed Flash'],
+    summary: 'Staggered outward ring ignition wave starting at the equator and cascading toward the polar latitude rings.'
+  },
+
   'willow': {
     name: 'Willow',
     category: PREVIEW_CATEGORIES.DYNAMICS,
     videoUrl: 'previews/dynamics/willow.mp4',
     tags: ['Heavy Gravity', 'Long Gold Droop'],
     summary: 'Long-lasting glowing trails that droop gracefully toward the ground.'
+  },
+  'horsetail': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/horsetail.mp4',
+    tags: ['Waterfall Drop', 'Golden Streamers', 'Vertical Cascade'],
+    summary: 'Soft break burst where heavy golden embers cascade vertically downward like a shining waterfall.'
   },
   'crossette': {
     name: 'Crossette',
@@ -169,6 +205,13 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Branch Comet', 'Apex Sparkle'],
     summary: 'Branching sub-comets streaming outwards with synchronized apex sparkling.'
   },
+  'tadpole-spiral': {
+    name: 'Tadpole Swimming Spiral',
+    category: PREVIEW_CATEGORIES.DYNAMICS,
+    videoUrl: 'previews/dynamics/tadpole-spiral.mp4',
+    tags: ['Corkscrew Spiral', 'Accelerating Wiggle'],
+    summary: 'Comet star ascends with a widening corkscrew spiral and accelerates into erratic wriggles.'
+  },
 
   // 3D Spatial Burst Shapes
   'sphere': {
@@ -178,6 +221,21 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Isotropic 3D', 'Classic Shell'],
     summary: 'Uniform 360-degree spherical explosion expanding in all directions.'
   },
+  'sphere_uniform': {
+    name: 'Sphere Uniform',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_uniform.mp4',
+    tags: ['Fibonacci Lattice', 'Equidistant Spherical Distribution'],
+    summary: 'Mathematically uniform spherical particle distribution based on Fibonacci spiral lattice.'
+  },
+  'sphere-uniform': {
+    name: 'Sphere Uniform',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_uniform.mp4',
+    tags: ['Fibonacci Lattice', 'Equidistant Spherical Distribution'],
+    summary: 'Mathematically uniform spherical particle distribution based on Fibonacci spiral lattice.'
+  },
+
   'sparkling-branches': {
     name: 'Sparkling Branches',
     category: PREVIEW_CATEGORIES.SHAPE,
@@ -254,6 +312,27 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/shapes/oval.mp4',
     tags: ['Elliptical Spread', 'Egg Contour'],
     summary: 'Stretched elliptical spatial distribution expanding outward.'
+  },
+  'egg': {
+    name: 'Egg Shell',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/egg.mp4',
+    tags: ['Ovoid Contour', 'Hollow Shell', 'Surface Distribution'],
+    summary: 'Slightly elongated ovoid shape with particles concentrated strictly on the outer crust.'
+  },
+  'sphere_rings': {
+    name: 'Sphere Latitude Rings',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_rings.mp4',
+    tags: ['Latitude Rings', 'Spherical Bands', 'Parallel Circles'],
+    summary: 'Parallel circular latitude rings distributed symmetrically across a spherical surface.'
+  },
+  'sphere-rings': {
+    name: 'Sphere Latitude Rings',
+    category: PREVIEW_CATEGORIES.SHAPE,
+    videoUrl: 'previews/shapes/sphere_rings.mp4',
+    tags: ['Latitude Rings', 'Spherical Bands', 'Parallel Circles'],
+    summary: 'Parallel circular latitude rings distributed symmetrically across a spherical surface.'
   },
   'upward-spray': {
     name: 'Upward Spray',
@@ -334,6 +413,27 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Apex Flash', 'Sparkle Flash'],
     summary: 'Bright synchronized sparkling flash at the apex and decay point of stars.'
   },
+  'erratic-dart': {
+    name: 'Erratic Darting',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/erratic-dart.mp4',
+    tags: ['Sudden Deflection', 'Bright Streak'],
+    summary: 'Stars suddenly accelerate and dart erratically near burnout drawing luminous streaks.'
+  },
+  'slow-burst': {
+    name: 'Slow Burst',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/slow-burst.mp4',
+    tags: ['Gentle Expansion', 'Snow Drift', 'Soft Floating'],
+    summary: 'Soft, decelerated radial expansion where stars float and sway organically like falling snow.'
+  },
+  'slow_burst': {
+    name: 'Slow Burst',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/slow-burst.mp4',
+    tags: ['Gentle Expansion', 'Snow Drift', 'Soft Floating'],
+    summary: 'Soft, decelerated radial expansion where stars float and sway organically like falling snow.'
+  },
 
   // Preset Shell Templates
   'sparkling-comet-branches': {
@@ -342,6 +442,104 @@ export const EFFECT_PREVIEW_METADATA = {
     videoUrl: 'previews/presets/sparkling-comet-branches.mp4',
     tags: ['Multi Branch', 'Apex Sparkle'],
     summary: 'Shell explodes into four to five sub-comet branches with sparkling flashes at the apex.'
+  },
+  'comet_tadpole_burst': {
+    name: 'Comet Tadpole Burst',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/comet-tadpole-burst.mp4',
+    tags: ['Tadpole Swim', 'Apex Flurry Burst'],
+    summary: 'Bulbous star with short thick trail swims upward in a widening corkscrew spiral and erupts into a flurry of sparks near apex.'
+  },
+  'sphere_erratic_dart': {
+    name: 'Sphere Erratic Dart',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere-erratic-dart.mp4',
+    tags: ['Sphere Burst', 'Erratic Darting'],
+    summary: 'Symmetrical spherical burst whose stars suddenly deflect erratically in random directions drawing vivid streak lines near burnout.'
+  },
+  'crysanthemum_uniform_sphere': {
+    name: 'Chrysanthemum Uniform Sphere',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_uniform_sphere.mp4',
+    tags: ['Uniform Sphere', 'Curved Streamers', 'Discrete Trails'],
+    summary: 'Perfect spherical burst whose stars curve gracefully under continuous gravity and decaying velocity, leaving long sporadic droplet trails.'
+  },
+  'crysanthemum-uniform-sphere': {
+    name: 'Chrysanthemum Uniform Sphere',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_uniform_sphere.mp4',
+    tags: ['Uniform Sphere', 'Curved Streamers', 'Discrete Trails'],
+    summary: 'Perfect spherical burst whose stars curve gracefully under continuous gravity and decaying velocity, leaving long sporadic droplet trails.'
+  },
+  'egg_crysanthemum': {
+    name: 'Egg Chrysanthemum',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/egg_crysanthemum.mp4',
+    tags: ['Egg Shell', 'Hollow Crust', 'Trailing Stars'],
+    summary: 'Ovoid outer-crust shell burst leaving graceful glowing trails from the egg contour.'
+  },
+  'egg-crysanthemum': {
+    name: 'Egg Chrysanthemum',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/egg_crysanthemum.mp4',
+    tags: ['Egg Shell', 'Hollow Crust', 'Trailing Stars'],
+    summary: 'Ovoid outer-crust shell burst leaving graceful glowing trails from the egg contour.'
+  },
+  'crysanthemum_sphere_rings': {
+    name: 'Chrysanthemum Sphere Rings',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_sphere_rings.mp4',
+    tags: ['Sphere Rings', 'Latitude Bands', 'Trailing Stars'],
+    summary: 'Expanding spherical firework whose stars form distinct glowing circular latitude bands.'
+  },
+  'crysanthemum-sphere-rings': {
+    name: 'Chrysanthemum Sphere Rings',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/crysanthemum_sphere_rings.mp4',
+    tags: ['Sphere Rings', 'Latitude Bands', 'Trailing Stars'],
+    summary: 'Expanding spherical firework whose stars form distinct glowing circular latitude bands.'
+  },
+  'sphere_rings_cascade': {
+    name: 'Sphere Rings Cascade',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_cascade.mp4',
+    tags: ['Sphere Rings', 'Cascading Wave', 'Equator to Poles'],
+    summary: 'Equator latitude ring ignites first followed in cascading waves by temperate and polar rings.'
+  },
+  'sphere-rings-cascade': {
+    name: 'Sphere Rings Cascade',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_cascade.mp4',
+    tags: ['Sphere Rings', 'Cascading Wave', 'Equator to Poles'],
+    summary: 'Equator latitude ring ignites first followed in cascading waves by temperate and polar rings.'
+  },
+  'sphere_rings_strobe': {
+    name: 'Sphere Rings Synchronous Strobe',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_strobe.mp4',
+    tags: ['Sphere Rings', 'Harmonic Strobe', 'Synchronized Rings'],
+    summary: 'Parallel latitude rings pulsing in synchronized phase-locked harmonic strobing flashes.'
+  },
+  'sphere-rings-strobe': {
+    name: 'Sphere Rings Synchronous Strobe',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/sphere_rings_strobe.mp4',
+    tags: ['Sphere Rings', 'Harmonic Strobe', 'Synchronized Rings'],
+    summary: 'Parallel latitude rings pulsing in synchronized phase-locked harmonic strobing flashes.'
+  },
+  'horsetail_waterfall': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/horsetail_waterfall.mp4',
+    tags: ['Horsetail', 'Waterfall Cascade', 'Gold Embers'],
+    summary: 'Soft break shell releasing an umbrella of golden embers that plunge vertically like a liquid waterfall.'
+  },
+  'horsetail-waterfall': {
+    name: 'Horsetail Waterfall',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/horsetail_waterfall.mp4',
+    tags: ['Horsetail', 'Waterfall Cascade', 'Gold Embers'],
+    summary: 'Soft break shell releasing an umbrella of golden embers that plunge vertically like a liquid waterfall.'
   },
 
   // Sequence Firing Patterns
@@ -561,7 +759,29 @@ const PREVIEW_ALIASES = {
   'crysanthemumspiralv2': 'crysanthemum-spiral-v2',
   'willow-gold': 'willow',
   'bouquet-cluster': 'bouquet-comet',
-  'peony': 'standard'
+  'peony': 'standard',
+  'chrysanthemum-discrete-trail': 'crysanthemum-discrete-trail',
+  'chrysanthemum_discrete_trail': 'crysanthemum-discrete-trail',
+  'chrysanthemum-uniform-sphere': 'crysanthemum_uniform_sphere',
+  'chrysanthemum_uniform_sphere': 'crysanthemum_uniform_sphere',
+  'egg-chrysanthemum': 'egg_crysanthemum',
+  'egg_chrysanthemum': 'egg_crysanthemum',
+  'crysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
+  'crysanthemum_sphere_rings': 'crysanthemum_sphere_rings',
+  'chrysanthemum-sphere-rings': 'crysanthemum_sphere_rings',
+  'chrysanthemum_sphere_rings': 'crysanthemum_sphere_rings',
+  'sphere-rings-wave': 'sphere_rings_wave',
+  'sphere_rings_wave': 'sphere_rings_wave',
+  'sphere-rings-cascade': 'sphere_rings_cascade',
+  'sphere_rings_cascade': 'sphere_rings_cascade',
+  'sphere-rings-strobe': 'sphere_rings_strobe',
+  'sphere_rings_strobe': 'sphere_rings_strobe',
+  'slow-burst': 'slow-burst',
+  'slow_burst': 'slow-burst',
+  'slowburst': 'slow-burst',
+  'waterfall': 'horsetail',
+  'horsetail_waterfall': 'horsetail_waterfall',
+  'horsetail-waterfall': 'horsetail_waterfall'
 };
 
 export function getEffectPreview(key, fallbackCategory = PREVIEW_CATEGORIES.DYNAMICS) {

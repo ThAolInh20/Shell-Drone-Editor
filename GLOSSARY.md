@@ -1,6 +1,6 @@
-# Thuật Ngữ Dự Án: Drone Formation Editor
+# Thuật Ngữ Dự Án: Firework & Drone Show Studio
 
-Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ nghiệp vụ được sử dụng thống nhất trong codebase của dự án Drone Formation Editor, đặc biệt là các thành phần trên màn hình Editor (Timeline & Inspector).
+Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ nghiệp vụ được sử dụng thống nhất trong codebase của dự án Firework & Drone Show Studio, đặc biệt là các thành phần trên màn hình Editor (Timeline & Inspector).
 
 ## 1. Các Thành phần trên Timeline (Timeline Components)
 
@@ -115,17 +115,35 @@ Tài liệu này quy định các thuật ngữ lập trình và thuật ngữ n
 
 ### Active Effects (Hiệu ứng bổ trợ có thể xếp chồng)
 - Định nghĩa: Các thẻ hiệu ứng quang học và hành vi độc lập có thể bật/tắt hoặc kết hợp đồng thời (stackable) trên bất kỳ loại pháo hoa nào, không phụ thuộc vào Preset hay Shape cố định.
-- Các dạng tiêu biểu:
+- Phân loại kiến trúc:
+  - **Effect Kích Hoạt (Triggered Effects / State Modifiers)**: Các hiệu ứng hoặc đặc tính pháo hoạt động theo cơ chế bật/tắt trạng thái nhị phân (toggle), kích hoạt tức thời tại thời điểm nổ (burst) hoặc thiết lập đặc tính vật lý/quang học cố định mà không cần khoảng thời gian diễn tiến.
+  - **Effect Thời Gian (Timed Effects / Temporal Effects)**: Các hiệu ứng diễn tiến liên tục theo thời gian thực (temporal window) trong suốt vòng đời của hạt sau nổ, có điểm bắt đầu (startTime) và kết thúc (endTime) cụ thể, được trực quan hóa trên `ActiveEffectsTimeline`.
+
+### Effect Kích Hoạt (Triggered Effects / State Modifiers)
+- Định nghĩa: Nhóm hiệu ứng và đặc tính pháo hoa hoạt động theo cơ chế bật/tắt (toggle) ngay tại thời điểm kích hoạt/nổ của quả pháo hoặc thay đổi thuộc tính hình thái pháo.
+- Các thẻ tiêu biểu:
+  - `burst-smoke`: Tạo khói nổ thể tích cuộn trào tức thời tại tâm nổ ngay khi quả pháo phát nổ.
+  - `pistil`: Bật nhụy tâm (lõi pháo hoa) ở trung tâm quả pháo với hạt nhỏ và màu sắc tương phản.
+  - `apex-hang`: Treo hạt tại đỉnh nổ nhằm giảm gia tốc rơi tự do trong thoáng chốc.
+  - `slow-burst`: Giảm tốc độ bung hạt ban đầu để tạo hiệu ứng bung nở êm dịu, tao nhã.
+- Trong code: Khai báo qua mảng `TOGGLE_MODIFIER_TAGS` trong [src/factories/FireworkCompositionHelper.js](./src/factories/FireworkCompositionHelper.js) và hiển thị dưới dạng các chip nút bấm bật/tắt trong vùng "Effect kích hoạt" trên [src/ui/PropertyInspector.js](./src/ui/PropertyInspector.js).
+
+### Effect Thời Gian (Timed Effects / Temporal Effects)
+- Định nghĩa: Nhóm hiệu ứng quang học và động thái hạt có thời gian diễn tiến (duration window) trong suốt vòng đời của hạt sau nổ (từ `startTime` đến `endTime`).
+- Các thẻ tiêu biểu:
   - `strobe`: Chớp nháy màu theo chu kỳ tần số cao.
   - `white-strobe`: Chớp nháy ánh sáng trắng lấp lánh ở nửa sau vòng đời.
   - `glitter-strobe`: Chớp nháy kim tuyến siêu nhanh tạo độ lấp lánh dày đặc.
-  - `crackle`: Nổ vi hạt lách tách thành chùm tia lửa cầu mini ở 65% vòng đời.
+  - `crackle`: Nổ vi hạt lách tách thành chùm tia lửa cầu mini trong khoảng thời gian chỉ định.
   - `ghost`: Biến quang quét góc 3D từ bóng tối sang ánh sáng.
   - `ghost-flare`: Biến quang 3 giai đoạn gồm sáng ban đầu, ẩn tối ở giữa và tái bừng sáng chói lọi ở cuối.
-  - `flow`: Tạo chuyển động xoáy uốn lượn tự do cho từng hạt.
-  - `no-trail`: Tắt vệt đuôi sáng để giữ điểm nổ gọn gàng, sắc nét.
-  - `crossette`: Phân tách hạt pháo chính thành 4 tia vuông góc tại giữa vòng đời.
-- Trong code: Khai báo qua danh sách `AVAILABLE_EFFECT_TAGS` trong [src/factories/FireworkCompositionHelper.js](./src/factories/FireworkCompositionHelper.js) và quản lý trong mảng `effects` / `activeEffects` của sự kiện pháo hoa trên [src/ui/PropertyInspector.js](./src/ui/PropertyInspector.js).
+  - `flow`: Tạo chuyển động xoáy uốn lượn tự do cho từng hạt biến thiên theo chu kỳ thời gian.
+  - `no-trail`: Tắt vệt đuôi sáng trong một khoảng thời gian nhất định (từ `noTrailStart` đến `noTrailEnd`) để giữ điểm nổ gọn gàng, sắc nét.
+  - `crossette`: Phân tách hạt pháo chính thành 4 tia vuông góc tại thời điểm chỉ định.
+  - `tadpole-flurry`: Hạt nổ phóng chùm tia xù ngược chiều vận tốc tạo hình mũi tên nòng nọc trong khi bay và bung tỏa loạt tia cuối ở gần tàn.
+  - `erratic-dart`: Hạt đổi hướng phóng ngoằn ngoèo đột ngột trên bầu trời.
+  - `sparkle-apex`: Tạo các tia lấp lánh quanh đỉnh quỹ đạo hạt.
+- Trong code: Khai báo qua mảng `TIMED_EFFECT_TAGS` trong [src/factories/FireworkCompositionHelper.js](./src/factories/FireworkCompositionHelper.js) và quản lý, chỉnh sửa trực quan qua các thanh dải thời gian trên [src/ui/ActiveEffectsTimeline.js](./src/ui/ActiveEffectsTimeline.js).
 
 ### Dynamics (Động lực học hạt sau nổ)
 - Định nghĩa: Quy luật chuyển động, lực cản không khí, độ trôi, độ chùng và xoáy của hạt theo thời gian (t > 0).
