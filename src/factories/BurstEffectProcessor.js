@@ -631,7 +631,7 @@ export class BurstEffectProcessor {
     return finalGravityScale;
   }
 
-  static resolveParticleColor(particle, lifeRatio, options = {}) {
+  static resolveParticleColor(particle, lifeRatio, options = {}, target = null) {
     const {
       strobeFreqMultiplier = 1.0,
       isSpiralIgnited = true,
@@ -656,6 +656,12 @@ export class BurstEffectProcessor {
         r = THREE.MathUtils.lerp(r, 2.2, strobeT);
         g = THREE.MathUtils.lerp(g, 2.2, strobeT);
         b = THREE.MathUtils.lerp(b, 2.2, strobeT);
+      }
+      if (target) {
+        target.r = r;
+        target.g = g;
+        target.b = b;
+        return target;
       }
       return { r, g, b };
     }
@@ -1014,6 +1020,12 @@ export class BurstEffectProcessor {
       b = THREE.MathUtils.lerp(b, Math.max(b, 1.8), heat * 0.75);
     }
 
+    if (target) {
+      target.r = r;
+      target.g = g;
+      target.b = b;
+      return target;
+    }
     return { r, g, b };
   }
 }

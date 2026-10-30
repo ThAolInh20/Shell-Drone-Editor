@@ -420,6 +420,7 @@ export class TimelineEditor {
     this.playhead.style.background = 'red';
     this.playhead.style.zIndex = '50';
     this.playhead.style.pointerEvents = 'none';
+    this.playhead.style.willChange = 'left';
     this.trackContainer.appendChild(this.playhead);
 
     // Time ruler
@@ -1983,12 +1984,12 @@ export class TimelineEditor {
       const x = time * this.pixelsPerSecond;
       this.playhead.style.left = x + 'px';
 
-      // Auto-scroll only during playback
+      // Auto-scroll only during playback without layout thrashing
       if (this.autoScrollEnabled && this.showDirector.isPlaying) {
-        const containerRect = this.trackContainer.getBoundingClientRect();
+        const containerWidth = this.trackContainer.clientWidth || 800;
         const scrollLeft = this.trackContainer.scrollLeft;
-        if (x > scrollLeft + containerRect.width - 100) {
-          this.trackContainer.scrollLeft = x - containerRect.width + 100;
+        if (x > scrollLeft + containerWidth - 100) {
+          this.trackContainer.scrollLeft = x - containerWidth + 100;
         } else if (x < scrollLeft) {
           this.trackContainer.scrollLeft = Math.max(0, x - 100);
         }
