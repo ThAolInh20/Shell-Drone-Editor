@@ -1,19 +1,18 @@
-# Release Notes - v3.1.4
+# Release Notes - v3.2.1
 
 ## Downloads
-- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.1.4.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.4/Firework.Drone.Show.Studio.Setup.3.1.4.exe)
-- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.1.4-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.4/Firework.Drone.Show.Studio-3.1.4-win.zip)
-- All Release Assets: [GitHub Releases v3.1.4](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.4)
+- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.2.1.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.2.1/Firework.Drone.Show.Studio.Setup.3.2.1.exe)
+- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.2.1-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.2.1/Firework.Drone.Show.Studio-3.2.1-win.zip)
+- All Release Assets: [GitHub Releases v3.2.1](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.2.1)
 
 ## Features
-- Added Particle Density controls to customize star counts from 0.25x to 3.0x for both firework bursts and individual nested stages.
-- Added Breathing Pulse and Diamond Scintillation active visual effects for dynamic twinkling and pulsing pyrotechnic stars.
-- Added Multi Nested Shell support allowing authors to choreograph multi-stage concentric and satellite fireworks with independent shapes, delays, and densities.
+- Added GPU Trail Simulation toggle in system settings to significantly boost display smoothness and achieve locked 60 FPS during heavy multi-shell bursts.
 
 ## Updates
-- Improved rendering performance when firing dense comet sequences to eliminate frame drops.
-- Implemented intelligent particle load throttling during heavy finales to keep playback smooth without exhausting system capacity.
-- Optimized particle lifecycle recycling to prevent stars from abruptly disappearing mid-air.
+- Optimized firework spark trails with memory reuse to eliminate stutter and freeze pauses during dense firework displays.
+- Calibrated firework burst particle density and rescaled shape multipliers to enhance visual outline clarity while keeping smooth performance.
+- Refined particle drag and gravity physics to preserve authentic lingering floatation and natural falling speeds.
 
 ## Chores
-- Added comprehensive unit tests for particle density adjustments, multi-stage firework bursts, and dynamic load throttling.
+- Documented workload distribution guidelines and mathematical physics constraints for particle kinematics.
+- Added automated test suites verifying GPU simulation, buffer management, and physics parity.
