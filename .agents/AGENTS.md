@@ -76,5 +76,29 @@
   - Calibrate post-processing bloom thresholds and strength in `src/config/rendering.js` and `src/config/settings.js` (raise threshold to prevent medium-brightness clusters from triggering bloom blowout, reduce bloom strength and radius).
 - **Adhere Strictly to Surgical Scoped Modifications**: Never rewrite an entire rendering pipeline, shader model, or factory when a request only targets visual balance. Adjust the minimum necessary scalar parameters or shader stops to solve the issue.
 
-
+## CPU vs GPU Workload Distribution & Particle Kinematics Architecture
+- **Core Principle: Complex Logic on CPU, Massive Repetition on GPU**:
+  - **CPU Domain (The Conductor / Orchestrator)**:
+    - Reserved for non-linear control flow, discrete event triggering, and state machines:
+      - Launch timing, ballistic apex detection, burst scheduling, and timeline synchronization.
+      - Dynamic branching: second-burst splitting (`second_burst`), sub-munitions (`crossette`, `pistil`), sudden deflection (`erratic_dart`), water splash triggering, and distance-based audio cue dispatch.
+      - Headless unit testing: CPU zero-allocation particle pool enables assertions in Node.js/Vitest without mock WebGL rendering.
+    - Scale: Suitable for dozens to hundreds of active shells/emitters.
+  - **GPU Domain (Massive Parallel Data-Oriented Execution)**:
+    - Reserved for high-volume, homogeneous, embarrassingly parallel particle simulations (e.g. 50,000 to 150,000+ trail sparks, falling comets, lingering willow embers).
+    - Particles are completely independent and require no inter-particle collision or branching events.
+    - Zero per-frame CPU loop overhead: CPU writes birth attributes (birth position, velocity, color, birth timestamp, life, gravity/drag scale) once into a circular ring-buffer VBO, and simply increments `uniform float uTime` each frame.
+- **Closed-Form Analytical Physics Constraint on GPU**:
+  - GPU vertex shaders are stateless across animation frames. Physics cannot be evaluated by accumulating unresisted free-fall parabolas (0.5 * g * t^2), as doing so removes air resistance on gravity and causes particles to plunge downwards up to 20x faster than real pyrotechnic embers.
+  - Any kinematic motion moved to GPU vertex shaders MUST implement the exact closed-form analytical solution of the damped velocity differential equation:
+    $$\frac{dv_y}{dt} = -k v_y + g_{eff}$$
+    $$\Delta x(t) = v_{x0} \frac{1 - e^{-k t}}{k}$$
+    $$\Delta z(t) = v_{z0} \frac{1 - e^{-k t}}{k}$$
+    $$\Delta y(t) = v_{y0} \frac{1 - e^{-k t}}{k} + \frac{g_{eff}}{k} \left( t - \frac{1 - e^{-k t}}{k} \right)$$
+    where $k = 4.0 \cdot dragScale$ and $g_{eff} = 0.5 \cdot GRAVITY \cdot gravityScale$.
+  - This guarantees that falling velocity asymptotically converges to the pyrotechnic terminal drift velocity ($v_{terminal} = \frac{g_{eff}}{k} \approx -1.87$ m/s), perfectly preserving authentic lingering floatation and visual parity between CPU and GPU execution modes.
+- **Hybrid Pipeline Coexistence**:
+  - Systems with particle simulation (such as `TrailSystem.js`) must preserve a dual-pipeline architecture:
+    - GPU simulation enabled by default in browser environments for locked 60 FPS performance.
+    - CPU zero-allocation pool mode maintained as a fallback for automated unit testing (Vitest/Node.js) and low-power hardware, controllable via the centralized settings toggle (`gpu_trail_simulation`).
 
