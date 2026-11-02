@@ -389,6 +389,7 @@ export default {
     bloom_radius: "Bán kính Bloom",
     bloom_threshold: "Ngưỡng Bloom",
     particle_edge_softness: "Độ mờ viền hạt",
+    gpu_trail_simulation: "Mô phỏng vệt pháo bằng GPU",
     lake_mirror_reflection: "Phản xạ mặt hồ",
     lake_reflection_resolution: "Độ phân giải phản chiếu mặt nước",
     lake_reflection_resolution_low: "Thấp",
