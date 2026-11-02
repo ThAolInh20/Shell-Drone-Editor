@@ -5,6 +5,7 @@ import { globalEventBus } from '../core/EventBus.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { LAYER_REFLECTION } from '../config/layers.js';
 import { FIREWORK_CONFIG } from '../config/fireworks.js';
+import { InstancedCometRenderer } from '../render/InstancedCometRenderer.js';
 
 const FIREWORK_COLORS = [
   0xffd700, // vàng (gold)
@@ -75,6 +76,7 @@ export class CometSystem {
     this.simulationTime = 0;
     this.launchZone = LAUNCH_ZONE_CONFIG;
     this.shellPresetFactory = new ShellPresetFactory();
+    this.instancedCometRenderer = new InstancedCometRenderer(this.scene);
     this.eventSubscriptions = [];
 
     this.graphicsQualityMultiplier = 1.0;
@@ -118,6 +120,9 @@ export class CometSystem {
       }
     }
     this.eventSubscriptions.length = 0;
+    if (this.instancedCometRenderer) {
+      this.instancedCometRenderer.destroy();
+    }
   }
 
   emitFireworkEvent(type, detail) {
@@ -143,7 +148,9 @@ export class CometSystem {
       child.layers.enable(LAYER_REFLECTION);
     });
 
-    this.scene.add(comet.mesh);
+    if (comet.coreMesh?.isPoints) {
+      this.scene.add(comet.mesh);
+    }
     this.activeComets.push(comet);
     return comet;
   }
@@ -536,13 +543,18 @@ export class CometSystem {
     for (let i = 0; i < this.activeComets.length; i++) {
       const comet = this.activeComets[i];
       if (comet) {
-        if (comet.mesh) {
+        if (comet.mesh?.parent) {
+          comet.mesh.parent.remove(comet.mesh);
+        } else if (comet.mesh && this.scene && typeof this.scene.remove === 'function') {
           this.scene.remove(comet.mesh);
         }
         comet.dispose?.();
       }
     }
     this.activeComets.length = 0;
+    if (this.instancedCometRenderer) {
+      this.instancedCometRenderer.update([]);
+    }
   }
 
   spawnCrossetteCross(position, color, velocity) {
@@ -581,7 +593,9 @@ export class CometSystem {
       subComet.mesh.traverse((child) => {
         child.layers.enable(LAYER_REFLECTION);
       });
-      this.scene.add(subComet.mesh);
+      if (subComet.coreMesh?.isPoints) {
+        this.scene.add(subComet.mesh);
+      }
       this.activeComets.push(subComet);
     }
 
@@ -1159,13 +1173,19 @@ export class CometSystem {
               const isCascade = Boolean(comet.preset?.isCascade)
                 || comet.preset?.shellType === 'comet_cluster_cascade';
 
-              const minDistSq = comet.isTadpole
+              const clusterLoadFactor = this.activeComets.length > 50
+                ? Math.min(2.5, 1.0 + (this.activeComets.length - 50) * 0.01)
+                : 1.0;
+
+              const baseMinDistSq = comet.isTadpole
                 ? 1.44
                 : (isCascade
                   ? 0.90
                   : (comet.preset?.thickTrail
                     ? 0.36
                     : ((comet.preset?.thinTrail || isDetached) ? 1.0 : 0.64)));
+
+              const minDistSq = baseMinDistSq * clusterLoadFactor;
 
               if (comet.shouldSpawnTrail(minDistSq)) {
                 let spawnPos = comet.mesh.position;
@@ -1251,7 +1271,7 @@ export class CometSystem {
                 }
               }
 
-              const sparkChance = isCascade ? 0.015 : 0.08;
+              const sparkChance = (isCascade ? 0.015 : 0.08) / clusterLoadFactor;
               if (Math.random() < sparkChance && !comet.preset?.sparkleAtEnd && !isDetached) {
                 this.trailSystem.spawnEffectSpark(
                   comet.mesh.position,
@@ -1260,7 +1280,7 @@ export class CometSystem {
                 );
               }
 
-              const launchSmokeChance = isCluster ? 0.10 : 0.25;
+              const launchSmokeChance = (isCluster ? 0.10 : 0.25) / clusterLoadFactor;
               if (comet.preset?.launchSmoke && Math.random() < launchSmokeChance && !isDetached) {
                 _tempSmokeVel.copy(comet.velocity).multiplyScalar(-0.12);
                 const smokeOptions = {
@@ -1415,7 +1435,11 @@ export class CometSystem {
       }
 
       if (isDead) {
-        this.scene.remove(comet.mesh);
+        if (comet.mesh?.parent) {
+          comet.mesh.parent.remove(comet.mesh);
+        } else if (comet.mesh && this.scene && typeof this.scene.remove === 'function') {
+          this.scene.remove(comet.mesh);
+        }
         comet.dispose();
       } else {
         if (i !== activeCount) {
@@ -1426,5 +1450,9 @@ export class CometSystem {
     }
 
     this.activeComets.length = activeCount;
+
+    if (this.instancedCometRenderer) {
+      this.instancedCometRenderer.update(this.activeComets);
+    }
   }
 }

@@ -121,6 +121,8 @@ export class ShellPresetFactory {
       { key: 'strobe', label: 'Strobe' },
       { key: 'white_strobe', label: 'White Strobe' },
       { key: 'glitter_strobe', label: 'Glitter Strobe' },
+      { key: 'strobe_breathing_pulse', label: 'Breathing Pulse' },
+      { key: 'glitter_diamond_scintillation', label: 'Diamond Scintillation' },
       { key: 'weeping_willow_comets', label: 'Weeping Willow Comets' },
       { key: 'weeping_willow_comets_v2', label: 'Weeping Willow Comets V2' },
       { key: 'weeping_willow_comets_v3', label: 'Weeping Willow Comets V3' },
@@ -201,6 +203,8 @@ export class ShellPresetFactory {
     registerWithAlias('strobe_dying_embers', 'strobeDyingEmbers', (size) => this.strobeDyingEmbersShell(size));
     registerWithAlias('white_strobe', 'whiteStrobe', (size) => this.whiteStrobeShell(size));
     registerWithAlias('glitter_strobe', 'glitterStrobe', (size) => this.glitterStrobeShell(size));
+    registerWithAlias('strobe_breathing_pulse', 'strobeBreathingPulse', (size) => this.strobeBreathingPulseShell(size));
+    registerWithAlias('glitter_diamond_scintillation', 'glitterDiamondScintillation', (size) => this.glitterDiamondScintillationShell(size));
     registerWithAlias('weeping_willow_comets', 'weepingWillowComets', (size) => this.weepingWillowCometsShell(size));
     registerWithAlias('weeping_willow_comets_v2', 'weepingWillowCometsV2', (size) => this.weepingWillowCometsV2Shell(size));
     registerWithAlias('weeping_willow_comets_v3', 'weepingWillowCometsV3', (size) => this.weepingWillowCometsV3Shell(size));
@@ -471,6 +475,7 @@ export class ShellPresetFactory {
           color: '#ff4400',
           delay: 0.0,
           scale: 1.0,
+          particleCountMultiplier: 1.0,
           effects: ['strobe']
         },
         {
@@ -479,6 +484,7 @@ export class ShellPresetFactory {
           color: '#00e5ff',
           delay: 0.45,
           scale: 0.82,
+          particleCountMultiplier: 1.0,
           effects: []
         },
         {
@@ -487,6 +493,7 @@ export class ShellPresetFactory {
           color: '#ffd700',
           delay: 0.90,
           scale: 0.65,
+          particleCountMultiplier: 1.0,
           effects: ['crossette']
         },
         {
@@ -495,6 +502,7 @@ export class ShellPresetFactory {
           color: '#ffffff',
           delay: 1.35,
           scale: 0.50,
+          particleCountMultiplier: 1.0,
           effects: ['glitter-strobe']
         }
       ],
@@ -773,6 +781,42 @@ export class ShellPresetFactory {
       starLife: 1200 + size * 150,
       particleCountMultiplier: 1.3,
       pistil: Math.random() < 0.4
+    };
+  }
+
+  strobeBreathingPulseShell(size = 1) {
+    const base = this.basePreset(size);
+    const color = 0xff69b4;
+    return {
+      ...base,
+      color,
+      shellType: 'strobe_breathing_pulse',
+      shapeType: 'sphere',
+      dynamicsType: 'standard',
+      effectType: 'standard',
+      effects: ['breathing-pulse'],
+      starLife: 3200 + size * 400,
+      burstSmoke: false,
+      hasBurstSmoke: false,
+      noSmoke: true
+    };
+  }
+
+  glitterDiamondScintillationShell(size = 1) {
+    const base = this.basePreset(size);
+    const color = 0xffffff;
+    return {
+      ...base,
+      color,
+      shellType: 'glitter_diamond_scintillation',
+      shapeType: 'sphere',
+      dynamicsType: 'standard',
+      effectType: 'standard',
+      effects: ['diamond-scintillation'],
+      starLife: 3000 + size * 400,
+      burstSmoke: false,
+      hasBurstSmoke: false,
+      noSmoke: true
     };
   }
 

@@ -111,6 +111,8 @@ Tai lieu nay liet ke toan bo danh sach cac video clip can quay de su dung cho he
 | 9 | `sparkling-comet-branches.mp4` | Sparkling Comet Multi Branch | No bung 4-5 nhanh sao choi vet mong chop sang dinh | [ ] Chua quay |
 | 10 | `comet-tadpole-burst.mp4` | Comet Tadpole Burst | Vet ngan map boi xoan oc gia toc va bung no chum tia tai dinh | [ ] Chua quay |
 | 11 | `sphere-erratic-dart.mp4` | Sphere Erratic Dart | Hinh cau bung deu roi dot ngot vut loan xa ve vet sang sac net | [ ] Chua quay |
+| 12 | `strobe-breathing-pulse.mp4` | Breathing Pulse Shell | Vo cau nhap nho theo nhip tho quang hoc 4 chu ky | [ ] Chua quay |
+| 13 | `glitter-diamond-scintillation.mp4` | Diamond Scintillation Shell | Vo cau lap lanh kim cuong da sac voi tia sang chói | [ ] Chua quay |
 | 12 | `crysanthemum_uniform_sphere.mp4` | Chrysanthemum Uniform Sphere | Bung no cau Fibonacci deu dan, uon cong theo trong luc, vet duoi roi rac keo dai | [ ] Chua quay |
 | 13 | `horsetail_waterfall.mp4` | Horsetail Waterfall | Vo cau bung nhe, tan vang ru thang dung nhu thac nuoc | [ ] Chua quay |
 

@@ -84,6 +84,14 @@ export const TIMED_EFFECT_TAGS = [
   {
     key: 'erratic-dart',
     labelKey: 'erraticDart'
+  },
+  {
+    key: 'breathing-pulse',
+    labelKey: 'breathingPulse'
+  },
+  {
+    key: 'diamond-scintillation',
+    labelKey: 'diamondScintillation'
   }
 ];
 
@@ -479,6 +487,17 @@ export class PropertyInspector {
               step: '0.1',
               defaultValue: 1.0,
               formatValue: (v) => `${Number(v).toFixed(1)}x`,
+              span: 2
+            },
+            {
+              name: 'particleCountMultiplier',
+              labelKey: 'particleCountMultiplier',
+              type: 'slider',
+              min: '0.25',
+              max: '3.0',
+              step: '0.25',
+              defaultValue: 1.0,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
               span: 2
             },
             {
@@ -2604,6 +2623,7 @@ export class PropertyInspector {
             color: fallbackColors[nextIdx % fallbackColors.length],
             delay: nextIdx * 0.45,
             scale: Math.max(0.35, 1.0 - nextIdx * 0.15),
+            particleCountMultiplier: 1.0,
             effects: []
           });
           this.activeStageIndex = stages.length - 1;
@@ -3090,6 +3110,89 @@ export class PropertyInspector {
       scaleInputRow.appendChild(scaleNum);
       scaleWrapper.appendChild(scaleInputRow);
       card.appendChild(scaleWrapper);
+
+      // Row 4b: Particle Count Multiplier Slider & Number
+      const particleWrapper = document.createElement('div');
+      particleWrapper.style.display = 'flex';
+      particleWrapper.style.flexDirection = 'column';
+      particleWrapper.style.gap = '2px';
+
+      const particleHeader = document.createElement('div');
+      particleHeader.style.display = 'flex';
+      particleHeader.style.justifyContent = 'space-between';
+
+      const particleLbl = document.createElement('label');
+      particleLbl.className = 'inspector-label';
+      particleLbl.style.fontSize = '10px';
+      particleLbl.textContent =
+        t('editor.inspector.fields.stageParticleMultiplier') ||
+        'Particle Density';
+
+      const particleVal = stage.particleCountMultiplier !== undefined
+        ? Number(stage.particleCountMultiplier)
+        : 1.0;
+
+      const particleValText = document.createElement('span');
+      particleValText.style.fontSize = '11px';
+      particleValText.style.color = '#3498db';
+      particleValText.textContent = `${particleVal.toFixed(2)}x`;
+
+      particleHeader.appendChild(particleLbl);
+      particleHeader.appendChild(particleValText);
+      particleWrapper.appendChild(particleHeader);
+
+      const particleInputRow = document.createElement('div');
+      particleInputRow.style.display = 'flex';
+      particleInputRow.style.alignItems = 'center';
+      particleInputRow.style.gap = '8px';
+
+      const particleSlider = document.createElement('input');
+      particleSlider.type = 'range';
+      particleSlider.min = '0.25';
+      particleSlider.max = '3.0';
+      particleSlider.step = '0.25';
+      particleSlider.value = particleVal;
+      particleSlider.style.flex = '1';
+
+      const particleNum = document.createElement('input');
+      particleNum.type = 'number';
+      particleNum.className = 'inspector-input';
+      particleNum.style.width = '60px';
+      particleNum.style.fontSize = '11px';
+      particleNum.step = '0.25';
+      particleNum.min = '0.25';
+      particleNum.max = '3.0';
+      particleNum.value = particleVal;
+
+      particleSlider.addEventListener(
+        'input',
+        (e) => {
+          const val = parseFloat(e.target.value) || 1.0;
+          stage.particleCountMultiplier = val;
+          particleNum.value = val;
+          particleValText.textContent = `${val.toFixed(2)}x`;
+          this.triggerUpdate();
+        }
+      );
+
+      particleNum.addEventListener(
+        'change',
+        (e) => {
+          let val = parseFloat(e.target.value) || 1.0;
+          val = Math.max(0.25, Math.min(3.0, Math.round(val / 0.25) * 0.25));
+          this.triggerUpdate('beforeChange');
+          stage.particleCountMultiplier = val;
+          particleSlider.value = val;
+          particleNum.value = val;
+          particleValText.textContent = `${val.toFixed(2)}x`;
+          this.triggerUpdate();
+        }
+      );
+
+      particleInputRow.appendChild(particleSlider);
+      particleInputRow.appendChild(particleNum);
+      particleWrapper.appendChild(particleInputRow);
+      card.appendChild(particleWrapper);
 
       // Row 5: Active Optical Effects Chips
       const effectsWrapper = document.createElement('div');

@@ -46,6 +46,25 @@ const _crossetteScratchBranchDirs = [
   new THREE.Vector3()
 ];
 
+// Scratch objects phục vụ render loop Zero-Allocation trong updateBurstParticles
+const _sharedColorOptions = {
+  strobeFreqMultiplier: 1.0,
+  isSpiralIgnited: true,
+  spiralFlashBonus: 1.0,
+  isRingIgnited: true,
+  ringFlashBonus: 1.0,
+  hasGhostFlare: false,
+  profile: null
+};
+const _scratchBurstColor = { r: 0, g: 0, b: 0 };
+const _scratchWaterPos = new THREE.Vector3();
+const _scratchSteamVel = new THREE.Vector3();
+const _scratchSplashVel = new THREE.Vector3();
+const _scratchSplashColor = new THREE.Color();
+const _steamColor = new THREE.Color(0xdde5ee);
+const _scratchLerpPos = new THREE.Vector3();
+const _whiteColor = new THREE.Color(0xffffff);
+
 export class FireworkSystem {
   constructor(scene, trailSystem, smokeSystem = null, shellPresetFactory = null) {
     this.scene = scene;
@@ -1539,6 +1558,9 @@ export class FireworkSystem {
 
       const stageEffects = Array.isArray(stage.effects) ? stage.effects : [];
       const stageEffectKeys = stageEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+      const stageParticleMultiplier = stage.particleCountMultiplier !== undefined
+        ? Math.max(0.25, Math.min(3.0, Number(stage.particleCountMultiplier) || 1.0))
+        : 1.0;
       const stagePreset = {
         ...preset,
         multiNested: false,
@@ -1547,6 +1569,7 @@ export class FireworkSystem {
         dynamicsType: stage.dynamicsType || 'standard',
         effects: stageEffects,
         shellSize: baseSize * stageScale,
+        particleCountMultiplier: stageParticleMultiplier,
         strobe: stageEffectKeys.includes('strobe') || Boolean(stage.strobe),
         crackle: stageEffectKeys.includes('crackle') || Boolean(stage.crackle),
         noTrail: stageEffectKeys.includes('no-trail') || Boolean(stage.noTrail),
@@ -1667,7 +1690,7 @@ export class FireworkSystem {
 
     const effectMultiplier = FIREWORK_CONFIG.EFFECT_MULTIPLIERS;
 
-    const presetMultiplier = Math.max(0.35, Math.min(2.5, preset?.particleCountMultiplier ?? 1));
+    const presetMultiplier = Math.max(0.25, Math.min(3.0, preset?.particleCountMultiplier ?? 1));
     const renderModeMultiplier = (
       preset?.shapeRenderMode === 'outline'
       || preset?.shapeRenderMode === 'jupiter'
@@ -1698,6 +1721,40 @@ export class FireworkSystem {
     const isSecondBurstActive = Boolean(preset?.secondBurst?.enabled || preset?.secondBurstEnabled);
     const secondBurstScale = isSecondBurstActive ? 0.78 : 1.0;
 
+    const throttlingConfig = FIREWORK_CONFIG.BURST?.throttling || {
+      enabled: true,
+      threshold: 0.70,
+      minFloor: 0.50,
+      outlineMinFloor: 0.70
+    };
+
+    let throttlingScale = 1.0;
+    if (throttlingConfig.enabled) {
+      const activeCount = Array.isArray(this.burstParticles) ? this.burstParticles.length : 0;
+      const poolCapacity = Math.max(1, this.maxBurstParticles || 6000);
+      const capacityRatio = activeCount / poolCapacity;
+
+      if (capacityRatio > throttlingConfig.threshold) {
+        const isOutlineShape = preset?.shapeRenderMode === 'outline'
+          || shape === 'star'
+          || shape === 'heart'
+          || shape === 'ring'
+          || shape === 'ring_v2'
+          || shape === 'smiley';
+        const floor = isOutlineShape
+          ? (throttlingConfig.outlineMinFloor ?? 0.70)
+          : (throttlingConfig.minFloor ?? 0.50);
+        const overRatio = Math.min(
+          1.0,
+          Math.max(
+            0.0,
+            (capacityRatio - throttlingConfig.threshold) / (1.0 - throttlingConfig.threshold)
+          )
+        );
+        throttlingScale = 1.0 - (1.0 - floor) * overRatio;
+      }
+    }
+
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
@@ -1710,9 +1767,13 @@ export class FireworkSystem {
       : ((isCrossetteActive || isSecondBurstActive) ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES);
     const minParticles = Math.round(baseMin * this.graphicsQualityMultiplier);
     const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * throttlingScale * this.graphicsQualityMultiplier;
 
-    return Math.max(minParticles, Math.min(maxParticles, Math.round(rawCount)));
+    const effectiveMin = Math.max(
+      16,
+      Math.round(minParticles * Math.max(0.65, throttlingScale))
+    );
+    return Math.max(effectiveMin, Math.min(maxParticles, Math.round(rawCount)));
   }
 
   createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
@@ -1856,15 +1917,18 @@ export class FireworkSystem {
         )
       );
     } else if (hasPistil) {
-      coreRatio = 0.7; // Dành 70% số hạt cho phần lõi (pistil)
+      coreRatio = burstParticleCount < 80 ? 0.50 : 0.65;
     }
 
-    const coreCount = isCompositeCore
+    let coreCount = isCompositeCore
       ? Math.max(
         8,
         Math.floor(burstParticleCount * coreRatio)
       )
       : 0;
+    if (isCompositeCore && burstParticleCount - coreCount < 16) {
+      coreCount = Math.max(8, burstParticleCount - 16);
+    }
     const ringCount = Math.max(
       1,
       burstParticleCount - coreCount
@@ -2373,11 +2437,12 @@ export class FireworkSystem {
       }
     }
 
-    for (const p of newParticles) {
-      if (this.burstParticles.length >= this.maxBurstParticles) {
-        this.burstParticles.shift();
-      }
-      this.burstParticles.push(p);
+    const excess = (this.burstParticles.length + newParticles.length) - this.maxBurstParticles;
+    if (excess > 0) {
+      this.burstParticles.splice(0, excess);
+    }
+    for (let k = 0; k < newParticles.length; k++) {
+      this.burstParticles.push(newParticles[k]);
     }
   }
 
@@ -3664,11 +3729,12 @@ export class FireworkSystem {
         if (isHot) {
           // 1. Steam puff when hot particle hits water
           if (Math.random() < 0.35) {
-            const steamVel = new THREE.Vector3(
+            _scratchSteamVel.set(
               (Math.random() - 0.5) * 0.8,
               0.6 + Math.random() * 0.8,
               (Math.random() - 0.5) * 0.8
             );
+            _scratchWaterPos.set(p.position.x, 0.05, p.position.z);
             const steamOptions = {
               life: 0.7 + Math.random() * 0.5,
               scale: 1.8 + Math.random() * 1.2,
@@ -3676,20 +3742,20 @@ export class FireworkSystem {
               drag: 2.8,
               buoyancy: 0.9,
               opacity: 0.12,
-              color: new THREE.Color(0xdde5ee)
+              color: _steamColor
             };
             if (this.smokeSystem) {
               this.smokeSystem.addSmokePoint(
-                new THREE.Vector3(p.position.x, 0.05, p.position.z),
-                steamVel,
+                _scratchWaterPos,
+                _scratchSteamVel,
                 steamOptions
               );
             } else {
               globalEventBus.emit(
                 'smoke:spawn',
                 {
-                  position: new THREE.Vector3(p.position.x, 0.05, p.position.z),
-                  velocity: steamVel,
+                  position: _scratchWaterPos.clone(),
+                  velocity: _scratchSteamVel.clone(),
                   options: steamOptions
                 }
               );
@@ -3698,16 +3764,18 @@ export class FireworkSystem {
 
           // 2. Micro sizzle splash spark
           if (Math.random() < 0.25) {
-            const splashVel = new THREE.Vector3(
+            _scratchSplashVel.set(
               (Math.random() - 0.5) * 3.5,
               1.2 + Math.random() * 2.0,
               (Math.random() - 0.5) * 3.5
             );
+            _scratchWaterPos.set(p.position.x, 0.05, p.position.z);
+            _scratchSplashColor.copy(p.baseColor).lerp(_whiteColor, 0.5);
             this.trailSystem?.spawnEffectSpark?.(
-              new THREE.Vector3(p.position.x, 0.05, p.position.z),
-              p.baseColor.clone().lerp(new THREE.Color(0xffffff), 0.5),
+              _scratchWaterPos,
+              _scratchSplashColor,
               false,
-              splashVel,
+              _scratchSplashVel,
               0,
               0.15 + Math.random() * 0.1
             );
@@ -3880,14 +3948,14 @@ export class FireworkSystem {
 
           for (let s = 1; s <= steps; s++) {
             const alpha = s / steps;
-            const spawnPos = new THREE.Vector3().lerpVectors(
+            _scratchLerpPos.lerpVectors(
               startPos,
               p.position,
               alpha
             );
 
             this.trailSystem?.spawnTrailParticle?.(
-              spawnPos,
+              _scratchLerpPos,
               trailColor,
               isCometRing ? 1.0 : currentLife,
               false,
@@ -4163,25 +4231,26 @@ export class FireworkSystem {
       );
 
       // Color sweep
-      const { r, g, b } = BurstEffectProcessor.resolveParticleColor(
+      _sharedColorOptions.strobeFreqMultiplier = strobeFreqMultiplier;
+      _sharedColorOptions.isSpiralIgnited = isSpiralIgnited;
+      _sharedColorOptions.spiralFlashBonus = spiralFlashBonus;
+      _sharedColorOptions.isRingIgnited = isRingWaveIgnited;
+      _sharedColorOptions.ringFlashBonus = ringFlashBonus;
+      _sharedColorOptions.hasGhostFlare = hasGhostFlare;
+      _sharedColorOptions.profile = profile;
+
+      BurstEffectProcessor.resolveParticleColor(
         p,
         lifeRatio,
-        {
-          strobeFreqMultiplier,
-          isSpiralIgnited,
-          spiralFlashBonus,
-          isRingIgnited: isRingWaveIgnited,
-          ringFlashBonus,
-          hasGhostFlare,
-          profile
-        }
+        _sharedColorOptions,
+        _scratchBurstColor
       );
 
       const bVar = p.brightnessVariance ?? 1.0;
       p.color.setRGB(
-        r * bVar,
-        g * bVar,
-        b * bVar
+        _scratchBurstColor.r * bVar,
+        _scratchBurstColor.g * bVar,
+        _scratchBurstColor.b * bVar
       );
 
       // Calculate size

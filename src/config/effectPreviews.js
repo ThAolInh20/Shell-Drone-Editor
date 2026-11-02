@@ -420,6 +420,20 @@ export const EFFECT_PREVIEW_METADATA = {
     tags: ['Sudden Deflection', 'Bright Streak'],
     summary: 'Stars suddenly accelerate and dart erratically near burnout drawing luminous streaks.'
   },
+  'breathing-pulse': {
+    name: 'Breathing Pulse',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/breathing-pulse.mp4',
+    tags: ['Harmonic Pulse', 'Smooth Heartbeat', 'Radiant Core'],
+    summary: 'Low-frequency sinusoidal breathing modulation undulating smoothly between soft warm embers and incandescent glowing peaks.'
+  },
+  'diamond-scintillation': {
+    name: 'Diamond Scintillation',
+    category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
+    videoUrl: 'previews/effects/diamond-scintillation.mp4',
+    tags: ['Prism Dispersion', 'Jewel Sparkle', 'Specular Flash'],
+    summary: 'High-frequency multi-chromatic jewel dispersion with brilliant specular flashes simulating facet reflections.'
+  },
   'slow-burst': {
     name: 'Slow Burst',
     category: PREVIEW_CATEGORIES.OPTICAL_EFFECT,
@@ -436,6 +450,20 @@ export const EFFECT_PREVIEW_METADATA = {
   },
 
   // Preset Shell Templates
+  'strobe_breathing_pulse': {
+    name: 'Breathing Pulse Shell',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/strobe-breathing-pulse.mp4',
+    tags: ['Harmonic Pulse', 'Breathing Cycle', 'Pink Hot Core'],
+    summary: 'Spherical firework bursting into glowing stars that rhythmically breathe in and out in smooth harmonic waves.'
+  },
+  'glitter_diamond_scintillation': {
+    name: 'Diamond Scintillation Shell',
+    category: PREVIEW_CATEGORIES.PRESET,
+    videoUrl: 'previews/presets/glitter-diamond-scintillation.mp4',
+    tags: ['Diamond Sparkle', 'Multi-Chromatic', 'Jewel Dispersion'],
+    summary: 'Pure diamond white core dispersing into sparkling jewel facets with brilliant multi-colored specular flares.'
+  },
   'sparkling-comet-branches': {
     name: 'Sparkling Comet Multi Branch',
     category: PREVIEW_CATEGORIES.PRESET,
@@ -737,6 +765,16 @@ export function normalizePreviewKey(key) {
 }
 
 const PREVIEW_ALIASES = {
+  'breathing_pulse': 'breathing-pulse',
+  'breathingPulse': 'breathing-pulse',
+  'breathing': 'breathing-pulse',
+  'diamond_scintillation': 'diamond-scintillation',
+  'diamondScintillation': 'diamond-scintillation',
+  'scintillation': 'diamond-scintillation',
+  'strobeBreathingPulse': 'strobe_breathing_pulse',
+  'strobe-breathing-pulse': 'strobe_breathing_pulse',
+  'glitterDiamondScintillation': 'glitter_diamond_scintillation',
+  'glitter-diamond-scintillation': 'glitter_diamond_scintillation',
   'spiral': 'crysanthemum-spiral',
   'smoke': 'crysanthemum-smoke',
   'trail': 'crysanthemum-trail',
