@@ -1721,6 +1721,40 @@ export class FireworkSystem {
     const isSecondBurstActive = Boolean(preset?.secondBurst?.enabled || preset?.secondBurstEnabled);
     const secondBurstScale = isSecondBurstActive ? 0.78 : 1.0;
 
+    const throttlingConfig = FIREWORK_CONFIG.BURST?.throttling || {
+      enabled: true,
+      threshold: 0.70,
+      minFloor: 0.50,
+      outlineMinFloor: 0.70
+    };
+
+    let throttlingScale = 1.0;
+    if (throttlingConfig.enabled) {
+      const activeCount = Array.isArray(this.burstParticles) ? this.burstParticles.length : 0;
+      const poolCapacity = Math.max(1, this.maxBurstParticles || 6000);
+      const capacityRatio = activeCount / poolCapacity;
+
+      if (capacityRatio > throttlingConfig.threshold) {
+        const isOutlineShape = preset?.shapeRenderMode === 'outline'
+          || shape === 'star'
+          || shape === 'heart'
+          || shape === 'ring'
+          || shape === 'ring_v2'
+          || shape === 'smiley';
+        const floor = isOutlineShape
+          ? (throttlingConfig.outlineMinFloor ?? 0.70)
+          : (throttlingConfig.minFloor ?? 0.50);
+        const overRatio = Math.min(
+          1.0,
+          Math.max(
+            0.0,
+            (capacityRatio - throttlingConfig.threshold) / (1.0 - throttlingConfig.threshold)
+          )
+        );
+        throttlingScale = 1.0 - (1.0 - floor) * overRatio;
+      }
+    }
+
     const resolvedShapeMultiplier = shapeMultiplier[shape] ?? 1;
     const resolvedEffectMultiplier = effectMultiplier[effectType] ?? 1;
     const sizeMultiplier = Math.max(0.6, Math.min(6, preset?.shellSize ?? 1)); // Phụ thuộc vào size (scale theo độ cao)
@@ -1733,9 +1767,13 @@ export class FireworkSystem {
       : ((isCrossetteActive || isSecondBurstActive) ? Math.round(MIN_BURST_PARTICLES * 0.6) : MIN_BURST_PARTICLES);
     const minParticles = Math.round(baseMin * this.graphicsQualityMultiplier);
     const maxParticles = Math.round(MAX_BURST_PARTICLES * this.graphicsQualityMultiplier);
-    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * this.graphicsQualityMultiplier;
+    const rawCount = BASE_BURST_PARTICLES * resolvedShapeMultiplier * resolvedEffectMultiplier * crossetteScale * secondBurstScale * presetMultiplier * renderModeMultiplier * performanceScale * sizeMultiplier * throttlingScale * this.graphicsQualityMultiplier;
 
-    return Math.max(minParticles, Math.min(maxParticles, Math.round(rawCount)));
+    const effectiveMin = Math.max(
+      16,
+      Math.round(minParticles * Math.max(0.65, throttlingScale))
+    );
+    return Math.max(effectiveMin, Math.min(maxParticles, Math.round(rawCount)));
   }
 
   createBurst(position, color, shape = 'sphere', preset = null, shellId = null) {
@@ -1879,15 +1917,18 @@ export class FireworkSystem {
         )
       );
     } else if (hasPistil) {
-      coreRatio = 0.7; // Dành 70% số hạt cho phần lõi (pistil)
+      coreRatio = burstParticleCount < 80 ? 0.50 : 0.65;
     }
 
-    const coreCount = isCompositeCore
+    let coreCount = isCompositeCore
       ? Math.max(
         8,
         Math.floor(burstParticleCount * coreRatio)
       )
       : 0;
+    if (isCompositeCore && burstParticleCount - coreCount < 16) {
+      coreCount = Math.max(8, burstParticleCount - 16);
+    }
     const ringCount = Math.max(
       1,
       burstParticleCount - coreCount
@@ -2396,11 +2437,12 @@ export class FireworkSystem {
       }
     }
 
-    for (const p of newParticles) {
-      if (this.burstParticles.length >= this.maxBurstParticles) {
-        this.burstParticles.shift();
-      }
-      this.burstParticles.push(p);
+    const excess = (this.burstParticles.length + newParticles.length) - this.maxBurstParticles;
+    if (excess > 0) {
+      this.burstParticles.splice(0, excess);
+    }
+    for (let k = 0; k < newParticles.length; k++) {
+      this.burstParticles.push(newParticles[k]);
     }
   }
 

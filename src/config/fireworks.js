@@ -118,7 +118,14 @@ export const FIREWORK_CONFIG = {
     // So hat noi suy toi da tren moi khung hinh de bao ve FPS
     maxTrailSubSteps: 3,
     // Ti le sinh hat duoi co ban trong pha bung no nhanh
-    defaultTrailSpawnChance: 0.95
+    defaultTrailSpawnChance: 0.95,
+    // Cau hinh dieu tiet tai dong cho hat no (Dynamic Soft Throttling)
+    throttling: {
+      enabled: true,
+      threshold: 0.70,
+      minFloor: 0.50,
+      outlineMinFloor: 0.70
+    }
   },
 
   // Các hồ sơ động lực học chuyên biệt (Dynamics Archetypes)
