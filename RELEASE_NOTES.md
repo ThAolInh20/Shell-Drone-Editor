@@ -1,25 +1,19 @@
-# Release Notes - v3.1.3
+# Release Notes - v3.1.4
 
 ## Downloads
-- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.1.3.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio.Setup.3.1.3.exe)
-- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.1.3-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.3/Firework.Drone.Show.Studio-3.1.3-win.zip)
-- All Release Assets: [GitHub Releases v3.1.3](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.3)
+- Windows Installer (.exe): [Firework.Drone.Show.Studio.Setup.3.1.4.exe](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.4/Firework.Drone.Show.Studio.Setup.3.1.4.exe)
+- Portable Archive (.zip / .rar): [Firework.Drone.Show.Studio-3.1.4-win.zip](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/download/v3.1.4/Firework.Drone.Show.Studio-3.1.4-win.zip)
+- All Release Assets: [GitHub Releases v3.1.4](https://github.com/ThAolInh20/Shell-Drone-Editor/releases/tag/v3.1.4)
 
 ## Features
-- Added Horsetail Waterfall firework preset with realistic downward cascading embers.
-- Added realistic water surface reflections with real-time planar mirror rendering.
-- Added an interactive 3D workstation desk and in-world floating control billboard in the scene.
-- Added multi-selection capabilities to select and edit multiple timeline blocks simultaneously using Ctrl+Click.
-- Added batch editing in the property inspector to adjust parameters across multiple selected items at once.
-
-## Bug Fixes
-- Fixed application packaging icon size to ensure proper desktop and taskbar icon display.
+- Added Particle Density controls to customize star counts from 0.25x to 3.0x for both firework bursts and individual nested stages.
+- Added Breathing Pulse and Diamond Scintillation active visual effects for dynamic twinkling and pulsing pyrotechnic stars.
+- Added Multi Nested Shell support allowing authors to choreograph multi-stage concentric and satellite fireworks with independent shapes, delays, and densities.
 
 ## Updates
-- Improved rendering performance and eliminated micro-stutters during heavy firework particle bursts.
-- Optimized smoke emission rates for large particle clusters to maintain smooth frame rates.
-- Rebranded desktop application to Firework & Drone Show Studio.
+- Improved rendering performance when firing dense comet sequences to eliminate frame drops.
+- Implemented intelligent particle load throttling during heavy finales to keep playback smooth without exhausting system capacity.
+- Optimized particle lifecycle recycling to prevent stars from abruptly disappearing mid-air.
 
 ## Chores
-- Added comprehensive unit tests for water reflections, planar reflectors, and timeline multi-selection controls.
-- Updated release notes automation skill with standardized download asset URLs.
+- Added comprehensive unit tests for particle density adjustments, multi-stage firework bursts, and dynamic load throttling.
