@@ -63,6 +63,8 @@ const _scratchSplashVel = new THREE.Vector3();
 const _scratchSplashColor = new THREE.Color();
 const _steamColor = new THREE.Color(0xdde5ee);
 const _scratchLerpPos = new THREE.Vector3();
+const _scratchBurstTrailColor = new THREE.Color();
+const _scratchBurstTrailVel = new THREE.Vector3();
 const _whiteColor = new THREE.Color(0xffffff);
 
 export class FireworkSystem {
@@ -3922,14 +3924,13 @@ export class FireworkSystem {
           : defaultSpawnChance;
 
         if (Math.random() < spawnChance * parentFade) {
-          const trailColor = p.baseColor.clone();
           const currentIntensity = (trailIntensity ?? 0.25) * parentFade;
-          trailColor.multiplyScalar(currentIntensity);
+          _scratchBurstTrailColor.copy(p.baseColor).multiplyScalar(currentIntensity);
 
           const currentLife = (trailLife || 0.8) * (0.2 + 0.8 * parentFade);
-          const trailVel = isCometRing
-            ? p.velocity.clone().multiplyScalar(0.7)
-            : p.velocity.clone().multiplyScalar(0.25);
+          _scratchBurstTrailVel.copy(p.velocity).multiplyScalar(
+            isCometRing ? 0.7 : 0.25
+          );
           const trailGrav = isCometRing ? 0.0 : 0.8;
           const trailDrag = isCometRing ? 1.2 : 1.6;
 
@@ -3956,13 +3957,13 @@ export class FireworkSystem {
 
             this.trailSystem?.spawnTrailParticle?.(
               _scratchLerpPos,
-              trailColor,
+              _scratchBurstTrailColor,
               isCometRing ? 1.0 : currentLife,
               false,
               isCometRing ? currentLife : null,
               0.65,
               false,
-              trailVel,
+              _scratchBurstTrailVel,
               trailGrav,
               trailDrag
             );

@@ -7,6 +7,7 @@ import { renderingConfig } from '../config/rendering.js';
 const GRAVITY = FIREWORK_CONFIG.GRAVITY;
 const DEFAULT_TRAIL_COLOR = new THREE.Color(0xffd700);
 const CRACKLE_SPARK_COLOR = new THREE.Color(0xffd77a);
+const _scratchTrailColor = new THREE.Color();
 
 const MAX_PARTICLES = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
 
@@ -15,6 +16,8 @@ export class TrailSystem {
     this.scene = scene;
     this.trailParticles = [];
     this.eventSubscriptions = [];
+    this.particlePool = [];
+    this.maxPoolSize = 100000;
 
     const baseMax = FIREWORK_CONFIG.SYSTEM.maxTrailParticles;
     this.allocatedMaxTrailParticles = Math.max(100000, Math.round(baseMax * 2.0)); // Pre-allocate with safety margin
@@ -182,37 +185,60 @@ export class TrailSystem {
     }
 
     const useFireworkColor = Math.random() < 0.75;
-    const trailColor = exactColor
-      ? color.clone()
-      : (useFireworkColor
-        ? color.clone().offsetHSL(
-          (Math.random() - 0.5) * 0.04,
-          (Math.random() - 0.5) * 0.08,
-          (Math.random() - 0.5) * 0.12
-        )
-        : DEFAULT_TRAIL_COLOR.clone());
+    if (exactColor) {
+      _scratchTrailColor.copy(color);
+    } else if (useFireworkColor) {
+      _scratchTrailColor.copy(color).offsetHSL(
+        (Math.random() - 0.5) * 0.04,
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.12
+      );
+    } else {
+      _scratchTrailColor.copy(DEFAULT_TRAIL_COLOR);
+    }
 
     const vx = customVelocity ? customVelocity.x : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
     const vy = customVelocity ? customVelocity.y : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
     const vz = customVelocity ? customVelocity.z : (zeroVelocity ? 0 : (Math.random() - 0.5) * 5);
+    const pLife = customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier;
 
-    const particle = {
-      position: new THREE.Vector3(position.x, position.y, position.z),
-      velocity: new THREE.Vector3(vx, vy, vz),
-      color: trailColor,
-      life: customLife !== null ? customLife : (2 + Math.random() * 3) * lifeMultiplier,
-      age: 0,
-      opacity: opacityMultiplier,
-      strobe: strobe,
-      shimmer: shimmer,
-      exactColor: exactColor,
-      phase: phase !== null ? phase : Math.random() * 1000,
-      strobeFreq: 90 + Math.random() * 90,
-      dutyRatio: 0.25 + Math.random() * 0.2,
-      shimmerSpeed: 0.03 + Math.random() * 0.04,
-      gravityScale: gravityScale,
-      dragScale: dragScale
-    };
+    let particle;
+    if (this.particlePool.length > 0) {
+      particle = this.particlePool.pop();
+      particle.position.set(position.x, position.y, position.z);
+      particle.velocity.set(vx, vy, vz);
+      particle.color.copy(_scratchTrailColor);
+      particle.life = pLife;
+      particle.age = 0;
+      particle.opacity = opacityMultiplier;
+      particle.strobe = strobe;
+      particle.shimmer = shimmer;
+      particle.exactColor = exactColor;
+      particle.phase = phase !== null ? phase : Math.random() * 1000;
+      particle.strobeFreq = 90 + Math.random() * 90;
+      particle.dutyRatio = 0.25 + Math.random() * 0.2;
+      particle.shimmerSpeed = 0.03 + Math.random() * 0.04;
+      particle.gravityScale = gravityScale;
+      particle.dragScale = dragScale;
+    } else {
+      particle = {
+        position: new THREE.Vector3(position.x, position.y, position.z),
+        velocity: new THREE.Vector3(vx, vy, vz),
+        color: _scratchTrailColor.clone(),
+        life: pLife,
+        age: 0,
+        opacity: opacityMultiplier,
+        strobe: strobe,
+        shimmer: shimmer,
+        exactColor: exactColor,
+        phase: phase !== null ? phase : Math.random() * 1000,
+        strobeFreq: 90 + Math.random() * 90,
+        dutyRatio: 0.25 + Math.random() * 0.2,
+        shimmerSpeed: 0.03 + Math.random() * 0.04,
+        gravityScale: gravityScale,
+        dragScale: dragScale
+      };
+    }
     this.trailParticles.push(particle);
   }
 
@@ -229,27 +255,48 @@ export class TrailSystem {
       return;
     }
 
-    const spark = {
-      position: new THREE.Vector3(position.x, position.y, position.z),
-      // Vận tốc ngẫu nhiên để các hạt tỏa ra xung quanh tạo thành hình nón (mở dần) hoặc dùng vận tốc tùy biến
-      velocity: customVelocity
-        ? new THREE.Vector3(customVelocity.x, customVelocity.y, customVelocity.z)
-        : new THREE.Vector3(
-            (Math.random() - 0.5) * 6,
-            Math.random() * 5,
-            (Math.random() - 0.5) * 6
-          ),
-      color: color.clone(),
-      // Tăng mạnh thời gian sống để hạt kịp tỏa rộng ra trước khi mờ hẳn (hoặc dùng customLife ngắn hơn)
-      life: customLife !== null ? customLife : 1.5 + Math.random() * 1.2,
-      age: 0,
-      strobe: strobe,
-      shimmer: shimmer,
-      phase: phase !== null ? phase : Math.random() * 1000,
-      strobeFreq: 90 + Math.random() * 90,
-      dutyRatio: 0.25 + Math.random() * 0.2,
-      shimmerSpeed: 0.03 + Math.random() * 0.04
-    };
+    const vx = customVelocity ? customVelocity.x : (Math.random() - 0.5) * 6;
+    const vy = customVelocity ? customVelocity.y : Math.random() * 5;
+    const vz = customVelocity ? customVelocity.z : (Math.random() - 0.5) * 6;
+    const sparkLife = customLife !== null ? customLife : 1.5 + Math.random() * 1.2;
+
+    let spark;
+    if (this.particlePool.length > 0) {
+      spark = this.particlePool.pop();
+      spark.position.set(position.x, position.y, position.z);
+      spark.velocity.set(vx, vy, vz);
+      spark.color.copy(color);
+      spark.life = sparkLife;
+      spark.age = 0;
+      spark.opacity = 0.65;
+      spark.strobe = strobe;
+      spark.shimmer = shimmer;
+      spark.exactColor = false;
+      spark.phase = phase !== null ? phase : Math.random() * 1000;
+      spark.strobeFreq = 90 + Math.random() * 90;
+      spark.dutyRatio = 0.25 + Math.random() * 0.2;
+      spark.shimmerSpeed = 0.03 + Math.random() * 0.04;
+      spark.gravityScale = 1.0;
+      spark.dragScale = 1.0;
+    } else {
+      spark = {
+        position: new THREE.Vector3(position.x, position.y, position.z),
+        velocity: new THREE.Vector3(vx, vy, vz),
+        color: color.clone(),
+        life: sparkLife,
+        age: 0,
+        opacity: 0.65,
+        strobe: strobe,
+        shimmer: shimmer,
+        exactColor: false,
+        phase: phase !== null ? phase : Math.random() * 1000,
+        strobeFreq: 90 + Math.random() * 90,
+        dutyRatio: 0.25 + Math.random() * 0.2,
+        shimmerSpeed: 0.03 + Math.random() * 0.04,
+        gravityScale: 1.0,
+        dragScale: 1.0
+      };
+    }
     this.trailParticles.push(spark);
   }
 
@@ -293,33 +340,32 @@ export class TrailSystem {
   update(deltaTime) {
     let activeCount = 0;
     const nowMs = performance.now();
+    const dt = deltaTime;
+    const baseGravDt = GRAVITY * dt * 0.5;
 
     for (let i = 0; i < this.trailParticles.length; i++) {
       const particle = this.trailParticles[i];
 
-      // Thêm lực cản không khí để hạt hãm phanh lại, nhân thêm dragScale riêng biệt
-      const drag =
-        1.0 -
-        4.0 *
-          deltaTime *
-          (particle.dragScale ?? 1.0);
-      particle.velocity.x *= drag;
-      particle.velocity.y *= drag;
-      particle.velocity.z *= drag;
-      // Rơi xuống từ từ (nhân thêm gravityScale riêng biệt của hạt)
-      particle.velocity.y +=
-        GRAVITY *
-        deltaTime *
-        0.5 *
-        (particle.gravityScale ?? 1.0);
-      particle.position.addScaledVector(
-        particle.velocity,
-        deltaTime
-      );
-      particle.age += deltaTime;
+      // Tinh toan dong hoc truc tiep (Direct scalar kinematics - Zero function call overhead)
+      const drag = 1.0 - 4.0 * dt * (particle.dragScale ?? 1.0);
+      const vx = particle.velocity.x * drag;
+      const vy = particle.velocity.y * drag + baseGravDt * (particle.gravityScale ?? 1.0);
+      const vz = particle.velocity.z * drag;
+
+      particle.velocity.x = vx;
+      particle.velocity.y = vy;
+      particle.velocity.z = vz;
+
+      particle.position.x += vx * dt;
+      particle.position.y += vy * dt;
+      particle.position.z += vz * dt;
+      particle.age += dt;
 
       if (particle.position.y <= 0) {
         // Quench trail particle when it hits water surface
+        if (this.particlePool.length < this.maxPoolSize) {
+          this.particlePool.push(particle);
+        }
         continue;
       }
 
@@ -327,29 +373,29 @@ export class TrailSystem {
         if (activeCount < this.maxTrailParticles) {
           // Áp dụng hàm mũ để hạt biến mất nhanh và sắc nét hơn ở cuối vòng đời của chính nó
           const lifeRatio = particle.age / particle.life;
-          const alphaCurve = particle.exactColor ? 1.6 : 2.5;
+          const invR = Math.max(0, 1.0 - lifeRatio);
           const alphaBase = particle.exactColor ? 1.0 : 0.75;
+          const decay = particle.exactColor
+            ? Math.pow(invR, 1.6)
+            : invR * invR * Math.sqrt(invR);
           let alpha =
-            Math.max(
-              0,
-              Math.pow(1.0 - lifeRatio, alphaCurve)
-            ) * (particle.opacity ?? 0.65) * alphaBase;
+            decay * (particle.opacity ?? 0.65) * alphaBase;
           let r = particle.color.r;
           let g = particle.color.g;
           let b = particle.color.b;
 
-          // Vòng đời nhiệt sắc cho hạt vệt (Thermal Lifecycle) - giảm nhẹ độ chói chồng lấp
+          // Vòng đời nhiệt sắc cho hạt vệt (Inlined Linear Interpolation - Zero Call Overhead)
           if (!particle.strobe && !particle.shimmer && !particle.exactColor) {
             if (lifeRatio < 0.15) {
-              const flashT = 1.0 - (lifeRatio / 0.15);
-              r = THREE.MathUtils.lerp(r, Math.max(r, 1.05), flashT * 0.35);
-              g = THREE.MathUtils.lerp(g, Math.max(g, 1.02), flashT * 0.30);
-              b = THREE.MathUtils.lerp(b, Math.max(b, 1.0), flashT * 0.25);
+              const flashT = (1.0 - lifeRatio / 0.15) * 0.35;
+              r += (Math.max(r, 1.05) - r) * flashT;
+              g += (Math.max(g, 1.02) - g) * (flashT * 0.857);
+              b += (Math.max(b, 1.0) - b) * (flashT * 0.714);
             } else if (lifeRatio > 0.65) {
               const coolT = (lifeRatio - 0.65) / 0.35;
-              r = THREE.MathUtils.lerp(r, 0.95, coolT * 0.5);
-              g = THREE.MathUtils.lerp(g, 0.38, coolT * 0.6);
-              b = THREE.MathUtils.lerp(b, 0.05, coolT * 0.8);
+              r += (0.95 - r) * (coolT * 0.5);
+              g += (0.38 - g) * (coolT * 0.6);
+              b += (0.05 - b) * (coolT * 0.8);
             }
           }
 
@@ -409,6 +455,10 @@ export class TrailSystem {
           }
           activeCount++;
         }
+      } else {
+        if (this.particlePool.length < this.maxPoolSize) {
+          this.particlePool.push(particle);
+        }
       }
     }
 
@@ -444,6 +494,13 @@ export class TrailSystem {
   }
 
   clear() {
+    if (this.particlePool && this.trailParticles.length > 0) {
+      for (let i = 0; i < this.trailParticles.length; i++) {
+        if (this.particlePool.length < this.maxPoolSize) {
+          this.particlePool.push(this.trailParticles[i]);
+        }
+      }
+    }
     this.trailParticles = [];
     if (this.trailGeometry) {
       this.trailGeometry.setDrawRange(0, 0);
