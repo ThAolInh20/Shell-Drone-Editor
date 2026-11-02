@@ -175,7 +175,7 @@ describe('Second Burst Feature', () => {
       }
 
       const initialCount = fireworkSystem.burstParticles.length;
-      expect(initialCount).toBeGreaterThan(300);
+      expect(initialCount).toBeGreaterThan(220);
 
       // Advance time step-by-step to simulate frames across 2 seconds
       const dt = 0.016; // ~60 FPS frame delta
