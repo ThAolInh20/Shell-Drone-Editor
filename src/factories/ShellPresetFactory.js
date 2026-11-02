@@ -475,6 +475,7 @@ export class ShellPresetFactory {
           color: '#ff4400',
           delay: 0.0,
           scale: 1.0,
+          particleCountMultiplier: 1.0,
           effects: ['strobe']
         },
         {
@@ -483,6 +484,7 @@ export class ShellPresetFactory {
           color: '#00e5ff',
           delay: 0.45,
           scale: 0.82,
+          particleCountMultiplier: 1.0,
           effects: []
         },
         {
@@ -491,6 +493,7 @@ export class ShellPresetFactory {
           color: '#ffd700',
           delay: 0.90,
           scale: 0.65,
+          particleCountMultiplier: 1.0,
           effects: ['crossette']
         },
         {
@@ -499,6 +502,7 @@ export class ShellPresetFactory {
           color: '#ffffff',
           delay: 1.35,
           scale: 0.50,
+          particleCountMultiplier: 1.0,
           effects: ['glitter-strobe']
         }
       ],

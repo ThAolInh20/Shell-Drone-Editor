@@ -495,6 +495,8 @@ export default {
         templates: "预设模板",
         delay: "爆炸延迟",
         stageScale: "缩放比例",
+        stageParticleMultiplier: "粒子密度",
+        particleCountMultiplier: "粒子密度",
         nestingMode: "嵌套模式",
         secondBurst: "二次爆炸 Second Burst",
         secondBurstEnabled: "二次爆炸 Second Burst",

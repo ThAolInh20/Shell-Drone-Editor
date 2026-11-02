@@ -1558,6 +1558,9 @@ export class FireworkSystem {
 
       const stageEffects = Array.isArray(stage.effects) ? stage.effects : [];
       const stageEffectKeys = stageEffects.map((e) => (typeof e === 'object' && e !== null ? (e.type || e.key) : e));
+      const stageParticleMultiplier = stage.particleCountMultiplier !== undefined
+        ? Math.max(0.25, Math.min(3.0, Number(stage.particleCountMultiplier) || 1.0))
+        : 1.0;
       const stagePreset = {
         ...preset,
         multiNested: false,
@@ -1566,6 +1569,7 @@ export class FireworkSystem {
         dynamicsType: stage.dynamicsType || 'standard',
         effects: stageEffects,
         shellSize: baseSize * stageScale,
+        particleCountMultiplier: stageParticleMultiplier,
         strobe: stageEffectKeys.includes('strobe') || Boolean(stage.strobe),
         crackle: stageEffectKeys.includes('crackle') || Boolean(stage.crackle),
         noTrail: stageEffectKeys.includes('no-trail') || Boolean(stage.noTrail),
@@ -1686,7 +1690,7 @@ export class FireworkSystem {
 
     const effectMultiplier = FIREWORK_CONFIG.EFFECT_MULTIPLIERS;
 
-    const presetMultiplier = Math.max(0.35, Math.min(2.5, preset?.particleCountMultiplier ?? 1));
+    const presetMultiplier = Math.max(0.25, Math.min(3.0, preset?.particleCountMultiplier ?? 1));
     const renderModeMultiplier = (
       preset?.shapeRenderMode === 'outline'
       || preset?.shapeRenderMode === 'jupiter'

@@ -508,6 +508,8 @@ export default {
         templates: "Mẫu pháo có sẵn",
         delay: "Độ trễ kích nổ",
         stageScale: "Tỉ lệ kích thước",
+        stageParticleMultiplier: "Mật độ hạt",
+        particleCountMultiplier: "Mật độ hạt",
         nestingMode: "Kiểu pháo lồng",
         secondBurst: "Pháo nổ phụ Second Burst",
         secondBurstEnabled: "Pháo nổ phụ Second Burst",

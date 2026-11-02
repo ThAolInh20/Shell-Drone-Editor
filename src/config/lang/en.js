@@ -508,6 +508,8 @@ export default {
         templates: "Quick Templates",
         delay: "Burst Delay",
         stageScale: "Scale Multiplier",
+        stageParticleMultiplier: "Particle Density",
+        particleCountMultiplier: "Particle Density",
         nestingMode: "Nesting Pattern",
         secondBurst: "Second Burst",
         secondBurstEnabled: "Second Burst",
