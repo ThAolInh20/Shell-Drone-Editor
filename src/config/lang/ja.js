@@ -381,6 +381,7 @@ export default {
     bloom_radius: "ブルーム半径",
     bloom_threshold: "ブルームしきい値",
     particle_edge_softness: "パーティクルエッジのぼかし",
+    gpu_trail_simulation: "GPU 軌跡シミュレーション",
     lake_mirror_reflection: "水面反射",
     lake_reflection_resolution: "水面反射解像度",
     lake_reflection_resolution_low: "低",

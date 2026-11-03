@@ -151,6 +151,33 @@ export const SETTINGS_DEFINITION = [
     }
   },
   {
+    key: 'gpu_trail_simulation',
+    label: 'GPU Trail Simulation',
+    type: 'checkbox',
+    category: 'system',
+    subgroup: 'camera_post',
+    default: true,
+    apply(
+      value,
+      context
+    ) {
+      if (
+        context &&
+        context.fireworkSystem &&
+        context.fireworkSystem.trailSystem &&
+        typeof context.fireworkSystem.trailSystem.setGpuSimulation === 'function'
+      ) {
+        context.fireworkSystem.trailSystem.setGpuSimulation(value);
+      } else if (
+        context &&
+        context.trailSystem &&
+        typeof context.trailSystem.setGpuSimulation === 'function'
+      ) {
+        context.trailSystem.setGpuSimulation(value);
+      }
+    }
+  },
+  {
     key: 'auto_save_enabled',
     label: 'Auto-Save Direct',
     type: 'checkbox',

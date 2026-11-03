@@ -75,9 +75,9 @@ export const FIREWORK_CONFIG = {
     // Độ phân tán thời gian sống của hạt
     lifeJitter: BASE_BURST_PROFILE.lifeJitter,
     // Số hạt nổ mặc định cho một quả pháo tiêu chuẩn
-    baseParticles: 110,
+    baseParticles: 85,
     // Số hạt nổ tối thiểu cho phép
-    minParticles: 60,
+    minParticles: 45,
     // Số hạt nổ tối đa cho phép để bảo vệ FPS
     maxParticles: 220,
     // Hệ số kéo dài thời gian sống cho hiệu ứng long-burn
@@ -221,23 +221,23 @@ export const FIREWORK_CONFIG = {
   // Hệ số nhân số lượng hạt dựa trên hình dạng vụ nổ (Shape)
   SHAPE_MULTIPLIERS: {
     sphere: 1,
-    ring: 1.08,
-    heart: 1.4,
-    flower: 1.22,
-    cat: 1.2,
-    fish: 1.14,
-    smiley: 1.2,
-    oval: 1.12,
-    willow: 1.18,
-    lightning: 1.16,
-    star: 1.14,
-    'double-helix': 0.95,
-    'sparkling-branches': 1.0,
+    ring: 1.40,
+    heart: 1.81,
+    flower: 1.58,
+    cat: 1.55,
+    fish: 1.48,
+    smiley: 1.55,
+    oval: 1.45,
+    willow: 1.35,
+    lightning: 1.40,
+    star: 1.48,
+    'double-helix': 1.15,
+    'sparkling-branches': 1.25,
     'sphere_uniform': 1.15,
     'sphere-uniform': 1.15,
-    egg: 1.2,
-    sphere_rings: 1.2,
-    'sphere-rings': 1.2,
+    egg: 1.50,
+    sphere_rings: 1.55,
+    'sphere-rings': 1.55,
     horsetail: 0.58
   },
 
