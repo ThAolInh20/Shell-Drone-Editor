@@ -405,6 +405,33 @@ export class PropertyInspector {
               span: 2
             },
             {
+              name: 'textWord',
+              labelKey: 'textWord',
+              type: 'text',
+              span: 2,
+              visibleIf: (event) => (
+                event?.shapeType === 'text_word'
+                || event?.preset === 'text_word'
+                || event?.shellType === 'text_word'
+              )
+            },
+            {
+              name: 'textScale',
+              labelKey: 'textScale',
+              type: 'slider',
+              min: '0.1',
+              max: '2.0',
+              step: '0.02',
+              defaultValue: 0.38,
+              formatValue: (v) => `${Number(v).toFixed(2)}x`,
+              span: 2,
+              visibleIf: (event) => (
+                event?.shapeType === 'text_word'
+                || event?.preset === 'text_word'
+                || event?.shellType === 'text_word'
+              )
+            },
+            {
               name: 'dynamicsType',
               labelKey: 'dynamicsType',
               type: 'select',
@@ -991,6 +1018,11 @@ export class PropertyInspector {
           target[field.name] = val;
         }
 
+        if (field.name === 'textWord' || field.name === 'textScale') {
+          delete target.textPoints;
+          delete target._glyphCacheKey;
+        }
+
         if (
           field.name === 'launchSound' ||
           field.name === 'burstSound' ||
@@ -1161,6 +1193,8 @@ export class PropertyInspector {
         input.placeholder = t('editor.inspector.mixedValues') || 'Mixed Values';
       } else if (field.name === 'soundVolume') {
         input.placeholder = '1.0';
+      } else if (field.name === 'textWord') {
+        input.placeholder = 'HELLO';
       }
 
       input.addEventListener('focus', () => {

@@ -515,6 +515,8 @@ export default {
         pattern: "发射规律",
         preset: "预设",
         shapeType: "爆炸形状",
+        textWord: "文本内容",
+        textScale: "文字大小",
         dynamicsType: "爆炸动态",
         count: "数量",
         duration: "持续时间",
@@ -601,9 +603,12 @@ export default {
           "sphere-uniform": "均匀球形",
           sphere_rings: "球形纬度环",
           "sphere-rings": "球形纬度环",
-          horsetail: "马尾形"
+          horsetail: "马尾形",
+          text_word: "文字单词",
+          "text-word": "文字单词",
         },
         dynamicsType: {
+          text_word: "文字单词",
           standard: "标准径向放射",
           flow: "流动流向",
           willow: "垂柳飘落",
@@ -684,6 +689,7 @@ export default {
           empty: "无"
         },
         preset: {
+          text_word: "文字单词",
           random: "随机",
           comet_cluster: "彗星集群",
           comet_cluster_notrail: "无拖尾彗星集群",

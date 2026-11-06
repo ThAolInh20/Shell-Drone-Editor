@@ -3,6 +3,7 @@ import { LAUNCH_ZONE_CONFIG } from '../config/launchZone.js';
 import { ShellEntity } from '../entities/ShellEntity.js';
 import { ShellPresetFactory } from '../factories/ShellPresetFactory.js';
 import { BurstShapeGenerator } from '../factories/BurstShapeGenerator.js';
+import { layoutWord } from '../factories/TextGlyphAtlas.js';
 import { BurstEffectProcessor } from '../factories/BurstEffectProcessor.js';
 import { BurstParticleFactory } from '../factories/BurstParticleFactory.js';
 import { resolveSecondBurstConfig } from '../factories/FireworkCompositionHelper.js';
@@ -372,8 +373,16 @@ export class FireworkSystem {
 
     // Áp dụng hiệu ứng ghi đè (overrides) trực tiếp từ file cấu hình sequence
     if (effectOverrides && typeof effectOverrides === 'object') {
-      resolvedPreset = { ...resolvedPreset, ...effectOverrides };
-    }
+        if (effectOverrides.textWord) {
+          effectOverrides.textPoints = null;
+          effectOverrides._glyphCacheKey = null;
+        }
+        resolvedPreset = { ...resolvedPreset, ...effectOverrides };
+        if (effectOverrides.textWord || effectOverrides.textScale || effectOverrides.letterSpacing) {
+          resolvedPreset.textPoints = null;
+          resolvedPreset._glyphCacheKey = null;
+        }
+      }
 
     const shellPreset = this.shellPresetFactory.validatePreset(resolvedPreset ?? this.shellPresetFactory.randomPreset());
     const shellId = ++this.shellSequence;
@@ -1675,6 +1684,25 @@ export class FireworkSystem {
   }
 
   resolveBurstParticleCount(shape, effectType, preset) {
+    if (shape === 'text_word' || preset?.textWord) {
+      const textWord = preset?.textWord || preset?.word || 'HELLO';
+      const textScale = preset?.textScale ?? 0.38;
+      const letterSpacing = preset?.letterSpacing ?? 1.5;
+      const cacheKey = `${textWord}_${textScale}_${letterSpacing}`;
+
+      let pts = preset?.textPoints;
+      if (!pts || !Array.isArray(pts) || pts.length === 0 || preset?._glyphCacheKey !== cacheKey) {
+        pts = layoutWord(textWord, {
+          scale: textScale,
+          letterSpacing: letterSpacing
+        });
+        if (preset) {
+          preset.textPoints = pts;
+          preset._glyphCacheKey = cacheKey;
+        }
+      }
+      return pts && pts.length > 0 ? pts.length : 60;
+    }
     if (preset?.isAscentChild) {
       return Math.round((14 + Math.floor(Math.random() * 6)) * this.graphicsQualityMultiplier);
     }
@@ -2150,11 +2178,11 @@ export class FireworkSystem {
         if (particleShape === 'willow-arch' || particleShape === 'willow-up') {
           direction = rawDir.applyQuaternion(burstYawQuat);
         } else {
-          direction = rawDir.applyQuaternion(burstRotation);
+          direction = (particleShape === 'heart' || particleShape === 'text_word') ? rawDir.clone() : rawDir.applyQuaternion(burstRotation);
         }
       }
 
-      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg') || (particleShape === 'sphere_rings');
+      const useContourMagnitude = (!isCoreParticle && ringPreset?.shapeRenderMode === 'outline' && (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star')) || (particleShape === 'half-flash') || (particleShape === 'split-flash') || (particleShape === 'galaxy') || (particleShape === 'egg') || (particleShape === 'sphere_rings') || (particleShape === 'text_word');
       if (!useContourMagnitude) {
         direction.normalize();
       }
@@ -2173,6 +2201,9 @@ export class FireworkSystem {
       let baseSpeed;
       if (isCoreParticle) {
         baseSpeed = profileBaseSpeed * coreSpeedBand;
+      } else if (particleShape === 'text_word') {
+        const wordSpeedBand = 0.98 + (Math.random() - 0.5) * 0.04;
+        baseSpeed = profileBaseSpeed * wordSpeedBand;
       } else if (particleShape === 'ring' || particleShape === 'heart' || particleShape === 'star') {
         let speedVariance = 0.12; // Mặc định méo tự nhiên cho heart và star
         if (
@@ -2217,7 +2248,9 @@ export class FireworkSystem {
         (preset?.shellType === 'strobeDyingEmbers' && Math.random() < 0.5) ||
         Math.random() < 0.05;
       const speedJitter = dynamicsProfile?.speedJitter ?? BURST_SPEED_JITTER;
-      const speedJitterScale = 1.0 + (Math.random() - 0.5) * (speedJitter * 2);
+      const speedJitterScale = (particleShape === 'text_word')
+        ? 1.0
+        : (1.0 + (Math.random() - 0.5) * (speedJitter * 2));
       const apexSpeedMul = isApexHang
         ? (FIREWORK_CONFIG.BURST?.apexSpeedMultiplier ?? 3.0)
         : 1.0;
@@ -2326,7 +2359,9 @@ export class FireworkSystem {
         ? preset.drag
         : (dynamicsProfile?.baseDrag ?? BURST_BASE_DRAG);
       const dragJitter = dynamicsProfile?.dragJitter ?? BURST_DRAG_JITTER;
-      const dragJitterScale = 1.0 + (Math.random() - 0.5) * (dragJitter * 2);
+      const dragJitterScale = (particleShape === 'text_word')
+        ? 1.0
+        : (1.0 + (Math.random() - 0.5) * (dragJitter * 2));
       const particleDrag = Math.max(
         0.1,
         baseParticleDrag * dragJitterScale

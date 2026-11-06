@@ -55,12 +55,24 @@ export class ShowEventDispatcher {
         || evt.multiNested !== undefined
         || evt.secondBurst !== undefined
         || evt.secondBurstEnabled !== undefined
+        || evt.textWord !== undefined
+        || evt.textScale !== undefined
+        || evt.letterSpacing !== undefined
+        || evt.tiltAngle !== undefined
       ) {
         overrides = { ...(overrides || {}) };
         if (evt.instantBurst !== undefined) overrides.instantBurst = evt.instantBurst;
         if (evt.shellSize !== undefined) overrides.shellSize = evt.shellSize;
         if (evt.starLifeMultiplier !== undefined) overrides.starLifeMultiplier = evt.starLifeMultiplier;
         if (evt.shapeType !== undefined) overrides.shapeType = evt.shapeType;
+        if (evt.textWord !== undefined) {
+          overrides.textWord = evt.textWord;
+          overrides.textPoints = null;
+          overrides._glyphCacheKey = null;
+        }
+        if (evt.textScale !== undefined) overrides.textScale = evt.textScale;
+        if (evt.letterSpacing !== undefined) overrides.letterSpacing = evt.letterSpacing;
+        if (evt.tiltAngle !== undefined) overrides.tiltAngle = evt.tiltAngle;
         if (evt.dynamicsType !== undefined) overrides.dynamicsType = evt.dynamicsType;
         if (evt.pistil !== undefined) overrides.pistil = evt.pistil;
         if (evt.effects !== undefined) overrides.effects = evt.effects;
