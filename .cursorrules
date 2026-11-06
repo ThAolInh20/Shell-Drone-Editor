@@ -1,5 +1,6 @@
 # System Architecture & Context Rules
 
+- **MANDATORY**: Mọi logic, hiệu ứng, toán học, shaders, presets của hệ thống pháo hoa BẮT BUỘC phải được bảo trì và cập nhật tại thư viện dùng chung độc lập `../firework-engine` (Single Source of Truth). Tuyệt đối không thêm hay sửa logic pháo hoa trực tiếp trong thư mục `src/factories/` của project này. Mọi thay đổi phải được kiểm thử `npm test` và `npm run build` tại `../firework-engine` trước khi cập nhật vào project.
 - **MANDATORY**: ALWAYS READ `STRUCTURE.md` BEFORE analyzing code, planning features, or making any changes. 
 - `STRUCTURE.md` is the single source of truth for the project's logical modules, execution flows, and cross-module dependencies. Do not rely solely on the physical folder structure.
 - **MANDATORY**: Trong trường hợp có các file mới hoặc thay đổi kiến trúc/giao diện public, cần thực hiện cập nhật lại `STRUCTURE.md` (sử dụng các công cụ/script cập nhật cấu trúc dự án hoặc nhắc nhở người dùng) sau khi người dùng đã duyệt (approve) toàn bộ code và tự kiểm thử (test) thành công.

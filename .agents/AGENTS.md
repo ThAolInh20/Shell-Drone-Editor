@@ -25,7 +25,8 @@
 - **Relative Markdown Links**: Always prioritize using relative links (for example, `./src/main.js`) instead of absolute file paths (such as `file:///...`) when writing links inside workspace documentation and files (such as `STRUCTURE.md`).
 
 ## Firework & Shell Configurations
-- **Read Centralized Configurations**: Whenever a user request relates to configuring firework parameters, particle counts, gravity, multipliers, or special shell presets (such as bouquet or comet settings), you MUST first read and refer to the centralized configuration file at `./src/config/fireworks.js` to ensure configurations remain unified and follow the established parameter schemas.
+- **Single Source of Truth in Firework Engine**: All firework physics, mathematics, shapes, dynamics, visual effects, and shell presets are maintained centrally inside the standalone engine at `../firework-engine`. Whenever adding or updating firework logic, you MUST implement the changes in `../firework-engine`, run `npm test` and `npm run build` there, and let this studio project consume the updated package `@shell-drone/firework-engine`. Do not directly modify firework factories inside this studio repository.
+- **Read Centralized Configurations**: Whenever a user request relates to configuring firework parameters, particle counts, gravity, multipliers, or special shell presets (such as bouquet or comet settings), you MUST first read and refer to the centralized configuration file at `../firework-engine/src/config/fireworks.js` to ensure configurations remain unified and follow the established parameter schemas.
 
 ## Firework Composition Architecture Conventions
 - **Composition over Presets**: Fireworks must strictly adhere to the Component-based Composition model:
