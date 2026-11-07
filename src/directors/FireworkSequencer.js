@@ -445,9 +445,21 @@ export class FireworkSequencer {
         || config.nestingMode !== undefined
         || config.multiNested !== undefined
         || config.secondBurst !== undefined
-        || config.secondBurstEnabled !== undefined) 
+        || config.secondBurstEnabled !== undefined
+        || config.textWord !== undefined
+        || config.textScale !== undefined
+        || config.letterSpacing !== undefined
+        || config.tiltAngle !== undefined) 
       {
         overrides = { ...(overrides || {}) };
+        if (config.textWord !== undefined) {
+          overrides.textWord = config.textWord;
+          overrides.textPoints = null;
+          overrides._glyphCacheKey = null;
+        }
+        if (config.textScale !== undefined) overrides.textScale = config.textScale;
+        if (config.letterSpacing !== undefined) overrides.letterSpacing = config.letterSpacing;
+        if (config.tiltAngle !== undefined) overrides.tiltAngle = config.tiltAngle;
         if (instantBurst !== undefined) overrides.instantBurst = instantBurst;
         if (shellSize !== undefined) overrides.shellSize = shellSize;
         if (config.particleCountMultiplier !== undefined) overrides.particleCountMultiplier = config.particleCountMultiplier;
@@ -935,8 +947,20 @@ export class FireworkSequencer {
         || config.launchTrail !== undefined
         || config.secondBurst !== undefined
         || config.secondBurstEnabled !== undefined
+        || config.textWord !== undefined
+        || config.textScale !== undefined
+        || config.letterSpacing !== undefined
+        || config.tiltAngle !== undefined
       ) {
         overrides = { ...(overrides || {}) };
+        if (config.textWord !== undefined) {
+          overrides.textWord = config.textWord;
+          overrides.textPoints = null;
+          overrides._glyphCacheKey = null;
+        }
+        if (config.textScale !== undefined) overrides.textScale = config.textScale;
+        if (config.letterSpacing !== undefined) overrides.letterSpacing = config.letterSpacing;
+        if (config.tiltAngle !== undefined) overrides.tiltAngle = config.tiltAngle;
         if (config.instantBurst !== undefined) overrides.instantBurst = config.instantBurst;
         if (config.shellSize !== undefined) overrides.shellSize = config.shellSize;
         if (config.particleCountMultiplier !== undefined) overrides.particleCountMultiplier = config.particleCountMultiplier;

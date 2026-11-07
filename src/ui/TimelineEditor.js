@@ -2366,39 +2366,63 @@ export class TimelineEditor {
 
     const content = JSON.stringify(cleanSeqs, null, 2);
 
+    let defaultExportName = this.filename || 'demoShow.json';
+    if (onlySelected) {
+      if (sourceEvents.length === 1) {
+        const item = sourceEvents[0];
+        const rawName = item.name || item.preset || item.type || 'block';
+        const sanitized = String(rawName)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]+/g, '_');
+        defaultExportName = `export_${sanitized}.json`;
+      } else {
+        defaultExportName = 'export_selected_blocks.json';
+      }
+    }
+
     if (fileStorage.isElectron) {
       try {
         const res = await fileStorage.saveFileDialog(
           content,
-          this.filename || 'demoShow.json'
+          defaultExportName
         );
         if (res) {
-          this.currentFilePath = res.filePath;
-          this.filename = res.filename;
-          this.updateFileIndicator();
-          alert(t('editor.timelinePanel.exportSuccess', { filename: res.filename }));
+          // Do not mutate this.currentFilePath or this.filename
+          // Keep active editing session bound to the original project file
+          alert(t('editor.timelinePanel.exportSuccess', {
+            filename: res.filename
+          }));
         }
       } catch (err) {
-        alert(t('editor.timelinePanel.exportError', { error: err.message }));
+        alert(t('editor.timelinePanel.exportError', {
+          error: err.message
+        }));
       }
       return;
     }
 
     // Web Fallback
     try {
-      const blob = new Blob([content], { type: 'application/json' });
+      const blob = new Blob([content], {
+        type: 'application/json'
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = this.filename || 'demoShow.json';
+      a.download = defaultExportName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert(t('editor.timelinePanel.exportSuccess', { filename: this.filename || 'demoShow.json' }));
+      alert(t('editor.timelinePanel.exportSuccess', {
+        filename: defaultExportName
+      }));
     } catch (err) {
-      alert(t('editor.timelinePanel.exportError', { error: err.message }));
+      alert(t('editor.timelinePanel.exportError', {
+        error: err.message
+      }));
     }
   }
 

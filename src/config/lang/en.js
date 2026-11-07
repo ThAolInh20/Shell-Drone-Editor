@@ -526,6 +526,8 @@ export default {
         pattern: "Pattern",
         preset: "Preset",
         shapeType: "Burst Shape",
+        textWord: "Text Message",
+        textScale: "Text Scale",
         dynamicsType: "Burst Dynamics",
         count: "Count",
         duration: "Duration s",
@@ -613,9 +615,12 @@ export default {
           "sphere-uniform": "Uniform Sphere",
           sphere_rings: "Sphere Latitude Rings",
           "sphere-rings": "Sphere Latitude Rings",
-          horsetail: "Horsetail"
+          horsetail: "Horsetail",
+          text_word: "Text Word",
+          "text-word": "Text Word",
         },
         dynamicsType: {
+          text_word: "Text Word",
           standard: "Standard Radial",
           flow: "Flow Stream",
           willow: "Weeping Willow Droop",
@@ -696,6 +701,7 @@ export default {
           empty: "None"
         },
         preset: {
+          text_word: "Text Word",
           random: "Random",
           comet_cluster: "Comet Cluster",
           comet_cluster_notrail: "Comet Cluster No Trail",

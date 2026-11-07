@@ -526,6 +526,8 @@ export default {
         pattern: "Quy luật bắn",
         preset: "Preset",
         shapeType: "Hình dạng bung",
+        textWord: "Nội dung chữ",
+        textScale: "Kích cỡ chữ",
         dynamicsType: "Động lực học nổ",
         count: "Số lượng",
         duration: "Thời gian chạy s",
@@ -613,9 +615,12 @@ export default {
           "sphere-uniform": "Hình cầu đồng đều",
           sphere_rings: "Vành đai cầu vĩ độ",
           "sphere-rings": "Vành đai cầu vĩ độ",
-          horsetail: "Thác nước đuôi ngựa"
+          horsetail: "Thác nước đuôi ngựa",
+          text_word: "Chữ cái và từ ngữ",
+          "text-word": "Chữ cái và từ ngữ",
         },
         dynamicsType: {
+          text_word: "Chữ cái và từ ngữ",
           standard: "Tỏa đều tiêu chuẩn",
           flow: "Dòng chảy uốn lượn",
           willow: "Liễu rủ tàn rủ",
@@ -696,6 +701,7 @@ export default {
           empty: "Không chọn"
         },
         preset: {
+          text_word: "Chữ cái và từ ngữ",
           random: "Ngẫu nhiên",
           comet_cluster: "Cụm sao chổi",
           comet_cluster_notrail: "Cụm sao chổi không vệt",

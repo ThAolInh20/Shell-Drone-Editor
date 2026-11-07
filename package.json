@@ -1,6 +1,6 @@
 {
   "name": "shell-drone-animation",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Firework & Drone Show Studio",
   "author": "ThaoLinn20",
   "private": true,
@@ -66,6 +66,7 @@
     "wait-on": "^9.0.10"
   },
   "dependencies": {
+    "@shell-drone/firework-engine": "github:ThaoLinn20/firework-engine",
     "three": "^0.183.2"
   }
 }

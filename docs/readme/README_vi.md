@@ -56,6 +56,26 @@ Sau đó, truy cập vào địa chỉ local được hiển thị trên termina
 
 ---
 
+## Hệ thống Thư viện Pháo hoa Dùng chung (Firework Engine)
+
+Toàn bộ thuật toán mô phỏng vật lý, hình học, động học vi phân, hiệu ứng quang học và mẫu cấu hình pháo hoa được duy trì tập trung tại kho mã nguồn độc lập **[`@shell-drone/firework-engine`](https://github.com/ThaoLinn20/firework-engine)**. Kiến trúc này bảo đảm các ứng dụng khác nhau (như bản Studio này và bản TikTok Live) luôn dùng chung một bộ logic chuẩn và đồng bộ hiệu ứng hiển thị 100%.
+
+### Cập nhật các loại pháo hoa mới nhất
+Khi có thêm pháo hoa mới hoặc bản tối ưu hiệu năng được đẩy lên kho mã nguồn `firework-engine`, bạn có thể cập nhật cho ứng dụng bằng lệnh:
+```bash
+npm update @shell-drone/firework-engine
+```
+
+### Quy trình tạo mới hoặc đóng góp pháo hoa
+Để tạo thêm hình dạng (Shape), động học (Dynamics) hoặc mẫu pháo (Preset) mới:
+1. Mở thư mục `../firework-engine` (https://github.com/ThaoLinn20/firework-engine).
+2. Viết mã nguồn hình dạng hoặc hiệu ứng trong thư mục `src/factories/` theo đúng mô hình Component-based Composition.
+3. Chạy `npm test` và `npm run build` tại `firework-engine` để kiểm thử và biên dịch bundle.
+4. Commit và push code lên nhánh `main`.
+5. Chạy `npm update @shell-drone/firework-engine` tại project Studio này để nhận ngay pháo hoa mới.
+
+---
+
 ## Biên dịch và Đóng gói
 
 ### B. Đóng gói Ứng dụng Desktop

@@ -495,6 +495,8 @@ export default {
         pattern: "発射パターン",
         preset: "プリセット",
         shapeType: "爆発形状",
+        textWord: "テキスト内容",
+        textScale: "文字サイズ",
         dynamicsType: "爆発ダイナミクス",
         count: "数量",
         duration: "持続時間",
@@ -602,9 +604,12 @@ export default {
           sphere_rings: "球体緯度リング",
           "sphere-rings": "球体緯度リング",
           waterfall: "ウォーターフォール滝",
-          horsetail: "馬尾形"
+          horsetail: "馬尾形",
+          text_word: "テキスト単語",
+          "text-word": "テキスト単語",
         },
         dynamicsType: {
+          text_word: "テキスト単語",
           standard: "標準放射",
           flow: "フローストリーム",
           willow: "柳の垂れ下がり",
@@ -685,6 +690,7 @@ export default {
           empty: "なし"
         },
         preset: {
+          text_word: "テキスト単語",
           random: "ランダム",
           comet_cluster: "彗星群",
           comet_cluster_notrail: "無軌跡彗星群",
